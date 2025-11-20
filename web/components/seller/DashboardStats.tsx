@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { firebaseAuth } from '../../lib/auth';
+import { tokenManager } from '../../lib/auth';
 
 interface StatCardProps {
   title: string;
@@ -36,7 +36,7 @@ export default function DashboardStats() {
 
   const fetchDashboardStats = async () => {
     try {
-      const token = await firebaseAuth.getIdToken();
+      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
@@ -68,19 +68,19 @@ export default function DashboardStats() {
 
   return (
     <div className="flex flex-wrap gap-4 p-4">
-      <StatCard 
-        title="Total Products" 
-        value={stats ? stats.totalProducts.toString() : '0'} 
+      <StatCard
+        title="Total Products"
+        value={stats ? stats.totalProducts.toString() : '0'}
         loading={loading}
       />
-      <StatCard 
-        title="Total Orders" 
-        value={stats ? stats.totalOrders.toString() : '0'} 
+      <StatCard
+        title="Total Orders"
+        value={stats ? stats.totalOrders.toString() : '0'}
         loading={loading}
       />
-      <StatCard 
-        title="Total Revenue" 
-        value={stats ? formatPrice(stats.totalRevenue) : '₦0.00'} 
+      <StatCard
+        title="Total Revenue"
+        value={stats ? formatPrice(stats.totalRevenue) : '₦0.00'}
         loading={loading}
       />
     </div>

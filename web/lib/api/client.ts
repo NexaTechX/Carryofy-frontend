@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { firebaseAuth } from '../auth';
+import { tokenManager } from '../auth/token';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://carryofyapi.vercel.app/api/v1';
 
@@ -9,30 +9,18 @@ const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Enable cookies for CORS
+  withCredentials: true, // Enable cookies for CORS if needed
   timeout: 10000, // 10 second timeout
 });
 
-// Request interceptor to add Firebase ID token
+// Request interceptor to add Access Token
 apiClient.interceptors.request.use(
-  async (config: InternalAxiosRequestConfig) => {
+  (config: InternalAxiosRequestConfig) => {
     // Only add token on client-side
-    if (typeof window === 'undefined') {
-      return config;
-    }
-    
-    try {
-      // Get Firebase ID token
-      const token = await firebaseAuth.getIdToken();
+    if (typeof window !== 'undefined') {
+      const token = tokenManager.getAccessToken();
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (error) {
-      // Silently fail if Firebase is not initialized (e.g., during SSR)
-      if (error instanceof Error && error.message.includes('Firebase Auth is not initialized')) {
-        // This is expected during SSR, just continue without token
-      } else {
-        console.error('Failed to get Firebase token:', error);
       }
     }
     return config;
@@ -42,32 +30,47 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
+// Response interceptor to handle errors and token refresh
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // Handle 401 Unauthorized - try to refresh Firebase token (client-side only)
+    // Handle 401 Unauthorized - try to refresh token
     if (error.response?.status === 401 && !originalRequest._retry && typeof window !== 'undefined') {
       originalRequest._retry = true;
 
       try {
-        // Force refresh Firebase ID token
-        const token = await firebaseAuth.getIdToken(true);
-        if (token && originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+        const refreshToken = tokenManager.getRefreshToken();
+
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        // Call refresh endpoint directly to avoid circular dependency and interceptors
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {
+          refreshToken,
+        });
+
+        const { accessToken } = response.data;
+
+        if (accessToken) {
+          // Update tokens - keep the old refresh token? 
+          // The API spec says response is { accessToken: string }, so we reuse the old refresh token 
+          // unless the backend rotates it. Assuming we keep the old one.
+          tokenManager.setTokens(accessToken, refreshToken);
+
+          // Update header and retry original request
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          }
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
-        // Refresh failed, sign out and redirect to login
+        // Refresh failed, clear tokens and redirect to login
         console.error('Token refresh failed:', refreshError);
-        try {
-          await firebaseAuth.logout();
-        } catch (logoutError) {
-          // Ignore logout errors
-        }
-        if (typeof window !== 'undefined') {
+        tokenManager.clearTokens();
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
           window.location.href = '/auth/login';
         }
       }

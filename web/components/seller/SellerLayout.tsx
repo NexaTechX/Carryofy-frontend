@@ -16,7 +16,7 @@ import {
   Check,
   Clock,
 } from 'lucide-react';
-import { userManager, firebaseAuth } from '../../lib/auth';
+import { useAuth, tokenManager } from '../../lib/auth';
 
 interface Notification {
   id: string;
@@ -34,8 +34,8 @@ interface SellerLayoutProps {
 
 export default function SellerLayout({ children }: SellerLayoutProps) {
   const router = useRouter();
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [user, setUser] = useState<ReturnType<typeof userManager.getUser>>(null);
   const [mounted, setMounted] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -45,7 +45,6 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   // Only get user on client side after mount to avoid hydration mismatch
   useEffect(() => {
     setMounted(true);
-    setUser(userManager.getUser());
     fetchNotifications();
   }, []);
 
@@ -71,7 +70,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
   const fetchNotifications = async () => {
     try {
-      const token = await firebaseAuth.getIdToken();
+      const token = tokenManager.getAccessToken();
       if (!token) {
         setNotifications([]);
         setUnreadCount(0);
@@ -80,7 +79,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-      
+
       try {
         const response = await fetch(`${apiUrl}/notifications?limit=5`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -140,11 +139,11 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
     if (notification.link) {
       router.push(notification.link);
       setNotificationsOpen(false);
-      
+
       // Mark as read via API
       if (!notification.read) {
         try {
-          const token = await firebaseAuth.getIdToken();
+          const token = tokenManager.getAccessToken();
           const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
           const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
@@ -153,7 +152,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             headers: { Authorization: `Bearer ${token}` },
           });
 
-          setNotifications(notifications.map(n => 
+          setNotifications(notifications.map(n =>
             n.id === notification.id ? { ...n, read: true } : n
           ));
           setUnreadCount(Math.max(0, unreadCount - 1));
@@ -173,9 +172,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   ];
 
   const handleLogout = async () => {
-    await firebaseAuth.logout();
-    userManager.clearUser();
-    router.push('/auth/login');
+    logout();
   };
 
   const isActive = (href: string) => {
@@ -249,25 +246,22 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                           <button
                             key={notification.id}
                             onClick={() => handleNotificationClick(notification)}
-                            className={`w-full text-left px-4 py-3 hover:bg-primary/10 transition-colors ${
-                              !notification.read ? 'bg-primary/5' : ''
-                            }`}
+                            className={`w-full text-left px-4 py-3 hover:bg-primary/10 transition-colors ${!notification.read ? 'bg-primary/5' : ''
+                              }`}
                           >
                             <div className="flex items-start gap-3">
-                              <div className={`p-2 rounded-lg ${
-                                notification.type === 'order' ? 'bg-blue-500/20 text-blue-400' :
-                                notification.type === 'product' ? 'bg-green-500/20 text-green-400' :
-                                notification.type === 'payout' ? 'bg-yellow-500/20 text-yellow-400' :
-                                'bg-primary/20 text-primary'
-                              }`}>
+                              <div className={`p-2 rounded-lg ${notification.type === 'order' ? 'bg-blue-500/20 text-blue-400' :
+                                  notification.type === 'product' ? 'bg-green-500/20 text-green-400' :
+                                    notification.type === 'payout' ? 'bg-yellow-500/20 text-yellow-400' :
+                                      'bg-primary/20 text-primary'
+                                }`}>
                                 {getNotificationIcon(notification.type)}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
                                   <div className="flex-1">
-                                    <p className={`text-sm font-semibold mb-1 ${
-                                      !notification.read ? 'text-white' : 'text-[#ffcc99]'
-                                    }`}>
+                                    <p className={`text-sm font-semibold mb-1 ${!notification.read ? 'text-white' : 'text-[#ffcc99]'
+                                      }`}>
                                       {notification.title}
                                     </p>
                                     <p className="text-xs text-[#ffcc99] line-clamp-2 mb-2">
@@ -333,9 +327,8 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside
-          className={`${
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-40 w-64 bg-black border-r border-primary/30 transition-transform duration-300 ease-in-out lg:flex lg:flex-col`}
+          className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-40 w-64 bg-black border-r border-primary/30 transition-transform duration-300 ease-in-out lg:flex lg:flex-col`}
         >
           <div className="flex flex-col h-full">
             {/* Logo */}
@@ -356,11 +349,10 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                     key={item.name}
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center space-x-3 px-3 py-2 rounded-xl transition ${
-                      active
+                    className={`flex items-center space-x-3 px-3 py-2 rounded-xl transition ${active
                         ? 'bg-primary/20 text-white'
                         : 'text-[#ffcc99] hover:bg-gray-800 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <Icon className="w-5 h-5" />
                     <span className="font-medium text-sm">{item.name}</span>

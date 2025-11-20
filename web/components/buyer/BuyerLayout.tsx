@@ -16,7 +16,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import NotificationsDropdown from './NotificationsDropdown';
-import { userManager, firebaseAuth } from '../../lib/auth';
+import { useAuth, tokenManager } from '../../lib/auth';
 import ErrorBoundary from '../common/ErrorBoundary';
 
 interface BuyerLayoutProps {
@@ -25,20 +25,19 @@ interface BuyerLayoutProps {
 
 export default function BuyerLayout({ children }: BuyerLayoutProps) {
   const router = useRouter();
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [user, setUser] = useState<ReturnType<typeof userManager.getUser>>(null);
   const [mounted, setMounted] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     setMounted(true);
-    setUser(userManager.getUser());
     fetchCartCount();
   }, []);
 
   const fetchCartCount = async () => {
     try {
-      const token = await firebaseAuth.getIdToken();
+      const token = tokenManager.getAccessToken();
       if (!token) return;
 
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
@@ -74,9 +73,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
   ];
 
   const handleLogout = async () => {
-    await firebaseAuth.logout();
-    userManager.clearUser();
-    router.push('/auth/login');
+    logout();
   };
 
   const isActive = (href: string) => {
@@ -144,9 +141,8 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside
-          className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-black border-r border-[#ff6600]/30 transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          } overflow-y-auto`}
+          className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-black border-r border-[#ff6600]/30 transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            } overflow-y-auto`}
         >
           <div className="flex flex-col h-full">
             {/* Mobile Close Button */}
@@ -167,11 +163,10 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition ${
-                      isActive(item.href)
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition ${isActive(item.href)
                         ? 'bg-[#ff6600] text-black font-semibold'
                         : 'text-[#ffcc99] hover:bg-[#1a1a1a] hover:text-white'
-                    }`}
+                      }`}
                   >
                     <Icon className="w-5 h-5" />
                     <span className="font-medium">{item.name}</span>
@@ -189,11 +184,10 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition ${
-                        isActive(item.href)
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition ${isActive(item.href)
                           ? 'bg-[#ff6600] text-black font-semibold'
                           : 'text-[#ffcc99] hover:bg-[#1a1a1a] hover:text-white'
-                      }`}
+                        }`}
                     >
                       <Icon className="w-5 h-5" />
                       <span className="font-medium">{item.name}</span>

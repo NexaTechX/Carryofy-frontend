@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { firebaseAuth } from '../../lib/auth';
+import { tokenManager } from '../../lib/auth';
 
 interface TrendData {
   date: string;
@@ -23,7 +23,7 @@ export default function SalesTrend() {
 
   const fetchSalesTrend = async () => {
     try {
-      const token = await firebaseAuth.getIdToken();
+      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
@@ -51,15 +51,15 @@ export default function SalesTrend() {
 
   const calculateTrendPercentage = () => {
     if (!trendData || trendData.trend.length < 2) return 0;
-    
+
     const recentDays = trendData.trend.slice(-7);
     const previousDays = trendData.trend.slice(-14, -7);
-    
+
     const recentSum = recentDays.reduce((sum, day) => sum + day.amount, 0);
     const previousSum = previousDays.reduce((sum, day) => sum + day.amount, 0);
-    
+
     if (previousSum === 0) return recentSum > 0 ? 100 : 0;
-    
+
     return Math.round(((recentSum - previousSum) / previousSum) * 100);
   };
 
@@ -68,13 +68,13 @@ export default function SalesTrend() {
 
   const getSparklinePoints = () => {
     if (!trendData || trendData.trend.length === 0) return '';
-    
+
     const data = trendData.trend;
     const maxAmount = Math.max(...data.map(d => d.amount), 1);
     const width = 400;
     const height = 80;
     const padding = 10;
-    
+
     return data.map((point, index) => {
       const x = (index / (data.length - 1)) * (width - 2 * padding) + padding;
       const y = height - padding - ((point.amount / maxAmount) * (height - 2 * padding));
@@ -95,9 +95,8 @@ export default function SalesTrend() {
             </p>
             <div className="flex items-center gap-2 mt-1">
               <p className="text-[#ffcc99] text-sm font-normal leading-normal">Last 30 Days</p>
-              <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
-                isPositive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-              }`}>
+              <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${isPositive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                }`}>
                 <span>{isPositive ? '↑' : '↓'}</span>
                 <span>{Math.abs(trendPercentage)}%</span>
               </div>
@@ -110,9 +109,9 @@ export default function SalesTrend() {
         <div className="h-32 bg-[#1a1a1a] animate-pulse rounded"></div>
       ) : trendData && trendData.trend.length > 0 ? (
         <div className="relative h-32">
-          <svg 
-            viewBox="0 0 400 80" 
-            className="w-full h-full" 
+          <svg
+            viewBox="0 0 400 80"
+            className="w-full h-full"
             preserveAspectRatio="none"
             style={{ pointerEvents: 'none' }}
           >
@@ -122,13 +121,13 @@ export default function SalesTrend() {
                 <stop offset="100%" style={{ stopColor: '#ff6600', stopOpacity: 0 }} />
               </linearGradient>
             </defs>
-            
+
             {/* Area under the line */}
             <polygon
               points={`0,80 ${getSparklinePoints()} 400,80`}
               fill="url(#salesGradient)"
             />
-            
+
             {/* Line */}
             <polyline
               points={getSparklinePoints()}
@@ -138,7 +137,7 @@ export default function SalesTrend() {
               strokeLinecap="round"
               strokeLinejoin="round"
             />
-            
+
             {/* Dots on data points */}
             {trendData.trend.map((point, index) => {
               const data = trendData.trend;
@@ -148,7 +147,7 @@ export default function SalesTrend() {
               const padding = 10;
               const x = (index / (data.length - 1)) * (width - 2 * padding) + padding;
               const y = height - padding - ((point.amount / maxAmount) * (height - 2 * padding));
-              
+
               // Only show dots for every 5th point to avoid clutter
               if (index % 5 === 0 || index === data.length - 1) {
                 return (
@@ -166,18 +165,18 @@ export default function SalesTrend() {
               return null;
             })}
           </svg>
-          
+
           {/* Labels */}
           <div className="flex justify-between mt-2 px-2">
             <span className="text-[#ffcc99] text-xs">
               {trendData.trend[0]?.date ? new Date(trendData.trend[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
             </span>
             <span className="text-[#ffcc99] text-xs">
-              {trendData.trend[Math.floor(trendData.trend.length / 2)]?.date ? 
+              {trendData.trend[Math.floor(trendData.trend.length / 2)]?.date ?
                 new Date(trendData.trend[Math.floor(trendData.trend.length / 2)].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
             </span>
             <span className="text-[#ffcc99] text-xs">
-              {trendData.trend[trendData.trend.length - 1]?.date ? 
+              {trendData.trend[trendData.trend.length - 1]?.date ?
                 new Date(trendData.trend[trendData.trend.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
             </span>
           </div>

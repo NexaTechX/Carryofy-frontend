@@ -6,8 +6,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { firebaseAuth, userManager, getRoleRedirect, tokenManager } from '../../lib/auth';
-import { authApi } from '../../lib/api/auth';
+import { authService, tokenManager, useAuth } from '../../lib/auth';
+import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -18,6 +18,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const router = useRouter();
+  const { setUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,51 +36,35 @@ export default function Login() {
     setError(null);
 
     try {
-      // Sign in with Firebase
-      const firebaseUser = await firebaseAuth.login(data.email, data.password);
+      // Login with NestJS backend
+      const response = await authService.login({
+        email: data.email,
+        password: data.password,
+      });
 
       // Check if email is verified
-      if (!firebaseUser.emailVerified) {
-        setError('Please verify your email address before logging in. Check your inbox for the verification link.');
-        await firebaseAuth.logout();
+      if (!response.user.verified) {
+        setError('Please verify your email address before logging in. Check your inbox for the verification code.');
         setIsSubmitting(false);
+        router.push('/auth/verify?email=' + encodeURIComponent(data.email));
         return;
       }
 
-      // Get Firebase ID token
-      const idToken = await firebaseUser.getIdToken();
+      // Store tokens and user data
+      tokenManager.setTokens(response.accessToken, response.refreshToken);
+      setUser(response.user);
 
-      // Sync with backend and get user profile
-      const response = await authApi.verifyToken(idToken);
-
-      // Validate response structure
-      if (!response || !response.user || !response.user.role) {
-        throw new Error('Invalid response from server. Please try again.');
-      }
-
-      // Store backend access token and user data
-      if (response.accessToken) {
-        tokenManager.setToken(response.accessToken);
-      }
-      userManager.setUser(response.user);
+      showSuccessToast('Login successful!');
 
       // Redirect based on user role
       const redirectPath = getRoleRedirect(response.user.role);
       router.push(redirectPath);
     } catch (error) {
-      const err = error as { code?: string; message?: string };
+      const err = error as { message?: string };
       console.error('Login error:', err);
-      
-      // Handle Firebase specific errors
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        setError('Invalid email or password');
-      } else if (err.code === 'auth/too-many-requests') {
-        setError('Too many failed login attempts. Please try again later.');
-      } else if (err.code === 'auth/user-disabled') {
-        setError('This account has been disabled. Please contact support.');
-      } else {
-        setError(err.message || 'An error occurred. Please try again.');
-      }
+      const message = err.message || 'Invalid email or password';
+      setError(message);
+      showErrorToast(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -136,9 +121,8 @@ export default function Login() {
                       type="email"
                       id="email"
                       {...register('email')}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${
-                        errors.email ? 'border-red-300' : 'border-gray-300'
-                      }`}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${errors.email ? 'border-red-300' : 'border-gray-300'
+                        }`}
                       placeholder="your.email@example.com"
                     />
                   </div>
@@ -158,9 +142,8 @@ export default function Login() {
                       type={showPassword ? 'text' : 'password'}
                       id="password"
                       {...register('password')}
-                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${
-                        errors.password ? 'border-red-300' : 'border-gray-300'
-                      }`}
+                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${errors.password ? 'border-red-300' : 'border-gray-300'
+                        }`}
                       placeholder="Enter your password"
                     />
                     <button
@@ -214,4 +197,20 @@ export default function Login() {
       </div>
     </>
   );
+}
+
+// Helper function to redirect based on role
+function getRoleRedirect(role: string): string {
+  switch (role.toUpperCase()) {
+    case 'SELLER':
+      return '/seller';
+    case 'BUYER':
+      return '/buyer';
+    case 'ADMIN':
+      return '/admin';
+    case 'RIDER':
+      return '/rider';
+    default:
+      return '/';
+  }
 }

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import '../styles/globals.css';
 import { AdminGuard } from '../components/auth/AdminGuard';
+import { AuthProvider } from '../lib/auth';
+
 
 export default function App({ Component, pageProps }: AppProps) {
   const [queryClient] = useState(
@@ -20,9 +22,11 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AdminGuard>
-        <Component {...pageProps} />
-      </AdminGuard>
+      <AuthProvider>
+        <AdminGuard>
+          <Component {...pageProps} />
+        </AdminGuard>
+      </AuthProvider>
       <Toaster
         position="top-right"
         toastOptions={{

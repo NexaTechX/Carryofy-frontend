@@ -6,11 +6,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, CheckCircle, Clock, ArrowLeft } from 'lucide-react';
-import { authApi } from '../../lib/api/auth';
-import { getRoleRedirect } from '../../lib/auth';
+import { authService, useAuth } from '../../lib/auth';
+import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
 
 const verifySchema = z.object({
-  token: z.string().min(1, 'Verification token is required'),
+  code: z.string().length(6, 'Verification code must be 6 digits'),
   email: z.string().email(),
 });
 
@@ -18,6 +18,7 @@ type VerifyFormData = z.infer<typeof verifySchema>;
 
 export default function EmailVerification() {
   const router = useRouter();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,30 +55,24 @@ export default function EmailVerification() {
     setError(null);
 
     try {
-      await authApi.verifyEmail({ token: data.token });
+      await authService.verifyEmail({ email: data.email, code: data.code });
 
+      showSuccessToast('Email verified successfully!');
       setSuccess(true);
+
       // Redirect based on user role if logged in, otherwise to login
-      try {
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-          const user = JSON.parse(userStr);
-          if (user && user.role) {
-            const redirectPath = getRoleRedirect(user.role);
-            setTimeout(() => {
-              router.push(redirectPath);
-            }, 2000);
-            return;
-          }
-        }
-      } catch (e) {
-        // If parsing fails, redirect to login
-      }
       setTimeout(() => {
-        router.push('/auth/login');
+        if (user && user.role) {
+          const redirectPath = getRoleRedirect(user.role);
+          router.push(redirectPath);
+        } else {
+          router.push('/auth/login');
+        }
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
+      const message = err instanceof Error ? err.message : 'An error occurred. Please try again.';
+      setError(message);
+      showErrorToast(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -90,12 +85,13 @@ export default function EmailVerification() {
     setError(null);
 
     try {
-      // Note: Backend might not have resend endpoint yet, but we'll call it if it exists
-      // For now, we'll just set cooldown
-      // await authApi.resendVerificationCode({ email });
+      await authService.resendVerificationCode({ email });
+      showSuccessToast('Verification code resent successfully!');
       setResendCooldown(60); // 60 second cooldown
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resend code');
+      const message = err instanceof Error ? err.message : 'Failed to resend code';
+      setError(message);
+      showErrorToast(message);
     } finally {
       setIsResending(false);
     }
@@ -125,7 +121,7 @@ export default function EmailVerification() {
                 </div>
                 <h1 className="text-3xl font-bold mb-4 text-gray-900">Email Verified!</h1>
                 <p className="text-gray-600 mb-6">
-                  Your email has been verified successfully. Redirecting to login...
+                  Your email has been verified successfully. Redirecting...
                 </p>
                 <Link
                   href="/auth/login"
@@ -192,23 +188,23 @@ export default function EmailVerification() {
                 {/* Hidden Email Field */}
                 <input type="hidden" {...register('email')} />
 
-                {/* Verification Token Field */}
+                {/* Verification Code Field */}
                 <div>
-                  <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-2">
                     Verification Code
                   </label>
                   <input
                     type="text"
-                    id="token"
-                    {...register('token')}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-center text-lg font-mono ${
-                      errors.token ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="Enter verification code"
+                    id="code"
+                    maxLength={6}
+                    {...register('code')}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-center text-lg font-mono tracking-widest ${errors.code ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    placeholder="000000"
                     autoComplete="one-time-code"
                   />
-                  {errors.token && (
-                    <p className="mt-1 text-sm text-red-600">{errors.token.message}</p>
+                  {errors.code && (
+                    <p className="mt-1 text-sm text-red-600">{errors.code.message}</p>
                   )}
                 </div>
 
@@ -261,3 +257,18 @@ export default function EmailVerification() {
   );
 }
 
+// Helper function to redirect based on role
+function getRoleRedirect(role: string): string {
+  switch (role.toUpperCase()) {
+    case 'SELLER':
+      return '/seller';
+    case 'BUYER':
+      return '/buyer';
+    case 'ADMIN':
+      return '/admin';
+    case 'RIDER':
+      return '/rider';
+    default:
+      return '/';
+  }
+}

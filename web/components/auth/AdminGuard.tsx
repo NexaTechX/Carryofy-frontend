@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
-import { firebaseAuth, userManager, getRoleRedirect } from '../../lib/auth';
+import { useAuth } from '../../lib/auth';
 import type { User } from '../../lib/auth';
 import { fetchAdminProfile } from '../../lib/admin/api';
 import { LoadingState } from '../admin/ui';
@@ -19,6 +19,7 @@ function shouldProtect(pathname: string) {
 
 export function AdminGuard({ children }: AdminGuardProps) {
   const router = useRouter();
+  const { user, isLoading, isAuthenticated, setUser } = useAuth();
   const [state, setState] = useState<GuardState>('idle');
 
   const pathname = useMemo(() => router.pathname ?? '', [router.pathname]);
@@ -32,11 +33,14 @@ export function AdminGuard({ children }: AdminGuardProps) {
         return;
       }
 
-      setState('checking');
+      // Wait for auth to initialize
+      if (isLoading) {
+        setState('checking');
+        return;
+      }
 
-      // Check if user is authenticated with Firebase
-      const currentUser = firebaseAuth.getCurrentUser();
-      if (!currentUser) {
+      // Check if user is authenticated
+      if (!isAuthenticated) {
         if (!cancelled) {
           setState('redirecting');
           const nextParam = encodeURIComponent(router.asPath ?? '/admin');
@@ -45,33 +49,36 @@ export function AdminGuard({ children }: AdminGuardProps) {
         return;
       }
 
-      const cachedUser = userManager.getUser();
-      if (cachedUser?.role?.toUpperCase() === 'ADMIN') {
+      // Check if current user is already an admin
+      if (user?.role?.toUpperCase() === 'ADMIN') {
         if (!cancelled) {
           setState('authorized');
         }
         return;
       }
 
+      // Fetch admin profile to verify role
+      setState('checking');
       try {
         const profile = await fetchAdminProfile();
         if (cancelled) return;
 
-        // Normalize to the shared User shape expected by userManager
+        // Update user in context
         const normalizedUser: User = {
           id: profile.id,
-          firebaseUid: firebaseAuth.getCurrentUser()?.uid ?? '',
           name: profile.name ?? '',
           email: profile.email ?? '',
           role: profile.role ?? '',
-          phone: profile.phone, // optional on admin profile
+          phone: profile.phone,
           verified: profile.verified ?? true,
         };
 
-        userManager.setUser(normalizedUser);
+        setUser(normalizedUser);
+
         if (profile.role?.toUpperCase() === 'ADMIN') {
           setState('authorized');
         } else {
+          // Redirect to appropriate dashboard based on role
           const redirect = getRoleRedirect(profile.role);
           setState('redirecting');
           router.replace(redirect);
@@ -79,7 +86,6 @@ export function AdminGuard({ children }: AdminGuardProps) {
       } catch (error) {
         if (cancelled) return;
         console.error('Failed to validate admin access', error);
-        userManager.logout();
         setState('redirecting');
         const nextParam = encodeURIComponent(router.asPath ?? '/admin');
         router.replace(`/auth/login?next=${nextParam}`);
@@ -91,17 +97,35 @@ export function AdminGuard({ children }: AdminGuardProps) {
     return () => {
       cancelled = true;
     };
-  }, [pathname, router]);
+  }, [pathname, router, user, isLoading, isAuthenticated, setUser]);
 
   if (state === 'authorized' || !shouldProtect(pathname)) {
     return <>{children}</>;
   }
 
-  if (state === 'checking') {
+  if (state === 'checking' || isLoading) {
     return <LoadingState fullscreen />;
   }
 
   return null;
 }
 
+// Helper function to redirect based on role
+function getRoleRedirect(role: string | undefined | null): string {
+  if (!role) {
+    return '/';
+  }
 
+  switch (role.toUpperCase()) {
+    case 'SELLER':
+      return '/seller';
+    case 'BUYER':
+      return '/buyer';
+    case 'ADMIN':
+      return '/admin';
+    case 'RIDER':
+      return '/rider';
+    default:
+      return '/';
+  }
+}

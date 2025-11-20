@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { firebaseAuth } from '../../lib/auth';
+import { tokenManager } from '../../lib/auth';
 
 interface DistributionItem {
   status: string;
@@ -22,7 +22,7 @@ export default function OrderDistribution() {
 
   const fetchOrderDistribution = async () => {
     try {
-      const token = await firebaseAuth.getIdToken();
+      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 

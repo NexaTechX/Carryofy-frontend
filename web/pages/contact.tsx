@@ -31,7 +31,7 @@ export default function Contact() {
       setIsSubmitting(false);
       setSubmitStatus('success');
       setFormData({ name: '', email: '', subject: '', message: '' });
-      
+
       // Reset success message after 5 seconds
       setTimeout(() => {
         setSubmitStatus('idle');
@@ -42,11 +42,12 @@ export default function Contact() {
   return (
     <>
       <Head>
-        <title>Contact Us - Carryofy</title>
+        <title>Contact Carryofy - Get in Touch</title>
         <meta
           name="description"
-          content="Get in touch with Carryofy. We're here to help with any questions or support you need."
+          content="Contact Carryofy for support, partnerships, or general inquiries. We are here to help."
         />
+        <meta name="keywords" content="contact ecommerce startup Nigeria, fulfillment support Africa" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
@@ -57,7 +58,7 @@ export default function Contact() {
           <section className="bg-gradient-to-r from-primary/10 to-primary/5 py-12 sm:py-16 md:py-20">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-gray-900">
-                Contact Us
+                Contact Carryofy
               </h1>
               <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
                 We're here to help. Get in touch with our team for any questions or support.
@@ -79,46 +80,54 @@ export default function Contact() {
                     and we'll respond as soon as possible.
                   </p>
 
-                  <div className="space-y-6">
-                    <div className="flex items-start">
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mr-4">
-                        <Mail className="w-6 h-6 text-primary" />
+                  <div className="space-y-8">
+                    <div className="space-y-6">
+                      <div className="flex items-start">
+                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mr-4">
+                          <Mail className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 mb-1">General Support</h3>
+                          <p className="text-sm sm:text-base text-gray-600">
+                            support@carryofy.com
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
-                        <p className="text-sm sm:text-base text-gray-600">
-                          support@carryofy.com
-                        </p>
-                        <p className="text-sm sm:text-base text-gray-600">
-                          info@carryofy.com
-                        </p>
+
+                      <div className="flex items-start">
+                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mr-4">
+                          <Mail className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 mb-1">Partnerships & Logistics</h3>
+                          <p className="text-sm sm:text-base text-gray-600">
+                            partnerships@carryofy.com
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mr-4">
+                          <MapPin className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 mb-1">Office</h3>
+                          <p className="text-sm sm:text-base text-gray-600">
+                            Lagos, Nigeria
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-start">
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mr-4">
-                        <Phone className="w-6 h-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 mb-1">Phone</h3>
-                        <p className="text-sm sm:text-base text-gray-600">
-                          +234 (0) 800 000 0000
-                        </p>
-                        <p className="text-sm sm:text-base text-gray-600">
-                          Mon - Fri, 9:00 AM - 6:00 PM WAT
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start">
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mr-4">
-                        <MapPin className="w-6 h-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 mb-1">Address</h3>
-                        <p className="text-sm sm:text-base text-gray-600">
-                          Lagos, Nigeria
-                        </p>
+                    {/* Social Links */}
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-4">Follow Us</h3>
+                      <div className="flex gap-4">
+                        {['Instagram', 'Twitter/X', 'LinkedIn', 'TikTok'].map((social) => (
+                          <span key={social} className="px-4 py-2 bg-gray-100 rounded-full text-sm font-medium text-gray-600 hover:bg-primary hover:text-white transition cursor-pointer">
+                            {social}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   </div>

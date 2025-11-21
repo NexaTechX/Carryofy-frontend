@@ -4,6 +4,8 @@ import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
 import HowItWorks from '../components/landing/HowItWorks';
 import SameDayDelivery from '../components/landing/SameDayDelivery';
+import ProblemSection from '../components/landing/ProblemSection';
+import SolutionSection from '../components/landing/SolutionSection';
 import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
 import FeaturedProducts from '../components/landing/FeaturedProducts';
 import Testimonials from '../components/landing/Testimonials';
@@ -13,10 +15,10 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Carryofy - Nigerian E-commerce Fulfillment Platform</title>
+        <title>Carryofy - The AI-Powered Commerce Platform</title>
         <meta
           name="description"
-          content="Carryofy connects Nigerian sellers and buyers with seamless e-commerce fulfillment. Focus on your sales, we handle the logistics."
+          content="Carryofy unifies marketplace, logistics, warehousing, and delivery into one intelligent platform—built specifically for African merchants."
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
@@ -25,9 +27,10 @@ export default function Home() {
         <Header />
         <main className="flex-grow">
           <HeroSection />
-          <SameDayDelivery />
-          <HowItWorks />
+          <ProblemSection />
+          <SolutionSection />
           <WhyChooseCarryofy />
+          <HowItWorks />
           <FeaturedProducts />
           <Testimonials />
           <CallToAction />

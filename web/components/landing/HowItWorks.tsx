@@ -1,120 +1,100 @@
-import { useState } from 'react';
-import { Files, Store, DollarSign, Search, ShoppingCart, Truck } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { UserPlus, Package, Truck, CheckCircle, CreditCard } from 'lucide-react';
+
+const steps = [
+  {
+    id: 1,
+    title: 'Upload Products',
+    description: 'AI enhances titles & images for better visibility.',
+    icon: UserPlus,
+  },
+  {
+    id: 2,
+    title: 'Send Inventory',
+    description: 'Stored in our Smart Fulfillment Center.',
+    icon: Package,
+  },
+  {
+    id: 3,
+    title: 'Customer Orders',
+    description: 'We pick, pack, and ship within 15 minutes.',
+    icon: Truck,
+  },
+  {
+    id: 4,
+    title: 'Delivery',
+    description: '90-minute zones in Lagos.',
+    icon: CheckCircle,
+  },
+  {
+    id: 5,
+    title: 'Instant Payment',
+    description: 'Merchants get paid within 24 hours.',
+    icon: CreditCard,
+  },
+];
 
 export default function HowItWorks() {
-  const [activeTab, setActiveTab] = useState<'sellers' | 'buyers'>('sellers');
-
-  const sellersFeatures = [
-    {
-      icon: Files,
-      title: 'List Your Products',
-      description: 'Easily list your products on the Carryofy platform with detailed descriptions and images.',
-    },
-    {
-      icon: Store,
-      title: 'Manage Your Store',
-      description: 'Track your inventory, orders, and sales performance through our intuitive Seller Portal.',
-    },
-    {
-      icon: DollarSign,
-      title: 'Get Paid',
-      description: 'Receive secure and timely payments for your sales, directly to your preferred account.',
-    },
-  ];
-
-  const buyersFeatures = [
-    {
-      icon: Search,
-      title: 'Browse and Discover',
-      description: 'Explore a diverse marketplace of products from local sellers, with detailed descriptions and reviews.',
-    },
-    {
-      icon: ShoppingCart,
-      title: 'Secure Checkout',
-      description: 'Shop with confidence using our secure payment gateway, ensuring your transactions are protected.',
-    },
-    {
-      icon: Truck,
-      title: 'Same-Day Delivery',
-      description: 'Get your orders delivered the same day - a first in Nigerian e-commerce! Real-time tracking from dispatch to your doorstep.',
-    },
-  ];
-
   return (
-    <section className="py-12 sm:py-16 bg-white">
+    <section className="py-24 bg-white overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8 sm:mb-12 text-black">
-          How It Works
-        </h2>
-
-        {/* Tabs */}
-        <div className="flex justify-center mb-8 sm:mb-12 overflow-x-auto">
-          <div className="flex border-b-2 border-gray-200 min-w-fit">
-            <button
-              onClick={() => setActiveTab('sellers')}
-              className={`px-4 sm:px-6 md:px-8 py-3 sm:py-4 text-sm sm:text-base font-semibold transition whitespace-nowrap ${
-                activeTab === 'sellers'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              For Sellers
-            </button>
-            <button
-              onClick={() => setActiveTab('buyers')}
-              className={`px-4 sm:px-6 md:px-8 py-3 sm:py-4 text-sm sm:text-base font-semibold transition whitespace-nowrap ${
-                activeTab === 'buyers'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              For Buyers
-            </button>
-          </div>
+        <div className="text-center mb-20">
+          <motion.span
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-primary font-semibold tracking-wider uppercase text-sm"
+          >
+            Simple Process
+          </motion.span>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="text-3xl sm:text-4xl font-bold mt-2 mb-4 text-gray-900"
+          >
+            How Carryofy Works
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="text-gray-600 max-w-2xl mx-auto text-lg"
+          >
+            Seamless logistics from start to finish. We make it easy for everyone.
+          </motion.p>
         </div>
 
-        {/* Content */}
-        <div className="max-w-4xl mx-auto">
-          {activeTab === 'sellers' ? (
-            <>
-              <p className="text-gray-600 text-center mb-8 sm:mb-12 text-base sm:text-lg px-4">
-                Carryofy simplifies your e-commerce journey, from listing to delivery. We
-                handle the logistics, so you can focus on growing your business.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
-                {sellersFeatures.map((feature, index) => (
-                  <div key={index} className="text-center px-4">
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-primary/10 rounded-full flex items-center justify-center">
-                      <feature.icon className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
-                    </div>
-                    <h3 className="text-lg sm:text-xl font-semibold mb-2 text-black">{feature.title}</h3>
-                    <p className="text-sm sm:text-base text-gray-600">{feature.description}</p>
+        <div className="relative">
+          {/* Connecting Line (Desktop) */}
+          <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-gray-100 -translate-y-1/2 z-0"></div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 relative z-10">
+            {steps.map((step, index) => (
+              <motion.div
+                key={step.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.2 }}
+                className="flex flex-col items-center text-center group"
+              >
+                <div className="w-20 h-20 rounded-2xl bg-white border-2 border-gray-100 shadow-lg flex items-center justify-center mb-6 group-hover:border-primary group-hover:shadow-primary/20 transition-all duration-300 relative z-10">
+                  <step.icon className="w-8 h-8 text-gray-400 group-hover:text-primary transition-colors duration-300" />
+                  <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-md">
+                    {step.id}
                   </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-gray-600 text-center mb-8 sm:mb-12 text-base sm:text-lg px-4">
-                Discover a wide range of products from Nigerian sellers, all in one place.
-                Enjoy secure payments and experience same-day delivery - revolutionizing logistics in Nigeria.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
-                {buyersFeatures.map((feature, index) => (
-                  <div key={index} className="text-center px-4">
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-primary/10 rounded-full flex items-center justify-center">
-                      <feature.icon className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
-                    </div>
-                    <h3 className="text-lg sm:text-xl font-semibold mb-2 text-black">{feature.title}</h3>
-                    <p className="text-sm sm:text-base text-gray-600">{feature.description}</p>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+                </div>
+
+                <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-primary transition-colors">{step.title}</h3>
+                <p className="text-gray-600 leading-relaxed text-sm">{step.description}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
   );
 }
-

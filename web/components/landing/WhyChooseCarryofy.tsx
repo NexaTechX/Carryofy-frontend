@@ -1,26 +1,27 @@
-import { Shield, Headphones, User, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ShoppingBag, Truck, Zap, CreditCard } from 'lucide-react';
 
 export default function WhyChooseCarryofy() {
   const features = [
     {
+      icon: ShoppingBag,
+      title: 'Marketplace',
+      description: 'Verified sellers and personalized product discovery using AI.',
+    },
+    {
+      icon: Truck,
+      title: 'Logistics',
+      description: 'Real-time rider tracking and automated dispatch engine.',
+    },
+    {
       icon: Zap,
-      title: 'Same-Day Delivery',
-      description: 'Pioneering same-day delivery in Nigeria! We solve the long delivery time problem that has plagued e-commerce for years - get your orders delivered the same day.',
+      title: 'AI Tools',
+      description: 'Auto product descriptions, dynamic AI pricing, and AI-powered ads.',
     },
     {
-      icon: Shield,
-      title: 'Reliable Delivery',
-      description: 'We ensure timely and secure delivery of your products, with real-time tracking and notifications.',
-    },
-    {
-      icon: Headphones,
-      title: 'Seller Support',
-      description: 'Our dedicated support team is available to assist sellers with any questions or issues, ensuring a smooth experience.',
-    },
-    {
-      icon: User,
-      title: 'Buyer Privacy',
-      description: 'We prioritize buyer privacy and data security, protecting your personal information and transactions.',
+      icon: CreditCard,
+      title: 'Fintech / Payments',
+      description: 'Instant wallet payouts and merchant credit (BNPL).',
     },
   ];
 
@@ -28,7 +29,7 @@ export default function WhyChooseCarryofy() {
     <section className="py-12 sm:py-16 bg-gray-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4 sm:mb-6 text-black">
-          Why Choose Carryofy
+          Everything a Modern African Business Needs
         </h2>
         <div className="text-center mb-8 sm:mb-12 px-4">
           <p className="text-base sm:text-lg font-semibold text-black mb-2">Our Commitment to You</p>
@@ -39,7 +40,7 @@ export default function WhyChooseCarryofy() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 max-w-7xl mx-auto">
           {features.map((feature, index) => (
-            <div key={index} className="text-center bg-white p-5 sm:p-6 rounded-lg shadow-sm">
+            <div key={index} className="text-center bg-white p-5 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-primary/10 rounded-full flex items-center justify-center">
                 <feature.icon className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
               </div>
@@ -52,4 +53,3 @@ export default function WhyChooseCarryofy() {
     </section>
   );
 }
-

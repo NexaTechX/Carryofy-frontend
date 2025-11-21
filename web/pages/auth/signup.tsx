@@ -71,6 +71,10 @@ export default function Signup() {
       // Store tokens and user data
       tokenManager.setTokens(response.accessToken, response.refreshToken);
       setUser(response.user);
+      // Sync with localStorage for backward compatibility
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(response.user));
+      }
 
       showSuccessToast('Account created! Please check your email to verify your account.');
 

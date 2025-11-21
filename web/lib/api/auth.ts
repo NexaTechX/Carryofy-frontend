@@ -1,6 +1,5 @@
 import apiClient from './client';
 import { AxiosError, AxiosResponse } from 'axios';
-import { firebaseAuth } from '../auth';
 
 export interface SignupRequest {
   name: string;
@@ -14,7 +13,6 @@ export interface AuthResponse {
   refreshToken: string;
   user: {
     id: string;
-    firebaseUid: string;
     name: string;
     email: string;
     role: string;
@@ -93,32 +91,6 @@ const extractResponseData = <T>(response: AxiosResponse<unknown>): T => {
 
 // Auth API functions
 export const authApi = {
-  /**
-   * Verify Firebase token and sync user with backend
-   */
-  verifyToken: async (idToken: string): Promise<AuthResponse> => {
-    try {
-      const response = await apiClient.post('/auth/verify-token', { idToken });
-      return extractResponseData<AuthResponse>(response);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
-  },
-
-  /**
-   * Complete signup by creating user profile with role
-   */
-  signup: async (firebaseUid: string, data: SignupRequest): Promise<AuthResponse> => {
-    try {
-      const response = await apiClient.post('/auth/signup', {
-        ...data,
-        firebaseUid,
-      });
-      return extractResponseData<AuthResponse>(response);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
-  },
 
   /**
    * Get current user information
@@ -133,13 +105,11 @@ export const authApi = {
   },
 
   /**
-   * Delete user account (also deletes from Firebase)
+   * Delete user account
    */
-  deleteAccount: async (firebaseUid: string): Promise<{ message: string }> => {
+  deleteAccount: async (): Promise<{ message: string }> => {
     try {
-      const response = await apiClient.post<{ message: string }>('/auth/delete', {
-        firebaseUid,
-      });
+      const response = await apiClient.post<{ message: string }>('/auth/delete');
       return extractResponseData<{ message: string }>(response);
     } catch (error) {
       throw new Error(getErrorMessage(error));
@@ -169,19 +139,4 @@ export const authApi = {
       throw new Error(getErrorMessage(error));
     }
   },
-};
-
-/**
- * Helper to get Firebase ID token and sync with backend
- */
-export const syncUserWithBackend = async (): Promise<AuthResponse | null> => {
-  try {
-    const idToken = await firebaseAuth.getIdToken();
-    if (!idToken) return null;
-    
-    return await authApi.verifyToken(idToken);
-  } catch (error) {
-    console.error('Failed to sync user with backend:', error);
-    return null;
-  }
 };

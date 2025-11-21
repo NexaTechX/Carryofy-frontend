@@ -15,8 +15,20 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUserState] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Wrapper to sync with localStorage whenever user is updated
+    const setUser = React.useCallback((newUser: User | null) => {
+        setUserState(newUser);
+        if (typeof window !== 'undefined') {
+            if (newUser) {
+                localStorage.setItem('user', JSON.stringify(newUser));
+            } else {
+                localStorage.removeItem('user');
+            }
+        }
+    }, []);
 
     // Initialize auth state on mount
     useEffect(() => {
@@ -33,13 +45,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 console.error('Failed to initialize auth:', error);
                 // If token is invalid, clear it
                 tokenManager.clearTokens();
+                setUser(null);
             } finally {
                 setIsLoading(false);
             }
         };
 
         initAuth();
-    }, []);
+    }, [setUser]);
 
     const login = async (email: string, password: string) => {
         const response = await authService.login({ email, password });

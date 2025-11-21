@@ -29,5 +29,10 @@ export const tokenManager = {
     hasAccessToken: (): boolean => {
         if (typeof window === 'undefined') return false;
         return !!localStorage.getItem(ACCESS_TOKEN_KEY);
+    },
+
+    isAuthenticated: (): boolean => {
+        if (typeof window === 'undefined') return false;
+        return !!localStorage.getItem(ACCESS_TOKEN_KEY);
     }
 };

@@ -36,6 +36,21 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+    // Enhanced error logging for network errors
+    if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
+      console.error('Network Error Details:', {
+        message: error.message,
+        code: error.code,
+        baseURL: API_BASE_URL,
+        url: originalRequest?.url,
+        fullURL: originalRequest ? `${API_BASE_URL}${originalRequest.url}` : 'N/A',
+      });
+      console.error('Please ensure:');
+      console.error('1. The backend server is running');
+      console.error('2. The API_BASE_URL is correct (currently:', API_BASE_URL, ')');
+      console.error('3. CORS is properly configured on the backend');
+    }
+
     // Handle 401 Unauthorized - try to refresh token
     if (error.response?.status === 401 && !originalRequest._retry && typeof window !== 'undefined') {
       originalRequest._retry = true;
@@ -52,7 +67,9 @@ apiClient.interceptors.response.use(
           refreshToken,
         });
 
-        const { accessToken } = response.data;
+        // Extract accessToken from wrapped response
+        const responseData = response.data;
+        const accessToken = responseData?.data?.accessToken || responseData?.accessToken;
 
         if (accessToken) {
           // Update tokens - keep the old refresh token? 

@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, CheckCircle, Clock, ArrowLeft } from 'lucide-react';
-import { authService, useAuth } from '../../lib/auth';
+import { authService, useAuth, getRoleRedirect } from '../../lib/auth';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
 
 const verifySchema = z.object({
@@ -18,7 +18,7 @@ type VerifyFormData = z.infer<typeof verifySchema>;
 
 export default function EmailVerification() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,12 +60,31 @@ export default function EmailVerification() {
       showSuccessToast('Email verified successfully!');
       setSuccess(true);
 
-      // Redirect based on user role if logged in, otherwise to login
-      setTimeout(() => {
-        if (user && user.role) {
-          const redirectPath = getRoleRedirect(user.role);
-          router.push(redirectPath);
-        } else {
+      // After verification, fetch updated user info and redirect to dashboard
+      setTimeout(async () => {
+        try {
+          // Check if user has tokens (from signup)
+          const { tokenManager } = await import('../../lib/auth');
+          const hasToken = tokenManager.hasAccessToken();
+          
+          if (hasToken) {
+            // User is already logged in from signup, fetch updated user info
+            const updatedUser = await authService.getCurrentUser();
+            // Update user in context with verified status
+            setUser(updatedUser);
+            // Sync with localStorage for backward compatibility
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+            }
+            const redirectPath = getRoleRedirect(updatedUser.role);
+            router.push(redirectPath);
+          } else {
+            // No token, redirect to login
+            router.push('/auth/login');
+          }
+        } catch (err) {
+          // If fetching user fails, still redirect to login
+          console.error('Failed to fetch user after verification:', err);
           router.push('/auth/login');
         }
       }, 2000);
@@ -257,18 +276,3 @@ export default function EmailVerification() {
   );
 }
 
-// Helper function to redirect based on role
-function getRoleRedirect(role: string): string {
-  switch (role.toUpperCase()) {
-    case 'SELLER':
-      return '/seller';
-    case 'BUYER':
-      return '/buyer';
-    case 'ADMIN':
-      return '/admin';
-    case 'RIDER':
-      return '/rider';
-    default:
-      return '/';
-  }
-}

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from './context';
+import { getRoleRedirect } from './utils';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -67,20 +68,4 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
 
     return <>{children}</>;
-};
-
-// Helper function to redirect based on role
-const getRoleRedirect = (role: string): string => {
-    switch (role.toUpperCase()) {
-        case 'SELLER':
-            return '/seller';
-        case 'BUYER':
-            return '/buyer';
-        case 'ADMIN':
-            return '/admin';
-        case 'RIDER':
-            return '/rider';
-        default:
-            return '/';
-    }
 };

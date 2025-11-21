@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../../lib/auth';
+import { useAuth, getRoleRedirect } from '../../lib/auth';
 import type { User } from '../../lib/auth';
 import { fetchAdminProfile } from '../../lib/admin/api';
 import { LoadingState } from '../admin/ui';
@@ -108,24 +108,4 @@ export function AdminGuard({ children }: AdminGuardProps) {
   }
 
   return null;
-}
-
-// Helper function to redirect based on role
-function getRoleRedirect(role: string | undefined | null): string {
-  if (!role) {
-    return '/';
-  }
-
-  switch (role.toUpperCase()) {
-    case 'SELLER':
-      return '/seller';
-    case 'BUYER':
-      return '/buyer';
-    case 'ADMIN':
-      return '/admin';
-    case 'RIDER':
-      return '/rider';
-    default:
-      return '/';
-  }
 }

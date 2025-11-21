@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { authService, tokenManager, useAuth } from '../../lib/auth';
+import { authService, tokenManager, useAuth, getRoleRedirect } from '../../lib/auth';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
 
 const loginSchema = z.object({
@@ -42,6 +42,12 @@ export default function Login() {
         password: data.password,
       });
 
+      // Validate response structure
+      if (!response || !response.user) {
+        console.error('Invalid login response:', response);
+        throw new Error('Invalid response from server. Please try again.');
+      }
+
       // Check if email is verified
       if (!response.user.verified) {
         setError('Please verify your email address before logging in. Check your inbox for the verification code.');
@@ -53,6 +59,10 @@ export default function Login() {
       // Store tokens and user data
       tokenManager.setTokens(response.accessToken, response.refreshToken);
       setUser(response.user);
+      // Sync with localStorage for backward compatibility
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(response.user));
+      }
 
       showSuccessToast('Login successful!');
 
@@ -199,18 +209,3 @@ export default function Login() {
   );
 }
 
-// Helper function to redirect based on role
-function getRoleRedirect(role: string): string {
-  switch (role.toUpperCase()) {
-    case 'SELLER':
-      return '/seller';
-    case 'BUYER':
-      return '/buyer';
-    case 'ADMIN':
-      return '/admin';
-    case 'RIDER':
-      return '/rider';
-    default:
-      return '/';
-  }
-}

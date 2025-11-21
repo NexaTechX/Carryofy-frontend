@@ -13,15 +13,37 @@ import {
     ResendVerificationRequest
 } from './types';
 
+// Helper to extract data from backend response (handles TransformInterceptor wrapper)
+const extractResponseData = <T>(response: any): T => {
+  // Backend uses TransformInterceptor which wraps response in { statusCode, message, data }
+  // response.data is the axios response data, which is the wrapped object
+  if (
+    response?.data &&
+    typeof response.data === 'object' &&
+    response.data !== null
+  ) {
+    // Check if it's wrapped by TransformInterceptor (has statusCode and data properties)
+    if ('statusCode' in response.data && 'data' in response.data) {
+      return response.data.data as T;
+    }
+    // If it has a 'data' property but no statusCode, it might be double-wrapped
+    if ('data' in response.data && typeof response.data.data === 'object') {
+      return response.data.data as T;
+    }
+  }
+  // If response is already unwrapped or doesn't match expected structure
+  return (response?.data || response) as T;
+};
+
 export const authService = {
     signup: async (data: SignupRequest): Promise<AuthResponse> => {
         const response = await apiClient.post<AuthResponse>('/auth/signup', data);
-        return response.data;
+        return extractResponseData<AuthResponse>(response);
     },
 
     login: async (data: LoginRequest): Promise<AuthResponse> => {
         const response = await apiClient.post<AuthResponse>('/auth/login', data);
-        return response.data;
+        return extractResponseData<AuthResponse>(response);
     },
 
     verifyEmail: async (data: VerifyEmailRequest): Promise<{ message: string }> => {
@@ -51,7 +73,7 @@ export const authService = {
 
     getCurrentUser: async (): Promise<User> => {
         const response = await apiClient.get<User>('/auth/me');
-        return response.data;
+        return extractResponseData<User>(response);
     },
 
     riderSignup: async (data: RiderSignupRequest): Promise<AuthResponse> => {

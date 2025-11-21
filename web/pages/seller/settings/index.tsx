@@ -332,7 +332,7 @@ export default function SettingsPage() {
   };
 
   const handleLogout = () => {
-    tokenManager.clearToken();
+    tokenManager.clearTokens();
     userManager.clearUser();
     router.push('/auth/login');
   };

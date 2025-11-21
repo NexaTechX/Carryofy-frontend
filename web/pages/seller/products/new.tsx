@@ -71,7 +71,7 @@ export default function AddProductPage() {
     // Upload to server
     setUploadingImage(true);
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       const formData = new FormData();
       formData.append('images', file);
 
@@ -119,7 +119,7 @@ export default function AddProductPage() {
 
     setLoading(true);
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       
       // Convert price from naira to kobo (multiply by 100)
       const priceInKobo = Math.round(parseFloat(formData.price) * 100);

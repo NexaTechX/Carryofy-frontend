@@ -85,7 +85,7 @@ export default function NotificationsPage() {
 
   const fetchNotifications = async () => {
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       if (!token) {
         setNotifications([]);
         setUnreadCount(0);
@@ -129,7 +129,7 @@ export default function NotificationsPage() {
 
   const markAsRead = async (id: string) => {
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
@@ -151,7 +151,7 @@ export default function NotificationsPage() {
 
   const markAllAsRead = async () => {
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
@@ -171,7 +171,7 @@ export default function NotificationsPage() {
 
   const deleteNotification = async (id: string) => {
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
@@ -204,7 +204,7 @@ export default function NotificationsPage() {
     setShowClearConfirm(false);
     
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 

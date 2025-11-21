@@ -124,7 +124,7 @@ export default function SettingsPage() {
   const fetchProfiles = async () => {
     setLoading(true);
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       if (!token) {
         setLoading(false);
         return;
@@ -211,7 +211,7 @@ export default function SettingsPage() {
     setSaving(true);
 
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://carryofyapi.vercel.app';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
@@ -250,7 +250,7 @@ export default function SettingsPage() {
     setSaving(true);
 
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://carryofyapi.vercel.app';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
@@ -296,7 +296,7 @@ export default function SettingsPage() {
     setSaving(true);
 
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://carryofyapi.vercel.app';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
@@ -377,7 +377,7 @@ export default function SettingsPage() {
     setSaving(true);
 
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       if (!token) {
         toast.error('Please log in to save bank account information.');
         setSaving(false);
@@ -450,7 +450,7 @@ export default function SettingsPage() {
     setShowDeleteConfirm(false);
     setSaving(true);
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       if (!token) {
         toast.error('Please log in to remove bank account information.');
         setSaving(false);

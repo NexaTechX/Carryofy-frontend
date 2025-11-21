@@ -48,7 +48,7 @@ export default function ProductsPage() {
 
   const fetchProducts = async () => {
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       const user = userManager.getUser();
       
       // Get seller's products
@@ -96,7 +96,7 @@ export default function ProductsPage() {
 
     setDeleting(true);
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 

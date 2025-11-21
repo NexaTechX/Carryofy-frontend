@@ -74,7 +74,7 @@ export default function HelpPage() {
   const fetchTickets = async () => {
     setLoadingTickets(true);
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
@@ -116,7 +116,7 @@ export default function HelpPage() {
 
     setSubmitting(true);
     try {
-      const token = tokenManager.getToken();
+      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 

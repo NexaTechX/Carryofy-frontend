@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth, getRoleRedirect } from '../../lib/auth';
-import type { User } from '../../lib/auth';
+import type { User, UserRole } from '../../lib/auth';
 import { fetchAdminProfile } from '../../lib/admin/api';
 import { LoadingState } from '../admin/ui';
 
@@ -64,11 +64,17 @@ export function AdminGuard({ children }: AdminGuardProps) {
         if (cancelled) return;
 
         // Update user in context
+        // Validate and cast role to UserRole type
+        const validRoles: UserRole[] = ['BUYER', 'SELLER', 'ADMIN', 'RIDER'];
+        const role = (validRoles.includes(profile.role?.toUpperCase() as UserRole) 
+          ? profile.role.toUpperCase() 
+          : 'BUYER') as UserRole;
+
         const normalizedUser: User = {
           id: profile.id,
           name: profile.name ?? '',
           email: profile.email ?? '',
-          role: profile.role ?? '',
+          role: role,
           phone: profile.phone,
           verified: profile.verified ?? true,
         };

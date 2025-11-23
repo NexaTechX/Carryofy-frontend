@@ -36,8 +36,17 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // Enhanced error logging for network errors
-    if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
+    // Enhanced error logging for all errors
+    if (error.response) {
+      console.error('API Error Response:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        url: originalRequest?.url,
+        method: originalRequest?.method,
+        data: error.response.data,
+        headers: error.response.headers,
+      });
+    } else if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
       console.error('Network Error Details:', {
         message: error.message,
         code: error.code,
@@ -86,13 +95,22 @@ apiClient.interceptors.response.use(
           }
           return apiClient(originalRequest);
         }
-      } catch (refreshError) {
+      } catch (refreshError: any) {
         // Refresh failed, clear tokens and redirect to login
-        console.error('Token refresh failed:', refreshError);
+        console.error('Token refresh failed:', {
+          error: refreshError,
+          message: refreshError?.message,
+          response: refreshError?.response?.data,
+          status: refreshError?.response?.status,
+        });
         tokenManager.clearTokens();
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
-          window.location.href = '/auth/login';
+          // Only redirect if we're not already on login page
+          setTimeout(() => {
+            window.location.href = '/auth/login';
+          }, 100);
         }
+        return Promise.reject(refreshError);
       }
     }
 

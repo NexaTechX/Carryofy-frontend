@@ -483,6 +483,7 @@ export default function SettingsPage() {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
+          // Don't set Content-Type header - let browser set it with boundary for multipart/form-data
         },
         body: formDataToSend,
       });
@@ -490,15 +491,27 @@ export default function SettingsPage() {
       if (response.ok) {
         const data = await response.json();
         const url = data.data?.url || data.url;
-        setKycForm({ ...kycForm, [field]: url });
-        toast.success('Document uploaded successfully');
+        if (url) {
+          setKycForm({ ...kycForm, [field]: url });
+          toast.success('Document uploaded successfully');
+        } else {
+          console.error('Upload response missing URL:', data);
+          toast.error('Upload succeeded but no URL returned');
+        }
       } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to upload document');
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        const errorMessage = errorData?.data?.message || errorData?.message || `Failed to upload document (${response.status})`;
+        console.error('Upload error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+        });
+        toast.error(errorMessage);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading document:', error);
-      toast.error('Failed to upload document');
+      const errorMessage = error?.message || 'Network error. Please check your connection and try again.';
+      toast.error(errorMessage);
     } finally {
       setKycUploading(prev => ({ ...prev, [field]: false }));
     }

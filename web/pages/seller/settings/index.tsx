@@ -963,7 +963,7 @@ export default function SettingsPage() {
                           'bg-blue-900/20 border-blue-500/30'
                         }`}>
                           <div className="flex items-start gap-4">
-                            {kycStatus === 'APPROVED' ? <CheckCircle className="w-6 h-6 text-green-400 mt-1" /> :
+                            {kycStatus === 'APPROVED' ? <CheckCircle2 className="w-6 h-6 text-green-400 mt-1" /> :
                               kycStatus === 'REJECTED' ? <AlertCircle className="w-6 h-6 text-red-400 mt-1" /> :
                                 kycStatus === 'PENDING' ? <Clock className="w-6 h-6 text-yellow-400 mt-1" /> :
                                   kycStatus === 'NOT_SUBMITTED' ? <ShieldCheck className="w-6 h-6 text-blue-400 mt-1" /> :
@@ -1169,7 +1169,7 @@ export default function SettingsPage() {
                                     </>
                                   ) : kycForm.idImage ? (
                                     <div className="text-center">
-                                      <CheckCircle className="w-8 h-8 text-green-400 mb-2" />
+                                      <CheckCircle2 className="w-8 h-8 text-green-400 mb-2" />
                                       <p className="text-green-400 font-medium mb-1">Image Uploaded</p>
                                       <p className="text-xs text-[#ffcc99] mt-2 truncate max-w-xs">{kycForm.idImage}</p>
                                     </div>
@@ -1241,7 +1241,7 @@ export default function SettingsPage() {
                                     </>
                                   ) : kycForm.addressProofImage ? (
                                     <div className="text-center">
-                                      <CheckCircle className="w-8 h-8 text-green-400 mb-2" />
+                                      <CheckCircle2 className="w-8 h-8 text-green-400 mb-2" />
                                       <p className="text-green-400 font-medium mb-1">Image Uploaded</p>
                                       <p className="text-xs text-[#ffcc99] mt-2 truncate max-w-xs">{kycForm.addressProofImage}</p>
                                     </div>

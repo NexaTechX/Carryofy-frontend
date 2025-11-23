@@ -106,6 +106,7 @@ export interface AdminSeller {
   userId: string;
   businessName: string;
   kycStatus: SellerKycStatus;
+  kycExpiresAt?: string | null;
   createdAt: string;
   updatedAt: string;
   kyc?: {

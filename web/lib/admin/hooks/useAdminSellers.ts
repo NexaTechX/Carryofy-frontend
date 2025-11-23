@@ -38,7 +38,8 @@ export function useRejectSellerMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: rejectSellerRequest,
+    mutationFn: ({ sellerId, rejectionReason }: { sellerId: string; rejectionReason?: string }) =>
+      rejectSellerRequest(sellerId, rejectionReason),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: sellersKeys.all });
       toast.success('Seller rejected.');

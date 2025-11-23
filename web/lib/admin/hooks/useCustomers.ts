@@ -2,8 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../api/client';
 import { toast } from 'react-hot-toast';
 
-export type UserStatus = 'ACTIVE' | 'SUSPENDED';
-export type UserRole = 'BUYER' | 'SELLER' | 'ADMIN';
+export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'RIDER_PENDING';
+export type UserRole = 'BUYER' | 'SELLER' | 'ADMIN' | 'RIDER';
 
 export interface AdminCustomer {
   id: string;
@@ -66,7 +66,15 @@ export function useAdminCustomers(params: CustomersQueryParams = {}) {
     queryKey: [CUSTOMERS_CACHE_KEY, params],
     queryFn: async () => {
       const { data } = await apiClient.get('/users/admin/all', { params });
-      return data;
+      
+      // Handle wrapped response from TransformInterceptor
+      // Backend wraps response in { statusCode, message, data }
+      if (data && typeof data === 'object' && 'data' in data && 'statusCode' in data) {
+        return data.data as CustomersResponse;
+      }
+      
+      // If already unwrapped or different structure
+      return data as CustomersResponse;
     },
   });
 }
@@ -77,7 +85,13 @@ export function useCustomerDetail(customerId: string | null) {
     queryFn: async () => {
       if (!customerId) throw new Error('Customer ID is required');
       const { data } = await apiClient.get(`/users/admin/${customerId}`);
-      return data;
+      
+      // Handle wrapped response from TransformInterceptor
+      if (data && typeof data === 'object' && 'data' in data && 'statusCode' in data) {
+        return data.data as AdminCustomerDetail;
+      }
+      
+      return data as AdminCustomerDetail;
     },
     enabled: !!customerId,
   });

@@ -113,6 +113,8 @@ export default function NotificationsDropdown({ className }: NotificationsDropdo
     switch (type) {
       case 'ORDER':
         return <Package className={`w-4 h-4 ${baseClasses}`} />;
+      case 'PRODUCT':
+        return <Package className={`w-4 h-4 ${baseClasses}`} />;
       case 'SECURITY':
         return <Shield className={`w-4 h-4 ${baseClasses}`} />;
       case 'SYSTEM':
@@ -164,7 +166,7 @@ export default function NotificationsDropdown({ className }: NotificationsDropdo
             <div>
               <p className="text-white text-sm font-semibold">Notifications</p>
               <p className="text-[#ffcc99]/60 text-xs">
-                Stay up to date with your orders and support tickets.
+                Stay up to date with your orders, new products, and support tickets.
               </p>
             </div>
             <button

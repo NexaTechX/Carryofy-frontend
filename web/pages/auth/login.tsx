@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +30,12 @@ export default function Login() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
+
+  useEffect(() => {
+    if (router.query.error === 'unauthorized') {
+      setError('You do not have permission to access that page. Please login with an admin account.');
+    }
+  }, [router.query.error]);
 
   const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
@@ -69,10 +75,50 @@ export default function Login() {
       // Redirect based on user role
       const redirectPath = getRoleRedirect(response.user.role);
       router.push(redirectPath);
-    } catch (error) {
-      const err = error as { message?: string };
-      console.error('Login error:', err);
-      const message = err.message || 'Invalid email or password';
+    } catch (error: any) {
+      console.error('=== LOGIN ERROR DETAILS ===');
+      console.error('Full error object:', error);
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      console.error('Error response headers:', error.response?.headers);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      console.error('==========================');
+
+      // Extract message from backend response if available
+      // Backend uses TransformInterceptor which wraps errors in { statusCode, message }
+      let message = 'Invalid email or password';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        console.error('Parsing error data:', JSON.stringify(errorData, null, 2));
+        
+        // Handle wrapped error response from TransformInterceptor
+        if (typeof errorData === 'object' && errorData.message) {
+          message = Array.isArray(errorData.message) 
+            ? errorData.message.join(', ') 
+            : errorData.message;
+        } else if (typeof errorData === 'string') {
+          message = errorData;
+        }
+      } else if (error.message) {
+        message = error.message;
+      }
+
+      // Provide more specific error messages for common issues
+      if (error.response?.status === 500) {
+        const errorMessage = error.response?.data?.message || error.message || 'Server error occurred';
+        message = `Server Error (500): ${errorMessage}. Please check backend logs for details.`;
+        console.error('=== 500 SERVER ERROR DETAILS ===');
+        console.error('Status:', error.response.status);
+        console.error('Response Data:', JSON.stringify(error.response.data, null, 2));
+        console.error('Request URL:', error.config?.url);
+        console.error('Request Method:', error.config?.method);
+        console.error('Request Data:', error.config?.data);
+        console.error('================================');
+      }
+
       setError(message);
       showErrorToast(message);
     } finally {
@@ -196,7 +242,7 @@ export default function Login() {
               <div className="mt-6 text-center">
                 <p className="text-gray-600 text-sm">
                   Don&apos;t have an account?{' '}
-                  <Link href="/auth/role" className="text-primary hover:text-primary-dark font-semibold">
+                  <Link href="/auth/signup" className="text-primary hover:text-primary-dark font-semibold">
                     Sign up
                   </Link>
                 </p>

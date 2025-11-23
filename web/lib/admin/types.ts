@@ -108,6 +108,28 @@ export interface AdminSeller {
   kycStatus: SellerKycStatus;
   createdAt: string;
   updatedAt: string;
+  kyc?: {
+    id: string;
+    businessType: string;
+    registrationNumber?: string;
+    taxId?: string;
+    idType: string;
+    idNumber: string;
+    idImage: string;
+    addressProofImage?: string;
+    bvn?: string;
+    submittedAt: string;
+    rejectionReason?: string;
+    rejectedBy?: string;
+    rejectedAt?: string;
+    submissionCount: number;
+  } | null;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+  };
 }
 
 export type AdminProductStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';

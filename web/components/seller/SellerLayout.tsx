@@ -15,12 +15,13 @@ import {
   ShoppingCart,
   Check,
   Clock,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth, tokenManager } from '../../lib/auth';
 
 interface Notification {
   id: string;
-  type: 'order' | 'product' | 'payout' | 'system' | 'kyc';
+  type: string; // Backend sends uppercase: ORDER, PRODUCT, PAYOUT, SYSTEM, KYC
   title: string;
   message: string;
   read: boolean;
@@ -123,13 +124,18 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   };
 
   const getNotificationIcon = (type: string) => {
-    switch (type) {
+    const normalizedType = type?.toLowerCase();
+    switch (normalizedType) {
       case 'order':
         return <ShoppingCart className="w-4 h-4" />;
       case 'product':
         return <Package className="w-4 h-4" />;
       case 'payout':
         return <DollarSign className="w-4 h-4" />;
+      case 'kyc':
+        return <ShieldCheck className="w-4 h-4" />;
+      case 'system':
+        return <Bell className="w-4 h-4" />;
       default:
         return <Bell className="w-4 h-4" />;
     }
@@ -168,6 +174,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
     { name: 'Products', href: '/seller/products', icon: Package },
     { name: 'Orders', href: '/seller/orders', icon: Files },
     { name: 'Earnings', href: '/seller/earnings', icon: DollarSign },
+    { name: 'Identity Verification', href: '/seller/settings?tab=kyc', icon: ShieldCheck },
     { name: 'Settings', href: '/seller/settings', icon: Settings },
   ];
 
@@ -251,9 +258,9 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                           >
                             <div className="flex items-start gap-3">
                               <div className={`p-2 rounded-lg ${notification.type === 'order' ? 'bg-blue-500/20 text-blue-400' :
-                                  notification.type === 'product' ? 'bg-green-500/20 text-green-400' :
-                                    notification.type === 'payout' ? 'bg-yellow-500/20 text-yellow-400' :
-                                      'bg-primary/20 text-primary'
+                                notification.type === 'product' ? 'bg-green-500/20 text-green-400' :
+                                  notification.type === 'payout' ? 'bg-yellow-500/20 text-yellow-400' :
+                                    'bg-primary/20 text-primary'
                                 }`}>
                                 {getNotificationIcon(notification.type)}
                               </div>
@@ -350,8 +357,8 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
                     className={`flex items-center space-x-3 px-3 py-2 rounded-xl transition ${active
-                        ? 'bg-primary/20 text-white'
-                        : 'text-[#ffcc99] hover:bg-gray-800 hover:text-white'
+                      ? 'bg-primary/20 text-white'
+                      : 'text-[#ffcc99] hover:bg-gray-800 hover:text-white'
                       }`}
                   >
                     <Icon className="w-5 h-5" />

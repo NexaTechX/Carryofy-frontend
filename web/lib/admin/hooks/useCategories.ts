@@ -50,7 +50,15 @@ export function useAdminCategories(includeInactive: boolean = true) {
       const response = await apiClient.get<CategoriesResponse>(
         `/categories/admin/all?includeInactive=${includeInactive}`
       );
-      return response.data;
+      // Handle TransformInterceptor wrapper
+      const data = response.data as any;
+      if (data?.data && 'categories' in data.data) {
+        return data.data as CategoriesResponse;
+      }
+      if (data?.categories) {
+        return data as CategoriesResponse;
+      }
+      return { categories: [] };
     },
   });
 }

@@ -66,8 +66,8 @@ export function AdminGuard({ children }: AdminGuardProps) {
         // Update user in context
         // Validate and cast role to UserRole type
         const validRoles: UserRole[] = ['BUYER', 'SELLER', 'ADMIN', 'RIDER'];
-        const role = (validRoles.includes(profile.role?.toUpperCase() as UserRole) 
-          ? profile.role.toUpperCase() 
+        const role = (validRoles.includes(profile.role?.toUpperCase() as UserRole)
+          ? profile.role.toUpperCase()
           : 'BUYER') as UserRole;
 
         const normalizedUser: User = {
@@ -84,10 +84,11 @@ export function AdminGuard({ children }: AdminGuardProps) {
         if (profile.role?.toUpperCase() === 'ADMIN') {
           setState('authorized');
         } else {
-          // Redirect to appropriate dashboard based on role
-          const redirect = getRoleRedirect(profile.role);
+          // If user is not admin, redirect to login to allow switching accounts
+          // instead of redirecting to their current dashboard
           setState('redirecting');
-          router.replace(redirect);
+          const nextParam = encodeURIComponent(router.asPath ?? '/admin');
+          router.replace(`/auth/login?next=${nextParam}&error=unauthorized`);
         }
       } catch (error) {
         if (cancelled) return;

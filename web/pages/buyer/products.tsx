@@ -6,6 +6,7 @@ import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
 import { ChevronLeft, ChevronRight, Filter, X } from 'lucide-react';
+import { useCategories } from '../../lib/buyer/hooks/useCategories';
 
 interface Product {
   id: string;
@@ -29,14 +30,7 @@ interface ProductsResponse {
   totalPages: number;
 }
 
-const categories = [
-  { id: 'grains', name: 'Grains' },
-  { id: 'oils', name: 'Oils' },
-  { id: 'packaged', name: 'Packaged Foods' },
-  { id: 'spices', name: 'Spices' },
-  { id: 'beverages', name: 'Beverages' },
-  { id: 'personal-care', name: 'Personal Care' },
-];
+// Categories will be fetched from API
 
 const sortOptions = [
   { value: 'createdAt:desc', label: 'Newest First' },
@@ -56,6 +50,8 @@ export default function ProductsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const { data: categoriesData } = useCategories();
+  const categories = categoriesData?.categories?.filter(cat => cat.isActive) || [];
 
   // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -226,24 +222,28 @@ export default function ProductsPage() {
             </button>
 
             {/* Category Pills */}
-            <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => {
-                    setSelectedCategory(selectedCategory === cat.id ? '' : cat.id);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-4 py-2 rounded-xl font-medium transition ${
-                    selectedCategory === cat.id
-                      ? 'bg-[#ff6600] text-black'
-                      : 'bg-[#1a1a1a] text-white border border-[#ff6600]/30 hover:border-[#ff6600]'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {categories
+                  .sort((a, b) => a.displayOrder - b.displayOrder)
+                  .map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        setSelectedCategory(selectedCategory === cat.slug ? '' : cat.slug);
+                        setCurrentPage(1);
+                      }}
+                      className={`px-4 py-2 rounded-xl font-medium transition ${
+                        selectedCategory === cat.slug
+                          ? 'bg-[#ff6600] text-black'
+                          : 'bg-[#1a1a1a] text-white border border-[#ff6600]/30 hover:border-[#ff6600]'
+                      }`}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+              </div>
+            )}
 
             {/* Sort Dropdown */}
             <select

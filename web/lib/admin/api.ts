@@ -166,8 +166,31 @@ export async function approveSellerRequest(sellerId: string): Promise<void> {
   await apiClient.put(`/sellers/${sellerId}/approve`);
 }
 
-export async function rejectSellerRequest(sellerId: string): Promise<void> {
-  await apiClient.put(`/sellers/${sellerId}/reject`);
+export async function rejectSellerRequest(sellerId: string, rejectionReason?: string): Promise<void> {
+  await apiClient.put(`/sellers/${sellerId}/reject`, {
+    rejectionReason: rejectionReason || undefined,
+  });
+}
+
+export async function bulkApproveSellersRequest(sellerIds: string[]): Promise<{ approved: number; failed: number }> {
+  const { data } = await apiClient.post('/sellers/bulk-approve', { sellerIds });
+  // Handle wrapped response from TransformInterceptor
+  if (data && typeof data === 'object' && 'data' in data && 'statusCode' in data) {
+    return data.data as { approved: number; failed: number };
+  }
+  return data as { approved: number; failed: number };
+}
+
+export async function bulkRejectSellersRequest(sellerIds: string[], rejectionReason?: string): Promise<{ rejected: number; failed: number }> {
+  const { data } = await apiClient.post('/sellers/bulk-reject', {
+    sellerIds,
+    rejectionReason: rejectionReason || undefined,
+  });
+  // Handle wrapped response from TransformInterceptor
+  if (data && typeof data === 'object' && 'data' in data && 'statusCode' in data) {
+    return data.data as { rejected: number; failed: number };
+  }
+  return data as { rejected: number; failed: number };
 }
 
 export async function fetchPendingProducts(): Promise<PendingProduct[]> {

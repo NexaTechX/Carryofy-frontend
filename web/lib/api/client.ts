@@ -52,7 +52,10 @@ apiClient.interceptors.response.use(
     }
 
     // Handle 401 Unauthorized - try to refresh token
-    if (error.response?.status === 401 && !originalRequest._retry && typeof window !== 'undefined') {
+    // Skip refresh for login requests to avoid loops
+    const isLoginRequest = originalRequest.url?.includes('/auth/login');
+
+    if (error.response?.status === 401 && !originalRequest._retry && typeof window !== 'undefined' && !isLoginRequest) {
       originalRequest._retry = true;
 
       try {

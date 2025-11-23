@@ -31,23 +31,26 @@ const NGN_FORMATTER = new Intl.NumberFormat('en-NG', {
   maximumFractionDigits: 0,
 });
 
-const ROLE_FILTERS: Array<'ALL' | UserRole> = ['ALL', 'BUYER', 'SELLER'];
-const STATUS_FILTERS: Array<'ALL' | UserStatus> = ['ALL', 'ACTIVE', 'SUSPENDED'];
+const ROLE_FILTERS: Array<'ALL' | UserRole> = ['ALL', 'BUYER', 'SELLER', 'RIDER', 'ADMIN'];
+const STATUS_FILTERS: Array<'ALL' | UserStatus> = ['ALL', 'ACTIVE', 'SUSPENDED', 'RIDER_PENDING'];
 
-const STATUS_TONE: Record<UserStatus, 'success' | 'danger'> = {
+const STATUS_TONE: Record<UserStatus, 'success' | 'danger' | 'warning'> = {
   ACTIVE: 'success',
   SUSPENDED: 'danger',
+  RIDER_PENDING: 'warning',
 };
 
 const STATUS_LABEL: Record<UserStatus, string> = {
   ACTIVE: 'Active',
   SUSPENDED: 'Suspended',
+  RIDER_PENDING: 'Pending Approval',
 };
 
 const ROLE_LABEL: Record<UserRole, string> = {
   BUYER: 'Buyer',
   SELLER: 'Seller',
   ADMIN: 'Admin',
+  RIDER: 'Rider',
 };
 
 export default function AdminCustomers() {

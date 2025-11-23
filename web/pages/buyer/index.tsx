@@ -4,19 +4,15 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
-import { Search } from 'lucide-react';
-
-interface Category {
-  id: string;
-  name: string;
-  image: string;
-  color: string;
-}
+import { Search, Package } from 'lucide-react';
+import { useCategories } from '../../lib/buyer/hooks/useCategories';
 
 export default function BuyerDashboard() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { data: categoriesData, isLoading: categoriesLoading } = useCategories();
+  const categories = categoriesData?.categories || [];
 
   useEffect(() => {
     setMounted(true);
@@ -44,45 +40,17 @@ export default function BuyerDashboard() {
     }
   };
 
-  // Categories with brand-themed colors
-  const categories: Category[] = [
-    {
-      id: 'grains',
-      name: 'Grains',
-      image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=80',
-      color: 'bg-gradient-to-br from-orange-900/50 to-black',
-    },
-    {
-      id: 'oils',
-      name: 'Oils',
-      image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400&q=80',
-      color: 'bg-gradient-to-br from-amber-900/50 to-black',
-    },
-    {
-      id: 'packaged',
-      name: 'Packaged Foods',
-      image: 'https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9?w=400&q=80',
-      color: 'bg-gradient-to-br from-yellow-900/50 to-black',
-    },
-    {
-      id: 'spices',
-      name: 'Spices',
-      image: 'https://images.unsplash.com/photo-1596040033229-a0b13b0c6c67?w=400&q=80',
-      color: 'bg-gradient-to-br from-red-900/50 to-black',
-    },
-    {
-      id: 'beverages',
-      name: 'Beverages',
-      image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&q=80',
-      color: 'bg-gradient-to-br from-orange-800/50 to-black',
-    },
-    {
-      id: 'personal-care',
-      name: 'Personal Care',
-      image: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400&q=80',
-      color: 'bg-gradient-to-br from-orange-700/50 to-black',
-    },
-  ];
+  // Default fallback image and color for categories without them
+  const getCategoryImage = (category: typeof categories[0]) => {
+    return category.icon || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=80';
+  };
+
+  const getCategoryColor = (category: typeof categories[0]) => {
+    if (category.color) {
+      return `bg-gradient-to-br from-[${category.color}]/50 to-black`;
+    }
+    return 'bg-gradient-to-br from-orange-900/50 to-black';
+  };
 
   return (
     <>
@@ -142,28 +110,54 @@ export default function BuyerDashboard() {
           {/* Categories Section */}
           <div className="mb-12">
             <h2 className="text-white text-2xl md:text-3xl font-bold mb-6">Categories</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {categories.map((category) => (
-                <Link
-                  key={category.id}
-                  href={`/buyer/products?category=${category.id}`}
-                  className="group"
-                >
-                  <div className="relative aspect-square rounded-xl overflow-hidden border border-[#ff6600]/30 hover:border-[#ff6600] transition">
-                    <div
-                      className="absolute inset-0 bg-cover bg-center"
-                      style={{ backgroundImage: `url(${category.image})` }}
-                    />
-                    <div className={`absolute inset-0 ${category.color} group-hover:opacity-75 transition`}></div>
-                    <div className="relative h-full flex items-end p-4">
-                      <h3 className="text-white font-bold text-sm md:text-base">
-                        {category.name}
-                      </h3>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            {categoriesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-[#ffcc99]">Loading categories...</div>
+              </div>
+            ) : categories.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Package className="w-16 h-16 text-[#ffcc99]/50 mb-4" />
+                <p className="text-[#ffcc99]/70 text-lg">No categories available yet</p>
+                <p className="text-[#ffcc99]/50 text-sm mt-2">Check back later for new categories</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {categories
+                  .filter(cat => cat.isActive)
+                  .sort((a, b) => a.displayOrder - b.displayOrder)
+                  .map((category) => (
+                    <Link
+                      key={category.id}
+                      href={`/buyer/products?category=${category.slug}`}
+                      className="group"
+                    >
+                      <div className="relative aspect-square rounded-xl overflow-hidden border border-[#ff6600]/30 hover:border-[#ff6600] transition">
+                        {category.icon ? (
+                          <div
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: `url(${category.icon})` }}
+                          />
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-br from-[#ff6600]/20 to-black flex items-center justify-center">
+                            <Package className="w-12 h-12 text-[#ff6600]/50" />
+                          </div>
+                        )}
+                        {category.color && (
+                          <div 
+                            className="absolute inset-0 opacity-50 group-hover:opacity-75 transition"
+                            style={{ backgroundColor: category.color }}
+                          />
+                        )}
+                        <div className="relative h-full flex items-end p-4">
+                          <h3 className="text-white font-bold text-sm md:text-base drop-shadow-lg">
+                            {category.name}
+                          </h3>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+              </div>
+            )}
           </div>
         </div>
       </BuyerLayout>

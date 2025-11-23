@@ -23,7 +23,7 @@ import {
 
 interface Notification {
   id: string;
-  type: 'order' | 'product' | 'payout' | 'system' | 'kyc';
+  type: string; // Backend sends uppercase: ORDER, PRODUCT, PAYOUT, SYSTEM, KYC
   title: string;
   message: string;
   read: boolean;
@@ -227,7 +227,8 @@ export default function NotificationsPage() {
   };
 
   const getNotificationIcon = (type: string) => {
-    switch (type) {
+    const normalizedType = type?.toLowerCase();
+    switch (normalizedType) {
       case 'order':
         return <ShoppingCart className="w-5 h-5" />;
       case 'product':
@@ -244,7 +245,8 @@ export default function NotificationsPage() {
   };
 
   const getNotificationColor = (type: string) => {
-    switch (type) {
+    const normalizedType = type?.toLowerCase();
+    switch (normalizedType) {
       case 'order':
         return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       case 'product':

@@ -3,7 +3,7 @@
  * Uses environment variable or defaults to production API
  */
 export const getApiBaseUrl = (): string => {
-  return process.env.NEXT_PUBLIC_API_BASE || 'https://carryofyapi.vercel.app/api/v1';
+  return process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
 };
 
 /**
@@ -11,7 +11,7 @@ export const getApiBaseUrl = (): string => {
  * Uses environment variable or defaults to production API base
  */
 export const getApiBaseUrlWithoutSuffix = (): string => {
-  const base = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://carryofyapi.vercel.app';
+  const base = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
   // Remove /api/v1 if present
   return base.replace(/\/api\/v1$/, '');
 };

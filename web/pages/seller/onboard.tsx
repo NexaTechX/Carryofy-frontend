@@ -39,7 +39,7 @@ export default function SellerOnboardingPage() {
     // Check if seller is already onboarded
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
       const response = await fetch(`${apiUrl}/sellers/me`, {
@@ -76,7 +76,7 @@ export default function SellerOnboardingPage() {
     setLoading(true);
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
       const response = await fetch(`${apiUrl}/sellers/onboard`, {

@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { tokenManager } from '../auth/token';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://carryofyapi.vercel.app/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({

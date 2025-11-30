@@ -223,7 +223,7 @@ export default function AdminSellers() {
     for (const sellerId of selectedIds) {
       try {
         const token = localStorage.getItem('accessToken');
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://carryofyapi.vercel.app/api/v1';
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
         const response = await fetch(
           `${apiBase}/sellers/${sellerId}/kyc/reset-submission-count`,
           {
@@ -821,7 +821,7 @@ export default function AdminSellers() {
                         if (!selectedSeller) return;
                         try {
                           const token = localStorage.getItem('accessToken');
-                          const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://carryofyapi.vercel.app/api/v1';
+                          const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
                           const response = await fetch(
                             `${apiBase}/sellers/${selectedSeller.id}/kyc/reset-submission-count`,
                             {

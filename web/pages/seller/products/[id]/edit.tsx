@@ -70,7 +70,7 @@ export default function EditProductPage() {
   const fetchProduct = async () => {
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
       const response = await fetch(`${apiUrl}/products/${id}`, {
@@ -137,7 +137,7 @@ export default function EditProductPage() {
       const formData = new FormData();
       formData.append('images', file);
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
       
       const response = await fetch(
@@ -204,7 +204,7 @@ export default function EditProductPage() {
         quantity: parseInt(formData.quantity),
       };
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
       
       const response = await fetch(

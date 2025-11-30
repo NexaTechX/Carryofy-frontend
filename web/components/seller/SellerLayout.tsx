@@ -78,7 +78,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
         return;
       }
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
       try {
@@ -150,7 +150,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       if (!notification.read) {
         try {
           const token = tokenManager.getAccessToken();
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
           const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
           await fetch(`${apiUrl}/notifications/${notification.id}/mark-as-read`, {

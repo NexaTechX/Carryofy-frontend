@@ -40,7 +40,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
       const token = tokenManager.getAccessToken();
       if (!token) return;
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
       const response = await fetch(`${apiUrl}/cart`, {

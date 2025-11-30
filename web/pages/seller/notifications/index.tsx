@@ -92,7 +92,7 @@ export default function NotificationsPage() {
         return;
       }
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
       
       try {
@@ -130,7 +130,7 @@ export default function NotificationsPage() {
   const markAsRead = async (id: string) => {
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
       const response = await fetch(`${apiUrl}/notifications/${id}/mark-as-read`, {
@@ -152,7 +152,7 @@ export default function NotificationsPage() {
   const markAllAsRead = async () => {
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
       const response = await fetch(`${apiUrl}/notifications/mark-as-read`, {
@@ -172,7 +172,7 @@ export default function NotificationsPage() {
   const deleteNotification = async (id: string) => {
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
       const response = await fetch(`${apiUrl}/notifications/${id}`, {
@@ -205,7 +205,7 @@ export default function NotificationsPage() {
     
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
       const response = await fetch(`${apiUrl}/notifications`, {

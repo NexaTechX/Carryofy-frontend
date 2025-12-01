@@ -237,10 +237,31 @@ export default function EmailVerification() {
                 </button>
               </form>
 
+              {/* Spam Notice */}
+              <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-amber-800 text-sm font-medium mb-2">
+                  📧 Can't find the email?
+                </p>
+                <ul className="text-amber-700 text-sm space-y-1.5">
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-500">•</span>
+                    <span>Check your <strong>Spam</strong> or <strong>Junk</strong> folder</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-500">•</span>
+                    <span>If found in spam, click <strong>"Not Spam"</strong> or <strong>"Move to Inbox"</strong> to receive future emails properly</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-500">•</span>
+                    <span>Add <strong>noreply@carryofy.com</strong> to your contacts</span>
+                  </li>
+                </ul>
+              </div>
+
               {/* Resend Code */}
               <div className="mt-6 text-center">
                 <p className="text-gray-600 text-sm mb-3">
-                  Didn't receive the code?
+                  Still didn't receive the code?
                 </p>
                 <button
                   type="button"

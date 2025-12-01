@@ -1,4 +1,3 @@
-import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -8,6 +7,8 @@ import { z } from 'zod';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { authService, tokenManager, useAuth, getRoleRedirect } from '../../lib/auth';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
+import SEO from '../../components/seo/SEO';
+import { BreadcrumbSchema } from '../../components/seo/JsonLd';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -42,19 +43,16 @@ export default function Login() {
     setError(null);
 
     try {
-      // Login with NestJS backend
       const response = await authService.login({
         email: data.email,
         password: data.password,
       });
 
-      // Validate response structure
       if (!response || !response.user) {
         console.error('Invalid login response:', response);
         throw new Error('Invalid response from server. Please try again.');
       }
 
-      // Check if email is verified
       if (!response.user.verified) {
         setError('Please verify your email address before logging in. Check your inbox for the verification code.');
         setIsSubmitting(false);
@@ -62,39 +60,29 @@ export default function Login() {
         return;
       }
 
-      // Store tokens and user data
       tokenManager.setTokens(response.accessToken, response.refreshToken);
       setUser(response.user);
-      // Sync with localStorage for backward compatibility
       if (typeof window !== 'undefined') {
         localStorage.setItem('user', JSON.stringify(response.user));
       }
 
       showSuccessToast('Login successful!');
 
-      // Redirect based on user role
-      const redirectPath = getRoleRedirect(response.user.role);
-      router.push(redirectPath);
+      // Check for redirect parameter
+      const redirectUrl = router.query.redirect as string;
+      if (redirectUrl) {
+        router.push(redirectUrl);
+      } else {
+        const redirectPath = getRoleRedirect(response.user.role);
+        router.push(redirectPath);
+      }
     } catch (error: any) {
-      console.error('=== LOGIN ERROR DETAILS ===');
-      console.error('Full error object:', error);
-      console.error('Error response:', error.response);
-      console.error('Error response data:', error.response?.data);
-      console.error('Error response status:', error.response?.status);
-      console.error('Error response headers:', error.response?.headers);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-      console.error('==========================');
+      console.error('Login error:', error);
 
-      // Extract message from backend response if available
-      // Backend uses TransformInterceptor which wraps errors in { statusCode, message }
       let message = 'Invalid email or password';
       
       if (error.response?.data) {
         const errorData = error.response.data;
-        console.error('Parsing error data:', JSON.stringify(errorData, null, 2));
-        
-        // Handle wrapped error response from TransformInterceptor
         if (typeof errorData === 'object' && errorData.message) {
           message = Array.isArray(errorData.message) 
             ? errorData.message.join(', ') 
@@ -106,17 +94,9 @@ export default function Login() {
         message = error.message;
       }
 
-      // Provide more specific error messages for common issues
       if (error.response?.status === 500) {
         const errorMessage = error.response?.data?.message || error.message || 'Server error occurred';
-        message = `Server Error (500): ${errorMessage}. Please check backend logs for details.`;
-        console.error('=== 500 SERVER ERROR DETAILS ===');
-        console.error('Status:', error.response.status);
-        console.error('Response Data:', JSON.stringify(error.response.data, null, 2));
-        console.error('Request URL:', error.config?.url);
-        console.error('Request Method:', error.config?.method);
-        console.error('Request Data:', error.config?.data);
-        console.error('================================');
+        message = `Server Error: ${errorMessage}. Please try again later.`;
       }
 
       setError(message);
@@ -126,17 +106,42 @@ export default function Login() {
     }
   };
 
+  const loginKeywords = [
+    // Primary intent
+    'login Carryofy',
+    'sign in Carryofy',
+    'Carryofy account login',
+    
+    // User type specific
+    'seller login Nigeria',
+    'buyer login Nigeria',
+    'merchant login Carryofy',
+    
+    // General
+    'ecommerce login Nigeria',
+    'online shopping login',
+    'marketplace login Nigeria',
+  ].join(', ');
+
   return (
     <>
-      <Head>
-        <title>Login - Carryofy</title>
-        <meta
-          name="description"
-          content="Login to your Carryofy account to start selling or shopping."
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <SEO
+        title="Login - Sign In to Your Carryofy Account | Nigeria E-Commerce"
+        description="Sign in to your Carryofy account to shop products, manage orders, or access your seller dashboard. Secure login for buyers and sellers in Nigeria. Forgot password? Reset it easily."
+        keywords={loginKeywords}
+        canonical="https://carryofy.com/auth/login"
+        ogType="website"
+        ogImage="https://carryofy.com/og/login.png"
+        ogImageAlt="Login to Carryofy - Nigeria's E-Commerce Platform"
+      />
+      
+      <BreadcrumbSchema
+        items={[
+          { name: 'Home', url: '/' },
+          { name: 'Login', url: '/auth/login' },
+        ]}
+      />
+      
       <div className="min-h-screen flex flex-col bg-linear-to-br from-gray-50 to-white">
         {/* Header */}
         <header className="bg-white shadow-sm">
@@ -156,11 +161,11 @@ export default function Login() {
                 <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-gray-900">
                   Welcome Back
                 </h1>
-                <p className="text-gray-600">Sign in to your account</p>
+                <p className="text-gray-600">Sign in to your Carryofy account</p>
               </div>
 
               {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm" role="alert">
                   {error}
                 </div>
               )}
@@ -206,6 +211,7 @@ export default function Login() {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? (
                         <EyeOff className="w-5 h-5" />
@@ -243,7 +249,17 @@ export default function Login() {
                 <p className="text-gray-600 text-sm">
                   Don&apos;t have an account?{' '}
                   <Link href="/auth/signup" className="text-primary hover:text-primary-dark font-semibold">
-                    Sign up
+                    Sign up free
+                  </Link>
+                </p>
+              </div>
+              
+              {/* Additional Links for SEO */}
+              <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+                <p className="text-gray-500 text-xs">
+                  Want to sell on Carryofy?{' '}
+                  <Link href="/merchant-onboarding" className="text-primary hover:underline">
+                    Become a Merchant
                   </Link>
                 </p>
               </div>
@@ -254,4 +270,3 @@ export default function Login() {
     </>
   );
 }
-

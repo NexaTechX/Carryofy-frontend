@@ -1,7 +1,7 @@
-import Head from 'next/head';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { GetServerSideProps } from 'next';
 import BuyerLayout from '../../../components/buyer/BuyerLayout';
 import apiClient from '../../../lib/api/client';
 import {
@@ -12,10 +12,11 @@ import {
   Shield,
   Star,
   TrendingUp,
-  ArrowRight,
   Package,
 } from 'lucide-react';
 import { tokenManager, userManager } from '../../../lib/auth';
+import SEO from '../../../components/seo/SEO';
+import { ProductSchema, BreadcrumbSchema } from '../../../components/seo/JsonLd';
 
 interface Product {
   id: string;
@@ -44,13 +45,64 @@ interface Review {
   createdAt: string;
 }
 
-export default function ProductDetailPage() {
+interface ProductPageProps {
+  initialProduct: Product | null;
+  error?: string;
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
+
+// Server-side data fetching for SEO
+export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({ params }) => {
+  const id = params?.id as string;
+  
+  if (!id) {
+    return {
+      props: {
+        initialProduct: null,
+        error: 'Product ID not provided',
+      },
+    };
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/${id}`);
+    
+    if (!response.ok) {
+      return {
+        props: {
+          initialProduct: null,
+          error: 'Product not found',
+        },
+      };
+    }
+
+    const data = await response.json();
+    const product = data.data || data;
+
+    return {
+      props: {
+        initialProduct: product,
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching product for SSR:', error);
+    return {
+      props: {
+        initialProduct: null,
+        error: 'Failed to load product',
+      },
+    };
+  }
+};
+
+export default function ProductDetailPage({ initialProduct, error: ssrError }: ProductPageProps) {
   const router = useRouter();
   const { id } = router.query;
   const [mounted, setMounted] = useState(false);
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [product, setProduct] = useState<Product | null>(initialProduct);
+  const [loading, setLoading] = useState(!initialProduct);
+  const [error, setError] = useState<string | null>(ssrError || null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
@@ -58,38 +110,38 @@ export default function ProductDetailPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     // Check authentication
-    if (!tokenManager.isAuthenticated()) {
-      router.push('/auth/login');
+    const authenticated = tokenManager.isAuthenticated();
+    setIsAuthenticated(authenticated);
+
+    if (!authenticated) {
+      // Allow viewing product without auth, but disable cart actions
       return;
     }
 
     const user = userManager.getUser();
-    if (!user) {
-      router.push('/auth/login');
-      return;
-    }
-
-    if (user.role && user.role !== 'BUYER' && user.role !== 'ADMIN') {
+    if (user && user.role && user.role !== 'BUYER' && user.role !== 'ADMIN') {
       router.push('/');
     }
   }, [router]);
 
   useEffect(() => {
-    if (mounted && id) {
+    if (mounted && id && !initialProduct) {
       fetchProduct();
+    } else if (initialProduct) {
+      fetchReviews(initialProduct.id);
     }
-  }, [mounted, id]);
+  }, [mounted, id, initialProduct]);
 
   const fetchReviews = useCallback(async (productId: string) => {
     try {
       setReviewsLoading(true);
       setReviewsError(null);
       const response = await apiClient.get<Review[]>(`/products/${productId}/reviews`);
-      // Handle both possible response structures (wrapped or direct)
       const data = (response.data as any).data || response.data;
       setReviews(Array.isArray(data) ? data : []);
     } catch (err: any) {
@@ -122,7 +174,6 @@ export default function ProductDetailPage() {
       setLoading(true);
       setError(null);
       const response = await apiClient.get<Product>(`/products/${id}`);
-      // Handle both possible response structures (wrapped or direct)
       const productData = (response.data as any).data || response.data;
       setProduct(productData);
       fetchReviews(productData.id);
@@ -137,6 +188,11 @@ export default function ProductDetailPage() {
   const handleAddToCart = async () => {
     if (!product) return;
 
+    if (!isAuthenticated) {
+      router.push(`/auth/login?redirect=/buyer/products/${product.id}`);
+      return;
+    }
+
     try {
       setAddingToCart(true);
       setCartMessage(null);
@@ -149,8 +205,6 @@ export default function ProductDetailPage() {
       setCartMessage({ type: 'success', text: 'Product added to cart successfully!' });
       setTimeout(() => {
         setCartMessage(null);
-        // Optionally redirect to cart
-        // router.push('/buyer/cart');
       }, 2000);
     } catch (err: any) {
       console.error('Error adding to cart:', err);
@@ -179,9 +233,33 @@ export default function ProductDetailPage() {
       spices: 'Spices',
       beverages: 'Beverages',
       'personal-care': 'Personal Care',
+      electronics: 'Electronics',
+      fashion: 'Fashion',
+      home: 'Home & Living',
     };
     return categoryId ? categoryMap[categoryId] || categoryId : 'Uncategorized';
   };
+
+  // Calculate average rating from reviews
+  const averageRating = reviews.length > 0
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+    : 4.8;
+
+  // SEO keywords based on product
+  const productKeywords = product ? [
+    product.title,
+    `buy ${product.title} Nigeria`,
+    `${product.title} Lagos`,
+    `${product.title} price Nigeria`,
+    `${getCategoryName(product.category)} Nigeria`,
+    `buy ${getCategoryName(product.category)} online Nigeria`,
+    product.seller?.businessName,
+    'Carryofy',
+    'same day delivery Lagos',
+    'buy online Nigeria',
+    'online shopping Nigeria',
+    'fast delivery Nigeria',
+  ].join(', ') : '';
 
   if (!mounted) {
     return null;
@@ -189,19 +267,52 @@ export default function ProductDetailPage() {
 
   return (
     <>
-      <Head>
-        <title>{product?.title || 'Product'} - Buyer | Carryofy</title>
-        <meta
-          name="description"
-          content={product?.description || 'View product details on Carryofy.'}
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <SEO
+        title={product ? `${product.title} - Buy Online in Nigeria | Carryofy` : 'Product | Carryofy'}
+        description={product 
+          ? `Buy ${product.title} online in Nigeria at ${formatPrice(product.price)}. ${product.description?.slice(0, 120) || ''} Same-day delivery in Lagos. Sold by ${product.seller?.businessName || 'verified seller'} on Carryofy.`
+          : 'Shop quality products online at Carryofy. Same-day delivery in Lagos, Nigeria.'
+        }
+        keywords={productKeywords}
+        canonical={product ? `https://carryofy.com/buyer/products/${product.id}` : undefined}
+        ogType="product"
+        ogImage={product?.images?.[0] || 'https://carryofy.com/og/product.png'}
+        ogImageAlt={product?.title || 'Product on Carryofy'}
+      />
+      
+      {product && (
+        <>
+          <ProductSchema
+            name={product.title}
+            description={product.description || `Buy ${product.title} online at Carryofy`}
+            image={product.images || []}
+            price={product.price}
+            currency="NGN"
+            availability={product.quantity > 0 ? 'InStock' : 'OutOfStock'}
+            sku={product.id}
+            category={getCategoryName(product.category)}
+            seller={{
+              name: product.seller?.businessName || 'Carryofy Seller',
+              url: `https://carryofy.com/seller/${product.seller?.id}`,
+            }}
+            rating={reviews.length > 0 ? { value: averageRating, count: reviews.length } : undefined}
+            url={`https://carryofy.com/buyer/products/${product.id}`}
+          />
+          <BreadcrumbSchema
+            items={[
+              { name: 'Home', url: '/' },
+              { name: 'Products', url: '/buyer/products' },
+              ...(product.category ? [{ name: getCategoryName(product.category), url: `/buyer/products?category=${product.category}` }] : []),
+              { name: product.title, url: `/buyer/products/${product.id}` },
+            ]}
+          />
+        </>
+      )}
+      
       <BuyerLayout>
         <div>
           {/* Breadcrumbs */}
-          <div className="flex items-center gap-2 text-sm mb-6">
+          <nav className="flex items-center gap-2 text-sm mb-6" aria-label="Breadcrumb">
             <Link href="/buyer/categories" className="text-[#ffcc99] hover:text-[#ff6600] transition">
               Categories
             </Link>
@@ -218,7 +329,7 @@ export default function ProductDetailPage() {
               </>
             )}
             <span className="text-white">{product?.title || 'Product'}</span>
-          </div>
+          </nav>
 
           {/* Loading State */}
           {loading && (
@@ -243,7 +354,7 @@ export default function ProductDetailPage() {
 
           {/* Product Details */}
           {!loading && !error && product && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <article className="grid grid-cols-1 lg:grid-cols-2 gap-8" itemScope itemType="https://schema.org/Product">
               {/* Left Column - Images */}
               <div>
                 {/* Main Image */}
@@ -254,6 +365,7 @@ export default function ProductDetailPage() {
                         src={product.images[selectedImageIndex]}
                         alt={product.title}
                         className="w-full h-full object-cover"
+                        itemProp="image"
                       />
                       {product.images.length > 1 && (
                         <>
@@ -264,6 +376,7 @@ export default function ProductDetailPage() {
                               )
                             }
                             className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/75 text-white rounded-full transition"
+                            aria-label="Previous image"
                           >
                             <ChevronLeft className="w-6 h-6" />
                           </button>
@@ -274,6 +387,7 @@ export default function ProductDetailPage() {
                               )
                             }
                             className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/75 text-white rounded-full transition"
+                            aria-label="Next image"
                           >
                             <ChevronRight className="w-6 h-6" />
                           </button>
@@ -299,6 +413,7 @@ export default function ProductDetailPage() {
                             ? 'border-[#ff6600]'
                             : 'border-[#ff6600]/30 hover:border-[#ff6600]/70'
                         }`}
+                        aria-label={`View image ${index + 1}`}
                       >
                         <img src={image} alt={`${product.title} ${index + 1}`} className="w-full h-full object-cover" />
                       </button>
@@ -319,12 +434,16 @@ export default function ProductDetailPage() {
                 )}
 
                 {/* Product Title */}
-                <h1 className="text-white text-3xl md:text-4xl font-bold mb-4 leading-tight">{product.title}</h1>
+                <h1 className="text-white text-3xl md:text-4xl font-bold mb-4 leading-tight" itemProp="name">
+                  {product.title}
+                </h1>
 
                 {/* Description */}
                 {product.description && (
                   <div className="mb-6">
-                    <p className="text-[#ffcc99] text-lg leading-relaxed whitespace-pre-wrap">{product.description}</p>
+                    <p className="text-[#ffcc99] text-lg leading-relaxed whitespace-pre-wrap" itemProp="description">
+                      {product.description}
+                    </p>
                   </div>
                 )}
 
@@ -333,25 +452,30 @@ export default function ProductDetailPage() {
                   <div className="flex items-center gap-2">
                     <Store className="w-4 h-4 text-[#ffcc99]" />
                     <span className="text-[#ffcc99] text-sm">Seller:</span>
-                    <span className="text-white font-medium">{product.seller.businessName}</span>
+                    <span className="text-white font-medium" itemProp="brand">{product.seller.businessName}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2" itemProp="aggregateRating" itemScope itemType="https://schema.org/AggregateRating">
                     <div className="flex items-center gap-1">
                       <span className="text-[#ffcc99] text-sm">Rating:</span>
-                      <span className="text-white font-bold">4.8</span>
+                      <span className="text-white font-bold" itemProp="ratingValue">{averageRating.toFixed(1)}</span>
                       <Star className="w-4 h-4 text-[#ff6600] fill-[#ff6600]" />
+                      <meta itemProp="reviewCount" content={String(reviews.length || 1)} />
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Shield className="w-4 h-4 text-green-400" />
-                    <span className="text-green-400 font-medium text-sm">Fulfilled by Carryofy</span>
+                    <span className="text-green-400 font-medium text-sm">Fulfilled by Carryofy • Same-Day Delivery Lagos</span>
                   </div>
                 </div>
 
                 {/* Price */}
-                <div className="mb-6 p-6 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl">
+                <div className="mb-6 p-6 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl" itemProp="offers" itemScope itemType="https://schema.org/Offer">
                   <p className="text-[#ffcc99] text-sm mb-2">Price</p>
-                  <p className="text-[#ff6600] text-4xl font-bold">{formatPrice(product.price)}</p>
+                  <p className="text-[#ff6600] text-4xl font-bold" itemProp="price" content={String(product.price / 100)}>
+                    {formatPrice(product.price)}
+                  </p>
+                  <meta itemProp="priceCurrency" content="NGN" />
+                  <link itemProp="availability" href={product.quantity > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'} />
                   {product.quantity > 0 ? (
                     <div className="mt-3 flex items-center gap-2">
                       <Package className="w-4 h-4 text-green-400" />
@@ -370,6 +494,7 @@ export default function ProductDetailPage() {
                       <button
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
                         className="w-10 h-10 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] transition"
+                        aria-label="Decrease quantity"
                       >
                         -
                       </button>
@@ -377,6 +502,7 @@ export default function ProductDetailPage() {
                       <button
                         onClick={() => setQuantity(Math.min(product.quantity, quantity + 1))}
                         className="w-10 h-10 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] transition"
+                        aria-label="Increase quantity"
                       >
                         +
                       </button>
@@ -392,6 +518,7 @@ export default function ProductDetailPage() {
                         ? 'bg-green-500/10 border border-green-500/50 text-green-400'
                         : 'bg-red-500/10 border border-red-500/50 text-red-400'
                     }`}
+                    role="alert"
                   >
                     {cartMessage.text}
                   </div>
@@ -406,7 +533,16 @@ export default function ProductDetailPage() {
                     className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold text-lg hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-[#ff6600]/30"
                   >
                     <TrendingUp className="w-5 h-5" />
-                    <span>{addingToCart ? 'Processing...' : product.quantity === 0 ? 'Out of Stock' : 'Buy Now'}</span>
+                    <span>
+                      {!isAuthenticated 
+                        ? 'Login to Buy' 
+                        : addingToCart 
+                          ? 'Processing...' 
+                          : product.quantity === 0 
+                            ? 'Out of Stock' 
+                            : 'Buy Now'
+                      }
+                    </span>
                   </button>
                   
                   {/* Add to Cart Button */}
@@ -416,25 +552,46 @@ export default function ProductDetailPage() {
                     className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#1a1a1a] text-white border-2 border-[#ff6600]/50 rounded-xl font-bold hover:bg-[#ff6600]/10 hover:border-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     <ShoppingCart className="w-5 h-5" />
-                    <span>{addingToCart ? 'Adding...' : product.quantity === 0 ? 'Out of Stock' : 'Add to Cart'}</span>
+                    <span>
+                      {!isAuthenticated 
+                        ? 'Login to Add to Cart' 
+                        : addingToCart 
+                          ? 'Adding...' 
+                          : product.quantity === 0 
+                            ? 'Out of Stock' 
+                            : 'Add to Cart'
+                      }
+                    </span>
                   </button>
                 </div>
 
+                {/* Trust Badges */}
+                <div className="mt-6 pt-6 border-t border-[#ff6600]/30 grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2 text-sm text-[#ffcc99]">
+                    <Shield className="w-4 h-4 text-green-400" />
+                    <span>Buyer Protection</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-[#ffcc99]">
+                    <Package className="w-4 h-4 text-[#ff6600]" />
+                    <span>Secure Packaging</span>
+                  </div>
+                </div>
+
                 {/* Additional Info */}
-                <div className="mt-6 pt-6 border-t border-[#ff6600]/30">
+                <div className="mt-4">
                   <p className="text-[#ffcc99]/70 text-sm">
                     Product ID: <span className="text-[#ffcc99]">{product.id}</span>
                   </p>
                 </div>
               </div>
-            </div>
+            </article>
           )}
 
           {/* Reviews Section */}
           {!loading && !error && product && (
-            <div className="mt-12">
+            <section className="mt-12">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-white text-3xl font-bold">Reviews</h2>
+                <h2 className="text-white text-3xl font-bold">Customer Reviews</h2>
                 <p className="text-[#ffcc99]/70 text-sm">
                   {reviews.length > 0
                     ? `${reviews.length} review${reviews.length === 1 ? '' : 's'} from Carryofy buyers`
@@ -460,7 +617,7 @@ export default function ProductDetailPage() {
               ) : (
                 <div className="space-y-4">
                   {reviews.map((review) => (
-                    <div key={review.id} className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
+                    <article key={review.id} className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6" itemScope itemType="https://schema.org/Review">
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 rounded-full bg-[#ff6600]/10 border border-[#ff6600]/40 flex items-center justify-center flex-shrink-0">
                           <span className="text-white font-semibold text-lg">
@@ -470,10 +627,16 @@ export default function ProductDetailPage() {
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-white font-semibold text-sm">{review.authorName}</p>
-                              <p className="text-[#ffcc99]/60 text-xs">{new Date(review.createdAt).toLocaleDateString('en-NG')}</p>
+                              <p className="text-white font-semibold text-sm" itemProp="author">{review.authorName}</p>
+                              <p className="text-[#ffcc99]/60 text-xs">
+                                <time itemProp="datePublished" dateTime={review.createdAt}>
+                                  {new Date(review.createdAt).toLocaleDateString('en-NG')}
+                                </time>
+                              </p>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1" itemProp="reviewRating" itemScope itemType="https://schema.org/Rating">
+                              <meta itemProp="ratingValue" content={String(review.rating)} />
+                              <meta itemProp="bestRating" content="5" />
                               {[1, 2, 3, 4, 5].map((starValue) => (
                                 <Star
                                   key={starValue}
@@ -484,18 +647,17 @@ export default function ProductDetailPage() {
                               ))}
                             </div>
                           </div>
-                          <p className="text-[#ffcc99]/80 text-sm leading-relaxed">{review.comment}</p>
+                          <p className="text-[#ffcc99]/80 text-sm leading-relaxed" itemProp="reviewBody">{review.comment}</p>
                         </div>
                       </div>
-                    </div>
+                    </article>
                   ))}
                 </div>
               )}
-            </div>
+            </section>
           )}
         </div>
       </BuyerLayout>
     </>
   );
 }
-

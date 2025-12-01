@@ -1,0 +1,19 @@
+# OG (Open Graph) Images for Social Media Sharing
+#
+# Place your social media preview images here:
+# - default.png (1200x630px) - Default fallback image
+# - home.png - Homepage preview
+# - about.png - About page preview
+# - contact.png - Contact page preview
+# - blog.png - Blog page preview
+# - careers.png - Careers page preview
+# - help.png - Help center preview
+# - merchant.png - Merchant onboarding preview
+# - products.png - Products listing preview
+# - product.png - Default product preview
+# - login.png - Login page preview
+# - signup.png - Signup page preview
+#
+# Recommended size: 1200x630 pixels (1.91:1 ratio)
+# Format: PNG or JPG
+

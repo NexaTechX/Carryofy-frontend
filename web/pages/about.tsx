@@ -1,19 +1,63 @@
-import Head from 'next/head';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
+import SEO from '../components/seo/SEO';
+import { CombinedSchema } from '../components/seo/JsonLd';
 
 export default function About() {
+  const aboutKeywords = [
+    // Brand keywords
+    'Carryofy about',
+    'Carryofy company',
+    'Carryofy Nigeria',
+    'Carryofy Lagos',
+    'Carryofy team',
+    'who is Carryofy',
+    'Carryofy founder',
+    'Carryofy history',
+    
+    // Industry keywords
+    'ecommerce company Nigeria',
+    'logistics company Lagos',
+    'African ecommerce startup',
+    'Nigerian tech startup',
+    'commerce platform Africa',
+    'delivery company Nigeria',
+    'fulfillment company Lagos',
+    
+    // Trust keywords
+    'trusted ecommerce Nigeria',
+    'reliable delivery company Lagos',
+    'best logistics Nigeria',
+    'top ecommerce Africa',
+    
+    // Location keywords
+    'ecommerce Lagos Nigeria',
+    'tech company Nigeria',
+    'startup Lagos',
+    'African commerce company',
+    'West African ecommerce',
+  ].join(', ');
+
   return (
     <>
-      <Head>
-        <title>About Us - Carryofy</title>
-        <meta
-          name="description"
-          content="Learn about Carryofy - Nigeria's trusted e-commerce fulfillment platform connecting sellers and buyers."
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <SEO
+        title="About Carryofy - Leading AI E-Commerce & Logistics Company in Nigeria | Our Mission & Vision"
+        description="Learn about Carryofy, Nigeria's trusted AI-powered e-commerce fulfillment platform founded in Lagos. We connect sellers and buyers across Africa with integrated marketplace, logistics, and warehouse solutions. Transforming African commerce with technology."
+        keywords={aboutKeywords}
+        canonical="https://carryofy.com/about"
+        ogType="website"
+        ogImage="https://carryofy.com/og/about.png"
+        ogImageAlt="About Carryofy - Africa's Leading E-Commerce Platform"
+      />
+      
+      <CombinedSchema
+        includeOrganization
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'About Us', url: '/about' },
+        ]}
+      />
+      
       <div className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-grow">
@@ -24,7 +68,7 @@ export default function About() {
                 About Carryofy
               </h1>
               <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-                Empowering Nigerian businesses with seamless e-commerce fulfillment
+                Empowering Nigerian businesses with seamless e-commerce fulfillment and AI-powered logistics solutions
               </p>
             </div>
           </section>
@@ -38,7 +82,7 @@ export default function About() {
                     Our Mission
                   </h2>
                   <p className="text-base sm:text-lg text-gray-600 leading-relaxed text-center">
-                    Carryofy is transforming African commerce by building a reliable, scalable, and intelligent infrastructure for buying and selling.
+                    Carryofy is transforming African commerce by building a reliable, scalable, and intelligent infrastructure for buying and selling. We empower merchants with AI-powered tools, seamless logistics, and same-day delivery to compete in the global marketplace.
                   </p>
                 </div>
 
@@ -47,7 +91,7 @@ export default function About() {
                     Our Vision
                   </h2>
                   <p className="text-base sm:text-lg text-gray-600 leading-relaxed text-center">
-                    To become Africa’s most trusted commerce engine—powering millions of businesses with AI, logistics, and financial tools.
+                    To become Africa&apos;s most trusted commerce engine—powering millions of businesses with AI, logistics, and financial tools. We envision a future where every African entrepreneur has access to world-class e-commerce infrastructure.
                   </p>
                 </div>
               </div>
@@ -62,7 +106,7 @@ export default function About() {
                   Our Story
                 </h2>
                 <p className="text-base sm:text-lg text-gray-600 leading-relaxed text-center">
-                  Born in Lagos, Carryofy began with a simple idea: make commerce seamless for sellers and fast for buyers. Today, we are building the continent’s first integrated commerce OS.
+                  Born in Lagos, Carryofy began with a simple idea: make commerce seamless for sellers and fast for buyers. We saw the challenges African merchants face—fragmented logistics, unreliable delivery, and complex fulfillment. Today, we are building the continent&apos;s first integrated commerce OS, serving thousands of merchants across Nigeria.
                 </p>
               </div>
             </div>
@@ -76,15 +120,34 @@ export default function About() {
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
                 {[
-                  { title: 'Innovation', desc: 'We constantly push boundaries to create better solutions.' },
-                  { title: 'Reliability', desc: 'We deliver on our promises, every single time.' },
-                  { title: 'Efficiency', desc: 'We optimize every step to save time and resources.' },
-                  { title: 'Customer-first', desc: 'Your success is our top priority.' },
-                  { title: 'Transparency', desc: 'We believe in open and honest communication.' },
+                  { title: 'Innovation', desc: 'We constantly push boundaries to create better solutions with AI and technology.' },
+                  { title: 'Reliability', desc: 'We deliver on our promises, every single time. 99.8% satisfaction rate.' },
+                  { title: 'Efficiency', desc: 'We optimize every step to save time and resources for our merchants.' },
+                  { title: 'Customer-first', desc: 'Your success is our top priority. We grow when you grow.' },
+                  { title: 'Transparency', desc: 'We believe in open and honest communication with all stakeholders.' },
                 ].map((value, index) => (
-                  <div key={index} className="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                  <article key={index} className="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                     <h3 className="text-xl font-bold mb-3 text-gray-900">{value.title}</h3>
                     <p className="text-sm sm:text-base text-gray-600">{value.desc}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Stats Section */}
+          <section className="py-12 sm:py-16 bg-gray-900 text-white">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto text-center">
+                {[
+                  { value: '12,450+', label: 'Deliveries Completed' },
+                  { value: '99.8%', label: 'Satisfaction Rate' },
+                  { value: '1,000+', label: 'Active Merchants' },
+                  { value: '36', label: 'Nigerian States Covered' },
+                ].map((stat, index) => (
+                  <div key={index}>
+                    <p className="text-3xl md:text-4xl font-bold text-primary mb-2">{stat.value}</p>
+                    <p className="text-gray-400 text-sm md:text-base">{stat.label}</p>
                   </div>
                 ))}
               </div>
@@ -98,15 +161,21 @@ export default function About() {
                 Join Us Today
               </h2>
               <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto">
-                Whether you're a seller looking to expand your reach or a buyer seeking quality
-                products, Carryofy is here to help you succeed.
+                Whether you&apos;re a seller looking to expand your reach or a buyer seeking quality
+                products with fast delivery, Carryofy is here to help you succeed in African commerce.
               </p>
-              <div className="flex justify-center">
+              <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <a
                   href="/auth/signup"
                   className="px-8 sm:px-10 py-3 sm:py-4 bg-primary text-white rounded-lg hover:bg-primary-dark transition font-semibold text-base sm:text-lg inline-block shadow-lg hover:shadow-xl"
                 >
-                  Get Started
+                  Get Started Free
+                </a>
+                <a
+                  href="/merchant-onboarding"
+                  className="px-8 sm:px-10 py-3 sm:py-4 bg-white text-primary border-2 border-primary rounded-lg hover:bg-primary hover:text-white transition font-semibold text-base sm:text-lg inline-block"
+                >
+                  Become a Merchant
                 </a>
               </div>
             </div>

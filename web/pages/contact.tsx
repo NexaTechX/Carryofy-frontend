@@ -1,8 +1,9 @@
-import Head from 'next/head';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { useState } from 'react';
-import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import { Mail, MapPin, Send } from 'lucide-react';
+import SEO from '../components/seo/SEO';
+import { CombinedSchema } from '../components/seo/JsonLd';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -39,18 +40,86 @@ export default function Contact() {
     }, 1000);
   };
 
+  const contactKeywords = [
+    // Contact intent keywords
+    'contact Carryofy',
+    'Carryofy support',
+    'Carryofy customer service',
+    'Carryofy phone number',
+    'Carryofy email',
+    'Carryofy address Lagos',
+    'reach Carryofy',
+    'Carryofy help',
+    
+    // Support keywords
+    'ecommerce support Nigeria',
+    'delivery support Lagos',
+    'seller support Nigeria',
+    'buyer help Nigeria',
+    'order help Nigeria',
+    'shipping support Lagos',
+    
+    // Business keywords
+    'Carryofy partnership',
+    'Carryofy business inquiries',
+    'logistics partnership Nigeria',
+    'ecommerce partnership Africa',
+    
+    // Location keywords
+    'Carryofy Lagos office',
+    'Carryofy Nigeria contact',
+    'ecommerce company Lagos contact',
+  ].join(', ');
+
+  // FAQ data for structured data
+  const faqs = [
+    {
+      question: 'How do I become a seller on Carryofy?',
+      answer: 'Simply click on "Become a Seller" in the navigation, create an account, and follow the onboarding process. Our team will review your application and guide you through the setup.',
+    },
+    {
+      question: 'How long does delivery take?',
+      answer: 'Delivery times vary by location, but typically range from same-day delivery in Lagos to 2-5 business days within major cities and 5-10 business days for other areas. You can track your order in real-time through our platform.',
+    },
+    {
+      question: 'What payment methods do you accept?',
+      answer: 'We accept various payment methods including bank transfers, debit/credit cards (Visa, Mastercard), and mobile money. All transactions are secure and encrypted.',
+    },
+    {
+      question: 'How can I track my order?',
+      answer: 'Once your order is confirmed, you\'ll receive a tracking number via email and SMS. You can use this to track your order status in real-time on our platform.',
+    },
+    {
+      question: 'What is Carryofy\'s return policy?',
+      answer: 'We offer a hassle-free return policy. If you\'re not satisfied with your purchase, you can initiate a return within 7 days of delivery. Contact our support team for assistance.',
+    },
+    {
+      question: 'How do I contact Carryofy support?',
+      answer: 'You can reach us via email at support@carryofy.com for general inquiries or partnerships@carryofy.com for business opportunities. Our support team is available Monday to Friday, 8am to 6pm WAT.',
+    },
+  ];
+
   return (
     <>
-      <Head>
-        <title>Contact Carryofy - Get in Touch</title>
-        <meta
-          name="description"
-          content="Contact Carryofy for support, partnerships, or general inquiries. We are here to help."
-        />
-        <meta name="keywords" content="contact ecommerce startup Nigeria, fulfillment support Africa" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <SEO
+        title="Contact Carryofy - Customer Support, Business Inquiries & Partnerships | Lagos Nigeria"
+        description="Get in touch with Carryofy for customer support, seller inquiries, logistics partnerships, or business opportunities in Nigeria. Email support@carryofy.com or visit our Lagos office. We're here to help grow your e-commerce business."
+        keywords={contactKeywords}
+        canonical="https://carryofy.com/contact"
+        ogType="website"
+        ogImage="https://carryofy.com/og/contact.png"
+        ogImageAlt="Contact Carryofy - Customer Support Nigeria"
+      />
+      
+      <CombinedSchema
+        includeLocalBusiness
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'Contact Us', url: '/contact' },
+        ]}
+        faqs={faqs}
+      />
+      
       <div className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-grow">
@@ -61,7 +130,7 @@ export default function Contact() {
                 Contact Carryofy
               </h1>
               <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-                We're here to help. Get in touch with our team for any questions or support.
+                We&apos;re here to help. Get in touch with our team for any questions, support, or partnership inquiries.
               </p>
             </div>
           </section>
@@ -76,57 +145,68 @@ export default function Contact() {
                     Get in Touch
                   </h2>
                   <p className="text-base sm:text-lg text-gray-600 mb-8 leading-relaxed">
-                    Have a question or need support? We'd love to hear from you. Send us a message
-                    and we'll respond as soon as possible.
+                    Have a question or need support? We&apos;d love to hear from you. Send us a message
+                    and we&apos;ll respond as soon as possible.
                   </p>
 
                   <div className="space-y-8">
                     <div className="space-y-6">
-                      <div className="flex items-start">
+                      <address className="flex items-start not-italic">
                         <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mr-4">
                           <Mail className="w-6 h-6 text-primary" />
                         </div>
                         <div>
                           <h3 className="font-semibold text-gray-900 mb-1">General Support</h3>
-                          <p className="text-sm sm:text-base text-gray-600">
+                          <a href="mailto:support@carryofy.com" className="text-sm sm:text-base text-gray-600 hover:text-primary transition">
                             support@carryofy.com
-                          </p>
+                          </a>
                         </div>
-                      </div>
+                      </address>
 
-                      <div className="flex items-start">
+                      <address className="flex items-start not-italic">
                         <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mr-4">
                           <Mail className="w-6 h-6 text-primary" />
                         </div>
                         <div>
                           <h3 className="font-semibold text-gray-900 mb-1">Partnerships & Logistics</h3>
-                          <p className="text-sm sm:text-base text-gray-600">
+                          <a href="mailto:partnerships@carryofy.com" className="text-sm sm:text-base text-gray-600 hover:text-primary transition">
                             partnerships@carryofy.com
-                          </p>
+                          </a>
                         </div>
-                      </div>
+                      </address>
 
-                      <div className="flex items-start">
+                      <address className="flex items-start not-italic">
                         <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mr-4">
                           <MapPin className="w-6 h-6 text-primary" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900 mb-1">Office</h3>
+                          <h3 className="font-semibold text-gray-900 mb-1">Office Location</h3>
                           <p className="text-sm sm:text-base text-gray-600">
                             Lagos, Nigeria
                           </p>
                         </div>
-                      </div>
+                      </address>
                     </div>
 
                     {/* Social Links */}
                     <div>
                       <h3 className="font-bold text-gray-900 mb-4">Follow Us</h3>
-                      <div className="flex gap-4">
-                        {['Instagram', 'Twitter/X', 'LinkedIn', 'TikTok'].map((social) => (
-                          <span key={social} className="px-4 py-2 bg-gray-100 rounded-full text-sm font-medium text-gray-600 hover:bg-primary hover:text-white transition cursor-pointer">
-                            {social}
-                          </span>
+                      <div className="flex flex-wrap gap-3">
+                        {[
+                          { name: 'Instagram', url: 'https://instagram.com/carryofy' },
+                          { name: 'Twitter/X', url: 'https://twitter.com/carryofy' },
+                          { name: 'LinkedIn', url: 'https://linkedin.com/company/carryofy' },
+                          { name: 'TikTok', url: 'https://tiktok.com/@carryofy' },
+                        ].map((social) => (
+                          <a 
+                            key={social.name} 
+                            href={social.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-gray-100 rounded-full text-sm font-medium text-gray-600 hover:bg-primary hover:text-white transition"
+                          >
+                            {social.name}
+                          </a>
                         ))}
                       </div>
                     </div>
@@ -211,7 +291,7 @@ export default function Contact() {
 
                     {submitStatus === 'success' && (
                       <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
-                        Thank you! Your message has been sent successfully. We'll get back to you soon.
+                        Thank you! Your message has been sent successfully. We&apos;ll get back to you soon.
                       </div>
                     )}
 
@@ -251,44 +331,16 @@ export default function Contact() {
                 Frequently Asked Questions
               </h2>
               <div className="max-w-3xl mx-auto space-y-6">
-                <div className="bg-white p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    How do I become a seller on Carryofy?
-                  </h3>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    Simply click on "Become a Seller" in the navigation, create an account, and
-                    follow the onboarding process. Our team will review your application and guide
-                    you through the setup.
-                  </p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    How long does delivery take?
-                  </h3>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    Delivery times vary by location, but typically range from 2-5 business days
-                    within major cities and 5-10 business days for other areas. You can track your
-                    order in real-time through our platform.
-                  </p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    What payment methods do you accept?
-                  </h3>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    We accept various payment methods including bank transfers, debit/credit cards,
-                    and mobile money. All transactions are secure and encrypted.
-                  </p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    How can I track my order?
-                  </h3>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    Once your order is confirmed, you'll receive a tracking number via email and SMS.
-                    You can use this to track your order status in real-time on our platform.
-                  </p>
-                </div>
+                {faqs.map((faq, index) => (
+                  <article key={index} className="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {faq.question}
+                    </h3>
+                    <p className="text-sm sm:text-base text-gray-600">
+                      {faq.answer}
+                    </p>
+                  </article>
+                ))}
               </div>
             </div>
           </section>
@@ -298,4 +350,3 @@ export default function Contact() {
     </>
   );
 }
-

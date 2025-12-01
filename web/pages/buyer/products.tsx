@@ -1,4 +1,3 @@
-import Head from 'next/head';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -7,6 +6,8 @@ import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
 import { ChevronLeft, ChevronRight, Filter, X } from 'lucide-react';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
+import SEO from '../../components/seo/SEO';
+import { BreadcrumbSchema } from '../../components/seo/JsonLd';
 
 interface Product {
   id: string;
@@ -29,8 +30,6 @@ interface ProductsResponse {
   limit: number;
   totalPages: number;
 }
-
-// Categories will be fetched from API
 
 const sortOptions = [
   { value: 'createdAt:desc', label: 'Newest First' },
@@ -130,12 +129,8 @@ export default function ProductsPage() {
 
       const response = await apiClient.get<ProductsResponse>(`/products?${params.toString()}`);
       
-      console.log('API Response:', response.data); // Debug log
-      
-      // Handle both possible response structures (wrapped or direct)
       const responseData = (response.data as any).data || response.data;
       
-      // Ensure we have valid data
       if (responseData && Array.isArray(responseData.products)) {
         setProducts(responseData.products);
         setTotalPages(responseData.totalPages || 1);
@@ -179,6 +174,38 @@ export default function ProductsPage() {
     })}`;
   };
 
+  // Get category name for SEO
+  const getCategoryDisplayName = (slug: string) => {
+    const cat = categories.find(c => c.slug === slug);
+    return cat?.name || slug;
+  };
+
+  // Dynamic SEO based on filters
+  const pageTitle = selectedCategory
+    ? `Buy ${getCategoryDisplayName(selectedCategory)} Online in Nigeria | Carryofy`
+    : searchQuery
+      ? `Search: ${searchQuery} - Products | Carryofy`
+      : 'Shop Products Online in Nigeria | Same-Day Delivery Lagos | Carryofy';
+
+  const pageDescription = selectedCategory
+    ? `Shop ${getCategoryDisplayName(selectedCategory)} online at Carryofy Nigeria. ${total}+ products from verified sellers with same-day delivery in Lagos. Best prices, secure payments, buyer protection.`
+    : `Discover ${total}+ products from verified Nigerian sellers. Shop electronics, fashion, groceries & more with same-day delivery in Lagos. Secure payments & buyer protection on Carryofy.`;
+
+  const pageKeywords = [
+    'buy online Nigeria',
+    'shop online Lagos',
+    'online shopping Nigeria',
+    'same day delivery Lagos',
+    'Nigerian marketplace',
+    selectedCategory ? `buy ${getCategoryDisplayName(selectedCategory)} Nigeria` : '',
+    selectedCategory ? `${getCategoryDisplayName(selectedCategory)} Lagos` : '',
+    'verified sellers Nigeria',
+    'secure shopping Nigeria',
+    'Carryofy products',
+    'best prices Nigeria',
+    'fast delivery Nigeria',
+  ].filter(Boolean).join(', ');
+
   if (!mounted) {
     return null;
   }
@@ -187,30 +214,43 @@ export default function ProductsPage() {
 
   return (
     <>
-      <Head>
-        <title>Explore Products - Buyer | Carryofy</title>
-        <meta
-          name="description"
-          content="Browse and shop for trusted products from verified sellers on Carryofy."
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <SEO
+        title={pageTitle}
+        description={pageDescription}
+        keywords={pageKeywords}
+        canonical={`https://carryofy.com/buyer/products${selectedCategory ? `?category=${selectedCategory}` : ''}`}
+        ogType="website"
+        ogImage="https://carryofy.com/og/products.png"
+        ogImageAlt="Shop Products on Carryofy Nigeria"
+      />
+      
+      <BreadcrumbSchema
+        items={[
+          { name: 'Home', url: '/' },
+          { name: 'Products', url: '/buyer/products' },
+          ...(selectedCategory ? [{ name: getCategoryDisplayName(selectedCategory), url: `/buyer/products?category=${selectedCategory}` }] : []),
+        ]}
+      />
+      
       <BuyerLayout>
         <div>
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-white text-3xl md:text-4xl font-bold mb-2">Explore Products</h1>
+          <header className="mb-8">
+            <h1 className="text-white text-3xl md:text-4xl font-bold mb-2">
+              {selectedCategory ? `Shop ${getCategoryDisplayName(selectedCategory)}` : 'Explore Products'}
+            </h1>
             <p className="text-[#ffcc99] text-lg">
               {total} {total === 1 ? 'product' : 'products'} available
+              {selectedCategory ? ` in ${getCategoryDisplayName(selectedCategory)}` : ''}
             </p>
-          </div>
+          </header>
 
           {/* Filter Bar */}
           <div className="mb-6 flex flex-wrap gap-4">
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] transition"
+              aria-expanded={showFilters}
             >
               <Filter className="w-5 h-5" />
               <span>Filters</span>
@@ -223,7 +263,7 @@ export default function ProductsPage() {
 
             {/* Category Pills */}
             {categories.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <nav className="flex flex-wrap gap-2" aria-label="Product categories">
                 {categories
                   .sort((a, b) => a.displayOrder - b.displayOrder)
                   .map((cat) => (
@@ -238,11 +278,12 @@ export default function ProductsPage() {
                           ? 'bg-[#ff6600] text-black'
                           : 'bg-[#1a1a1a] text-white border border-[#ff6600]/30 hover:border-[#ff6600]'
                       }`}
+                      aria-pressed={selectedCategory === cat.slug}
                     >
                       {cat.name}
                     </button>
                   ))}
-              </div>
+              </nav>
             )}
 
             {/* Sort Dropdown */}
@@ -250,6 +291,7 @@ export default function ProductsPage() {
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] transition focus:outline-none focus:border-[#ff6600]"
+              aria-label="Sort products"
             >
               {sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -275,9 +317,10 @@ export default function ProductsPage() {
               <h3 className="text-white text-lg font-bold mb-4">Price Range</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[#ffcc99] text-sm mb-2">Min Price (₦)</label>
+                  <label htmlFor="minPrice" className="block text-[#ffcc99] text-sm mb-2">Min Price (₦)</label>
                   <input
                     type="number"
+                    id="minPrice"
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
                     placeholder="0.00"
@@ -285,9 +328,10 @@ export default function ProductsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[#ffcc99] text-sm mb-2">Max Price (₦)</label>
+                  <label htmlFor="maxPrice" className="block text-[#ffcc99] text-sm mb-2">Max Price (₦)</label>
                   <input
                     type="number"
+                    id="maxPrice"
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
                     placeholder="999999.00"
@@ -308,7 +352,7 @@ export default function ProductsPage() {
 
           {/* Error State */}
           {error && (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-6 text-center">
+            <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-6 text-center" role="alert">
               <p className="text-red-400">{error}</p>
               <button
                 onClick={fetchProducts}
@@ -321,7 +365,7 @@ export default function ProductsPage() {
 
           {/* Products Grid */}
           {!loading && !error && products.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4" aria-label="Products list">
               {products.map((product) => (
                 <Link
                   key={product.id}
@@ -335,6 +379,7 @@ export default function ProductsPage() {
                         src={product.images[0]}
                         alt={product.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-[#ffcc99]">
@@ -350,15 +395,15 @@ export default function ProductsPage() {
 
                   {/* Product Details */}
                   <div className="p-4">
-                    <h3 className="text-white font-medium text-sm mb-1 line-clamp-2 group-hover:text-[#ff6600] transition">
+                    <h2 className="text-white font-medium text-sm mb-1 line-clamp-2 group-hover:text-[#ff6600] transition">
                       {product.title}
-                    </h3>
+                    </h2>
                     <p className="text-[#ffcc99] text-xs mb-2">{product.seller.businessName}</p>
                     <p className="text-[#ff6600] font-bold text-lg">{formatPrice(product.price)}</p>
                   </div>
                 </Link>
               ))}
-            </div>
+            </section>
           )}
 
           {/* Empty State */}
@@ -377,11 +422,12 @@ export default function ProductsPage() {
 
           {/* Pagination */}
           {!loading && !error && products.length > 0 && totalPages > 1 && (
-            <div className="mt-8 flex justify-center items-center gap-2">
+            <nav className="mt-8 flex justify-center items-center gap-2" aria-label="Pagination">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
                 className="p-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed transition"
+                aria-label="Previous page"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -407,6 +453,8 @@ export default function ProductsPage() {
                         ? 'bg-[#ff6600] text-black'
                         : 'bg-[#1a1a1a] border border-[#ff6600]/30 text-white hover:border-[#ff6600]'
                     }`}
+                    aria-label={`Page ${pageNum}`}
+                    aria-current={currentPage === pageNum ? 'page' : undefined}
                   >
                     {pageNum}
                   </button>
@@ -417,14 +465,14 @@ export default function ProductsPage() {
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
                 className="p-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed transition"
+                aria-label="Next page"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
-            </div>
+            </nav>
           )}
         </div>
       </BuyerLayout>
     </>
   );
 }
-

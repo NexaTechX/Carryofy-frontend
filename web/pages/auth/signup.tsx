@@ -1,4 +1,3 @@
-import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -8,6 +7,8 @@ import { z } from 'zod';
 import { Mail, Lock, User, Eye, EyeOff, Phone } from 'lucide-react';
 import { authService, tokenManager, useAuth } from '../../lib/auth';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
+import SEO from '../../components/seo/SEO';
+import { BreadcrumbSchema } from '../../components/seo/JsonLd';
 
 const signupSchema = z
   .object({
@@ -59,7 +60,6 @@ export default function Signup() {
     setError(null);
 
     try {
-      // Call signup API
       const response = await authService.signup({
         name: data.name,
         email: data.email,
@@ -68,17 +68,13 @@ export default function Signup() {
         role: data.role,
       });
 
-      // Store tokens and user data
       tokenManager.setTokens(response.accessToken, response.refreshToken);
       setUser(response.user);
-      // Sync with localStorage for backward compatibility
       if (typeof window !== 'undefined') {
         localStorage.setItem('user', JSON.stringify(response.user));
       }
 
       showSuccessToast('Account created! Please check your email to verify your account.');
-
-      // Redirect to email verification page
       router.push('/auth/verify?email=' + encodeURIComponent(data.email));
     } catch (error) {
       const err = error as { message?: string };
@@ -91,17 +87,49 @@ export default function Signup() {
     }
   };
 
+  const signupKeywords = [
+    // Primary intent
+    'sign up Carryofy',
+    'register Carryofy',
+    'create account Carryofy',
+    'join Carryofy',
+    
+    // Buyer intent
+    'create buyer account Nigeria',
+    'sign up online shopping Nigeria',
+    'register ecommerce Nigeria',
+    
+    // Seller intent
+    'seller registration Nigeria',
+    'become seller Nigeria',
+    'start selling online Nigeria',
+    'merchant signup Lagos',
+    'vendor registration Africa',
+    
+    // General
+    'free account Nigeria ecommerce',
+    'sign up free Nigeria marketplace',
+  ].join(', ');
+
   return (
     <>
-      <Head>
-        <title>Sign Up - Carryofy</title>
-        <meta
-          name="description"
-          content="Create your Carryofy account and start your e-commerce journey."
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <SEO
+        title="Sign Up - Create Your Free Carryofy Account | Buy or Sell Online Nigeria"
+        description="Create your free Carryofy account today. Sign up as a buyer to shop products with same-day delivery in Lagos, or register as a seller to start your online business in Nigeria. Free registration, no hidden fees."
+        keywords={signupKeywords}
+        canonical="https://carryofy.com/auth/signup"
+        ogType="website"
+        ogImage="https://carryofy.com/og/signup.png"
+        ogImageAlt="Sign Up for Carryofy - Nigeria's E-Commerce Platform"
+      />
+      
+      <BreadcrumbSchema
+        items={[
+          { name: 'Home', url: '/' },
+          { name: 'Sign Up', url: '/auth/signup' },
+        ]}
+      />
+      
       <div className="min-h-screen flex flex-col bg-linear-to-br from-gray-50 to-white">
         {/* Header */}
         <header className="bg-white shadow-sm">
@@ -122,12 +150,12 @@ export default function Signup() {
                   Create Account
                 </h1>
                 <p className="text-gray-600">
-                  Join Carryofy and start your journey
+                  Join Carryofy and start your e-commerce journey in Nigeria
                 </p>
               </div>
 
               {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm" role="alert">
                   {error}
                 </div>
               )}
@@ -215,6 +243,7 @@ export default function Signup() {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? (
                         <EyeOff className="w-5 h-5" />
@@ -250,6 +279,7 @@ export default function Signup() {
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                     >
                       {showConfirmPassword ? (
                         <EyeOff className="w-5 h-5" />
@@ -264,10 +294,10 @@ export default function Signup() {
                 </div>
 
                 {/* Role Selection Field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                <fieldset>
+                  <legend className="block text-sm font-medium text-gray-700 mb-3">
                     I want to join as:
-                  </label>
+                  </legend>
                   <div className="grid grid-cols-2 gap-4">
                     <label
                       className={`flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition ${errors.role
@@ -292,6 +322,7 @@ export default function Signup() {
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
+                          aria-hidden="true"
                         >
                           <path
                             strokeLinecap="round"
@@ -327,6 +358,7 @@ export default function Signup() {
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
+                          aria-hidden="true"
                         >
                           <path
                             strokeLinecap="round"
@@ -343,7 +375,7 @@ export default function Signup() {
                   {errors.role && (
                     <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
                   )}
-                </div>
+                </fieldset>
 
                 {/* Submit Button */}
                 <button

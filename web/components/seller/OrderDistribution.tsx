@@ -23,6 +23,11 @@ export default function OrderDistribution() {
   const fetchOrderDistribution = async () => {
     try {
       const token = tokenManager.getAccessToken();
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 

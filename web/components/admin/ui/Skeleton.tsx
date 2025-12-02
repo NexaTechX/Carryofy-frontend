@@ -87,9 +87,10 @@ export function DashboardSkeleton() {
   );
 }
 
-// Add shimmer animation
-if (typeof window !== 'undefined') {
+// Add shimmer animation (only once)
+if (typeof window !== 'undefined' && !document.getElementById('skeleton-shimmer-styles')) {
   const style = document.createElement('style');
+  style.id = 'skeleton-shimmer-styles';
   style.textContent = `
     @keyframes shimmer {
       0% {

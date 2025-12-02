@@ -96,11 +96,12 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
   const highlightMatch = (text: string, query: string) => {
     if (!query.trim()) return text;
     
-    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
     const parts = text.split(regex);
     
     return parts.map((part, i) =>
-      regex.test(part) ? (
+      part.toLowerCase() === query.toLowerCase() ? (
         <mark key={i} className="bg-primary/30 text-primary">
           {part}
         </mark>

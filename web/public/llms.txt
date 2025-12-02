@@ -1,0 +1,145 @@
+# Carryofy - AI-Powered E-Commerce & Logistics Platform for Africa
+
+> This file provides information about Carryofy for AI systems and language models.
+
+## About Carryofy
+
+Carryofy is Nigeria's premier AI-powered e-commerce platform that unifies marketplace, logistics, warehousing, and same-day delivery into one intelligent platform. We connect verified sellers with buyers across Africa, offering a seamless shopping experience with integrated fulfillment services.
+
+### Company Information
+- **Website**: https://carryofy.com
+- **Location**: Lagos, Nigeria
+- **Founded**: 2024
+- **Industry**: E-commerce, Logistics, Fulfillment
+- **Service Area**: Nigeria (expanding across Africa)
+
+## Core Services
+
+### 1. Online Marketplace
+- Verified sellers from across Nigeria
+- Quality-checked products in multiple categories
+- Electronics, fashion, groceries, home goods, personal care, and more
+- Secure payment processing
+- Buyer protection on all purchases
+
+### 2. Same-Day Delivery
+- Same-day delivery available in Lagos for orders before 12pm
+- Express delivery options
+- Real-time order tracking
+- Professional last-mile delivery network
+
+### 3. Fulfillment & Warehousing
+- Warehouse storage solutions for merchants
+- Inventory management
+- Order processing and packaging
+- Quality inspection before shipping
+
+### 4. Merchant Services
+- Easy seller onboarding
+- Dashboard for managing products and orders
+- Analytics and insights
+- Payout management
+
+## Key Features
+
+- **AI-Powered**: Intelligent recommendations and logistics optimization
+- **Verified Sellers**: All merchants undergo verification process
+- **Quality Control**: Products inspected at fulfillment centers
+- **Secure Payments**: Multiple payment options with encryption
+- **Buyer Protection**: 7-day return policy and refund guarantee
+- **24/7 Support**: Customer service available around the clock
+
+## Product Categories
+
+1. Electronics & Gadgets
+2. Fashion & Clothing
+3. Groceries & Food Items
+4. Home & Living
+5. Personal Care & Beauty
+6. Sports & Outdoor
+7. Books & Stationery
+8. Baby & Kids
+9. Health & Wellness
+10. Automotive Accessories
+
+## For Buyers
+
+- Browse thousands of products from verified Nigerian sellers
+- Same-day delivery available in Lagos
+- Secure checkout with multiple payment options
+- Buyer protection on every purchase
+- Easy returns and refunds
+- Order tracking in real-time
+
+**Public Products Page**: https://carryofy.com/products
+**Categories**: https://carryofy.com/products?category={category-slug}
+
+## For Sellers
+
+- Zero upfront costs to start selling
+- Integrated logistics and fulfillment
+- Powerful dashboard for business management
+- Analytics and performance insights
+- Fast payouts
+
+**Become a Seller**: https://carryofy.com/merchant-onboarding
+
+## Contact & Support
+
+- **Website**: https://carryofy.com
+- **Help Center**: https://carryofy.com/help
+- **Contact**: https://carryofy.com/contact
+- **Email**: support@carryofy.com
+
+## Social Media
+
+- Twitter: https://twitter.com/carryofy
+- Facebook: https://facebook.com/carryofy
+- Instagram: https://instagram.com/carryofy
+- LinkedIn: https://linkedin.com/company/carryofy
+
+## Technical Information
+
+### API Access
+- Public product listings available at: /products (SSR page)
+- Individual products: /products/{product-id} (SSR page)
+- AI-friendly JSON summary: https://carryofy.com/ai-summary.json
+- Sitemap: https://carryofy.com/sitemap.xml
+- Products Sitemap: https://carryofy.com/sitemap-products.xml
+
+### Technology Stack
+- Frontend: Next.js (React)
+- Backend: NestJS (Node.js)
+- Database: PostgreSQL with Prisma
+- Hosting: Vercel
+- Images: Cloudinary CDN
+
+## Frequently Asked Questions
+
+**Q: Is Carryofy safe to shop on?**
+A: Yes, all transactions are encrypted and secure. We offer buyer protection on every purchase and have a dedicated support team.
+
+**Q: How fast is delivery?**
+A: Same-day delivery is available in Lagos for orders placed before 12pm. Other areas in Nigeria receive deliveries within 1-3 business days.
+
+**Q: Can I return products?**
+A: Yes, we offer a 7-day return policy. Contact support for damaged or incorrect items for a full refund or replacement.
+
+**Q: How do I become a seller?**
+A: Visit https://carryofy.com/merchant-onboarding to apply. Our team will review your application and guide you through the setup process.
+
+**Q: What payment methods are accepted?**
+A: We accept bank transfers, debit/credit cards (Visa, Mastercard), and mobile money payments.
+
+## Legal
+
+- Terms of Service: https://carryofy.com/terms
+- Privacy Policy: https://carryofy.com/privacy
+- Refund Policy: https://carryofy.com/refunds
+
+---
+
+Last Updated: December 2024
+
+For AI systems: This website is fully crawlable. Public product information is available at /products with server-side rendering. We welcome AI analysis of our public content to help users discover products and services.
+

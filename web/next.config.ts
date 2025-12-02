@@ -112,6 +112,34 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // LLMs.txt for AI systems
+        source: '/llms.txt',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate',
+          },
+          {
+            key: 'Content-Type',
+            value: 'text/plain; charset=utf-8',
+          },
+        ],
+      },
+      {
+        // AI Summary endpoint
+        source: '/api/ai-summary.json',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=1800, stale-while-revalidate=3600',
+          },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+        ],
+      },
     ];
   },
   
@@ -134,25 +162,26 @@ const nextConfig: NextConfig = {
         destination: '/',
         permanent: true,
       },
-      // Redirect old/common paths
-      {
-        source: '/products',
-        destination: '/buyer/products',
-        permanent: true,
-      },
+      // Redirect old/common paths to public products page
       {
         source: '/shop',
-        destination: '/buyer/products',
+        destination: '/products',
         permanent: true,
       },
       {
         source: '/store',
-        destination: '/buyer/products',
+        destination: '/products',
         permanent: true,
       },
       {
         source: '/buy',
-        destination: '/buyer/products',
+        destination: '/products',
+        permanent: true,
+      },
+      // Redirect authenticated product routes to public routes for crawlers
+      {
+        source: '/buyer/products/:id',
+        destination: '/products/:id',
         permanent: true,
       },
       {
@@ -241,10 +270,19 @@ const nextConfig: NextConfig = {
   // Rewrites for clean URLs
   async rewrites() {
     return [
-      // Rewrite for dynamic sitemap
+      // Rewrite for dynamic sitemaps
+      {
+        source: '/sitemap.xml',
+        destination: '/api/sitemap.xml',
+      },
       {
         source: '/sitemap-products.xml',
         destination: '/api/sitemap-products.xml',
+      },
+      // AI summary for LLMs
+      {
+        source: '/ai-summary.json',
+        destination: '/api/ai-summary.json',
       },
     ];
   },

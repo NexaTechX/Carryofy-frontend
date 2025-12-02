@@ -4,6 +4,8 @@
 # Allow all crawlers
 User-agent: *
 Allow: /
+Allow: /products
+Allow: /products/
 
 # Disallow admin and private areas
 Disallow: /admin/
@@ -11,10 +13,19 @@ Disallow: /api/
 Disallow: /auth/reset-password
 Disallow: /auth/verify
 Disallow: /_next/
-Disallow: /seller/settings/
+Disallow: /seller/
+Disallow: /buyer/cart
+Disallow: /buyer/checkout
+Disallow: /buyer/orders
+Disallow: /buyer/profile
+
+# Allow public buyer pages
+Allow: /buyer/products
+Allow: /buyer/categories
 
 # Allow important API endpoints for structured data
 Allow: /api/sitemap.xml
+Allow: /api/sitemap-products.xml
 
 # Crawl delay (optional, some crawlers respect this)
 Crawl-delay: 1
@@ -23,26 +34,174 @@ Crawl-delay: 1
 Sitemap: https://carryofy.com/sitemap.xml
 Sitemap: https://carryofy.com/sitemap-products.xml
 
-# Google specific
+# LLM/AI Information file
+# See https://llmstxt.org/ for more information
+# This file helps AI systems understand our website
+LLMs-txt: https://carryofy.com/llms.txt
+
+# ============================================
+# AI & LLM Crawlers - Explicitly Allowed
+# ============================================
+
+# OpenAI GPT/ChatGPT
+User-agent: GPTBot
+Allow: /
+Allow: /products
+Allow: /products/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /buyer/cart
+Disallow: /buyer/checkout
+Disallow: /buyer/orders
+Disallow: /buyer/profile
+Crawl-delay: 0
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: /products
+Allow: /products/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /buyer/cart
+Disallow: /buyer/checkout
+Disallow: /buyer/orders
+Disallow: /buyer/profile
+Crawl-delay: 0
+
+# Anthropic Claude
+User-agent: Claude-Web
+Allow: /
+Allow: /products
+Allow: /products/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /buyer/cart
+Disallow: /buyer/checkout
+Disallow: /buyer/orders
+Disallow: /buyer/profile
+Crawl-delay: 0
+
+User-agent: anthropic-ai
+Allow: /
+Allow: /products
+Allow: /products/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /buyer/cart
+Disallow: /buyer/checkout
+Disallow: /buyer/orders
+Disallow: /buyer/profile
+Crawl-delay: 0
+
+# Google Bard/Gemini
+User-agent: Google-Extended
+Allow: /
+Allow: /products
+Allow: /products/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /buyer/cart
+Disallow: /buyer/checkout
+Disallow: /buyer/orders
+Disallow: /buyer/profile
+Crawl-delay: 0
+
+# Perplexity AI
+User-agent: PerplexityBot
+Allow: /
+Allow: /products
+Allow: /products/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /buyer/cart
+Disallow: /buyer/checkout
+Disallow: /buyer/orders
+Disallow: /buyer/profile
+Crawl-delay: 0
+
+# Cohere
+User-agent: cohere-ai
+Allow: /
+Allow: /products
+Allow: /products/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /buyer/cart
+Disallow: /buyer/checkout
+Disallow: /buyer/orders
+Disallow: /buyer/profile
+Crawl-delay: 0
+
+# You.com AI
+User-agent: YouBot
+Allow: /
+Allow: /products
+Allow: /products/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /buyer/cart
+Disallow: /buyer/checkout
+Disallow: /buyer/orders
+Disallow: /buyer/profile
+Crawl-delay: 0
+
+# ============================================
+# Search Engine Crawlers
+# ============================================
+
+# Google
 User-agent: Googlebot
 Allow: /
+Allow: /products
+Allow: /products/
 Disallow: /admin/
 Disallow: /api/
 Crawl-delay: 0
 
-# Bing specific
-User-agent: Bingbot
-Allow: /
-Disallow: /admin/
-Disallow: /api/
-Crawl-delay: 1
-
-# Google Image bot
 User-agent: Googlebot-Image
 Allow: /images/
 Allow: /og/
 
-# Social media bots (for rich previews)
+# Bing
+User-agent: Bingbot
+Allow: /
+Allow: /products
+Allow: /products/
+Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 1
+
+# DuckDuckGo
+User-agent: DuckDuckBot
+Allow: /
+Allow: /products
+Allow: /products/
+Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 1
+
+# Yandex
+User-agent: Yandex
+Allow: /
+Allow: /products
+Allow: /products/
+Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 1
+
+# Baidu
+User-agent: Baiduspider
+Allow: /
+Allow: /products
+Allow: /products/
+Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 2
+
+# ============================================
+# Social Media Bots (for rich previews)
+# ============================================
+
 User-agent: Twitterbot
 Allow: /
 
@@ -55,6 +214,15 @@ Allow: /
 User-agent: WhatsApp
 Allow: /
 
+User-agent: TelegramBot
+Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+# ============================================
+# Site Information
+# ============================================
+
 # Host
 Host: https://carryofy.com
-

@@ -380,7 +380,7 @@ export default function BuyerHelpPage() {
                 <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 text-center">
                   <Phone className="w-8 h-8 text-[#ff6600] mx-auto mb-3" />
                   <h3 className="text-white font-bold mb-1">Call Us</h3>
-                  <p className="text-[#ffcc99] text-sm">+234 800 123 4567</p>
+                  <p className="text-[#ffcc99] text-sm">+234 916 678 3040</p>
                 </div>
               </div>
             </div>

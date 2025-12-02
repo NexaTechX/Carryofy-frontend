@@ -489,7 +489,7 @@ export default function BuyerProfilePage() {
                     value={profileForm.phone}
                     onChange={(e) => setProfileForm((prev) => ({ ...prev, phone: e.target.value }))}
                     className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
-                    placeholder="+234 800 123 4567"
+                    placeholder="+234 916 678 3040"
                   />
                 </div>
 

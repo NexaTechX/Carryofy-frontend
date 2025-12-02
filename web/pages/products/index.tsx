@@ -1,11 +1,12 @@
 import { GetServerSideProps } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState } from 'react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import SEO, { generateKeywords } from '../../components/seo/SEO';
 import { BreadcrumbSchema, FAQSchema } from '../../components/seo/JsonLd';
-import { ChevronLeft, ChevronRight, Star, Truck, Shield, Package } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star, Truck, Shield, Package, Filter, X } from 'lucide-react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
 
@@ -122,6 +123,8 @@ export default function PublicProductsPage({
   searchQuery,
   error,
 }: ProductsPageProps) {
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
   const formatPrice = (priceInKobo: number) => {
     return `₦${(priceInKobo / 100).toLocaleString('en-NG', {
       minimumFractionDigits: 2,
@@ -203,14 +206,14 @@ export default function PublicProductsPage({
       <div className="min-h-screen flex flex-col bg-black">
         <Header />
 
-        <main className="flex-grow">
+        <main className="flex-grow pt-16 sm:pt-20">
           {/* Hero Section with Search */}
-          <section className="bg-gradient-to-b from-[#1a1a1a] to-black py-12 border-b border-[#ff6600]/20">
+          <section className="bg-gradient-to-b from-[#1a1a1a] to-black py-8 sm:py-12 border-b border-[#ff6600]/20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h1 className="text-white text-4xl md:text-5xl font-bold mb-4 text-center">
+              <h1 className="font-heading text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 text-center">
                 {selectedCategory ? `Shop ${getCategoryName(selectedCategory)}` : 'Shop Products Online'}
               </h1>
-              <p className="text-[#ffcc99] text-lg text-center mb-8 max-w-2xl mx-auto">
+              <p className="text-[#ffcc99] text-sm sm:text-base lg:text-lg text-center mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
                 {selectedCategory
                   ? `Browse ${total} ${getCategoryName(selectedCategory)} products from verified Nigerian sellers`
                   : `Discover ${total.toLocaleString()} products with same-day delivery in Lagos`}
@@ -218,18 +221,18 @@ export default function PublicProductsPage({
 
               {/* Search Bar */}
               <form action="/products" method="GET" className="max-w-2xl mx-auto">
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <input
                     type="text"
                     name="search"
                     defaultValue={searchQuery}
                     placeholder="Search products..."
-                    className="flex-1 px-6 py-4 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
+                    className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600] text-base"
                   />
                   {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
                   <button
                     type="submit"
-                    className="px-8 py-4 bg-[#ff6600] text-black font-bold rounded-xl hover:bg-[#cc5200] transition"
+                    className="px-6 sm:px-8 py-3 sm:py-4 bg-[#ff6600] text-black font-bold rounded-xl hover:bg-[#cc5200] transition touch-target btn-mobile"
                   >
                     Search
                   </button>
@@ -238,43 +241,85 @@ export default function PublicProductsPage({
             </div>
           </section>
 
-          {/* Trust Badges */}
-          <section className="bg-[#1a1a1a] py-6 border-b border-[#ff6600]/20">
+          {/* Trust Badges - Scrollable on mobile */}
+          <section className="bg-[#1a1a1a] py-4 sm:py-6 border-b border-[#ff6600]/20 overflow-hidden">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <Truck className="w-5 h-5 text-[#ff6600]" />
-                  <span className="text-[#ffcc99] text-sm">Same-Day Delivery Lagos</span>
+              <div className="flex sm:grid sm:grid-cols-4 gap-4 sm:gap-4 overflow-x-auto scrollbar-hide pb-2 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0">
+                <div className="flex items-center justify-center gap-2 shrink-0 sm:shrink">
+                  <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-[#ff6600]" />
+                  <span className="text-[#ffcc99] text-xs sm:text-sm whitespace-nowrap">Same-Day Lagos</span>
                 </div>
-                <div className="flex items-center justify-center gap-2">
-                  <Shield className="w-5 h-5 text-green-400" />
-                  <span className="text-[#ffcc99] text-sm">Buyer Protection</span>
+                <div className="flex items-center justify-center gap-2 shrink-0 sm:shrink">
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
+                  <span className="text-[#ffcc99] text-xs sm:text-sm whitespace-nowrap">Buyer Protection</span>
                 </div>
-                <div className="flex items-center justify-center gap-2">
-                  <Star className="w-5 h-5 text-[#ff6600]" />
-                  <span className="text-[#ffcc99] text-sm">Verified Sellers</span>
+                <div className="flex items-center justify-center gap-2 shrink-0 sm:shrink">
+                  <Star className="w-4 h-4 sm:w-5 sm:h-5 text-[#ff6600]" />
+                  <span className="text-[#ffcc99] text-xs sm:text-sm whitespace-nowrap">Verified Sellers</span>
                 </div>
-                <div className="flex items-center justify-center gap-2">
-                  <Package className="w-5 h-5 text-[#ff6600]" />
-                  <span className="text-[#ffcc99] text-sm">Secure Packaging</span>
+                <div className="flex items-center justify-center gap-2 shrink-0 sm:shrink">
+                  <Package className="w-4 h-4 sm:w-5 sm:h-5 text-[#ff6600]" />
+                  <span className="text-[#ffcc99] text-xs sm:text-sm whitespace-nowrap">Secure Packaging</span>
                 </div>
               </div>
             </div>
           </section>
 
           {/* Main Content */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="flex flex-col lg:flex-row gap-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+            {/* Mobile Filter Button */}
+            <div className="lg:hidden mb-4">
+              <button
+                onClick={() => setMobileFiltersOpen(true)}
+                className="flex items-center gap-2 px-4 py-3 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white font-medium w-full justify-center touch-target btn-mobile"
+              >
+                <Filter className="w-5 h-5" />
+                <span>Filter by Category</span>
+                {selectedCategory && (
+                  <span className="ml-2 px-2 py-0.5 bg-[#ff6600] text-black text-xs font-bold rounded-full">
+                    {getCategoryName(selectedCategory)}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+              {/* Mobile Sidebar Overlay */}
+              {mobileFiltersOpen && (
+                <div 
+                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 lg:hidden"
+                  onClick={() => setMobileFiltersOpen(false)}
+                />
+              )}
+
               {/* Sidebar - Categories */}
-              <aside className="lg:w-64 flex-shrink-0">
-                <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 sticky top-24">
-                  <h2 className="text-white font-bold text-lg mb-4">Categories</h2>
+              <aside className={`
+                fixed lg:static inset-y-0 left-0 z-50 w-[280px] sm:w-[320px] lg:w-64 
+                transform transition-transform duration-300 ease-in-out
+                ${mobileFiltersOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+                lg:flex-shrink-0
+              `}>
+                <div className="h-full lg:h-auto bg-[#1a1a1a] border-r lg:border border-[#ff6600]/30 lg:rounded-xl p-6 lg:sticky lg:top-24 overflow-y-auto">
+                  {/* Mobile Close Button */}
+                  <div className="flex items-center justify-between mb-4 lg:hidden">
+                    <h2 className="text-white font-bold text-lg">Categories</h2>
+                    <button
+                      onClick={() => setMobileFiltersOpen(false)}
+                      className="p-2 text-[#ffcc99] hover:text-white transition touch-target"
+                      aria-label="Close filters"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+                  
+                  <h2 className="hidden lg:block text-white font-bold text-lg mb-4">Categories</h2>
                   <nav aria-label="Product categories">
-                    <ul className="space-y-2">
+                    <ul className="space-y-1 sm:space-y-2">
                       <li>
                         <Link
                           href="/products"
-                          className={`block px-4 py-2 rounded-lg transition ${
+                          onClick={() => setMobileFiltersOpen(false)}
+                          className={`block px-4 py-3 sm:py-2 rounded-lg transition touch-target ${
                             !selectedCategory
                               ? 'bg-[#ff6600] text-black font-bold'
                               : 'text-[#ffcc99] hover:bg-[#ff6600]/10 hover:text-white'
@@ -289,7 +334,8 @@ export default function PublicProductsPage({
                           <li key={cat.id}>
                             <Link
                               href={`/products?category=${cat.slug}`}
-                              className={`block px-4 py-2 rounded-lg transition ${
+                              onClick={() => setMobileFiltersOpen(false)}
+                              className={`block px-4 py-3 sm:py-2 rounded-lg transition touch-target ${
                                 selectedCategory === cat.slug
                                   ? 'bg-[#ff6600] text-black font-bold'
                                   : 'text-[#ffcc99] hover:bg-[#ff6600]/10 hover:text-white'
@@ -303,7 +349,7 @@ export default function PublicProductsPage({
                   </nav>
 
                   {/* Why Shop Here */}
-                  <div className="mt-8 pt-6 border-t border-[#ff6600]/30">
+                  <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-[#ff6600]/30">
                     <h3 className="text-white font-bold text-sm mb-3">Why Shop on Carryofy?</h3>
                     <ul className="text-[#ffcc99] text-sm space-y-2">
                       <li>✓ Verified Nigerian Sellers</li>
@@ -317,10 +363,10 @@ export default function PublicProductsPage({
               </aside>
 
               {/* Products Grid */}
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 {/* Results Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <p className="text-[#ffcc99]">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 sm:mb-6">
+                  <p className="text-[#ffcc99] text-sm sm:text-base">
                     Showing <span className="text-white font-bold">{products.length}</span> of{' '}
                     <span className="text-white font-bold">{total.toLocaleString()}</span> products
                     {selectedCategory && (
@@ -341,7 +387,7 @@ export default function PublicProductsPage({
                 {/* Products Grid */}
                 {products.length > 0 ? (
                   <section
-                    className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+                    className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4"
                     aria-label="Products"
                     itemScope
                     itemType="https://schema.org/ItemList"
@@ -350,7 +396,7 @@ export default function PublicProductsPage({
                     {products.map((product, index) => (
                       <article
                         key={product.id}
-                        className="group bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl overflow-hidden hover:border-[#ff6600] transition"
+                        className="group bg-[#1a1a1a] border border-[#ff6600]/30 rounded-lg sm:rounded-xl overflow-hidden hover:border-[#ff6600] transition"
                         itemScope
                         itemType="https://schema.org/Product"
                         itemProp="itemListElement"
@@ -368,30 +414,30 @@ export default function PublicProductsPage({
                                 itemProp="image"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[#ffcc99]">
+                              <div className="w-full h-full flex items-center justify-center text-[#ffcc99] text-sm">
                                 No Image
                               </div>
                             )}
                             {product.quantity === 0 && (
                               <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
-                                <span className="text-red-400 font-bold">Out of Stock</span>
+                                <span className="text-red-400 font-bold text-xs sm:text-sm">Out of Stock</span>
                               </div>
                             )}
                           </div>
 
                           {/* Product Info */}
-                          <div className="p-4">
+                          <div className="p-3 sm:p-4">
                             <h3
-                              className="text-white font-medium text-sm mb-1 line-clamp-2 group-hover:text-[#ff6600] transition"
+                              className="text-white font-medium text-xs sm:text-sm mb-1 line-clamp-2 group-hover:text-[#ff6600] transition leading-tight"
                               itemProp="name"
                             >
                               {product.title}
                             </h3>
-                            <p className="text-[#ffcc99]/70 text-xs mb-2" itemProp="brand">
+                            <p className="text-[#ffcc99]/70 text-[10px] sm:text-xs mb-1 sm:mb-2 truncate" itemProp="brand">
                               {product.seller.businessName}
                             </p>
                             <div itemProp="offers" itemScope itemType="https://schema.org/Offer">
-                              <p className="text-[#ff6600] font-bold text-lg" itemProp="price" content={(product.price / 100).toString()}>
+                              <p className="text-[#ff6600] font-bold text-sm sm:text-lg" itemProp="price" content={(product.price / 100).toString()}>
                                 {formatPrice(product.price)}
                               </p>
                               <meta itemProp="priceCurrency" content="NGN" />
@@ -425,14 +471,14 @@ export default function PublicProductsPage({
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <nav className="mt-8 flex justify-center items-center gap-2" aria-label="Pagination">
+                  <nav className="mt-6 sm:mt-8 flex justify-center items-center gap-1 sm:gap-2" aria-label="Pagination">
                     {currentPage > 1 && (
                       <Link
                         href={buildUrl({ category: selectedCategory, search: searchQuery, page: currentPage - 1 })}
-                        className="p-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] transition"
+                        className="p-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-lg sm:rounded-xl text-white hover:border-[#ff6600] transition touch-target"
                         aria-label="Previous page"
                       >
-                        <ChevronLeft className="w-5 h-5" />
+                        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                       </Link>
                     )}
 
@@ -452,7 +498,7 @@ export default function PublicProductsPage({
                         <Link
                           key={pageNum}
                           href={buildUrl({ category: selectedCategory, search: searchQuery, page: pageNum })}
-                          className={`w-10 h-10 flex items-center justify-center rounded-xl font-medium transition ${
+                          className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg sm:rounded-xl font-medium text-sm sm:text-base transition touch-target ${
                             currentPage === pageNum
                               ? 'bg-[#ff6600] text-black'
                               : 'bg-[#1a1a1a] border border-[#ff6600]/30 text-white hover:border-[#ff6600]'
@@ -468,23 +514,23 @@ export default function PublicProductsPage({
                     {currentPage < totalPages && (
                       <Link
                         href={buildUrl({ category: selectedCategory, search: searchQuery, page: currentPage + 1 })}
-                        className="p-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] transition"
+                        className="p-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-lg sm:rounded-xl text-white hover:border-[#ff6600] transition touch-target"
                         aria-label="Next page"
                       >
-                        <ChevronRight className="w-5 h-5" />
+                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                       </Link>
                     )}
                   </nav>
                 )}
 
                 {/* SEO Content Section */}
-                <section className="mt-16 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-8">
-                  <h2 className="text-white text-2xl font-bold mb-4">
+                <section className="mt-10 sm:mt-16 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-4 sm:p-6 lg:p-8">
+                  <h2 className="text-white text-xl sm:text-2xl font-bold mb-3 sm:mb-4">
                     {selectedCategory
                       ? `Buy ${getCategoryName(selectedCategory)} Online in Nigeria`
                       : 'Online Shopping in Nigeria Made Easy'}
                   </h2>
-                  <div className="text-[#ffcc99] space-y-4">
+                  <div className="text-[#ffcc99] space-y-3 sm:space-y-4 text-sm sm:text-base">
                     {selectedCategory ? (
                       <>
                         <p>
@@ -509,7 +555,7 @@ export default function PublicProductsPage({
                           fast, reliable shipping across Nigeria. Every product is inspected at our fulfillment centers ensuring
                           quality and authenticity.
                         </p>
-                        <p>
+                        <p className="hidden sm:block">
                           Whether you&apos;re looking to buy or sell, Carryofy provides a secure, seamless experience with multiple
                           payment options, buyer protection, and 24/7 customer support. Join thousands of satisfied customers
                           shopping on Nigeria&apos;s most trusted marketplace.

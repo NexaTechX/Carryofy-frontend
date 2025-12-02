@@ -101,7 +101,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     const parts = text.split(regex);
     
     return parts.map((part, i) =>
-      part.toLowerCase() === query.toLowerCase() ? (
+      regex.test(part) ? (
         <mark key={i} className="bg-primary/30 text-primary">
           {part}
         </mark>

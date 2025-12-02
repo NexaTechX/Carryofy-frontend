@@ -342,7 +342,7 @@ export default function CheckoutPage() {
                         name="phone"
                         value={contactInfo.phone}
                         onChange={handleContactChange}
-                        placeholder="+234 800 123 4567"
+                        placeholder="+234 916 678 3040"
                         className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
                         required
                       />

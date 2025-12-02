@@ -1,5 +1,6 @@
 import { useState, useEffect, ReactNode, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import {
   LayoutDashboard,
@@ -13,7 +14,6 @@ import {
   Menu,
   X,
   ShoppingCart,
-  Check,
   Clock,
   ShieldCheck,
 } from 'lucide-react';
@@ -192,10 +192,27 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       {/* Top Header */}
-      <header className="bg-black border-b border-primary/30 sticky top-0 z-50">
-        <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4">
-          {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-md">
+      <header className="bg-black border-b border-primary/30 sticky top-0 z-50 safe-top">
+        <div className="flex items-center justify-between px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
+          {/* Mobile Logo - Only visible on mobile when sidebar is hidden */}
+          <div className="flex lg:hidden items-center gap-2">
+            <Link href="/seller" className="flex items-center gap-2">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 relative">
+                <Image 
+                  src="/logo.png" 
+                  alt="Carryofy" 
+                  width={32} 
+                  height={32}
+                  className="w-full h-full object-contain"
+                  priority
+                />
+              </div>
+              <span className="text-[#ff6600] text-lg sm:text-xl font-bold">Carryofy</span>
+            </Link>
+          </div>
+
+          {/* Search Bar - Desktop only */}
+          <div className="hidden lg:flex flex-1 max-w-md">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#ffcc99]" />
               <input
@@ -207,14 +224,15 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
           </div>
 
           {/* Right Side */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Notifications Dropdown */}
             <div className="relative" ref={notificationDropdownRef}>
               <button
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
-                className="relative p-2 text-[#ffcc99] hover:text-white transition"
+                className="relative p-2 text-[#ffcc99] hover:text-white transition touch-target btn-mobile"
+                aria-label="Notifications"
               >
-                <Bell className="w-6 h-6" />
+                <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
                 {unreadCount > 0 && (
                   <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full">
                     <span className="absolute inset-0 w-2 h-2 bg-primary rounded-full animate-ping opacity-75"></span>
@@ -322,10 +340,11 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
             {/* Mobile Menu Button */}
             <button
-              className="lg:hidden text-[#ffcc99] hover:text-white"
+              className="lg:hidden text-[#ffcc99] hover:text-white touch-target btn-mobile"
               onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={sidebarOpen ? "Close menu" : "Open menu"}
             >
-              {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {sidebarOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
             </button>
           </div>
         </div>
@@ -335,19 +354,25 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
         {/* Sidebar */}
         <aside
           className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-40 w-64 bg-black border-r border-primary/30 transition-transform duration-300 ease-in-out lg:flex lg:flex-col`}
+            } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-40 w-[280px] sm:w-64 bg-black border-r border-primary/30 transition-transform duration-300 ease-in-out lg:flex lg:flex-col`}
         >
           <div className="flex flex-col h-full">
             {/* Logo */}
-            <div className="flex items-center space-x-2 px-6 py-4 border-b border-primary/30">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-black font-bold text-sm">C</span>
+            <div className="flex items-center space-x-2 px-4 sm:px-6 py-3 sm:py-4 border-b border-primary/30">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex items-center justify-center">
+                <Image 
+                  src="/logo.png" 
+                  alt="Carryofy" 
+                  width={40} 
+                  height={40}
+                  className="w-full h-full object-contain"
+                />
               </div>
-              <span className="text-xl font-bold text-white">Carryofy</span>
+              <span className="text-lg sm:text-xl font-bold text-white">Carryofy</span>
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 sm:space-y-2 overflow-y-auto">
               {navigation.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
@@ -356,7 +381,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                     key={item.name}
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center space-x-3 px-3 py-2 rounded-xl transition ${active
+                    className={`flex items-center space-x-3 px-3 py-3 sm:py-2 rounded-xl transition touch-target btn-mobile ${active
                       ? 'bg-primary/20 text-white'
                       : 'text-[#ffcc99] hover:bg-gray-800 hover:text-white'
                       }`}
@@ -369,20 +394,20 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             </nav>
 
             {/* Add Product Button */}
-            <div className="px-4 py-4">
+            <div className="px-3 sm:px-4 py-3 sm:py-4">
               <Link
                 href="/seller/products/new"
-                className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-primary text-black text-sm font-bold leading-normal tracking-[0.015em] w-full hover:bg-primary-dark transition-colors"
+                className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-11 sm:h-10 px-4 bg-primary text-black text-sm font-bold leading-normal tracking-[0.015em] w-full hover:bg-primary-dark transition-colors touch-target btn-mobile"
               >
                 <span className="truncate">Add Product</span>
               </Link>
             </div>
 
             {/* Help and Support */}
-            <div className="px-4 py-4 border-t border-primary/30">
+            <div className="px-3 sm:px-4 py-3 sm:py-4 border-t border-primary/30 safe-bottom">
               <Link
                 href="/seller/help"
-                className="flex items-center space-x-3 px-3 py-2 text-[#ffcc99] hover:bg-gray-800 hover:text-white rounded-xl transition"
+                className="flex items-center space-x-3 px-3 py-3 sm:py-2 text-[#ffcc99] hover:bg-gray-800 hover:text-white rounded-xl transition touch-target btn-mobile"
               >
                 <HelpCircle className="w-5 h-5" />
                 <span className="font-medium text-sm">Help and Support</span>
@@ -394,14 +419,14 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
         {/* Overlay for mobile */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-black">
-          <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+        <main className="flex-1 overflow-y-auto bg-black scroll-smooth">
+          <div className="p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom">{children}</div>
         </main>
       </div>
     </div>

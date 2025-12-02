@@ -1,35 +1,56 @@
 import Link from 'next/link';
-import { Facebook, Twitter, Instagram, Linkedin, Truck, Mail, Phone, MapPin } from 'lucide-react';
+import Image from 'next/image';
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
 
 export default function Footer() {
+  const socialLinks = [
+    { Icon: Facebook, href: 'https://facebook.com/carryofy', label: 'Facebook' },
+    { Icon: Twitter, href: 'https://twitter.com/carryofy', label: 'Twitter' },
+    { Icon: Instagram, href: 'https://instagram.com/carryofy', label: 'Instagram' },
+    { Icon: Linkedin, href: 'https://linkedin.com/company/carryofy', label: 'LinkedIn' },
+  ];
+
   return (
-    <footer className="bg-gray-900 text-white pt-20 pb-10 border-t border-gray-800">
+    <footer className="bg-gray-900 text-white pt-12 sm:pt-16 lg:pt-20 pb-8 sm:pb-10 border-t border-gray-800 safe-bottom">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-          {/* Brand */}
-          <div>
-            <div className="flex items-center space-x-2 mb-6">
-              <div className="w-10 h-10 relative flex items-center justify-center">
-                <img src="/logo.png" alt="Carryofy Logo" className="w-full h-full object-contain" />
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 lg:gap-12 mb-12 sm:mb-16">
+          {/* Brand - Full width on mobile */}
+          <div className="col-span-2 sm:col-span-2 lg:col-span-1">
+            <div className="flex items-center space-x-2 mb-4 sm:mb-6">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex items-center justify-center">
+                <Image 
+                  src="/logo.png" 
+                  alt="Carryofy Logo" 
+                  width={40} 
+                  height={40}
+                  className="w-full h-full object-contain"
+                />
               </div>
-              <span className="text-2xl font-bold">Carryofy</span>
+              <span className="text-xl sm:text-2xl font-bold">Carryofy</span>
             </div>
-            <p className="text-gray-400 mb-6 leading-relaxed">
+            <p className="text-gray-400 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base">
               Revolutionizing e-commerce logistics in Nigeria. We bridge the gap between sellers and buyers with speed and trust.
             </p>
-            <div className="flex space-x-4">
-              {[Facebook, Twitter, Instagram, Linkedin].map((Icon, i) => (
-                <a key={i} href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors duration-300 group">
-                  <Icon className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+            <div className="flex space-x-3">
+              {socialLinks.map(({ Icon, href, label }) => (
+                <a 
+                  key={label} 
+                  href={href} 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors duration-300 group touch-target btn-mobile"
+                >
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-white transition-colors" />
                 </a>
               ))}
             </div>
           </div>
 
           {/* Company */}
-          <div>
-            <h3 className="text-lg font-bold mb-6 text-white">Company</h3>
-            <ul className="space-y-4">
+          <div className="col-span-1">
+            <h3 className="text-base sm:text-lg font-bold mb-4 sm:mb-6 text-white">Company</h3>
+            <ul className="space-y-2 sm:space-y-3">
               {[
                 { name: 'About Us', href: '/about' },
                 { name: 'Careers', href: '/careers' },
@@ -37,7 +58,7 @@ export default function Footer() {
                 { name: 'Contact', href: '/contact' },
               ].map((item) => (
                 <li key={item.name}>
-                  <Link href={item.href} className="text-gray-400 hover:text-primary transition-colors">
+                  <Link href={item.href} className="text-gray-400 hover:text-primary transition-colors text-sm sm:text-base py-1 inline-block">
                     {item.name}
                   </Link>
                 </li>
@@ -46,16 +67,17 @@ export default function Footer() {
           </div>
 
           {/* Resources */}
-          <div>
-            <h3 className="text-lg font-bold mb-6 text-white">Resources</h3>
-            <ul className="space-y-4">
+          <div className="col-span-1">
+            <h3 className="text-base sm:text-lg font-bold mb-4 sm:mb-6 text-white">Resources</h3>
+            <ul className="space-y-2 sm:space-y-3">
               {[
-                { name: 'Merchant Onboarding', href: '/merchant-onboarding' },
+                { name: 'Sell on Carryofy', href: '/merchant-onboarding' },
                 { name: 'Help Center', href: '/help' },
-                { name: 'Track Order', href: '#' },
+                { name: 'Products', href: '/products' },
+                { name: 'Track Order', href: '/buyer/track' },
               ].map((item) => (
                 <li key={item.name}>
-                  <Link href={item.href} className="text-gray-400 hover:text-primary transition-colors">
+                  <Link href={item.href} className="text-gray-400 hover:text-primary transition-colors text-sm sm:text-base py-1 inline-block">
                     {item.name}
                   </Link>
                 </li>
@@ -63,31 +85,36 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contact */}
-          <div>
-            <h3 className="text-lg font-bold mb-6 text-white">Contact Us</h3>
-            <ul className="space-y-4">
+          {/* Contact - Full width on mobile */}
+          <div className="col-span-2 sm:col-span-2 lg:col-span-1">
+            <h3 className="text-base sm:text-lg font-bold mb-4 sm:mb-6 text-white">Contact Us</h3>
+            <ul className="space-y-3 sm:space-y-4">
               <li className="flex items-start gap-3 text-gray-400">
-                <MapPin className="w-5 h-5 text-primary shrink-0 mt-1" />
-                <span>123 Logistics Way, Victoria Island, Lagos, Nigeria</span>
+                <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0 mt-0.5" />
+                <span className="text-sm sm:text-base">123 Logistics Way, Victoria Island, Lagos, Nigeria</span>
               </li>
-              <li className="flex items-center gap-3 text-gray-400">
-                <Phone className="w-5 h-5 text-primary shrink-0" />
-                <span>+234 800 123 4567</span>
+              <li>
+                <a href="tel:+2348001234567" className="flex items-center gap-3 text-gray-400 hover:text-primary transition-colors">
+                  <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
+                  <span className="text-sm sm:text-base">+234 916 678 3040</span>
+                </a>
               </li>
-              <li className="flex items-center gap-3 text-gray-400">
-                <Mail className="w-5 h-5 text-primary shrink-0" />
-                <span>support@carryofy.com</span>
+              <li>
+                <a href="mailto:support@carryofy.com" className="flex items-center gap-3 text-gray-400 hover:text-primary transition-colors">
+                  <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
+                  <span className="text-sm sm:text-base">support@carryofy.com</span>
+                </a>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-gray-500 text-sm">
+        {/* Bottom Bar */}
+        <div className="border-t border-gray-800 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-gray-500 text-xs sm:text-sm text-center sm:text-left">
             &copy; {new Date().getFullYear()} Carryofy. All rights reserved.
           </p>
-          <div className="flex space-x-6 text-sm text-gray-500">
+          <div className="flex flex-wrap justify-center sm:justify-end gap-4 sm:gap-6 text-xs sm:text-sm text-gray-500">
             <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
             <Link href="#" className="hover:text-white transition-colors">Cookie Policy</Link>

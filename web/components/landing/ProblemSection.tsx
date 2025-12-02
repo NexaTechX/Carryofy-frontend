@@ -21,32 +21,32 @@ export default function ProblemSection() {
     ];
 
     return (
-        <section className="py-20 bg-gray-50">
+        <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-16">
-                    <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+                <div className="text-center mb-10 sm:mb-12 lg:mb-16">
+                    <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">
                         The Problem: African Commerce Is Broken
                     </h2>
-                    <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                    <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto px-4">
                         Merchants and buyers face daily challenges that hinder growth and trust.
                     </p>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                     {problems.map((problem, index) => (
                         <motion.div
                             key={index}
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            transition={{ delay: index * 0.2 }}
-                            className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-gray-100"
+                            transition={{ delay: index * 0.15 }}
+                            className="bg-white p-5 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-gray-100"
                         >
-                            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-6">
-                                <problem.icon className="w-7 h-7 text-red-500" />
+                            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-red-50 rounded-full flex items-center justify-center mb-4 sm:mb-6">
+                                <problem.icon className="w-6 h-6 sm:w-7 sm:h-7 text-red-500" />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-3">{problem.title}</h3>
-                            <p className="text-gray-600 leading-relaxed">
+                            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">{problem.title}</h3>
+                            <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
                                 {problem.description}
                             </p>
                         </motion.div>

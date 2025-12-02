@@ -475,7 +475,7 @@ export default function HelpPage() {
                   <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                     <Phone className="w-6 h-6 text-[#ff6600] mb-3" />
                     <h3 className="text-white font-bold mb-2">Call Us</h3>
-                    <p className="text-[#ffcc99]">+234 800 123 4567</p>
+                    <p className="text-[#ffcc99]">+234 916 678 3040</p>
                     <p className="text-[#ffcc99] text-xs mt-1">Mon-Fri, 9am-6pm WAT</p>
                   </div>
                 </div>

@@ -189,11 +189,7 @@ const nextConfig: NextConfig = {
         destination: '/merchant-onboarding',
         permanent: true,
       },
-      {
-        source: '/seller',
-        destination: '/merchant-onboarding',
-        permanent: true,
-      },
+      // NOTE: /seller is the authenticated seller dashboard - DO NOT redirect it
       {
         source: '/vendor',
         destination: '/merchant-onboarding',

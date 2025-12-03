@@ -29,6 +29,12 @@ interface Notification {
   link?: string;
 }
 
+interface SellerProfile {
+  id: string;
+  businessName: string;
+  logo?: string;
+}
+
 interface SellerLayoutProps {
   children: ReactNode;
 }
@@ -41,12 +47,14 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
   const notificationDropdownRef = useRef<HTMLDivElement>(null);
 
   // Only get user on client side after mount to avoid hydration mismatch
   useEffect(() => {
     setMounted(true);
     fetchNotifications();
+    fetchSellerProfile();
   }, []);
 
   // Close dropdown when clicking outside
@@ -110,6 +118,40 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       setUnreadCount(0);
     }
   };
+
+  const fetchSellerProfile = async () => {
+    try {
+      const token = tokenManager.getAccessToken();
+      if (!token) return;
+
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+
+      const response = await fetch(`${apiUrl}/sellers/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const sellerData = result.data || result;
+        console.log('[SellerLayout] Fetched seller profile:', { logo: sellerData.logo, businessName: sellerData.businessName });
+        setSellerProfile({
+          id: sellerData.id,
+          businessName: sellerData.businessName,
+          logo: sellerData.logo,
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to fetch seller profile:', error);
+    }
+  };
+
+  // Refetch seller profile when route changes (to catch logo updates from settings)
+  useEffect(() => {
+    if (mounted) {
+      fetchSellerProfile();
+    }
+  }, [router.asPath]);
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -327,7 +369,13 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             <div className="relative">
               <button className="flex items-center space-x-2">
                 <div className="w-10 h-10 rounded-full bg-gray-800 border-2 border-primary flex items-center justify-center overflow-hidden">
-                  {mounted && user?.name ? (
+                  {mounted && sellerProfile?.logo ? (
+                    <img
+                      src={sellerProfile.logo}
+                      alt={sellerProfile.businessName || 'Business Logo'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : mounted && user?.name ? (
                     <span className="text-white font-semibold text-sm">
                       {user.name.charAt(0).toUpperCase()}
                     </span>

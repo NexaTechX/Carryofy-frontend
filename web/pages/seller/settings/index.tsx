@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager, userManager } from '../../../lib/auth';
+import { apiClient } from '../../../lib/api/client';
 import { User, Building2, Shield, Bell, LogOut, Save, Eye, EyeOff, CheckCircle2, XCircle, Clock, CreditCard, Plus, Trash2, ShieldCheck, Upload, AlertCircle } from 'lucide-react';
 
 interface UserProfile {
@@ -17,6 +18,7 @@ interface SellerProfile {
   id: string;
   userId: string;
   businessName: string;
+  logo?: string;
   kycStatus: string;
   createdAt: string;
   updatedAt: string;
@@ -46,7 +48,9 @@ export default function SettingsPage() {
   // Business state
   const [businessForm, setBusinessForm] = useState({
     businessName: '',
+    logo: '',
   });
+  const [logoUploading, setLogoUploading] = useState(false);
   
   // Payout Account state
   const [bankAccount, setBankAccount] = useState<{
@@ -204,6 +208,7 @@ export default function SettingsPage() {
           setSellerProfile(sellerData);
           setBusinessForm({
             businessName: sellerData.businessName || '',
+            logo: sellerData.logo || '',
           });
         } else {
           console.warn('Failed to fetch seller profile:', sellerResponse.statusText);
@@ -517,6 +522,75 @@ export default function SettingsPage() {
     }
   };
 
+  const handleLogoUpload = async (file: File | null) => {
+    if (!file) return;
+
+    const maxSize = 2 * 1024 * 1024; // 2MB for logos
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    
+    if (file.size > maxSize) {
+      toast.error('Logo must be less than 2MB');
+      return;
+    }
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type. Please upload JPG, PNG, or WebP');
+      return;
+    }
+
+    setLogoUploading(true);
+
+    try {
+      const token = tokenManager.getAccessToken();
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+
+      const formDataToSend = new FormData();
+      formDataToSend.append('file', file);
+
+      const response = await fetch(`${apiUrl}/sellers/logo/upload`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formDataToSend,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const url = data.data?.url || data.url;
+        if (url) {
+          setBusinessForm(prev => ({ ...prev, logo: url }));
+          // Also update the seller profile state
+          if (sellerProfile) {
+            setSellerProfile({ ...sellerProfile, logo: url });
+          }
+          toast.success('Logo uploaded successfully!');
+        } else {
+          console.error('Upload response missing URL:', data);
+          toast.error('Upload succeeded but no URL returned');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        const errorMessage = errorData?.data?.message || errorData?.message || `Failed to upload logo (${response.status})`;
+        toast.error(errorMessage);
+      }
+    } catch (error: any) {
+      console.error('Error uploading logo:', error);
+      toast.error('Failed to upload logo. Please try again.');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    setBusinessForm(prev => ({ ...prev, logo: '' }));
+    if (sellerProfile) {
+      setSellerProfile({ ...sellerProfile, logo: '' });
+    }
+    toast.success('Logo removed. Save changes to update.');
+  };
+
   const handleKycSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setKycSubmitting(true);
@@ -540,10 +614,6 @@ export default function SettingsPage() {
     }
 
     try {
-      const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
       const submissionData: any = {
         businessType: kycForm.businessType,
         idType: kycForm.idType,
@@ -562,26 +632,16 @@ export default function SettingsPage() {
         submissionData.bvn = kycForm.bvn;
       }
 
-      const response = await fetch(`${apiUrl}/sellers/kyc`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(submissionData),
-      });
-
-      if (response.ok) {
-        toast.success('KYC submitted successfully!');
-        await fetchKycStatus();
-        await fetchProfiles();
-      } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to submit KYC');
-      }
-    } catch (error) {
+      // Use apiClient which has automatic token refresh on 401
+      await apiClient.post('/sellers/kyc', submissionData);
+      
+      toast.success('KYC submitted successfully!');
+      await fetchKycStatus();
+      await fetchProfiles();
+    } catch (error: any) {
       console.error('Error submitting KYC:', error);
-      toast.error('Something went wrong');
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to submit KYC';
+      toast.error(errorMessage);
     } finally {
       setKycSubmitting(false);
     }
@@ -928,7 +988,76 @@ export default function SettingsPage() {
                     )}
                     
                     <form onSubmit={handleBusinessUpdate} className="space-y-6">
-                          <div>
+                      {/* Logo Upload Section */}
+                      <div>
+                        <label className="block text-[#ffcc99] text-sm font-medium mb-2">
+                          Business Logo
+                        </label>
+                        <div className="flex items-start gap-6">
+                          {/* Logo Preview */}
+                          <div className="relative">
+                            <div className="w-24 h-24 rounded-xl border-2 border-dashed border-[#ff6600]/30 bg-black flex items-center justify-center overflow-hidden">
+                              {businessForm.logo ? (
+                                <img
+                                  src={businessForm.logo}
+                                  alt="Business Logo"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="text-center p-2">
+                                  <Building2 className="w-8 h-8 text-[#ffcc99]/50 mx-auto mb-1" />
+                                  <span className="text-[#ffcc99]/50 text-xs">No Logo</span>
+                                </div>
+                              )}
+                            </div>
+                            {businessForm.logo && (
+                              <button
+                                type="button"
+                                onClick={handleRemoveLogo}
+                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                                title="Remove logo"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                          
+                          {/* Upload Button */}
+                          <div className="flex-1">
+                            <input
+                              type="file"
+                              id="logoUpload"
+                              accept="image/jpeg,image/jpg,image/png,image/webp"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleLogoUpload(file);
+                              }}
+                              className="hidden"
+                              disabled={logoUploading}
+                            />
+                            <label
+                              htmlFor="logoUpload"
+                              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-colors ${
+                                logoUploading
+                                  ? 'bg-[#ff6600]/50 text-black cursor-wait'
+                                  : 'bg-[#ff6600] text-black hover:bg-[#cc5200]'
+                              }`}
+                            >
+                              <Upload className="w-4 h-4" />
+                              {logoUploading ? 'Uploading...' : businessForm.logo ? 'Change Logo' : 'Upload Logo'}
+                            </label>
+                            <p className="text-[#ffcc99] text-xs mt-2">
+                              Recommended: Square image, at least 200x200px
+                            </p>
+                            <p className="text-[#ffcc99]/70 text-xs">
+                              JPG, PNG, or WebP • Max 2MB
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Business Name */}
+                      <div>
                         <label className="block text-[#ffcc99] text-sm font-medium mb-2">
                           Business Name
                         </label>
@@ -943,11 +1072,11 @@ export default function SettingsPage() {
                         <p className="text-[#ffcc99] text-xs mt-1">
                           This name will be displayed to customers
                         </p>
-                          </div>
+                      </div>
 
                       <button
                         type="submit"
-                        disabled={saving}
+                        disabled={saving || logoUploading}
                         className="flex items-center justify-center gap-2 px-6 py-3 bg-[#ff6600] text-black text-sm font-bold rounded-xl hover:bg-[#cc5200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Save className="w-4 h-4" />
@@ -1055,7 +1184,8 @@ export default function SettingsPage() {
                                   </div>
                                 );
                               })()}
-                              {kycForm.kyc && kycForm.kyc.submissionCount !== undefined && (
+                              {/* Only show submission count if KYC is not approved */}
+                              {kycStatus !== 'APPROVED' && kycForm.kyc && kycForm.kyc.submissionCount !== undefined && (
                                 <div className="mt-3 p-3 bg-gray-900/20 border border-gray-500/30 rounded-lg">
                                   <p className="text-sm font-semibold text-gray-300 mb-1">Submission Count:</p>
                                   <p className="text-sm text-gray-200">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ZoomIn, ZoomOut, Download, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, Download, X, FileText, ExternalLink } from 'lucide-react';
 
 interface DocumentViewerProps {
   idImage: string;
@@ -12,6 +12,38 @@ interface DocumentViewerProps {
   bvn?: string;
   onClose?: () => void;
 }
+
+// Helper to check if URL is a PDF (checks both extension and Cloudinary raw/pdf paths)
+const isPdfUrl = (url: string): boolean => {
+  if (!url) return false;
+  const lowerUrl = url.toLowerCase();
+  return (
+    lowerUrl.includes('.pdf') ||
+    lowerUrl.includes('/raw/upload/') || // Cloudinary raw uploads are often PDFs
+    lowerUrl.includes('resource_type=raw')
+  );
+};
+
+// Helper to check if URL is likely an image
+const isImageUrl = (url: string): boolean => {
+  if (!url) return false;
+  const lowerUrl = url.toLowerCase();
+  return (
+    lowerUrl.includes('/image/upload/') ||
+    lowerUrl.includes('.jpg') ||
+    lowerUrl.includes('.jpeg') ||
+    lowerUrl.includes('.png') ||
+    lowerUrl.includes('.webp') ||
+    lowerUrl.includes('.gif')
+  );
+};
+
+// Get file extension for download
+const getFileExtension = (url: string): string => {
+  if (isPdfUrl(url) && !isImageUrl(url)) return 'pdf';
+  if (url.includes('.png')) return 'png';
+  return 'jpg';
+};
 
 export default function DocumentViewer({
   idImage,
@@ -26,15 +58,25 @@ export default function DocumentViewer({
 }: DocumentViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
-  const handleDownload = (url: string, filename: string) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Download by fetching the file and creating a blob
+  const handleDownload = async (url: string, filename: string) => {
+    try {
+      // For Cloudinary URLs, we can add fl_attachment to force download
+      let downloadUrl = url;
+      if (url.includes('cloudinary.com')) {
+        // Add fl_attachment transformation for Cloudinary
+        downloadUrl = url.replace('/upload/', '/upload/fl_attachment/');
+      }
+      
+      // Open in new tab - this works better for cross-origin files
+      window.open(downloadUrl, '_blank');
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback: open in new tab
+      window.open(url, '_blank');
+    }
   };
 
   const handleImageClick = (url: string) => {
@@ -42,52 +84,68 @@ export default function DocumentViewer({
     setZoom(1);
   };
 
-  const ImagePreview = ({ url, title }: { url: string; title: string }) => (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-gray-300">{title}</h4>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => handleDownload(url, `${title.toLowerCase().replace(/\s+/g, '-')}.${url.includes('.pdf') ? 'pdf' : 'jpg'}`)}
-            className="p-1.5 rounded border border-[#2a2a2a] hover:bg-[#0f1419] transition"
-            title="Download"
-          >
-            <Download className="w-4 h-4 text-gray-400" />
-          </button>
-        </div>
-      </div>
-      <div
-        className="relative border border-[#2a2a2a] rounded-lg overflow-hidden bg-[#0f1419] cursor-pointer group"
-        onClick={() => handleImageClick(url)}
-      >
-        {url.includes('.pdf') ? (
-          <div className="p-8 text-center">
-            <p className="text-gray-400 text-sm">PDF Document</p>
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline mt-2 inline-block"
-              onClick={(e) => e.stopPropagation()}
+  const handleImageError = (url: string) => {
+    setImageErrors(prev => ({ ...prev, [url]: true }));
+  };
+
+  const ImagePreview = ({ url, title }: { url: string; title: string }) => {
+    const isPdf = isPdfUrl(url) && !isImageUrl(url);
+    const hasError = imageErrors[url];
+    const ext = getFileExtension(url);
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-gray-300">{title}</h4>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => handleDownload(url, `${title.toLowerCase().replace(/\s+/g, '-')}.${ext}`)}
+              className="p-1.5 rounded border border-[#2a2a2a] hover:bg-[#0f1419] transition"
+              title="Download"
             >
-              Open PDF
-            </a>
+              <Download className="w-4 h-4 text-gray-400" />
+            </button>
           </div>
-        ) : (
-          <img
-            src={url}
-            alt={title}
-            className="w-full h-auto max-h-64 object-contain"
-            style={{ transform: `scale(${zoom})` }}
-          />
-        )}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <ZoomIn className="w-8 h-8 text-white" />
+        </div>
+        <div
+          className="relative border border-[#2a2a2a] rounded-lg overflow-hidden bg-[#0f1419] cursor-pointer group"
+          onClick={() => !isPdf && !hasError && handleImageClick(url)}
+        >
+          {isPdf || hasError ? (
+            <div className="p-8 text-center">
+              <FileText className="w-12 h-12 text-gray-500 mx-auto mb-2" />
+              <p className="text-gray-400 text-sm mb-2">
+                {hasError ? 'Unable to preview document' : 'PDF Document'}
+              </p>
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-primary hover:underline text-sm"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="w-3 h-3" />
+                Open Document
+              </a>
+            </div>
+          ) : (
+            <img
+              src={url}
+              alt={title}
+              className="w-full h-auto max-h-64 object-contain"
+              onError={() => handleImageError(url)}
+            />
+          )}
+          {!isPdf && !hasError && (
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <ZoomIn className="w-8 h-8 text-white" />
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <>
@@ -196,7 +254,7 @@ export default function DocumentViewer({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDownload(selectedImage, 'document.jpg');
+                  handleDownload(selectedImage, `document.${getFileExtension(selectedImage)}`);
                 }}
                 className="p-2 bg-black/50 rounded hover:bg-black/70 transition"
               >

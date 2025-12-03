@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useForm } from 'react-hook-form';
@@ -147,7 +148,13 @@ export default function Login() {
         <header className="bg-white shadow-sm">
           <nav className="container mx-auto px-4 py-4">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded"></div>
+              <Image 
+                src="/logo.png" 
+                alt="Carryofy Logo" 
+                width={32} 
+                height={32}
+                className="w-8 h-8"
+              />
               <span className="text-2xl font-bold text-black">Carryofy</span>
             </Link>
           </nav>

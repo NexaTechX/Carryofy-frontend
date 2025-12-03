@@ -2,11 +2,12 @@ import Head from 'next/head';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
-import { tokenManager, userManager } from '../../lib/auth';
+import { useAuth, tokenManager } from '../../lib/auth';
 import { Building2, CheckCircle } from 'lucide-react';
 
 export default function SellerOnboardingPage() {
   const router = useRouter();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
@@ -15,18 +16,15 @@ export default function SellerOnboardingPage() {
 
   useEffect(() => {
     setMounted(true);
-    checkOnboardingStatus();
   }, []);
 
-  const checkOnboardingStatus = async () => {
-    // Check authentication
-    if (!tokenManager.isAuthenticated()) {
-      router.push('/auth/login');
-      return;
-    }
+  // Handle auth checking and onboarding status
+  useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
 
-    const user = userManager.getUser();
-    if (!user) {
+    // Check authentication
+    if (!isAuthenticated || !user) {
       router.push('/auth/login');
       return;
     }
@@ -35,6 +33,12 @@ export default function SellerOnboardingPage() {
       router.push('/');
       return;
     }
+
+    // Only check onboarding status after auth is confirmed
+    checkOnboardingStatus();
+  }, [authLoading, isAuthenticated, user, router]);
+
+  const checkOnboardingStatus = async () => {
 
     // Check if seller is already onboarded
     try {
@@ -105,15 +109,21 @@ export default function SellerOnboardingPage() {
     }
   };
 
-  if (checkingStatus) {
+  // Show loading state while auth is loading OR while checking onboarding status
+  if (authLoading || checkingStatus) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#ffcc99]">Checking status...</p>
+          <p className="text-[#ffcc99]">{authLoading ? 'Loading...' : 'Checking status...'}</p>
         </div>
       </div>
     );
+  }
+
+  // Don't render until auth check is complete
+  if (!isAuthenticated || !user) {
+    return null;
   }
 
   if (alreadyOnboarded) {

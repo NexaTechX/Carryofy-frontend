@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
-import { tokenManager, userManager } from '../../../lib/auth';
+import { useAuth, tokenManager } from '../../../lib/auth';
 
 interface FormData {
   title: string;
@@ -15,6 +15,7 @@ interface FormData {
 
 export default function AddProductPage() {
   const router = useRouter();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -30,14 +31,14 @@ export default function AddProductPage() {
 
   useEffect(() => {
     setMounted(true);
-    // Check authentication
-    if (!tokenManager.isAuthenticated()) {
-      router.push('/auth/login');
-      return;
-    }
+  }, []);
 
-    const user = userManager.getUser();
-    if (!user) {
+  useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+
+    // Check authentication
+    if (!isAuthenticated || !user) {
       router.push('/auth/login');
       return;
     }
@@ -45,7 +46,7 @@ export default function AddProductPage() {
     if (user.role && user.role !== 'SELLER' && user.role !== 'ADMIN') {
       router.push('/');
     }
-  }, [router]);
+  }, [router, authLoading, isAuthenticated, user]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -163,7 +164,22 @@ export default function AddProductPage() {
     }
   };
 
-  // Always render immediately - don't block with mounted check
+  // Show loading state while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#ffcc99]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render until auth check is complete
+  if (!isAuthenticated || !user) {
+    return null;
+  }
 
   return (
     <>

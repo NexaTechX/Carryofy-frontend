@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { Search, Trash2 } from 'lucide-react';
-import { tokenManager, userManager } from '../../../lib/auth';
+import { useAuth, tokenManager } from '../../../lib/auth';
 import Link from 'next/link';
 
 interface Product {
@@ -18,6 +18,7 @@ interface Product {
 
 export default function ProductsPage() {
   const router = useRouter();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -25,14 +26,11 @@ export default function ProductsPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    // Check authentication
-    if (!tokenManager.isAuthenticated()) {
-      router.push('/auth/login');
-      return;
-    }
+    // Wait for auth to finish loading
+    if (authLoading) return;
 
-    const user = userManager.getUser();
-    if (!user) {
+    // Check authentication
+    if (!isAuthenticated || !user) {
       router.push('/auth/login');
       return;
     }
@@ -44,12 +42,11 @@ export default function ProductsPage() {
 
     // Fetch products
     fetchProducts();
-  }, [router]);
+  }, [router, authLoading, isAuthenticated, user]);
 
   const fetchProducts = async () => {
     try {
       const token = tokenManager.getAccessToken();
-      const user = userManager.getUser();
       
       // Get seller's products
       const response = await fetch(
@@ -126,6 +123,23 @@ export default function ProductsPage() {
   const filteredProducts = products.filter((product) =>
     product.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Show loading state while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#ffcc99]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render until auth check is complete
+  if (!isAuthenticated || !user) {
+    return null;
+  }
 
   return (
     <>

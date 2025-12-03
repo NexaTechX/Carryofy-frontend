@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
-import { tokenManager, userManager } from '../../../lib/auth';
+import { useAuth, tokenManager } from '../../../lib/auth';
 import { 
   Bell, 
   Package, 
@@ -34,6 +34,7 @@ interface Notification {
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -62,14 +63,14 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     setMounted(true);
-    // Check authentication
-    if (!tokenManager.isAuthenticated()) {
-      router.push('/auth/login');
-      return;
-    }
+  }, []);
 
-    const user = userManager.getUser();
-    if (!user) {
+  useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+
+    // Check authentication
+    if (!isAuthenticated || !user) {
       router.push('/auth/login');
       return;
     }
@@ -81,7 +82,7 @@ export default function NotificationsPage() {
 
     // Fetch notifications
     fetchNotifications();
-  }, [router]);
+  }, [router, authLoading, isAuthenticated, user]);
 
   const fetchNotifications = async () => {
     try {
@@ -284,7 +285,22 @@ export default function NotificationsPage() {
     setShowPreferences(false);
   };
 
-  // Always render immediately - show loading state inside page if needed
+  // Show loading state while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#ffcc99]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render until auth check is complete
+  if (!isAuthenticated || !user) {
+    return null;
+  }
 
   return (
     <>

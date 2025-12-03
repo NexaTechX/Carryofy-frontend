@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
-import { tokenManager, userManager } from '../../../lib/auth';
+import { useAuth, tokenManager } from '../../../lib/auth';
 import { DollarSign, TrendingUp, TrendingDown, Wallet, Download } from 'lucide-react';
 
 interface EarningsReport {
@@ -29,6 +29,7 @@ interface Payout {
 
 export default function EarningsPage() {
   const router = useRouter();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [earningsReport, setEarningsReport] = useState<EarningsReport | null>(null);
@@ -41,14 +42,14 @@ export default function EarningsPage() {
 
   useEffect(() => {
     setMounted(true);
-    // Check authentication
-    if (!tokenManager.isAuthenticated()) {
-      router.push('/auth/login');
-      return;
-    }
+  }, []);
 
-    const user = userManager.getUser();
-    if (!user) {
+  useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+
+    // Check authentication
+    if (!isAuthenticated || !user) {
       router.push('/auth/login');
       return;
     }
@@ -61,7 +62,7 @@ export default function EarningsPage() {
     // Fetch earnings data
     fetchEarningsData();
     fetchPayouts();
-  }, [router, dateRange]);
+  }, [router, dateRange, authLoading, isAuthenticated, user]);
 
   const getDateRangeParams = () => {
     const now = new Date();
@@ -235,7 +236,22 @@ export default function EarningsPage() {
     }
   };
 
-  // Always render immediately - show loading state inside page if needed
+  // Show loading state while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#ffcc99]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render until auth check is complete
+  if (!isAuthenticated || !user) {
+    return null;
+  }
 
   return (
     <>

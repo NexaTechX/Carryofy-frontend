@@ -7,34 +7,33 @@ import SalesTrend from '../../components/seller/SalesTrend';
 import OrderDistribution from '../../components/seller/OrderDistribution';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { tokenManager, userManager } from '../../lib/auth';
+import { useAuth, tokenManager } from '../../lib/auth';
 
 export default function SellerDashboard() {
   const router = useRouter();
+  const { user, isLoading, isAuthenticated } = useAuth();
 
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [kycExpiresAt, setKycExpiresAt] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check authentication
-    if (!tokenManager.isAuthenticated()) {
-      router.push('/auth/login');
-      return;
-    }
+    // Wait for auth to finish loading before checking
+    if (isLoading) return;
 
-    const user = userManager.getUser();
-    if (!user) {
+    // Check authentication
+    if (!isAuthenticated || !user) {
       router.push('/auth/login');
       return;
     }
 
     if (user.role && user.role !== 'SELLER' && user.role !== 'ADMIN') {
       router.push('/');
+      return;
     }
 
     // Fetch KYC status
     fetchKycStatus();
-  }, [router]);
+  }, [router, isLoading, isAuthenticated, user]);
 
   const fetchKycStatus = async () => {
     try {
@@ -56,6 +55,23 @@ export default function SellerDashboard() {
       console.error('Error fetching KYC status:', error);
     }
   };
+
+  // Show loading state while auth is initializing
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#ffcc99]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render until auth check is complete
+  if (!isAuthenticated || !user) {
+    return null;
+  }
 
   return (
     <>

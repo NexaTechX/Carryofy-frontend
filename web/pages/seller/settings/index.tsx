@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
-import { tokenManager, userManager } from '../../../lib/auth';
+import { useAuth, tokenManager, userManager } from '../../../lib/auth';
 import { User, Building2, Shield, Bell, LogOut, Save, Eye, EyeOff, CheckCircle2, XCircle, Clock, CreditCard, Plus, Trash2, ShieldCheck, Upload, AlertCircle } from 'lucide-react';
 
 interface UserProfile {
@@ -29,6 +29,7 @@ interface SellerProfile {
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { user: authUser, isLoading: authLoading, isAuthenticated } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -126,20 +127,19 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setMounted(true);
-    
+  }, []);
+
+  useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+
     // Check authentication
-    if (!tokenManager.isAuthenticated()) {
+    if (!isAuthenticated || !authUser) {
       router.push('/auth/login');
       return;
     }
 
-    const user = userManager.getUser();
-    if (!user) {
-      router.push('/auth/login');
-      return;
-    }
-
-    if (user.role && user.role !== 'SELLER' && user.role !== 'ADMIN') {
+    if (authUser.role && authUser.role !== 'SELLER' && authUser.role !== 'ADMIN') {
       router.push('/');
       return;
     }
@@ -153,7 +153,7 @@ export default function SettingsPage() {
     // Fetch profiles (non-blocking - page structure renders immediately)
     fetchProfiles();
     fetchKycStatus();
-  }, [router]);
+  }, [router, authLoading, isAuthenticated, authUser]);
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -735,6 +735,23 @@ export default function SettingsPage() {
       });
     }
   };
+
+  // Show loading state while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#ffcc99]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render until auth check is complete
+  if (!isAuthenticated || !authUser) {
+    return null;
+  }
 
   return (
     <>

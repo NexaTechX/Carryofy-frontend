@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
-import { Search, Trash2 } from 'lucide-react';
-import { useAuth, tokenManager } from '../../../lib/auth';
+import { Search, Trash2, Plus, Package, Edit, Eye, MoreVertical, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { useAuth } from '../../../lib/auth';
+import { apiClient } from '../../../lib/api/client';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Product {
   id: string;
@@ -14,7 +16,35 @@ interface Product {
   quantity: number;
   status: string;
   images: string[];
+  createdAt: string;
 }
+
+const statusConfig: Record<string, { label: string; color: string; bgColor: string; icon: React.ReactNode }> = {
+  PENDING_APPROVAL: {
+    label: 'Pending Review',
+    color: 'text-yellow-400',
+    bgColor: 'bg-yellow-400/10 border-yellow-400/30',
+    icon: <Clock className="w-3 h-3" />,
+  },
+  ACTIVE: {
+    label: 'Active',
+    color: 'text-green-400',
+    bgColor: 'bg-green-400/10 border-green-400/30',
+    icon: <CheckCircle className="w-3 h-3" />,
+  },
+  INACTIVE: {
+    label: 'Inactive',
+    color: 'text-red-400',
+    bgColor: 'bg-red-400/10 border-red-400/30',
+    icon: <XCircle className="w-3 h-3" />,
+  },
+  REJECTED: {
+    label: 'Rejected',
+    color: 'text-red-400',
+    bgColor: 'bg-red-400/10 border-red-400/30',
+    icon: <XCircle className="w-3 h-3" />,
+  },
+};
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -26,58 +56,65 @@ export default function ProductsPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    // Wait for auth to finish loading
     if (authLoading) return;
-
-    // Check authentication
     if (!isAuthenticated || !user) {
       router.push('/auth/login');
       return;
     }
-
-    if (user.role && user.role !== 'SELLER' && user.role !== 'ADMIN') {
+    // Only sellers can access this page - admins should use admin dashboard
+    if (user.role !== 'SELLER') {
       router.push('/');
       return;
     }
-
-    // Fetch products
     fetchProducts();
   }, [router, authLoading, isAuthenticated, user]);
 
   const fetchProducts = async () => {
     try {
-      const token = tokenManager.getAccessToken();
-      
-      // Get seller's products
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/products?sellerId=${user?.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const sellerResponse = await apiClient.get('/sellers/me');
+      const sellerData = sellerResponse.data?.data || sellerResponse.data;
+      const sellerId = sellerData?.id;
 
-      if (response.ok) {
-        const data = await response.json();
-        setProducts(data.products || []);
+      if (!sellerId) {
+        console.error('Could not get seller ID');
+        toast.error('Please complete your seller onboarding first');
+        setLoading(false);
+        return;
       }
-    } catch (error) {
+
+      const response = await apiClient.get(`/products?sellerId=${sellerId}`);
+      const data = response.data?.data || response.data;
+      setProducts(data?.products || []);
+    } catch (error: any) {
       console.error('Error fetching products:', error);
+      if (error?.response?.status === 403) {
+        toast.error('Access denied. Please ensure you are logged in as a seller.');
+        router.push('/auth/login');
+      } else if (error?.response?.status === 404) {
+        toast.error('Seller profile not found. Please complete onboarding first.');
+        router.push('/merchant-onboarding');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const formatPrice = (priceInKobo: number) => {
-    return `₦${(priceInKobo / 100).toFixed(2)}`;
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+    }).format(priceInKobo / 100);
   };
 
-  const getStockStatus = (quantity: number, status: string) => {
-    if (status === 'ACTIVE' && quantity > 0) {
-      return 'In Stock';
-    }
-    return 'Out of Stock';
+  const getStatusConfig = (status: string) => {
+    return statusConfig[status] || statusConfig.PENDING_APPROVAL;
+  };
+
+  const getStockStatus = (quantity: number) => {
+    if (quantity === 0) return { label: 'Out of Stock', color: 'text-red-400' };
+    if (quantity <= 5) return { label: `Low Stock (${quantity})`, color: 'text-yellow-400' };
+    return { label: `${quantity} in stock`, color: 'text-green-400' };
   };
 
   const handleDeleteClick = (productId: string) => {
@@ -93,28 +130,14 @@ export default function ProductsPage() {
 
     setDeleting(true);
     try {
-      const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      const response = await fetch(`${apiUrl}/products/${deleteConfirm}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        toast.success('Product deleted successfully');
-        setProducts(products.filter(p => p.id !== deleteConfirm));
-        setDeleteConfirm(null);
-      } else {
-        const error = await response.json();
-        toast.error(`Failed to delete product: ${error.message || 'Unknown error'}`);
-      }
-    } catch (error) {
+      await apiClient.delete(`/products/${deleteConfirm}`);
+      toast.success('Product deleted successfully');
+      setProducts(products.filter(p => p.id !== deleteConfirm));
+      setDeleteConfirm(null);
+    } catch (error: any) {
       console.error('Error deleting product:', error);
-      toast.error('Failed to delete product. Please try again.');
+      const errorMessage = error?.response?.data?.message || 'Failed to delete product';
+      toast.error(errorMessage);
     } finally {
       setDeleting(false);
     }
@@ -124,7 +147,6 @@ export default function ProductsPage() {
     product.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Show loading state while auth is initializing
   if (authLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -136,7 +158,6 @@ export default function ProductsPage() {
     );
   }
 
-  // Don't render until auth check is complete
   if (!isAuthenticated || !user) {
     return null;
   }
@@ -145,164 +166,266 @@ export default function ProductsPage() {
     <>
       <Head>
         <title>Products - Seller Portal | Carryofy</title>
-        <meta
-          name="description"
-          content="Manage your products on Carryofy."
-        />
+        <meta name="description" content="Manage your products on Carryofy." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <SellerLayout>
-        <div>
-          {/* Title Section */}
-          <div className="flex flex-wrap justify-between gap-3 p-4">
-            <div className="flex min-w-72 flex-col gap-3">
-              <p className="text-white tracking-light text-[32px] font-bold leading-tight">
-                Products
+        <div className="min-h-full">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-white">Products</h1>
+              <p className="text-[#ffcc99] text-sm mt-1">
+                Manage your product listings ({products.length} products)
               </p>
-              <p className="text-[#ffcc99] text-sm font-normal leading-normal">
-                Manage your products
-              </p>
+            </div>
+            <Link
+              href="/seller/products/new"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#ff6600] to-[#cc5200] text-white font-medium rounded-xl hover:from-[#cc5200] hover:to-[#ff6600] transition-all"
+            >
+              <Plus className="w-5 h-5" />
+              Add Product
+            </Link>
+          </div>
+
+          {/* Search */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#ffcc99]" />
+              <input
+                type="text"
+                placeholder="Search products by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+              />
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="px-4 py-3">
-            <label className="flex flex-col min-w-40 h-12 w-full">
-              <div className="flex w-full flex-1 items-stretch rounded-xl h-full">
-                <div className="text-[#ffcc99] flex border-none bg-[#1a1a1a] items-center justify-center pl-4 rounded-l-xl border-r-0">
-                  <Search className="w-6 h-6" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search products"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border-none bg-[#1a1a1a] focus:border-none h-full placeholder:text-[#ffcc99] px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal"
-                />
-              </div>
-            </label>
-          </div>
-
-          {/* Delete Confirmation Dialog */}
+          {/* Delete Confirmation Modal */}
           {deleteConfirm && (
-            <div className="px-4 py-3">
-              <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4">
-                <p className="text-white font-medium mb-4">Are you sure you want to delete this product?</p>
-                <p className="text-[#ffcc99] text-sm mb-4">This action cannot be undone.</p>
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-2xl p-6 max-w-md w-full">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold">Delete Product</h3>
+                    <p className="text-[#ffcc99] text-sm">This action cannot be undone</p>
+                  </div>
+                </div>
+                <p className="text-gray-300 text-sm mb-6">
+                  Are you sure you want to delete this product? All data associated with it will be permanently removed.
+                </p>
                 <div className="flex gap-3">
-                  <button
-                    onClick={handleDeleteConfirm}
-                    disabled={deleting}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {deleting ? 'Deleting...' : 'Yes, Delete'}
-                  </button>
                   <button
                     onClick={handleDeleteCancel}
                     disabled={deleting}
-                    className="px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] rounded-lg text-sm font-medium hover:bg-[#ff6600]/10 transition-colors disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 bg-[#0a0a0a] border border-[#ff6600]/30 text-[#ffcc99] rounded-xl font-medium hover:bg-[#ff6600]/10 transition-colors disabled:opacity-50"
                   >
                     Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteConfirm}
+                    disabled={deleting}
+                    className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                  >
+                    {deleting ? 'Deleting...' : 'Delete'}
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Products Table */}
-          <div className="px-4 py-3">
-            <div className="flex overflow-hidden rounded-xl border border-primary/30 bg-black">
-              <table className="flex-1">
-                <thead>
-                  <tr className="bg-[#1a1a1a]">
-                    <th className="px-4 py-3 text-left text-white w-14 text-sm font-medium leading-normal">
-                      Product
-                    </th>
-                    <th className="px-4 py-3 text-left text-white w-[400px] text-sm font-medium leading-normal">
-                      Price
-                    </th>
-                    <th className="px-4 py-3 text-left text-white w-[400px] text-sm font-medium leading-normal">
-                      Stock
-                    </th>
-                    <th className="px-4 py-3 text-left text-white w-60 text-sm font-medium leading-normal">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-[#ffcc99] w-60 text-sm font-medium leading-normal">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-white">
-                        Loading...
-                      </td>
-                    </tr>
-                  ) : filteredProducts.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-white">
-                        No products found
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredProducts.map((product) => (
-                      <tr
-                        key={product.id}
-                        className="border-t border-t-primary/30"
-                      >
-                        <td className="h-[72px] px-4 py-2 w-14 text-sm font-normal leading-normal">
-                          <div
-                            className="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-10 h-10"
-                            style={{
-                              backgroundImage: product.images?.[0]
-                                ? `url(${product.images[0]})`
-                                : 'none',
-                              backgroundColor: '#1a1a1a',
-                            }}
-                          ></div>
-                        </td>
-                        <td className="h-[72px] px-4 py-2 w-[400px] text-white text-sm font-normal leading-normal">
-                          {product.title}
-                        </td>
-                        <td className="h-[72px] px-4 py-2 w-[400px] text-[#ffcc99] text-sm font-normal leading-normal">
-                          {formatPrice(product.price)}
-                        </td>
-                        <td className="h-[72px] px-4 py-2 w-60 text-sm font-normal leading-normal">
-                          <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-8 px-4 bg-[#1a1a1a] text-white text-sm font-medium leading-normal w-full">
-                            <span className="truncate">
-                              {getStockStatus(product.quantity, product.status)}
-                            </span>
-                          </button>
-                        </td>
-                        <td className="h-[72px] px-4 py-2 w-60 text-sm font-bold leading-normal tracking-[0.015em]">
-                          <div className="flex items-center gap-3">
-                            <Link
-                              href={`/seller/products/${product.id}/edit`}
-                              className="text-[#ffcc99] hover:text-[#ff6600] transition-colors"
-                            >
-                              Edit
-                            </Link>
-                            <button
-                              onClick={() => handleDeleteClick(product.id)}
-                              className="text-red-400 hover:text-red-500 transition-colors"
-                              title="Delete product"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+          {/* Products Grid/Table */}
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <div className="w-10 h-10 border-3 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-3"></div>
+                <p className="text-[#ffcc99] text-sm">Loading products...</p>
+              </div>
             </div>
-          </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-2xl p-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-[#ff6600]/10 flex items-center justify-center mx-auto mb-4">
+                <Package className="w-8 h-8 text-[#ff6600]" />
+              </div>
+              <h3 className="text-white font-semibold text-lg mb-2">No products found</h3>
+              <p className="text-[#ffcc99] text-sm mb-6">
+                {searchQuery ? 'Try a different search term' : 'Start by adding your first product'}
+              </p>
+              {!searchQuery && (
+                <Link
+                  href="/seller/products/new"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff6600] text-black font-medium rounded-xl hover:bg-[#cc5200] transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add Your First Product
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-2xl overflow-hidden">
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-[#0a0a0a] border-b border-[#ff6600]/20">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
+                        Product
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
+                        Price
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
+                        Stock
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-right text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#ff6600]/10">
+                    {filteredProducts.map((product) => {
+                      const statusCfg = getStatusConfig(product.status);
+                      const stockStatus = getStockStatus(product.quantity);
+                      
+                      return (
+                        <tr key={product.id} className="hover:bg-[#ff6600]/5 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-4">
+                              <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#0a0a0a] border border-[#ff6600]/20 flex-shrink-0">
+                                {product.images?.[0] ? (
+                                  <img
+                                    src={product.images[0]}
+                                    alt={product.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Package className="w-6 h-6 text-[#ffcc99]/30" />
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-white font-medium line-clamp-1">{product.title}</p>
+                                <p className="text-[#ffcc99]/60 text-xs mt-0.5">
+                                  ID: {product.id.slice(0, 8)}...
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <p className="text-white font-semibold">{formatPrice(product.price)}</p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <p className={`text-sm font-medium ${stockStatus.color}`}>
+                              {stockStatus.label}
+                            </p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border ${statusCfg.bgColor} ${statusCfg.color}`}>
+                              {statusCfg.icon}
+                              {statusCfg.label}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-end gap-2">
+                              <Link
+                                href={`/seller/products/${product.id}/edit`}
+                                className="p-2 text-[#ffcc99] hover:text-[#ff6600] hover:bg-[#ff6600]/10 rounded-lg transition-colors"
+                                title="Edit"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Link>
+                              <Link
+                                href={`/seller/products/${product.id}`}
+                                className="p-2 text-[#ffcc99] hover:text-[#ff6600] hover:bg-[#ff6600]/10 rounded-lg transition-colors"
+                                title="View"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Link>
+                              <button
+                                onClick={() => handleDeleteClick(product.id)}
+                                className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="md:hidden divide-y divide-[#ff6600]/10">
+                {filteredProducts.map((product) => {
+                  const statusCfg = getStatusConfig(product.status);
+                  const stockStatus = getStockStatus(product.quantity);
+                  
+                  return (
+                    <div key={product.id} className="p-4">
+                      <div className="flex gap-4">
+                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-[#0a0a0a] border border-[#ff6600]/20 flex-shrink-0">
+                          {product.images?.[0] ? (
+                            <img
+                              src={product.images[0]}
+                              alt={product.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="w-8 h-8 text-[#ffcc99]/30" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-medium line-clamp-2">{product.title}</p>
+                          <p className="text-[#ff6600] font-bold mt-1">{formatPrice(product.price)}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${statusCfg.bgColor} ${statusCfg.color}`}>
+                              {statusCfg.icon}
+                              {statusCfg.label}
+                            </span>
+                            <span className={`text-xs ${stockStatus.color}`}>
+                              {stockStatus.label}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-[#ff6600]/10">
+                        <Link
+                          href={`/seller/products/${product.id}/edit`}
+                          className="flex items-center gap-1 px-3 py-1.5 text-[#ffcc99] hover:text-[#ff6600] text-sm font-medium"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteClick(product.id)}
+                          className="flex items-center gap-1 px-3 py-1.5 text-red-400 hover:text-red-300 text-sm font-medium"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </SellerLayout>
     </>
   );
 }
-

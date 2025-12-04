@@ -58,7 +58,7 @@ export const getServerSideProps: GetServerSideProps<ProductsPageProps> = async (
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('limit', limit.toString());
-    params.append('status', 'APPROVED');
+    // Don't send status - backend defaults to ACTIVE for public browsing
     if (category) params.append('category', category);
     if (search) params.append('search', search);
 

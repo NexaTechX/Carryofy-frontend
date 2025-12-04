@@ -61,6 +61,10 @@ export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
     pendingOrders: (metricsData?.pendingOrders as number) ?? 0,
     activeDeliveries: (metricsData?.activeDeliveries as number) ?? 0,
     pendingApprovals: (metricsData?.pendingApprovals as number) ?? 0,
+    totalCustomers: (metricsData?.totalCustomers as number) ?? 0,
+    newCustomersThisMonth: (metricsData?.newCustomersThisMonth as number) ?? 0,
+    activeCustomersThisMonth: (metricsData?.activeCustomersThisMonth as number) ?? 0,
+    customerRetentionRate: (metricsData?.customerRetentionRate as number) ?? 0,
   };
 }
 
@@ -199,7 +203,7 @@ export async function fetchPendingProducts(): Promise<PendingProduct[]> {
 }
 
 export async function fetchAllProducts(): Promise<PendingProduct[]> {
-  const { data } = await apiClient.get('/products');
+  const { data } = await apiClient.get('/products/admin/all');
   return normalizeListResponse<PendingProduct>(data, ['products', 'items', 'data', 'results']);
 }
 
@@ -473,6 +477,10 @@ export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
     pendingOrders: 0,
     activeDeliveries: 0,
     pendingApprovals: 0,
+    totalCustomers: 0,
+    newCustomersThisMonth: 0,
+    activeCustomersThisMonth: 0,
+    customerRetentionRate: 0,
   };
 
   const salesTrend = results[1].status === 'fulfilled' ? results[1].value : {

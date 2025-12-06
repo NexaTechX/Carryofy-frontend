@@ -5,6 +5,8 @@ import {
   fetchActiveDeliveries,
   fetchDeliveryByOrderId,
   updateDeliveryStatusRequest,
+  fetchAvailableRiders,
+  AvailableRider,
 } from '../../admin/api';
 import { AdminDelivery, AdminDeliveryStatus } from '../../admin/types';
 
@@ -78,6 +80,14 @@ export function useDeliveryStatusMutation() {
       console.error(error);
       toast.error('Failed to update delivery status.');
     },
+  });
+}
+
+export function useAvailableRiders() {
+  return useQuery<AvailableRider[]>({
+    queryKey: ['admin', 'riders', 'available'],
+    queryFn: fetchAvailableRiders,
+    staleTime: 30000, // Cache for 30 seconds
   });
 }
 

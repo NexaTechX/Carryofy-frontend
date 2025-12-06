@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchPlatformSettings,
@@ -18,10 +19,29 @@ import type {
 } from '../types';
 
 export function usePlatformSettings() {
-  return useQuery<PlatformSettings>({
+  const query = useQuery<PlatformSettings>({
     queryKey: ['admin', 'settings', 'platform'],
     queryFn: fetchPlatformSettings,
+    retry: (failureCount, error: any) => {
+      // Don't retry on 404 (endpoint may not exist)
+      if (error?.response?.status === 404) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
+
+  useEffect(() => {
+    if (query.error) {
+      // Silently handle 404 errors
+      const error = query.error as any;
+      if (error?.response?.status !== 404) {
+        console.error('Error fetching platform settings:', query.error);
+      }
+    }
+  }, [query.error]);
+
+  return query;
 }
 
 export function useUpdatePlatformSettings() {
@@ -36,10 +56,29 @@ export function useUpdatePlatformSettings() {
 }
 
 export function usePaymentGatewaySettings() {
-  return useQuery<PaymentGatewaySettings>({
+  const query = useQuery<PaymentGatewaySettings>({
     queryKey: ['admin', 'settings', 'payment-gateway'],
     queryFn: fetchPaymentGatewaySettings,
+    retry: (failureCount, error: any) => {
+      // Don't retry on 404 (endpoint may not exist)
+      if (error?.response?.status === 404) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
+
+  useEffect(() => {
+    if (query.error) {
+      // Silently handle 404 errors
+      const error = query.error as any;
+      if (error?.response?.status !== 404) {
+        console.error('Error fetching payment gateway settings:', query.error);
+      }
+    }
+  }, [query.error]);
+
+  return query;
 }
 
 export function useUpdatePaymentGatewaySettings() {
@@ -54,10 +93,29 @@ export function useUpdatePaymentGatewaySettings() {
 }
 
 export function useTeamMembers() {
-  return useQuery<TeamMember[]>({
+  const query = useQuery<TeamMember[]>({
     queryKey: ['admin', 'settings', 'team'],
     queryFn: fetchTeamMembers,
+    retry: (failureCount, error: any) => {
+      // Don't retry on 404 (endpoint may not exist)
+      if (error?.response?.status === 404) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
+
+  useEffect(() => {
+    if (query.error) {
+      // Silently handle 404 errors
+      const error = query.error as any;
+      if (error?.response?.status !== 404) {
+        console.error('Error fetching team members:', query.error);
+      }
+    }
+  }, [query.error]);
+
+  return query;
 }
 
 export function useCreateTeamMember() {

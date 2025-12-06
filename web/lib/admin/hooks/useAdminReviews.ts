@@ -43,18 +43,28 @@ export interface UseAdminReviewsQuery {
 
 export function useAdminReviews(query: UseAdminReviewsQuery) {
   const params = new URLSearchParams();
-  if (query.page) params.append('page', query.page.toString());
-  if (query.limit) params.append('limit', query.limit.toString());
-  if (query.flaggedOnly !== undefined) params.append('flaggedOnly', query.flaggedOnly.toString());
-  if (query.productId) params.append('productId', query.productId);
-  if (query.rating) params.append('rating', query.rating.toString());
+  if (query.page !== undefined && query.page !== null) {
+    params.append('page', query.page.toString());
+  }
+  if (query.limit !== undefined && query.limit !== null) {
+    params.append('limit', query.limit.toString());
+  }
+  if (query.flaggedOnly === true) {
+    params.append('flaggedOnly', 'true');
+  }
+  if (query.productId) {
+    params.append('productId', query.productId);
+  }
+  if (query.rating !== undefined && query.rating !== null) {
+    params.append('rating', query.rating.toString());
+  }
 
   return useQuery<AdminReviewsResponse>({
     queryKey: ['admin', 'reviews', query],
     queryFn: async () => {
-      const response = await apiClient.get<AdminReviewsResponse>(
-        `/reviews/admin/all?${params.toString()}`
-      );
+      const queryString = params.toString();
+      const url = `/reviews/admin/all${queryString ? `?${queryString}` : ''}`;
+      const response = await apiClient.get<AdminReviewsResponse>(url);
       return response.data;
     },
   });

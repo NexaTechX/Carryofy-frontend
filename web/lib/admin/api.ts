@@ -28,6 +28,7 @@ import {
   ReportsQueryParams,
   SupportTicket,
   SupportTicketStatus,
+  Feedback,
   AdminNotification,
   CreateNotificationPayload,
   PlatformSettings,
@@ -239,12 +240,55 @@ export async function fetchDeliveryByOrderId(orderId: string): Promise<AdminDeli
   return data;
 }
 
+export interface AvailableRider {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  riderProfile?: {
+    id: string;
+    vehicleType?: string;
+    vehicleNumber?: string;
+    isAvailable: boolean;
+    currentLat?: number;
+    currentLng?: number;
+    lastLocationUpdate?: string;
+  };
+}
+
+export async function fetchAvailableRiders(): Promise<AvailableRider[]> {
+  try {
+    const { data } = await apiClient.get('/delivery/riders/available');
+    // Handle wrapped response
+    const responseData = data as unknown;
+    if (Array.isArray(responseData)) {
+      return responseData as AvailableRider[];
+    }
+    if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+      const wrappedData = (responseData as { data: unknown }).data;
+      return Array.isArray(wrappedData) ? (wrappedData as AvailableRider[]) : [];
+    }
+    return [];
+  } catch (error: any) {
+    console.warn('Error fetching available riders:', error);
+    return [];
+  }
+}
+
 export async function assignDeliveryRequest(input: {
   orderId: string;
-  rider?: string;
+  riderId?: string;
+  rider?: string; // For backward compatibility
   eta?: string;
 }): Promise<AdminDelivery> {
-  const { data } = await apiClient.post<AdminDelivery>('/delivery/assign', input);
+  // Use riderId if provided, otherwise use rider (for backward compatibility)
+  const payload: any = {
+    orderId: input.orderId,
+    ...(input.riderId && { riderId: input.riderId }),
+    ...(input.rider && !input.riderId && { riderId: input.rider }), // Fallback to rider if riderId not provided
+    ...(input.eta && { eta: input.eta }),
+  };
+  const { data } = await apiClient.post<AdminDelivery>('/delivery/assign', payload);
   return data;
 }
 
@@ -571,9 +615,25 @@ export async function globalSearch(query: string): Promise<GlobalSearchResult> {
 
 // Settings API
 export async function fetchPlatformSettings(): Promise<PlatformSettings> {
-  const { data } = await apiClient.get('/settings/platform');
-  const response = (data as Record<string, unknown>)?.data || data;
-  return response as PlatformSettings;
+  try {
+    const { data } = await apiClient.get('/settings/platform');
+    const response = (data as Record<string, unknown>)?.data || data;
+    return response as PlatformSettings;
+  } catch (error: any) {
+    // Return default settings if endpoint doesn't exist
+    if (error?.response?.status === 404) {
+      return {
+        commissionPercentage: 15,
+        deliveryCalculation: 'distance',
+        baseFee: 1500,
+        perMileFee: 350,
+        smsEnabled: true,
+        emailEnabled: true,
+        pushEnabled: false,
+      };
+    }
+    throw error;
+  }
 }
 
 export async function updatePlatformSettings(settings: Partial<PlatformSettings>): Promise<PlatformSettings> {
@@ -583,9 +643,20 @@ export async function updatePlatformSettings(settings: Partial<PlatformSettings>
 }
 
 export async function fetchPaymentGatewaySettings(): Promise<PaymentGatewaySettings> {
-  const { data } = await apiClient.get('/settings/payment-gateway');
-  const response = (data as Record<string, unknown>)?.data || data;
-  return response as PaymentGatewaySettings;
+  try {
+    const { data } = await apiClient.get('/settings/payment-gateway');
+    const response = (data as Record<string, unknown>)?.data || data;
+    return response as PaymentGatewaySettings;
+  } catch (error: any) {
+    // Return default settings if endpoint doesn't exist
+    if (error?.response?.status === 404) {
+      return {
+        paystackSecretKey: '',
+        flutterwaveSecretKey: '',
+      };
+    }
+    throw error;
+  }
 }
 
 export async function updatePaymentGatewaySettings(settings: Partial<PaymentGatewaySettings>): Promise<PaymentGatewaySettings> {
@@ -595,8 +666,16 @@ export async function updatePaymentGatewaySettings(settings: Partial<PaymentGate
 }
 
 export async function fetchTeamMembers(): Promise<TeamMember[]> {
-  const { data } = await apiClient.get('/settings/team');
-  return normalizeListResponse<TeamMember>(data, ['members', 'team', 'items', 'data']);
+  try {
+    const { data } = await apiClient.get('/settings/team');
+    return normalizeListResponse<TeamMember>(data, ['members', 'team', 'items', 'data']);
+  } catch (error: any) {
+    // Return empty array if endpoint doesn't exist
+    if (error?.response?.status === 404) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function createTeamMember(payload: CreateTeamMemberPayload): Promise<TeamMember> {
@@ -613,4 +692,27 @@ export async function updateTeamMember(memberId: string, payload: UpdateTeamMemb
 
 export async function deleteTeamMember(memberId: string): Promise<void> {
   await apiClient.delete(`/settings/team/${memberId}`);
+}
+
+// Feedback API
+export async function fetchFeedbacks(): Promise<Feedback[]> {
+  try {
+    const { data } = await apiClient.get('/feedback');
+    console.log('Feedback API Response:', data);
+    // Handle direct array response or wrapped response
+    if (Array.isArray(data)) {
+      console.log('Returning direct array, count:', data.length);
+      return data;
+    }
+    const normalized = normalizeListResponse<Feedback>(data, ['feedbacks', 'items', 'data', 'results']);
+    console.log('Returning normalized array, count:', normalized.length);
+    return normalized;
+  } catch (error) {
+    console.error('Error fetching feedbacks:', error);
+    throw error;
+  }
+}
+
+export async function deleteFeedbackRequest(feedbackId: string): Promise<void> {
+  await apiClient.delete(`/feedback/${feedbackId}`);
 }

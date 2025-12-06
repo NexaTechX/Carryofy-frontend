@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import { MessageSquare, Send, Star, ThumbsUp, Heart } from 'lucide-react';
+import apiClient from '../../lib/api/client';
 
 export default function BuyerFeedbackPage() {
   const router = useRouter();
@@ -59,8 +60,11 @@ export default function BuyerFeedbackPage() {
 
     setSubmitting(true);
     try {
-      // Simulate API call - you can implement actual feedback API later
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await apiClient.post('/feedback', {
+        rating,
+        category: feedbackForm.category,
+        feedback: feedbackForm.feedback,
+      });
       
       setMessage({ type: 'success', text: 'Thank you for your feedback! We appreciate your input.' });
       setFeedbackForm({
@@ -71,9 +75,10 @@ export default function BuyerFeedbackPage() {
       setTimeout(() => setMessage(null), 5000);
     } catch (error: any) {
       console.error('Error submitting feedback:', error);
+      const errorMessage = error?.response?.data?.message || 'Failed to submit feedback. Please try again.';
       setMessage({ 
         type: 'error', 
-        text: 'Failed to submit feedback. Please try again.' 
+        text: errorMessage
       });
       setTimeout(() => setMessage(null), 3000);
     } finally {

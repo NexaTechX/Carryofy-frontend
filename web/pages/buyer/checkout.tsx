@@ -114,12 +114,51 @@ export default function CheckoutPage() {
     try {
       setLoadingCart(true);
       setError(null);
+      
+      // Check authentication first
+      if (!tokenManager.isAuthenticated()) {
+        setError('Please log in to view your cart.');
+        setTimeout(() => {
+          router.push('/auth/login');
+        }, 2000);
+        return;
+      }
+      
       const response = await apiClient.get('/cart');
       const cartData = response.data.data || response.data;
       setCart(cartData);
     } catch (err: any) {
       console.error('Error fetching cart:', err);
-      setError(err.response?.data?.message || 'Failed to load cart. Please try again.');
+      console.error('Error details:', {
+        code: err.code,
+        message: err.message,
+        response: err.response,
+        config: err.config,
+      });
+      
+      // Handle network errors specifically
+      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error' || err.code === 'ECONNREFUSED') {
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
+        const fullUrl = `${apiBase}/cart`;
+        
+        setError(
+          `Cannot connect to backend server.\n\n` +
+          `API URL: ${fullUrl}\n\n` +
+          `Please check:\n` +
+          `1. Backend server is running (cd apps/api && npm run start:dev)\n` +
+          `2. Backend is on port 3000\n` +
+          `3. Environment variable NEXT_PUBLIC_API_BASE is set correctly\n` +
+          `4. No firewall is blocking the connection`
+        );
+      } else if (err.response?.status === 401) {
+        // Unauthorized - token might be expired
+        setError('Your session has expired. Redirecting to login...');
+        setTimeout(() => {
+          router.push('/auth/login');
+        }, 2000);
+      } else {
+        setError(err.response?.data?.message || err.message || 'Failed to load cart. Please try again.');
+      }
     } finally {
       setLoadingCart(false);
     }
@@ -162,7 +201,27 @@ export default function CheckoutPage() {
 
   const handleCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setCardDetails((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === 'cardNumber') {
+      // Remove all non-digits and format with spaces every 4 digits
+      const cleaned = value.replace(/\D/g, '');
+      const formatted = cleaned.match(/.{1,4}/g)?.join(' ') || cleaned;
+      setCardDetails((prev) => ({ ...prev, [name]: formatted }));
+    } else if (name === 'expiry') {
+      // Format expiry as MM/YY
+      const cleaned = value.replace(/\D/g, '');
+      let formatted = cleaned;
+      if (cleaned.length >= 2) {
+        formatted = cleaned.slice(0, 2) + '/' + cleaned.slice(2, 4);
+      }
+      setCardDetails((prev) => ({ ...prev, [name]: formatted }));
+    } else if (name === 'cvv') {
+      // Only allow digits, max 4 characters
+      const cleaned = value.replace(/\D/g, '').slice(0, 4);
+      setCardDetails((prev) => ({ ...prev, [name]: cleaned }));
+    } else {
+      setCardDetails((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const applyCoupon = () => {
@@ -216,31 +275,173 @@ export default function CheckoutPage() {
     setOrderMessage(null);
 
     try {
-      // Placeholder order submission - replace with actual API endpoint
-      await apiClient
-        .post('/orders', {
-          contactInfo,
-          deliveryInfo,
-          shippingMethod,
-          paymentMethod,
-          cardDetails: paymentMethod === 'card' ? cardDetails : null,
-          orderNotes,
-          couponCode: couponApplied ? couponCode : null,
-        })
-        .catch(() => Promise.resolve());
+      // Step 1: Create or get address
+      let addressId: string;
+      
+      if (shippingMethod !== 'pickup') {
+        // Create address from delivery info
+        const addressResponse = await apiClient.post('/users/me/addresses', {
+          label: 'Checkout Address',
+          line1: deliveryInfo.address,
+          line2: deliveryInfo.landmark || undefined,
+          city: deliveryInfo.city,
+          state: deliveryInfo.state,
+          country: 'Nigeria',
+        });
+        addressId = addressResponse.data.id || addressResponse.data.data?.id;
+      } else {
+        // For pickup, we still need an address - use a default or create one
+        // For now, we'll create a minimal address
+        const addressResponse = await apiClient.post('/users/me/addresses', {
+          label: 'Pickup Location',
+          line1: 'Store Pickup',
+          city: 'Lagos',
+          state: 'Lagos',
+          country: 'Nigeria',
+        });
+        addressId = addressResponse.data.id || addressResponse.data.data?.id;
+      }
 
-      setOrderMessage({ type: 'success', text: 'Order placed successfully! Redirecting to confirmation...' });
+      // Step 2: Create order with cart items
+      const orderItems = cart.items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+      }));
+
+      const orderResponse = await apiClient.post('/orders', {
+        addressId,
+        items: orderItems,
+      });
+
+      const orderId = orderResponse.data.id || orderResponse.data.data?.id;
+
+      // Step 3: Process payment based on payment method
+      if (paymentMethod === 'card') {
+        // Validate and format card details before sending
+        const cleanedCardNumber = cardDetails.cardNumber.replace(/\s/g, '');
+        const cleanedExpiry = cardDetails.expiry.trim();
+        const cleanedCvv = cardDetails.cvv.trim();
+
+        // Validate card number format
+        if (!/^\d{13,19}$/.test(cleanedCardNumber)) {
+          throw new Error('Card number must be between 13 and 19 digits');
+        }
+
+        // Validate expiry format (MM/YY)
+        if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cleanedExpiry)) {
+          throw new Error('Expiry must be in MM/YY format (e.g., 12/25)');
+        }
+
+        // Validate CVV
+        if (!/^\d{3,4}$/.test(cleanedCvv)) {
+          throw new Error('CVV must be 3 or 4 digits');
+        }
+
+        // Prepare payment data
+        const paymentData: any = {
+          orderId,
+          cardNumber: cleanedCardNumber,
+          expiry: cleanedExpiry,
+          cvv: cleanedCvv,
+        };
+        
+        // Only include cardholderName if it's not empty
+        if (contactInfo.fullName && contactInfo.fullName.trim()) {
+          paymentData.cardholderName = contactInfo.fullName.trim();
+        }
+
+        console.log('Sending payment data:', {
+          orderId,
+          cardNumber: cleanedCardNumber.replace(/\d(?=\d{4})/g, '*'), // Mask card number in logs
+          expiry: cleanedExpiry,
+          cvv: '***',
+          hasCardholderName: !!paymentData.cardholderName,
+        });
+
+        // Process fake payment with card details
+        const paymentResponse = await apiClient.post('/payments/fake/process', paymentData);
+        
+        // The TransformInterceptor wraps the response, so we need to check data.data
+        const paymentResult = paymentResponse.data.data || paymentResponse.data;
+        
+        console.log('Payment response:', paymentResult);
+
+        if (!paymentResult.success) {
+          throw new Error(paymentResult.message || 'Payment failed');
+        }
+      } else if (paymentMethod === 'transfer') {
+        // For transfer, order remains in PENDING_PAYMENT status
+        // User will need to complete payment manually
+        setOrderMessage({ 
+          type: 'success', 
+          text: 'Order created! Please complete bank transfer to finalize payment.' 
+        });
+        window.dispatchEvent(new Event('cartUpdated'));
+        setTimeout(() => {
+          router.push('/buyer/orders');
+        }, 2500);
+        return;
+      } else if (paymentMethod === 'cod') {
+        // For COD, we can mark as paid or keep pending - for now keep pending
+        // Admin/seller will handle COD orders
+        setOrderMessage({ 
+          type: 'success', 
+          text: 'Order placed! Payment will be collected on delivery.' 
+        });
+        window.dispatchEvent(new Event('cartUpdated'));
+        setTimeout(() => {
+          router.push('/buyer/orders');
+        }, 2500);
+        return;
+      }
+
+      // Step 4: Clear cart and redirect
+      setOrderMessage({ type: 'success', text: 'Order placed and payment processed successfully! Redirecting...' });
       window.dispatchEvent(new Event('cartUpdated'));
 
       setTimeout(() => {
         router.push('/buyer/orders');
-      }, 2500);
+      }, 2000);
     } catch (err: any) {
       console.error('Error placing order:', err);
-      setOrderMessage({
-        type: 'error',
-        text: err.response?.data?.message || 'Failed to place order. Please try again.',
+      console.error('Error details:', {
+        response: err.response,
+        data: err.response?.data,
+        message: err.message,
       });
+
+      // Handle validation errors (400 Bad Request)
+      if (err.response?.status === 400) {
+        const errorData = err.response.data;
+        console.error('Validation error details:', {
+          status: err.response.status,
+          data: errorData,
+          requestData: err.config?.data ? JSON.parse(err.config.data) : null,
+        });
+        
+        let errorMessage = '';
+        
+        if (Array.isArray(errorData.message)) {
+          // NestJS validation errors are arrays
+          errorMessage = errorData.message.join('\n');
+        } else if (typeof errorData.message === 'string') {
+          errorMessage = errorData.message;
+        } else if (errorData.message) {
+          errorMessage = String(errorData.message);
+        } else {
+          errorMessage = 'Invalid data provided. Please check your input and try again.';
+        }
+        
+        setOrderMessage({
+          type: 'error',
+          text: errorMessage || 'Validation failed. Please check your card details and try again.',
+        });
+      } else {
+        setOrderMessage({
+          type: 'error',
+          text: err.response?.data?.message || err.message || 'Failed to place order. Please try again.',
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -277,14 +478,25 @@ export default function CheckoutPage() {
               <p className="text-[#ffcc99]">Preparing your checkout...</p>
             </div>
           ) : error ? (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-6 text-center">
-              <p className="text-red-400 mb-4">{error}</p>
-              <button
-                onClick={fetchCart}
-                className="px-6 py-2 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
-              >
-                Try Again
-              </button>
+            <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-6">
+              <div className="text-center mb-4">
+                <p className="text-red-400 font-semibold mb-2">Failed to Load Cart</p>
+                <p className="text-red-300 text-sm whitespace-pre-line">{error}</p>
+              </div>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={fetchCart}
+                  className="px-6 py-2 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
+                >
+                  Try Again
+                </button>
+                <button
+                  onClick={() => router.push('/buyer/products')}
+                  className="px-6 py-2 bg-gray-600 text-white rounded-xl font-bold hover:bg-gray-700 transition"
+                >
+                  Browse Products
+                </button>
+              </div>
             </div>
           ) : !cart || cart.items.length === 0 ? (
             <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-2xl p-12 text-center">
@@ -487,6 +699,24 @@ export default function CheckoutPage() {
                     <h2 className="text-white text-xl font-bold">Payment Method</h2>
                   </div>
 
+                  {/* Test Card Info */}
+                  {paymentMethod === 'card' && (
+                    <div className="mb-4 p-3 bg-[#ff6600]/10 border border-[#ff6600]/30 rounded-lg">
+                      <p className="text-xs text-[#ffcc99] mb-1">
+                        <strong className="text-white">Test Mode:</strong> Use these test card numbers:
+                      </p>
+                      <ul className="text-xs text-[#ffcc99] space-y-1 ml-4">
+                        <li>• <code className="text-[#ff6600]">4111111111111111</code> - Visa (Success)</li>
+                        <li>• <code className="text-[#ff6600]">5555555555554444</code> - Mastercard (Success)</li>
+                        <li>• <code className="text-[#ff6600]">4242424242424242</code> - Visa (Success)</li>
+                        <li>• <code className="text-[#ff6600]">4000000000000002</code> - Visa (Declined)</li>
+                      </ul>
+                      <p className="text-xs text-[#ffcc99] mt-2">
+                        Use any future expiry date (e.g., 12/25) and any 3-digit CVV.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-3">
                     <label
                       className={`flex items-center gap-3 px-4 py-4 rounded-xl border cursor-pointer transition ${
@@ -568,19 +798,21 @@ export default function CheckoutPage() {
                           placeholder="1234 5678 9012 3456"
                           className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
                           required
+                          inputMode="numeric"
                         />
                       </div>
                       <div>
-                        <label className="block text-white text-sm font-medium mb-2">Expiry *</label>
+                        <label className="block text-white text-sm font-medium mb-2">Expiry (MM/YY) *</label>
                         <input
                           type="text"
                           name="expiry"
                           maxLength={5}
                           value={cardDetails.expiry}
                           onChange={handleCardChange}
-                          placeholder="MM/YY"
+                          placeholder="12/25"
                           className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
                           required
+                          inputMode="numeric"
                         />
                       </div>
                       <div>
@@ -591,9 +823,10 @@ export default function CheckoutPage() {
                           maxLength={4}
                           value={cardDetails.cvv}
                           onChange={handleCardChange}
-                          placeholder="***"
+                          placeholder="123"
                           className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
                           required
+                          inputMode="numeric"
                         />
                       </div>
                     </div>

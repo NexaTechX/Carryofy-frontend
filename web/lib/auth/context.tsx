@@ -38,12 +38,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
                 if (accessToken) {
                     // Try to fetch current user
-                    const currentUser = await authService.getCurrentUser();
-                    setUser(currentUser);
+                    try {
+                        const currentUser = await authService.getCurrentUser();
+                        setUser(currentUser);
+                    } catch (error: any) {
+                        // Silently handle 401 errors (token expired/invalid)
+                        // This is expected behavior and doesn't need logging
+                        if (error?.response?.status === 401) {
+                            tokenManager.clearTokens();
+                            setUser(null);
+                        } else {
+                            // Only log unexpected errors
+                            console.error('Failed to initialize auth:', error);
+                            tokenManager.clearTokens();
+                            setUser(null);
+                        }
+                    }
+                } else {
+                    // No token, check if user exists in localStorage (shouldn't happen, but clear it)
+                    setUser(null);
                 }
             } catch (error) {
+                // Only log unexpected errors during initialization
                 console.error('Failed to initialize auth:', error);
-                // If token is invalid, clear it
                 tokenManager.clearTokens();
                 setUser(null);
             } finally {

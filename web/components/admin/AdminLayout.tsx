@@ -18,10 +18,13 @@ import {
   Users,
   Warehouse as WarehouseIcon,
   X,
+  Star,
+  LogOut,
 } from 'lucide-react';
 import GlobalSearch from './GlobalSearch';
 import NotificationsDropdown from './NotificationsDropdown';
 import { RealtimeProvider } from '../../lib/contexts/RealtimeContext';
+import { useAuth } from '../../lib/auth/context';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -48,11 +51,13 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Finance', href: '/admin/finance', icon: FileBarChart2 },
   { name: 'Reports', href: '/admin/reports', icon: FileBarChart2 },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
+  { name: 'Feedback', href: '/admin/feedback', icon: Star },
   { name: 'Support Center', href: '/admin/support', icon: HelpCircle },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
+  const { logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -86,6 +91,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
     return NAV_ITEMS[0];
   }, [router.pathname]);
+
+  const handleLogout = () => {
+    logout();
+  };
 
   const navContent = useMemo(
     () => (
@@ -128,7 +137,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </div>
         {navContent}
-        <div className="border-t border-[#12161f] px-6 py-6">
+        <div className="border-t border-[#12161f] px-6 py-6 space-y-4">
           <div className="flex items-center justify-between rounded-full border border-[#1f2432] px-4 py-2 text-xs font-medium text-gray-400">
             <span className="flex items-center gap-2">
               <Store className="h-4 w-4 text-primary" />
@@ -136,6 +145,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </span>
             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">ON</span>
           </div>
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-gray-400 transition-colors hover:bg-[#1a1a1a] hover:text-red-400"
+          >
+            <LogOut className="h-5 w-5" />
+            Logout
+          </button>
         </div>
       </aside>
 
@@ -166,6 +182,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </button>
         </div>
         {navContent}
+        <div className="border-t border-[#12161f] px-6 py-6">
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-gray-400 transition-colors hover:bg-[#1a1a1a] hover:text-red-400"
+          >
+            <LogOut className="h-5 w-5" />
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Overlay */}
@@ -212,6 +237,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </div>
               <button className="hidden rounded-full border border-[#1f2432] p-2 text-gray-400 transition hover:border-primary hover:text-white sm:flex">
                 <HelpCircle className="h-5 w-5" />
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="hidden rounded-full border border-[#1f2432] p-2 text-gray-400 transition hover:border-red-500/50 hover:text-red-400 sm:flex"
+                title="Logout"
+                aria-label="Logout"
+              >
+                <LogOut className="h-5 w-5" />
               </button>
 
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">

@@ -183,7 +183,8 @@ export interface AdminDelivery {
   id: string;
   orderId: string;
   status: AdminDeliveryStatus;
-  rider?: string | null;
+  rider?: string | { id: string; name: string; phone?: string } | null;
+  riderId?: string | null;
   eta?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -379,6 +380,21 @@ export interface SupportTicket {
   resolvedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Feedback {
+  id: string;
+  userId: string;
+  rating: number; // 1-5 stars
+  category: string;
+  feedback: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 

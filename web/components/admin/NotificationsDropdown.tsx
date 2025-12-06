@@ -18,17 +18,51 @@ export default function NotificationsDropdown() {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const { data: notifications = [], isLoading } = useQuery({
+  const { data: notifications = [], isLoading, error: notificationsError } = useQuery({
     queryKey: ['admin', 'notifications', filter],
     queryFn: () => fetchNotifications({ unreadOnly: filter === 'unread' }),
     refetchInterval: 30000, // Refetch every 30 seconds
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401 (unauthorized) errors
+      if (error?.response?.status === 401) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 
-  const { data: unreadCount = 0 } = useQuery({
+  // Handle errors using useEffect
+  useEffect(() => {
+    if (notificationsError) {
+      // Silently handle 401 errors - user may not be authenticated
+      if ((notificationsError as any)?.response?.status !== 401) {
+        console.error('Error fetching notifications:', notificationsError);
+      }
+    }
+  }, [notificationsError]);
+
+  const { data: unreadCount = 0, error: unreadCountError } = useQuery({
     queryKey: ['admin', 'notifications', 'unread-count'],
     queryFn: fetchUnreadNotificationCount,
     refetchInterval: 30000,
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401 (unauthorized) errors
+      if (error?.response?.status === 401) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
+
+  // Handle errors using useEffect
+  useEffect(() => {
+    if (unreadCountError) {
+      // Silently handle 401 errors - user may not be authenticated
+      if ((unreadCountError as any)?.response?.status !== 401) {
+        console.error('Error fetching unread notification count:', unreadCountError);
+      }
+    }
+  }, [unreadCountError]);
 
   const markRead = useMutation({
     mutationFn: markNotificationReadRequest,

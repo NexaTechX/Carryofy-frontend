@@ -265,8 +265,8 @@ export default function AdminOrders() {
       <AdminDrawer
         open={Boolean(focusedOrderId)}
         onClose={() => setFocusedOrder(null)}
-        title={detailOrder ? `Order #${detailOrder.id.slice(0, 8)}` : 'Order details'}
-        description={detailOrder ? `Total ${NGN_FORMATTER.format(detailOrder.amount / 100)}` : ''}
+        title={detailOrder?.id ? `Order #${detailOrder.id.slice(0, 8)}` : 'Order details'}
+        description={detailOrder?.amount ? `Total ${NGN_FORMATTER.format(detailOrder.amount / 100)}` : ''}
       >
         {detailOrder ? (
           <div className="space-y-6 text-sm text-gray-300">
@@ -289,7 +289,7 @@ export default function AdminOrders() {
                   className="rounded-full border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 focus:border-primary focus:outline-none"
                   value={detailOrder.status}
                   onChange={(event) =>
-                    handleStatusUpdate(detailOrder.id, event.target.value as AdminOrderStatus)
+                    detailOrder.id && handleStatusUpdate(detailOrder.id, event.target.value as AdminOrderStatus)
                   }
                 >
                   {ORDER_STATUS_OPTIONS.map((option) => (
@@ -332,7 +332,7 @@ export default function AdminOrders() {
                 Line Items
               </p>
               <div className="space-y-3">
-                {detailOrder.items.map((item) => (
+                {detailOrder.items?.map((item) => (
                   <div
                     key={item.id}
                     className="flex items-center justify-between rounded-lg border border-[#1f1f1f] bg-[#131924] px-3 py-2"
@@ -382,7 +382,11 @@ export default function AdminOrders() {
                   <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
                     <div>
                       <span className="font-semibold uppercase tracking-[0.16em]">Rider</span>
-                      <p className="mt-1 text-sm text-gray-200">{deliveryDetail.rider ?? 'Unassigned'}</p>
+                      <p className="mt-1 text-sm text-gray-200">
+                        {typeof deliveryDetail.rider === 'string' 
+                          ? deliveryDetail.rider 
+                          : deliveryDetail.rider?.name ?? 'Unassigned'}
+                      </p>
                     </div>
                     <div>
                       <span className="font-semibold uppercase tracking-[0.16em]">ETA</span>

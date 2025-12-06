@@ -19,6 +19,7 @@ import {
   useActiveDeliveries,
   useAssignDeliveryMutation,
   useDeliveryStatusMutation,
+  useAvailableRiders,
 } from '../../lib/admin/hooks/useAdminDeliveries';
 import { useAdminOrderDetail } from '../../lib/admin/hooks/useAdminOrders';
 import { AdminDelivery, AdminDeliveryStatus } from '../../lib/admin/types';
@@ -53,6 +54,7 @@ export default function AdminDeliveries() {
   const { data: deliveries, isLoading, isError, error, refetch } = useActiveDeliveries();
   const assignDelivery = useAssignDeliveryMutation();
   const updateDeliveryStatus = useDeliveryStatusMutation();
+  const { data: availableRiders, isLoading: loadingRiders } = useAvailableRiders();
 
   const filteredDeliveries = useMemo(() => {
     if (!deliveries) return [];
@@ -76,7 +78,7 @@ export default function AdminDeliveries() {
 
     await assignDelivery.mutateAsync({
       orderId: assignOrderId.trim(),
-      rider: assignRider.trim() || undefined,
+      riderId: assignRider.trim() || undefined,
       eta: assignEta ? new Date(assignEta).toISOString() : undefined,
     });
 
@@ -131,12 +133,19 @@ export default function AdminDeliveries() {
                 placeholder="Order ID"
                 className="rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
               />
-              <input
+              <select
                 value={assignRider}
                 onChange={(event) => setAssignRider(event.target.value)}
-                placeholder="Rider / partner"
                 className="rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-              />
+                disabled={loadingRiders}
+              >
+                <option value="">Select Rider</option>
+                {availableRiders?.map((rider) => (
+                  <option key={rider.id} value={rider.id}>
+                    {rider.name} {rider.riderProfile?.vehicleNumber ? `(${rider.riderProfile.vehicleNumber})` : ''}
+                  </option>
+                ))}
+              </select>
               <input
                 type="datetime-local"
                 value={assignEta}
@@ -212,7 +221,13 @@ export default function AdminDeliveries() {
                         </div>
                       </DataTableCell>
                       <DataTableCell>
-                        <span className="text-sm text-gray-200">{delivery.rider ?? 'Unassigned'}</span>
+                        <span className="text-sm text-gray-200">
+                          {delivery.riderId
+                            ? (availableRiders?.find(r => r.id === delivery.riderId)?.name || 
+                               (typeof delivery.rider === 'string' ? delivery.rider : delivery.rider?.name) || 
+                               'Unknown Rider')
+                            : 'Unassigned'}
+                        </span>
                       </DataTableCell>
                       <DataTableCell>
                         <span className="text-sm text-gray-300">
@@ -251,37 +266,118 @@ export default function AdminDeliveries() {
       >
         {selectedDelivery ? (
           <div className="space-y-6 text-sm text-gray-300">
-            <div className="flex items-center justify-between">
-              <StatusBadge
-                tone={DELIVERY_TONE[selectedDelivery.status] ?? 'info'}
-                label={DELIVERY_LABEL[selectedDelivery.status] ?? selectedDelivery.status}
-              />
-              <select
-                className="rounded-full border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 focus:border-primary focus:outline-none"
-                value={selectedDelivery.status}
-                onChange={(event) =>
-                  handleStatusChange(
-                    selectedDelivery.id,
-                    event.target.value as AdminDeliveryStatus,
-                    {
-                      rider: selectedDelivery.rider ?? undefined,
-                      eta: selectedDelivery.eta ?? undefined,
-                    }
-                  )
-                }
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <StatusBadge
+                  tone={DELIVERY_TONE[selectedDelivery.status] ?? 'info'}
+                  label={DELIVERY_LABEL[selectedDelivery.status] ?? selectedDelivery.status}
+                />
+                <select
+                  className="rounded-full border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 focus:border-primary focus:outline-none"
+                  value={selectedDelivery.status}
+                  onChange={(event) =>
+                    handleStatusChange(
+                      selectedDelivery.id,
+                      event.target.value as AdminDeliveryStatus,
+                      {
+                        rider: typeof selectedDelivery.rider === 'string' 
+                          ? selectedDelivery.rider 
+                          : selectedDelivery.rider?.id ?? undefined,
+                        eta: selectedDelivery.eta ?? undefined,
+                      }
+                    )
+                  }
+                >
+                  {DELIVERY_FILTERS.filter((status) => status !== 'ALL').map((status) => (
+                    <option key={status} value={status}>
+                      {DELIVERY_LABEL[status] ?? status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-xs text-gray-500 italic">
+                Note: Status typically updates automatically when riders interact with the delivery (pick up, deliver, etc.). 
+                Manual updates here are for admin override only.
+              </p>
+            </div>
+
+            {/* Assign/Update Rider Section */}
+            <div className="space-y-3 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                Assign Rider
+              </p>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const riderId = formData.get('riderId') as string;
+                  const eta = formData.get('eta') as string;
+
+                  if (!selectedDelivery) return;
+
+                  await assignDelivery.mutateAsync({
+                    orderId: selectedDelivery.orderId,
+                    riderId: riderId || undefined,
+                    eta: eta ? new Date(eta).toISOString() : undefined,
+                  });
+                }}
+                className="space-y-3"
               >
-                {DELIVERY_FILTERS.filter((status) => status !== 'ALL').map((status) => (
-                  <option key={status} value={status}>
-                    {DELIVERY_LABEL[status] ?? status}
-                  </option>
-                ))}
-              </select>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-2">
+                    Select Rider
+                  </label>
+                  <select
+                    name="riderId"
+                    defaultValue={selectedDelivery.riderId || ''}
+                    className="w-full rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                    disabled={loadingRiders}
+                  >
+                    <option value="">Unassigned</option>
+                    {availableRiders?.map((rider) => (
+                      <option key={rider.id} value={rider.id}>
+                        {rider.name} {rider.riderProfile?.vehicleNumber ? `(${rider.riderProfile.vehicleNumber})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingRiders && (
+                    <p className="mt-1 text-xs text-gray-500">Loading riders...</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-2">
+                    Estimated Delivery Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="eta"
+                    defaultValue={
+                      selectedDelivery.eta
+                        ? new Date(selectedDelivery.eta).toISOString().slice(0, 16)
+                        : ''
+                    }
+                    className="w-full rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-primary/90"
+                >
+                  Assign Rider
+                </button>
+              </form>
             </div>
 
             <div className="grid grid-cols-2 gap-4 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Rider</p>
-                <p className="mt-1 text-sm text-white">{selectedDelivery.rider ?? 'Unassigned'}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Current Rider</p>
+                <p className="mt-1 text-sm text-white">
+                  {selectedDelivery.riderId
+                    ? (availableRiders?.find(r => r.id === selectedDelivery.riderId)?.name || 
+                       (typeof selectedDelivery.rider === 'string' ? selectedDelivery.rider : selectedDelivery.rider?.name) || 
+                       'Unknown Rider')
+                    : 'Unassigned'}
+                </p>
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">ETA</p>
@@ -310,16 +406,16 @@ export default function AdminDeliveries() {
                 </p>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-200">
-                    {orderDetail.items.length} item{orderDetail.items.length > 1 ? 's' : ''}
+                    {orderDetail.items?.length ?? 0} item{(orderDetail.items?.length ?? 0) > 1 ? 's' : ''}
                   </span>
                   <span className="text-sm font-semibold text-white">
-                    {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(
+                    {orderDetail.amount ? new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(
                       orderDetail.amount / 100
-                    )}
+                    ) : '—'}
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {orderDetail.items.slice(0, 5).map((item) => (
+                  {orderDetail.items?.slice(0, 5).map((item) => (
                     <div key={item.id} className="flex items-center justify-between text-xs text-gray-400">
                       <span>{item.product?.title ?? 'Product'}</span>
                       <span>Qty {item.quantity}</span>

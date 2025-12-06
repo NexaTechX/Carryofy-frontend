@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import {
@@ -16,17 +17,55 @@ const notificationKeys = {
 };
 
 export function useAdminNotifications(params?: { limit?: number; unreadOnly?: boolean }) {
-  return useQuery<AdminNotification[]>({
+  const query = useQuery<AdminNotification[]>({
     queryKey: notificationKeys.list(params),
     queryFn: () => fetchNotifications(params),
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401 (unauthorized) errors
+      if (error?.response?.status === 401) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
+
+  useEffect(() => {
+    if (query.error) {
+      // Silently handle 401 errors - user may not be authenticated
+      const error = query.error as any;
+      if (error?.response?.status !== 401) {
+        console.error('Error fetching notifications:', query.error);
+      }
+    }
+  }, [query.error]);
+
+  return query;
 }
 
 export function useUnreadNotificationCount() {
-  return useQuery<number>({
+  const query = useQuery<number>({
     queryKey: notificationKeys.unreadCount,
     queryFn: fetchUnreadNotificationCount,
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401 (unauthorized) errors
+      if (error?.response?.status === 401) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
+
+  useEffect(() => {
+    if (query.error) {
+      // Silently handle 401 errors - user may not be authenticated
+      const error = query.error as any;
+      if (error?.response?.status !== 401) {
+        console.error('Error fetching unread notification count:', query.error);
+      }
+    }
+  }, [query.error]);
+
+  return query;
 }
 
 export function useCreateNotificationMutation() {

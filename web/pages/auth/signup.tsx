@@ -77,10 +77,36 @@ export default function Signup() {
 
       showSuccessToast('Account created! Please check your email to verify your account.');
       router.push('/auth/verify?email=' + encodeURIComponent(data.email));
-    } catch (error) {
-      const err = error as { message?: string };
-      console.error('Signup error:', err);
-      const message = err.message || 'An error occurred. Please try again.';
+    } catch (error: any) {
+      console.error('Signup error:', error);
+
+      let message = 'An error occurred. Please try again.';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'object' && errorData.message) {
+          message = Array.isArray(errorData.message) 
+            ? errorData.message.join(', ') 
+            : errorData.message;
+        } else if (typeof errorData === 'string') {
+          message = errorData;
+        }
+      } else if (error.message) {
+        message = error.message;
+      }
+
+      // Handle specific status codes
+      if (error.response?.status === 409) {
+        // User already exists - message should already be set from errorData.message
+        // But provide a more user-friendly message if needed
+        if (!error.response?.data?.message) {
+          message = 'An account with this email already exists. Please try logging in instead.';
+        }
+      } else if (error.response?.status === 500) {
+        const errorMessage = error.response?.data?.message || error.message || 'Server error occurred';
+        message = `Server Error: ${errorMessage}. Please try again later.`;
+      }
+
       setError(message);
       showErrorToast(message);
     } finally {

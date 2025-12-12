@@ -10,11 +10,21 @@ import Testimonials from '../components/landing/Testimonials';
 import CallToAction from '../components/landing/CallToAction';
 import SEO, { PAGE_SEO, generateKeywords } from '../components/seo/SEO';
 import { CombinedSchema } from '../components/seo/JsonLd';
+import { Product } from '../types/product';
+import { GetServerSideProps } from 'next';
+import axios from 'axios';
 
-export default function Home() {
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
+
+interface HomeProps {
+  products: Product[];
+  productsError?: string;
+}
+
+export default function Home({ products, productsError }: HomeProps) {
   // Comprehensive keywords for maximum SEO coverage
   const homeKeywords = generateKeywords(['primary', 'problemAware', 'longTail', 'brand', 'locations', 'industry']);
-  
+
   // Additional long-tail keywords specifically for homepage
   const additionalKeywords = [
     // E-commerce intent keywords
@@ -28,7 +38,7 @@ export default function Home() {
     'shop online Lagos',
     'Nigerian marketplace',
     'African ecommerce',
-    
+
     // Delivery and logistics keywords
     'same day delivery Nigeria',
     'same day delivery Lagos',
@@ -40,7 +50,7 @@ export default function Home() {
     'shipping Nigeria',
     'order delivery Nigeria',
     'parcel delivery Lagos',
-    
+
     // Business and merchant keywords
     'start online business Nigeria',
     'sell products online Africa',
@@ -51,7 +61,7 @@ export default function Home() {
     'fulfillment service Nigeria',
     'warehouse Nigeria',
     'inventory management Nigeria',
-    
+
     // AI and technology keywords
     'AI ecommerce Nigeria',
     'AI commerce platform',
@@ -59,7 +69,7 @@ export default function Home() {
     'smart logistics Nigeria',
     'automated delivery',
     'AI powered marketplace',
-    
+
     // Location variations
     'ecommerce Lagos',
     'online shopping Abuja',
@@ -68,7 +78,7 @@ export default function Home() {
     'online store Kano',
     'West Africa ecommerce',
     'African online marketplace',
-    
+
     // Problem/Solution keywords
     'reliable delivery Nigeria',
     'trusted marketplace Nigeria',
@@ -77,7 +87,7 @@ export default function Home() {
     'top delivery service Lagos',
     'affordable shipping Nigeria',
     'quick delivery Nigeria',
-    
+
     // Competitor alternative keywords
     'jumia alternative',
     'konga alternative',
@@ -99,7 +109,7 @@ export default function Home() {
         ogImage="https://carryofy.com/og/home.png"
         ogImageAlt="Carryofy - AI-Powered E-Commerce Platform for Africa with Same-Day Delivery"
       />
-      
+
       <CombinedSchema
         includeOrganization
         includeWebsite
@@ -130,7 +140,7 @@ export default function Home() {
           },
         ]}
       />
-      
+
       <div className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-grow">
@@ -139,7 +149,7 @@ export default function Home() {
           <SolutionSection />
           <WhyChooseCarryofy />
           <HowItWorks />
-          <FeaturedProducts />
+          <FeaturedProducts products={products} error={productsError} />
           <Testimonials />
           <CallToAction />
         </main>
@@ -148,3 +158,37 @@ export default function Home() {
     </>
   );
 }
+
+export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
+  try {
+    // Fetch featured products from backend
+    const response = await axios.get(`${API_BASE_URL}/products`, {
+      params: {
+        status: 'APPROVED',
+        limit: 8,
+        page: 1,
+      },
+      timeout: 5000, // 5 second timeout
+    });
+
+    const products = response.data?.data || [];
+
+    return {
+      props: {
+        products,
+      },
+    };
+  } catch (error: any) {
+    console.error('Error fetching products for homepage:', error.message);
+
+    // Return empty array and error message on failure
+    // This ensures the page still loads even if the API is down
+    return {
+      props: {
+        products: [],
+        productsError: 'Unable to load products at this time',
+      },
+    };
+  }
+};
+

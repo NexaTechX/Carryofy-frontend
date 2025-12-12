@@ -372,6 +372,12 @@ export default function CheckoutPage() {
       } else if (paymentMethod === 'transfer') {
         // For transfer, order remains in PENDING_PAYMENT status
         // User will need to complete payment manually
+        // Clear cart after order creation
+        try {
+          await apiClient.delete('/cart');
+        } catch (err) {
+          console.error('Error clearing cart:', err);
+        }
         setOrderMessage({ 
           type: 'success', 
           text: 'Order created! Please complete bank transfer to finalize payment.' 
@@ -384,6 +390,12 @@ export default function CheckoutPage() {
       } else if (paymentMethod === 'cod') {
         // For COD, we can mark as paid or keep pending - for now keep pending
         // Admin/seller will handle COD orders
+        // Clear cart after order creation
+        try {
+          await apiClient.delete('/cart');
+        } catch (err) {
+          console.error('Error clearing cart:', err);
+        }
         setOrderMessage({ 
           type: 'success', 
           text: 'Order placed! Payment will be collected on delivery.' 
@@ -395,7 +407,12 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Step 4: Clear cart and redirect
+      // Step 4: Clear cart and redirect (for card payments)
+      try {
+        await apiClient.delete('/cart');
+      } catch (err) {
+        console.error('Error clearing cart:', err);
+      }
       setOrderMessage({ type: 'success', text: 'Order placed and payment processed successfully! Redirecting...' });
       window.dispatchEvent(new Event('cartUpdated'));
 

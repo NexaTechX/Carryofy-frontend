@@ -1,12 +1,42 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
 import { ArrowRight, Truck, ShieldCheck, Clock } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+// Animated counter hook
+function useCounter(end: number, duration: number = 2000) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTime: number;
+    let animationFrame: number;
+
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const progress = (currentTime - startTime) / duration;
+
+      if (progress < 1) {
+        setCount(Math.floor(end * progress));
+        animationFrame = requestAnimationFrame(animate);
+      } else {
+        setCount(end);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [end, duration]);
+
+  return count;
+}
 
 export default function HeroSection() {
+  const deliveryCount = useCounter(12450, 2500);
+  const satisfactionRate = useCounter(99.8, 2500);
   return (
-    <section className="relative min-h-[100svh] sm:min-h-[800px] flex items-center justify-center overflow-hidden bg-gray-900 pt-20 sm:pt-24">
-      {/* Background Image with Modern Gradient Overlay */}
+    <section className="relative min-h-[100svh] sm:min-h-[800px] flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pt-20 sm:pt-24">
+      {/* Background Image with Enhanced Gradient Overlay */}
       <div className="absolute inset-0 z-0">
         <Image
           src="/images/truck.jpg"
@@ -16,8 +46,12 @@ export default function HeroSection() {
           priority
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-gray-900/90 via-gray-900/70 to-gray-900 z-10"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-purple-900/20 mix-blend-overlay z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-gray-900/95 via-gray-900/80 to-gray-900/90 z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-purple-600/20 to-orange-500/20 mix-blend-overlay z-10 animate-pulse-slow"></div>
+
+        {/* Animated gradient orbs */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-primary/30 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl animate-float-delayed"></div>
       </div>
 
       {/* Content */}
@@ -29,18 +63,6 @@ export default function HeroSection() {
             transition={{ duration: 0.8 }}
             className="text-left"
           >
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/20 mb-4 sm:mb-6"
-            >
-              <span className="flex h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
-              <span className="text-white text-xs sm:text-sm font-medium tracking-wide">
-                #1 Logistics Partner in Nigeria
-              </span>
-            </motion.div>
-
             <h1 className="font-heading text-3xl xs:text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 sm:mb-6 leading-[1.1] text-white">
               The AI-Powered Commerce Platform Transforming <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-light">African E-Commerce</span>
             </h1>
@@ -120,14 +142,28 @@ export default function HeroSection() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 xl:gap-4">
-                <div className="bg-white/5 rounded-xl p-3 xl:p-4">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1, duration: 0.5 }}
+                  className="bg-gradient-to-br from-white/10 to-white/5 rounded-xl p-3 xl:p-4 border border-white/10"
+                >
                   <p className="text-gray-400 text-xs">Total Deliveries</p>
-                  <p className="text-white text-lg xl:text-xl font-bold mt-1">12,450+</p>
-                </div>
-                <div className="bg-white/5 rounded-xl p-3 xl:p-4">
+                  <p className="text-white text-lg xl:text-xl font-bold mt-1 bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">
+                    {deliveryCount.toLocaleString()}+
+                  </p>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1.2, duration: 0.5 }}
+                  className="bg-gradient-to-br from-white/10 to-white/5 rounded-xl p-3 xl:p-4 border border-white/10"
+                >
                   <p className="text-gray-400 text-xs">Satisfaction Rate</p>
-                  <p className="text-white text-lg xl:text-xl font-bold mt-1">99.8%</p>
-                </div>
+                  <p className="text-white text-lg xl:text-xl font-bold mt-1 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                    {satisfactionRate.toFixed(1)}%
+                  </p>
+                </motion.div>
               </div>
             </div>
           </motion.div>
@@ -140,14 +176,28 @@ export default function HeroSection() {
             className="lg:hidden mt-8"
           >
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-4">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8, duration: 0.5 }}
+                className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur border border-white/10 rounded-xl p-4 shadow-lg"
+              >
                 <p className="text-gray-400 text-xs">Total Deliveries</p>
-                <p className="text-white text-xl sm:text-2xl font-bold mt-1">12,450+</p>
-              </div>
-              <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-4">
+                <p className="text-white text-xl sm:text-2xl font-bold mt-1 bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">
+                  {deliveryCount.toLocaleString()}+
+                </p>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1, duration: 0.5 }}
+                className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur border border-white/10 rounded-xl p-4 shadow-lg"
+              >
                 <p className="text-gray-400 text-xs">Satisfaction Rate</p>
-                <p className="text-white text-xl sm:text-2xl font-bold mt-1">99.8%</p>
-              </div>
+                <p className="text-white text-xl sm:text-2xl font-bold mt-1 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                  {satisfactionRate.toFixed(1)}%
+                </p>
+              </motion.div>
             </div>
           </motion.div>
         </div>

@@ -71,12 +71,23 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
 export default function ProductDetailPage() {
   const router = useRouter();
   const { id } = router.query;
+  const productId = typeof id === 'string' ? id : Array.isArray(id) ? id[0] : null;
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [stats, setStats] = useState<{
+    views: number;
+    orders: number;
+    revenue: number;
+  }>({
+    views: 0,
+    orders: 0,
+    revenue: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -94,12 +105,15 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (id && isAuthenticated) {
       fetchProduct();
+      fetchProductStats();
     }
   }, [id, isAuthenticated]);
 
   const fetchProduct = async () => {
+    if (!productId) return;
+    
     try {
-      const response = await apiClient.get(`/products/${id}`);
+      const response = await apiClient.get(`/products/${productId}`);
       const data = response.data?.data || response.data;
       setProduct(data);
     } catch (error: any) {
@@ -108,6 +122,52 @@ export default function ProductDetailPage() {
       router.push('/seller/products');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProductStats = async () => {
+    if (!productId) {
+      setStatsLoading(false);
+      setStats({ views: 0, orders: 0, revenue: 0 });
+      return;
+    }
+
+    try {
+      setStatsLoading(true);
+      const response = await apiClient.get(`/products/performance?productId=${productId}`);
+      
+      // Handle different response formats
+      let data = response.data?.data || response.data;
+      
+      // If data is an array (when no productId filter), find the matching product
+      if (Array.isArray(data) && data.length > 0) {
+        data = data.find((p: any) => p.productId === productId) || data[0];
+      }
+      
+      if (data) {
+        setStats({
+          views: data.estimatedViews || 0,
+          orders: data.totalSales || 0,
+          revenue: data.totalRevenue || 0,
+        });
+      } else {
+        // No data found, set defaults
+        setStats({
+          views: 0,
+          orders: 0,
+          revenue: 0,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching product stats:', error);
+      // Don't show error toast for stats - it's not critical
+      setStats({
+        views: 0,
+        orders: 0,
+        revenue: 0,
+      });
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -279,15 +339,33 @@ export default function ProductDetailPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[#ffcc99] text-sm">Views</span>
-                    <span className="text-white font-medium">--</span>
+                    {statsLoading ? (
+                      <div className="w-12 h-4 bg-[#0a0a0a] rounded animate-pulse"></div>
+                    ) : (
+                      <span className="text-white font-medium">
+                        {(stats?.views ?? 0).toLocaleString()}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[#ffcc99] text-sm">Orders</span>
-                    <span className="text-white font-medium">--</span>
+                    {statsLoading ? (
+                      <div className="w-12 h-4 bg-[#0a0a0a] rounded animate-pulse"></div>
+                    ) : (
+                      <span className="text-white font-medium">
+                        {(stats?.orders ?? 0).toLocaleString()}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[#ffcc99] text-sm">Revenue</span>
-                    <span className="text-white font-medium">--</span>
+                    {statsLoading ? (
+                      <div className="w-16 h-4 bg-[#0a0a0a] rounded animate-pulse"></div>
+                    ) : (
+                      <span className="text-white font-medium">
+                        {formatPrice(stats?.revenue ?? 0)}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

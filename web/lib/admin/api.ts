@@ -466,8 +466,25 @@ export async function fetchNotifications(params?: { limit?: number; unreadOnly?:
 }
 
 export async function fetchUnreadNotificationCount(): Promise<number> {
-  const { data } = await apiClient.get<{ count: number }>('/notifications/unread-count');
-  return data.count;
+  try {
+    const { data } = await apiClient.get<{ count: number } | { data: { count: number } }>('/notifications/unread-count');
+    
+    // Handle wrapped response (data.data.count) or direct response (data.count)
+    if (data && typeof data === 'object') {
+      if ('data' in data && data.data && typeof data.data === 'object' && 'count' in data.data) {
+        return (data.data as { count: number }).count ?? 0;
+      }
+      if ('count' in data) {
+        return (data as { count: number }).count ?? 0;
+      }
+    }
+    
+    return 0;
+  } catch (error: any) {
+    // Return 0 on error (e.g., 401 unauthorized, network error)
+    console.error('Error fetching unread notification count:', error);
+    return 0;
+  }
 }
 
 export async function createNotificationRequest(

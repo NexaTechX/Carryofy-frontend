@@ -52,6 +52,14 @@ export default function NotificationsDropdown() {
       }
       return failureCount < 2;
     },
+    select: (data) => {
+      // Ensure we always return a number, even if data is undefined or null
+      if (typeof data === 'number' && !isNaN(data)) {
+        return data;
+      }
+      return 0;
+    },
+    placeholderData: 0,
   });
 
   // Handle errors using useEffect

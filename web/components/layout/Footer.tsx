@@ -18,10 +18,10 @@ export default function Footer() {
           <div className="col-span-2 sm:col-span-2 lg:col-span-1">
             <div className="flex items-center space-x-2 mb-4 sm:mb-6">
               <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex items-center justify-center">
-                <Image 
-                  src="/logo.png" 
-                  alt="Carryofy Logo" 
-                  width={40} 
+                <Image
+                  src="/logo.png"
+                  alt="Carryofy Logo"
+                  width={40}
                   height={40}
                   className="w-full h-full object-contain"
                 />
@@ -33,9 +33,9 @@ export default function Footer() {
             </p>
             <div className="flex space-x-3">
               {socialLinks.map(({ Icon, href, label }) => (
-                <a 
-                  key={label} 
-                  href={href} 
+                <a
+                  key={label}
+                  href={href}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
@@ -115,8 +115,8 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} Carryofy. All rights reserved.
           </p>
           <div className="flex flex-wrap justify-center sm:justify-end gap-4 sm:gap-6 text-xs sm:text-sm text-gray-500">
-            <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link href="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</Link>
             <Link href="#" className="hover:text-white transition-colors">Cookie Policy</Link>
           </div>
         </div>

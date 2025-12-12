@@ -18,6 +18,7 @@ import {
 import NotificationsDropdown from './NotificationsDropdown';
 import { useAuth, tokenManager } from '../../lib/auth';
 import ErrorBoundary from '../common/ErrorBoundary';
+import OnboardingBanner from '../ai-onboarding/OnboardingBanner';
 
 interface BuyerLayoutProps {
   children: ReactNode;
@@ -85,6 +86,8 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
+      {/* AI Onboarding Banner */}
+      <OnboardingBanner />
       {/* Top Header */}
       <header className="bg-black border-b border-[#ff6600]/30 sticky top-0 z-50 safe-top">
         <div className="flex items-center justify-between px-3 sm:px-4 lg:px-8 py-3 sm:py-4">

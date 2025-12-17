@@ -108,11 +108,11 @@ export default function FeaturedProducts({ products = [], loading = false, error
             <ProductSkeleton key={index} index={index} />
           ))}
 
-          {/* Error state */}
-          {error && !loading && <ErrorState onRetry={onRetry} />}
+          {/* Error state - only show if there are no products AND there's an error */}
+          {error && !loading && products.length === 0 && <ErrorState onRetry={onRetry} />}
 
           {/* Products */}
-          {!loading && !error && products.map((product, index) => {
+          {!loading && products.length > 0 && products.map((product, index) => {
             const isNew = new Date(product.createdAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000; // New if created within 7 days
             const isPopular = (product.averageRating ?? 0) >= 4.5 && (product.reviewCount ?? 0) >= 5;
 

@@ -13,6 +13,8 @@ import {
   Star,
   TrendingUp,
   Package,
+  Info,
+  Droplets,
 } from 'lucide-react';
 import { tokenManager, userManager } from '../../../lib/auth';
 import SEO from '../../../components/seo/SEO';
@@ -26,6 +28,9 @@ interface Product {
   images: string[];
   quantity: number;
   category?: string;
+  material?: string;
+  careInfo?: string;
+  keyFeatures?: string[];
   seller: {
     id: string;
     businessName: string;
@@ -438,12 +443,65 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                   {product.title}
                 </h1>
 
+                {/* Key Features */}
+                {product.keyFeatures && product.keyFeatures.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {product.keyFeatures.map((feature, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-[#ff6600]/20 text-[#ff6600] rounded-full text-sm font-medium"
+                      >
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 {/* Description */}
                 {product.description && (
                   <div className="mb-6">
                     <p className="text-[#ffcc99] text-lg leading-relaxed whitespace-pre-wrap" itemProp="description">
                       {product.description}
                     </p>
+                  </div>
+                )}
+
+                {/* Material & Care Information */}
+                {(product.material || product.careInfo) && (
+                  <div className="mb-6 space-y-4">
+                    {/* Material Information */}
+                    {product.material && (
+                      <div className="p-4 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 bg-[#ff6600]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Droplets className="w-5 h-5 text-[#ff6600]" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold mb-2">Materials & Composition</h3>
+                            <p className="text-[#ffcc99] text-sm leading-relaxed whitespace-pre-wrap">
+                              {product.material}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Care Instructions */}
+                    {product.careInfo && (
+                      <div className="p-4 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 bg-[#ff6600]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Info className="w-5 h-5 text-[#ff6600]" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold mb-2">Care Instructions</h3>
+                            <p className="text-[#ffcc99] text-sm leading-relaxed whitespace-pre-wrap">
+                              {product.careInfo}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

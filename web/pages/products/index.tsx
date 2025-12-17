@@ -18,6 +18,7 @@ interface Product {
   images: string[];
   quantity: number;
   category?: string;
+  keyFeatures?: string[];
   seller: {
     id: string;
     businessName: string;

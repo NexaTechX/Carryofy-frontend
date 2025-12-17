@@ -105,7 +105,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Fetch products - prioritize recent and popular
     try {
-      const productsResponse = await fetch(`${API_URL}/products?limit=500&status=APPROVED&sortBy=updatedAt&sortOrder=desc`);
+      const productsResponse = await fetch(`${API_URL}/products?limit=500&status=ACTIVE&sortBy=updatedAt&sortOrder=desc`);
       if (productsResponse.ok) {
         const data = await productsResponse.json();
         const products: Product[] = data.data?.products || data.products || [];

@@ -20,7 +20,9 @@ import {
   Sparkles,
   Plus,
   Trash2,
-  GripVertical
+  GripVertical,
+  Wand2,
+  Loader2
 } from 'lucide-react';
 
 interface FormData {
@@ -29,6 +31,9 @@ interface FormData {
   price: string;
   category: string;
   quantity: string;
+  material?: string;
+  careInfo?: string;
+  keyFeatures?: string[];
 }
 
 interface UploadedImage {
@@ -49,6 +54,44 @@ const categories = [
   { value: 'other', label: 'Other', icon: '📦' },
 ];
 
+// Categories that strongly benefit from material and care information
+const MATERIAL_CARE_REQUIRED_CATEGORIES = ['clothing', 'home', 'fashion'];
+const MATERIAL_CARE_RECOMMENDED_CATEGORIES = ['beauty', 'sports'];
+
+// Helper function to check if category requires/recommends material/care info
+const shouldShowMaterialCarePrompt = (category: string): { required: boolean; recommended: boolean } => {
+  return {
+    required: MATERIAL_CARE_REQUIRED_CATEGORIES.includes(category),
+    recommended: MATERIAL_CARE_RECOMMENDED_CATEGORIES.includes(category),
+  };
+};
+
+// Category-specific examples for material and care info
+const getCategoryExamples = (category: string) => {
+  switch (category) {
+    case 'clothing':
+      return {
+        material: '100% Organic Cotton, Linen blend, Polyester lining\nSize: Available in S, M, L, XL\nColor: Navy Blue, Black, White',
+        careInfo: 'Machine wash cold with like colors\nTumble dry low or hang to dry\nDo not bleach\nIron on low heat (synthetic setting)\nDry clean recommended for best results',
+      };
+    case 'home':
+      return {
+        material: 'Solid wood frame (Mango wood)\nUpholstery: 100% Polyester fabric\nCushion filling: High-density foam\nFinish: Natural wood stain\nDimensions: 120cm x 80cm x 85cm',
+        careInfo: 'Wipe clean with damp cloth\nAvoid harsh chemicals\nDo not expose to direct sunlight\nRotate cushions regularly\nProfessional cleaning recommended annually',
+      };
+    case 'beauty':
+      return {
+        material: 'Organic Shea Butter, Cocoa Butter, Jojoba Oil, Vitamin E\nCruelty-free, Paraben-free, Fragrance-free\nNet weight: 200g',
+        careInfo: 'Store in a cool, dry place\nAvoid direct sunlight\nUse within 12 months of opening\nKeep lid tightly closed when not in use',
+      };
+    default:
+      return {
+        material: 'Specify the main materials used (e.g., fabric type, wood species, metal type, etc.)',
+        careInfo: 'Include washing instructions, storage recommendations, maintenance tips, or any special care requirements',
+      };
+  }
+};
+
 export default function AddProductPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -64,8 +107,20 @@ export default function AddProductPage() {
     price: '',
     category: '',
     quantity: '',
+    material: '',
+    careInfo: '',
+    keyFeatures: [],
   });
-  const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiGeneratedContent, setAiGeneratedContent] = useState<{
+    description?: string;
+    tags?: string[];
+    keyFeatures?: string[];
+    material?: string;
+    careInfo?: string;
+    keywords?: string[];
+  } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -97,6 +152,31 @@ export default function AddProductPage() {
         if (!value) return 'Stock quantity is required';
         if (parseInt(value) < 0) return 'Quantity cannot be negative';
         break;
+      case 'material':
+      case 'careInfo':
+        // Warn if category requires material/care but field is empty
+        if (formData.category) {
+          const categoryInfo = shouldShowMaterialCarePrompt(formData.category);
+          if (categoryInfo.required && !value.trim()) {
+            return 'This information is highly recommended for this product category. 88% of customers look for this information.';
+          }
+        }
+        break;
+    }
+    return '';
+  };
+
+  const validateKeyFeatures = (features: string[]): string => {
+    if (features.length > 3) {
+      return 'Maximum 3 key features allowed';
+    }
+    for (const feature of features) {
+      if (!feature.trim()) {
+        return 'Key features cannot be empty';
+      }
+      if (feature.length > 30) {
+        return 'Each key feature must be 30 characters or less';
+      }
     }
     return '';
   };
@@ -110,6 +190,45 @@ export default function AddProductPage() {
     // Clear error when user types
     const error = validateField(name, value);
     setErrors((prev) => ({ ...prev, [name]: error }));
+  };
+
+  const handleAddKeyFeature = () => {
+    const currentFeatures = formData.keyFeatures || [];
+    if (currentFeatures.length < 3) {
+      setFormData((prev) => ({
+        ...prev,
+        keyFeatures: [...(prev.keyFeatures || []), ''],
+      }));
+    }
+  };
+
+  const handleRemoveKeyFeature = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      keyFeatures: (prev.keyFeatures || []).filter((_, i) => i !== index),
+    }));
+    // Clear error when removing
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors.keyFeatures;
+      return newErrors;
+    });
+  };
+
+  const handleKeyFeatureChange = (index: number, value: string) => {
+    const updatedFeatures = [...(formData.keyFeatures || [])];
+    updatedFeatures[index] = value;
+    setFormData((prev) => ({
+      ...prev,
+      keyFeatures: updatedFeatures,
+    }));
+    
+    // Validate on change
+    const error = validateKeyFeatures(updatedFeatures);
+    setErrors((prev) => ({
+      ...prev,
+      keyFeatures: error || undefined,
+    }));
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -203,15 +322,90 @@ export default function AddProductPage() {
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleGenerateAIContent = async () => {
+    if (!formData.title.trim()) {
+      toast.error('Please enter a product title first');
+      return;
+    }
+
+    setAiGenerating(true);
+    try {
+      const categoryInfo = formData.category ? shouldShowMaterialCarePrompt(formData.category) : { required: false, recommended: false };
+      const categoryName = categories.find(c => c.value === formData.category)?.label;
+
+      const response = await apiClient.post('/products/ai/generate-content', {
+        title: formData.title,
+        category: formData.category || undefined,
+        categoryName: categoryName || undefined,
+        price: formData.price ? Math.round(parseFloat(formData.price) * 100) : undefined,
+        existingDescription: formData.description || undefined,
+        needsMaterial: categoryInfo.required || categoryInfo.recommended,
+        needsCareInfo: categoryInfo.required || categoryInfo.recommended,
+      });
+
+      setAiGeneratedContent(response.data);
+      toast.success('AI content generated successfully! Review and accept the fields you want to use.');
+    } catch (error: any) {
+      console.error('Error generating AI content:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to generate AI content';
+      toast.error(errorMessage);
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const handleAcceptAIContent = (field: 'description' | 'keyFeatures' | 'material' | 'careInfo') => {
+    if (!aiGeneratedContent) return;
+
+    if (field === 'description' && aiGeneratedContent.description) {
+      setFormData(prev => ({ ...prev, description: aiGeneratedContent.description! }));
+      toast.success('Description applied');
+    } else if (field === 'keyFeatures' && aiGeneratedContent.keyFeatures) {
+      setFormData(prev => ({ ...prev, keyFeatures: aiGeneratedContent.keyFeatures! }));
+      toast.success('Key features applied');
+    } else if (field === 'material' && aiGeneratedContent.material) {
+      setFormData(prev => ({ ...prev, material: aiGeneratedContent.material! }));
+      toast.success('Material information applied');
+    } else if (field === 'careInfo' && aiGeneratedContent.careInfo) {
+      setFormData(prev => ({ ...prev, careInfo: aiGeneratedContent.careInfo! }));
+      toast.success('Care instructions applied');
+    }
+  };
+
+  const handleAcceptAllAIContent = () => {
+    if (!aiGeneratedContent) return;
+
+    setFormData(prev => ({
+      ...prev,
+      description: aiGeneratedContent.description || prev.description,
+      keyFeatures: aiGeneratedContent.keyFeatures || prev.keyFeatures,
+      material: aiGeneratedContent.material || prev.material,
+      careInfo: aiGeneratedContent.careInfo || prev.careInfo,
+    }));
+
+    toast.success('All AI-generated content applied!');
+    setAiGeneratedContent(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate all fields
-    const newErrors: Partial<FormData> = {};
+    const newErrors: Partial<Record<keyof FormData, string>> = {};
     Object.entries(formData).forEach(([key, value]) => {
-      const error = validateField(key, value);
-      if (error) newErrors[key as keyof FormData] = error;
+      if (key !== 'keyFeatures') {
+        const error = validateField(key, value as string);
+        if (error) newErrors[key as keyof FormData] = error;
+      }
     });
+
+    // Validate keyFeatures separately
+    if (formData.keyFeatures) {
+      const keyFeaturesError = validateKeyFeatures(formData.keyFeatures);
+      if (keyFeaturesError) {
+        newErrors.keyFeatures = keyFeaturesError;
+      }
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -234,6 +428,11 @@ export default function AddProductPage() {
         price: priceInKobo,
         images: uploadedImages.map(img => img.url),
         quantity: parseInt(formData.quantity),
+        material: formData.material || undefined,
+        careInfo: formData.careInfo || undefined,
+        keyFeatures: formData.keyFeatures && formData.keyFeatures.length > 0 
+          ? formData.keyFeatures.filter(f => f.trim()).map(f => f.trim())
+          : undefined,
       };
 
       // Use apiClient which handles token refresh automatically
@@ -456,6 +655,214 @@ export default function AddProductPage() {
                       </p>
                     </div>
 
+                    {/* AI Assistant */}
+                    <div className="bg-gradient-to-br from-[#ff6600]/10 to-[#ff6600]/5 border-2 border-[#ff6600]/30 rounded-xl p-4">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-10 h-10 bg-[#ff6600]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Wand2 className="w-5 h-5 text-[#ff6600]" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-white font-semibold mb-1">AI Content Assistant</h3>
+                          <p className="text-[#ffcc99]/70 text-xs">
+                            Let AI generate complete product descriptions, key features, tags, and all necessary details for you. Just provide the product title!
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <button
+                        type="button"
+                        onClick={handleGenerateAIContent}
+                        disabled={aiGenerating || !formData.title.trim()}
+                        className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#ff6600] to-[#cc5200] text-white font-semibold hover:from-[#cc5200] hover:to-[#ff6600] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {aiGenerating ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span>Generating Content...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-5 h-5" />
+                            <span>Generate All Content with AI</span>
+                          </>
+                        )}
+                      </button>
+
+                      {aiGeneratedContent && (
+                        <div className="mt-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[#ff6600] text-sm font-medium">Generated Content Preview</p>
+                            <button
+                              type="button"
+                              onClick={handleAcceptAllAIContent}
+                              className="px-3 py-1.5 bg-[#ff6600] text-black text-xs font-semibold rounded-lg hover:bg-[#cc5200] transition"
+                            >
+                              Accept All
+                            </button>
+                          </div>
+
+                          {/* Description Preview */}
+                          {aiGeneratedContent.description && (
+                            <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-lg p-3">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <p className="text-white text-xs font-medium">Description</p>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAcceptAIContent('description')}
+                                  className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] text-xs rounded hover:bg-[#ff6600]/30 transition"
+                                >
+                                  Accept
+                                </button>
+                              </div>
+                              <p className="text-[#ffcc99] text-xs line-clamp-3">{aiGeneratedContent.description}</p>
+                            </div>
+                          )}
+
+                          {/* Key Features Preview */}
+                          {aiGeneratedContent.keyFeatures && aiGeneratedContent.keyFeatures.length > 0 && (
+                            <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-lg p-3">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <p className="text-white text-xs font-medium">Key Features</p>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAcceptAIContent('keyFeatures')}
+                                  className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] text-xs rounded hover:bg-[#ff6600]/30 transition"
+                                >
+                                  Accept
+                                </button>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {aiGeneratedContent.keyFeatures.map((feature, index) => (
+                                  <span
+                                    key={index}
+                                    className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] rounded text-xs"
+                                  >
+                                    {feature}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Material Preview */}
+                          {aiGeneratedContent.material && (
+                            <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-lg p-3">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <p className="text-white text-xs font-medium">Material Information</p>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAcceptAIContent('material')}
+                                  className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] text-xs rounded hover:bg-[#ff6600]/30 transition"
+                                >
+                                  Accept
+                                </button>
+                              </div>
+                              <p className="text-[#ffcc99] text-xs line-clamp-2">{aiGeneratedContent.material}</p>
+                            </div>
+                          )}
+
+                          {/* Care Info Preview */}
+                          {aiGeneratedContent.careInfo && (
+                            <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-lg p-3">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <p className="text-white text-xs font-medium">Care Instructions</p>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAcceptAIContent('careInfo')}
+                                  className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] text-xs rounded hover:bg-[#ff6600]/30 transition"
+                                >
+                                  Accept
+                                </button>
+                              </div>
+                              <p className="text-[#ffcc99] text-xs line-clamp-2">{aiGeneratedContent.careInfo}</p>
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => setAiGeneratedContent(null)}
+                            className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] text-xs rounded-lg hover:bg-[#ff6600]/10 transition"
+                          >
+                            Dismiss Preview
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Key Features */}
+                    <div>
+                      <label className="block text-[#ffcc99] text-sm font-medium mb-2">
+                        Key Features
+                      </label>
+                      <p className="text-[#ffcc99]/60 text-xs mb-3">
+                        Highlight 1-3 key features that appear in the product headline
+                      </p>
+                      
+                      <div className="space-y-2">
+                        {(formData.keyFeatures || []).map((feature, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder={`Feature ${index + 1} (e.g., Wireless, Noise Cancelling)`}
+                              value={feature}
+                              onChange={(e) => handleKeyFeatureChange(index, e.target.value)}
+                              maxLength={30}
+                              className={`flex-1 px-4 py-2 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${
+                                errors.keyFeatures ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
+                              }`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveKeyFeature(index)}
+                              className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 hover:border-red-500/50 transition-all flex items-center justify-center"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                            <span className="text-[#ffcc99]/60 text-xs w-12 text-right">
+                              {feature.length}/30
+                            </span>
+                          </div>
+                        ))}
+                        
+                        {(formData.keyFeatures || []).length < 3 && (
+                          <button
+                            type="button"
+                            onClick={handleAddKeyFeature}
+                            className="w-full px-4 py-2 rounded-xl border-2 border-dashed border-[#ff6600]/30 text-[#ffcc99] hover:border-[#ff6600]/60 hover:bg-[#ff6600]/5 transition-all flex items-center justify-center gap-2"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span className="text-sm">Add Key Feature</span>
+                          </button>
+                        )}
+                      </div>
+                      
+                      {errors.keyFeatures && (
+                        <p className="mt-2 text-red-400 text-xs flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {errors.keyFeatures}
+                        </p>
+                      )}
+                      
+                      {(formData.keyFeatures || []).length > 0 && !errors.keyFeatures && (
+                        <div className="mt-3 p-3 bg-[#ff6600]/5 rounded-lg border border-[#ff6600]/10">
+                          <p className="text-[#ff6600] text-xs font-medium mb-2 flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            Preview: These features will appear as badges in the product headline
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {(formData.keyFeatures || []).filter(f => f.trim()).map((feature, index) => (
+                              <span
+                                key={index}
+                                className="px-3 py-1 bg-[#ff6600]/20 text-[#ff6600] rounded-full text-xs font-medium"
+                              >
+                                {feature}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Product Description */}
                     <div>
                       <label className="block text-[#ffcc99] text-sm font-medium mb-2">
@@ -463,7 +870,7 @@ export default function AddProductPage() {
                       </label>
                       <textarea
                         name="description"
-                        placeholder="Describe your product in detail. Include features, specifications, materials, etc."
+                        placeholder="Describe your product in detail. Include features, specifications, etc."
                         value={formData.description}
                         onChange={handleInputChange}
                         rows={4}
@@ -473,6 +880,142 @@ export default function AddProductPage() {
                         A good description helps customers make informed decisions
                       </p>
                     </div>
+
+                    {/* Material Information */}
+                    {(() => {
+                      const categoryInfo = formData.category ? shouldShowMaterialCarePrompt(formData.category) : { required: false, recommended: false };
+                      const examples = formData.category ? getCategoryExamples(formData.category) : null;
+                      const needsMaterial = categoryInfo.required || categoryInfo.recommended;
+                      
+                      return (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="block text-[#ffcc99] text-sm font-medium">
+                              Materials & Composition
+                              {categoryInfo.required && <span className="text-yellow-400 ml-1">*</span>}
+                            </label>
+                            {needsMaterial && !formData.material && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const examples = getCategoryExamples(formData.category);
+                                  setFormData(prev => ({ ...prev, material: examples.material }));
+                                }}
+                                className="text-xs text-[#ff6600] hover:text-[#ff8800] underline"
+                              >
+                                Use example
+                              </button>
+                            )}
+                          </div>
+                          <textarea
+                            name="material"
+                            placeholder={examples?.material || "e.g., 100% Cotton, Linen blend, Polyester, etc. Include specific materials, blends, dimensions, or composition details."}
+                            value={formData.material}
+                            onChange={handleInputChange}
+                            rows={4}
+                            className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all resize-none ${
+                              categoryInfo.required && !formData.material
+                                ? 'border-yellow-400/50'
+                                : errors.material
+                                ? 'border-red-500'
+                                : 'border-[#ff6600]/30'
+                            }`}
+                          />
+                          {categoryInfo.required && !formData.material && (
+                            <div className="mt-2 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
+                              <p className="text-yellow-400 text-xs font-medium flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4" />
+                                <span>88% of customers actively look for material information for {categories.find(c => c.value === formData.category)?.label.toLowerCase()} products. Adding this information improves customer confidence and reduces product returns.</span>
+                              </p>
+                            </div>
+                          )}
+                          {categoryInfo.recommended && !formData.material && (
+                            <p className="mt-1 text-yellow-400/80 text-xs">
+                              ⭐ Recommended: Material information is highly valued by customers in this category
+                            </p>
+                          )}
+                          {errors.material && (
+                            <p className="mt-1 text-red-400 text-xs flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              {errors.material}
+                            </p>
+                          )}
+                          {!errors.material && formData.material && (
+                            <p className="mt-1 text-green-400/80 text-xs">
+                              ✓ Material information added - customers will see this on the product page
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Care Instructions */}
+                    {(() => {
+                      const categoryInfo = formData.category ? shouldShowMaterialCarePrompt(formData.category) : { required: false, recommended: false };
+                      const examples = formData.category ? getCategoryExamples(formData.category) : null;
+                      const needsCareInfo = categoryInfo.required || categoryInfo.recommended;
+                      
+                      return (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="block text-[#ffcc99] text-sm font-medium">
+                              Care Instructions
+                              {categoryInfo.required && <span className="text-yellow-400 ml-1">*</span>}
+                            </label>
+                            {needsCareInfo && !formData.careInfo && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const examples = getCategoryExamples(formData.category);
+                                  setFormData(prev => ({ ...prev, careInfo: examples.careInfo }));
+                                }}
+                                className="text-xs text-[#ff6600] hover:text-[#ff8800] underline"
+                              >
+                                Use example
+                              </button>
+                            )}
+                          </div>
+                          <textarea
+                            name="careInfo"
+                            placeholder={examples?.careInfo || "e.g., Machine wash cold, tumble dry low, do not bleach, iron on low heat. Include washing, cleaning, storage, or maintenance instructions."}
+                            value={formData.careInfo}
+                            onChange={handleInputChange}
+                            rows={4}
+                            className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all resize-none ${
+                              categoryInfo.required && !formData.careInfo
+                                ? 'border-yellow-400/50'
+                                : errors.careInfo
+                                ? 'border-red-500'
+                                : 'border-[#ff6600]/30'
+                            }`}
+                          />
+                          {categoryInfo.required && !formData.careInfo && (
+                            <div className="mt-2 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
+                              <p className="text-yellow-400 text-xs font-medium flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4" />
+                                <span>88% of customers need care instructions for {categories.find(c => c.value === formData.category)?.label.toLowerCase()} products. Without this, customers may skip your product or make returns due to improper care.</span>
+                              </p>
+                            </div>
+                          )}
+                          {categoryInfo.recommended && !formData.careInfo && (
+                            <p className="mt-1 text-yellow-400/80 text-xs">
+                              ⭐ Recommended: Care instructions help customers properly maintain the product
+                            </p>
+                          )}
+                          {errors.careInfo && (
+                            <p className="mt-1 text-red-400 text-xs flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              {errors.careInfo}
+                            </p>
+                          )}
+                          {!errors.careInfo && formData.careInfo && (
+                            <p className="mt-1 text-green-400/80 text-xs">
+                              ✓ Care instructions added - helps customers maintain the product properly
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Category */}
                     <div>

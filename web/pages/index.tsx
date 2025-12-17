@@ -6,6 +6,7 @@ import ProblemSection from '../components/landing/ProblemSection';
 import SolutionSection from '../components/landing/SolutionSection';
 import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
 import FeaturedProducts from '../components/landing/FeaturedProducts';
+import ProductCategories from '../components/landing/ProductCategories';
 import Testimonials from '../components/landing/Testimonials';
 import CallToAction from '../components/landing/CallToAction';
 import SEO, { PAGE_SEO, generateKeywords } from '../components/seo/SEO';
@@ -16,12 +17,24 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
 
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  productCount?: number;
+}
+
 interface HomeProps {
   products: Product[];
   productsError?: string;
+  categories: Category[];
+  categoriesError?: string;
 }
 
-export default function Home({ products, productsError }: HomeProps) {
+export default function Home({ products, productsError, categories, categoriesError }: HomeProps) {
   // Comprehensive keywords for maximum SEO coverage
   const homeKeywords = generateKeywords(['primary', 'problemAware', 'longTail', 'brand', 'locations', 'industry']);
 
@@ -149,6 +162,7 @@ export default function Home({ products, productsError }: HomeProps) {
           <SolutionSection />
           <WhyChooseCarryofy />
           <HowItWorks />
+          <ProductCategories categories={categories} products={products} />
           <FeaturedProducts products={products} error={productsError} />
           <Testimonials />
           <CallToAction />
@@ -161,32 +175,129 @@ export default function Home({ products, productsError }: HomeProps) {
 
 export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
   try {
-    // Fetch featured products from backend
-    const response = await axios.get(`${API_BASE_URL}/products`, {
-      params: {
-        status: 'APPROVED',
-        limit: 8,
-        page: 1,
-      },
-      timeout: 5000, // 5 second timeout
-    });
+    // Fetch featured products and categories in parallel
+    const [productsResponse, categoriesResponse] = await Promise.allSettled([
+      axios.get(`${API_BASE_URL}/products`, {
+        params: {
+          status: 'ACTIVE',
+          limit: 8,
+          page: 1,
+        },
+        timeout: 5000,
+      }),
+      axios.get(`${API_BASE_URL}/categories`, {
+        timeout: 5000,
+      }),
+    ]);
 
-    const products = response.data?.data || [];
+    // Handle products
+    let products: Product[] = [];
+    let productsError: string | undefined;
+
+    if (productsResponse.status === 'fulfilled') {
+      try {
+        const response = productsResponse.value;
+        const status = response.status;
+        
+        // Check if response is successful
+        if (status >= 200 && status < 300) {
+          // Handle different response structures
+          // API returns: { products: [], total: 0, page: 1, limit: 20, totalPages: 0 }
+          // Or wrapped: { data: { products: [], ... } }
+          let responseData = response.data;
+          
+          // Log for debugging
+          console.log('Products API Response Status:', status);
+          console.log('Products API Response Data Keys:', Object.keys(responseData || {}));
+          
+          // Unwrap if wrapped by TransformInterceptor or NestJS response wrapper
+          if (responseData?.data && typeof responseData.data === 'object' && 'products' in responseData.data) {
+            responseData = responseData.data;
+          }
+          
+          // Extract products array - API returns ProductListResponseDto with products array
+          const productsArray = Array.isArray(responseData?.products) 
+            ? responseData.products 
+            : Array.isArray(responseData) 
+              ? responseData 
+              : [];
+          
+          console.log('Extracted products count:', productsArray.length);
+          
+          if (productsArray.length > 0) {
+            products = productsArray.map((product: any) => ({
+              ...product,
+              name: product.title || product.name,
+              stockQuantity: product.quantity ?? product.stockQuantity ?? 0,
+              // Ensure all required fields are present
+              id: product.id,
+              price: product.price || 0,
+              images: product.images || [],
+              category: product.category || '',
+              createdAt: product.createdAt || new Date().toISOString(),
+              updatedAt: product.updatedAt || new Date().toISOString(),
+            }));
+            console.log('Successfully mapped products:', products.length);
+          } else {
+            // No products found, but not an error - just empty
+            console.log('No products found in response - this is normal if no products exist');
+          }
+        } else {
+          console.error('Products API returned non-2xx status:', status);
+          productsError = 'Unable to load products at this time';
+        }
+      } catch (parseError: any) {
+        console.error('Error parsing products response:', parseError);
+        console.error('Response data:', productsResponse.value?.data);
+        productsError = 'Unable to parse products data';
+      }
+    } else {
+      const error = productsResponse.reason;
+      console.error('Error fetching products for homepage:', error);
+      console.error('Error details:', {
+        code: error?.code,
+        message: error?.message,
+        response: error?.response?.status,
+      });
+      
+      // Only set error if it's a real connection issue
+      if (error?.code === 'ECONNREFUSED' || error?.response?.status >= 500) {
+        productsError = 'Unable to load products at this time';
+      }
+      // If it's a 404 or empty, don't show error - just empty products
+    }
+
+    // Handle categories - always ensure it's an array, never undefined or null
+    let categories: Category[] = [];
+    let categoriesError: string | undefined;
+
+    if (categoriesResponse.status === 'fulfilled') {
+      const responseData = categoriesResponse.value.data?.data || categoriesResponse.value.data;
+      categories = Array.isArray(responseData?.categories) ? responseData.categories : [];
+    } else {
+      console.error('Error fetching categories for homepage:', categoriesResponse.reason);
+      categoriesError = 'Unable to load categories at this time';
+      // categories is already initialized as empty array, so no need to reassign
+    }
 
     return {
       props: {
-        products,
+        products, // Always an array, even if empty
+        ...(productsError && products.length === 0 && { productsError }), // Only show error if no products AND there's an error
+        categories, // Always an array, never undefined or null
+        ...(categoriesError && categories.length === 0 && { categoriesError }), // Only show error if no categories AND there's an error
       },
     };
   } catch (error: any) {
-    console.error('Error fetching products for homepage:', error.message);
+    console.error('Error in getServerSideProps:', error.message);
 
-    // Return empty array and error message on failure
-    // This ensures the page still loads even if the API is down
+    // Return empty arrays on failure
     return {
       props: {
         products: [],
         productsError: 'Unable to load products at this time',
+        categories: [], // Always return an array, never undefined
+        categoriesError: 'Unable to load categories at this time',
       },
     };
   }

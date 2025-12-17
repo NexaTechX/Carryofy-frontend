@@ -138,10 +138,12 @@ export type AdminProductStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'INACTIVE' | 'A
 export interface PendingProduct {
   id: string;
   title: string;
+  name?: string; // Frontend field name (mapped from title)
   description?: string;
   price: number;
   images: string[];
   quantity: number;
+  stockQuantity?: number; // Frontend field name (mapped from quantity)
   category?: string;
   status: AdminProductStatus;
   sellerId: string;

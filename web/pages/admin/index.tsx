@@ -162,7 +162,7 @@ export default function AdminDashboard() {
             subtitle={`Welcome back, ${profile?.name ?? 'Admin'}. Here’s what’s happening across the marketplace today.`}
             actions={
               <span className="rounded-full border border-[#1f2534] px-5 py-2 text-xs font-medium text-gray-300">
-                {profile?.email ?? 'admin@carryofy.com'}
+                {profile?.email ?? 'info@carrydoy.com'}
               </span>
             }
           />
@@ -202,12 +202,43 @@ export default function AdminDashboard() {
           <section className="mb-10">
             <div className="flex flex-col gap-4 rounded-2xl border border-primary/20 bg-linear-to-br from-[#0f1729] via-primary/10 to-[#0a101b] p-6 shadow-[0_32px_60px_-40px_rgba(255,102,0,0.5)] sm:flex-row sm:items-center sm:justify-between">
               <div className="max-w-xl">
-                <p className="text-lg font-bold text-white">Commission This Month</p>
-                <p className="mt-2 text-sm text-primary-light">
-                  {formatCurrency(metrics.totalCommissions / 100)}
+                <p className="text-lg font-bold text-white">Commission Revenue</p>
+                <p className="mt-2 text-3xl font-bold text-primary">
+                  {formatCurrency((commissionRevenue?.totalRevenue || metrics.totalCommissions) / 100)}
+                </p>
+                <p className="mt-2 text-sm text-gray-400">
+                  {commissionRevenue?.growth >= 0 ? '+' : ''}{commissionRevenue?.growth.toFixed(1) || '0'}% growth this period
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Company's main profit source
                 </p>
               </div>
-              <div className="h-32 w-full rounded-xl border border-primary/30 bg-linear-to-br from-primary/30 via-transparent to-transparent sm:max-w-xs" />
+              <div className="h-32 w-full rounded-xl border border-primary/30 bg-[#0b1322] p-3 sm:max-w-xs">
+                {commissionRevenue?.periods && commissionRevenue.periods.length > 0 ? (
+                  <div className="flex h-full items-end justify-between gap-2">
+                    {commissionRevenue.periods.map((period, index) => {
+                      const maxAmount = Math.max(...commissionRevenue.periods.map(p => p.amount || 0));
+                      const height = maxAmount > 0 ? ((period.amount || 0) / maxAmount) * 100 : 0;
+                      return (
+                        <div key={index} className="flex flex-1 flex-col items-center gap-1.5">
+                          <div 
+                            className="w-full rounded-t bg-gradient-to-t from-primary via-[#ff8740] to-primary transition-all hover:opacity-90 hover:from-[#ff8740] hover:via-primary"
+                            style={{ height: `${Math.max(height, 8)}%`, minHeight: '8px' }}
+                            title={`${period.period}: ${formatCurrency((period.amount || 0) / 100)}`}
+                          />
+                          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                            {period.period.split(' ')[0].slice(0, 3)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <p className="text-xs text-gray-500">No commission data available</p>
+                  </div>
+                )}
+              </div>
             </div>
           </section>
 

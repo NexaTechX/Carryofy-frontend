@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
   AdminCard,
@@ -19,8 +19,15 @@ import {
   useApproveProductMutation,
   useRejectProductMutation,
 } from '../../lib/admin/hooks/usePendingProducts';
+import {
+  useBulkApproveProducts,
+  useBulkRejectProducts,
+  useBulkDeleteProducts,
+  useBulkStatusChange,
+} from '../../lib/admin/hooks/useBulkProducts';
 import { PendingProduct } from '../../lib/admin/types';
 import { toast } from 'react-hot-toast';
+import { Check, X, Trash2, MoreVertical } from 'lucide-react';
 
 const NGN_FORMATTER = new Intl.NumberFormat('en-NG', {
   style: 'currency',
@@ -48,10 +55,18 @@ export default function AdminProducts() {
   const { data: allProducts, isLoading, isError, error, refetch } = useAllProducts();
   const approveProduct = useApproveProductMutation();
   const rejectProduct = useRejectProductMutation();
+  const bulkApprove = useBulkApproveProducts();
+  const bulkReject = useBulkRejectProducts();
+  const bulkDelete = useBulkDeleteProducts();
+  const bulkStatusChange = useBulkStatusChange();
 
   const [filterTab, setFilterTab] = useState<FilterTab>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [focusedProduct, setFocusedProduct] = useState<PendingProduct | null>(null);
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
+  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [bulkStatusModalOpen, setBulkStatusModalOpen] = useState(false);
+  const [bulkRejectModalOpen, setBulkRejectModalOpen] = useState(false);
 
   // Filter products based on active tab
   const filteredProducts = useMemo(() => {
@@ -112,6 +127,74 @@ export default function AdminProducts() {
     );
   };
 
+  // Bulk selection handlers
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProductIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) {
+        next.delete(productId);
+      } else {
+        next.add(productId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProductIds.size === filteredProducts.length) {
+      setSelectedProductIds(new Set());
+    } else {
+      setSelectedProductIds(new Set(filteredProducts.map((p) => p.id)));
+    }
+  };
+
+  // Bulk action handlers
+  const handleBulkApprove = async () => {
+    if (selectedProductIds.size === 0) return;
+    const productIds = Array.from(selectedProductIds);
+    await bulkApprove.mutateAsync(productIds);
+    setSelectedProductIds(new Set());
+    refetch();
+  };
+
+  const handleBulkReject = () => {
+    if (selectedProductIds.size === 0) return;
+    setBulkRejectModalOpen(true);
+  };
+
+  const confirmBulkReject = async (reason?: string) => {
+    const productIds = Array.from(selectedProductIds);
+    await bulkReject.mutateAsync({ productIds, reason });
+    setSelectedProductIds(new Set());
+    setBulkRejectModalOpen(false);
+    refetch();
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedProductIds.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedProductIds.size} product(s)? This action cannot be undone.`)) {
+      return;
+    }
+    const productIds = Array.from(selectedProductIds);
+    await bulkDelete.mutateAsync(productIds);
+    setSelectedProductIds(new Set());
+    refetch();
+  };
+
+  const handleBulkStatusChange = async (status: string) => {
+    if (selectedProductIds.size === 0) return;
+    const productIds = Array.from(selectedProductIds);
+    await bulkStatusChange.mutateAsync({ productIds, status });
+    setSelectedProductIds(new Set());
+    setBulkStatusModalOpen(false);
+    refetch();
+  };
+
+  // Update showBulkActions based on selection
+  useEffect(() => {
+    setShowBulkActions(selectedProductIds.size > 0);
+  }, [selectedProductIds]);
+
   return (
     <AdminLayout>
       <div className="min-h-screen bg-[#090c11]">
@@ -153,6 +236,61 @@ export default function AdminProducts() {
               <p className="text-3xl font-semibold text-gray-400">{counts.inactive}</p>
             </AdminCard>
           </section>
+
+          {/* Bulk Actions Bar */}
+          {showBulkActions && selectedProductIds.size > 0 && (
+            <div className="mb-4 rounded-lg border border-primary/30 bg-primary/10 p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-white">
+                  {selectedProductIds.size} product(s) selected
+                </span>
+                <div className="flex gap-2">
+                  {filterTab === 'pending' && (
+                    <button
+                      onClick={handleBulkApprove}
+                      disabled={bulkApprove.isPending}
+                      className="flex items-center gap-2 rounded-full bg-green-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+                    >
+                      <Check className="w-4 h-4" />
+                      Approve Selected
+                    </button>
+                  )}
+                  {filterTab === 'pending' && (
+                    <button
+                      onClick={handleBulkReject}
+                      disabled={bulkReject.isPending}
+                      className="flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                    >
+                      <X className="w-4 h-4" />
+                      Reject Selected
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setBulkStatusModalOpen(true)}
+                    disabled={bulkStatusChange.isPending}
+                    className="flex items-center gap-2 rounded-full border border-primary/50 bg-[#0f1524] px-4 py-2 text-xs font-semibold text-primary transition hover:border-primary hover:bg-primary/10 disabled:opacity-50"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                    Change Status
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={bulkDelete.isPending}
+                    className="flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Selected
+                  </button>
+                  <button
+                    onClick={() => setSelectedProductIds(new Set())}
+                    className="rounded-full border border-gray-600 px-4 py-2 text-xs font-semibold text-gray-300 transition hover:border-gray-500"
+                  >
+                    Clear Selection
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Filter Tabs & Search */}
           <AdminToolbar className="mb-6 justify-between">
@@ -235,6 +373,14 @@ export default function AdminProducts() {
               <DataTable>
                 <DataTableHead>
                   <tr>
+                    <th className="px-6 py-4 text-left">
+                      <input
+                        type="checkbox"
+                        checked={selectedProductIds.size === filteredProducts.length && filteredProducts.length > 0}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 rounded border-gray-600 bg-[#0e131d] text-primary focus:ring-primary"
+                      />
+                    </th>
                     <th className="px-6 py-4 text-left text-white">Product</th>
                     <th className="px-6 py-4 text-left text-white">Seller</th>
                     <th className="px-6 py-4 text-left text-white">Status</th>
@@ -246,6 +392,14 @@ export default function AdminProducts() {
                 <DataTableBody>
                   {filteredProducts.map((product) => (
                     <tr key={product.id} className="transition hover:bg-[#10151d]">
+                      <DataTableCell>
+                        <input
+                          type="checkbox"
+                          checked={selectedProductIds.has(product.id)}
+                          onChange={() => toggleProductSelection(product.id)}
+                          className="h-4 w-4 rounded border-gray-600 bg-[#0e131d] text-primary focus:ring-primary"
+                        />
+                      </DataTableCell>
                       <DataTableCell>
                         <div className="flex flex-col">
                           <button
@@ -414,6 +568,70 @@ export default function AdminProducts() {
           </div>
         ) : null}
       </AdminDrawer>
+
+      {/* Bulk Reject Modal */}
+      {bulkRejectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
+            <h3 className="mb-4 text-lg font-bold text-white">Reject Products</h3>
+            <p className="mb-4 text-sm text-gray-400">
+              You are about to reject {selectedProductIds.size} product(s). This action cannot be undone.
+            </p>
+            <textarea
+              placeholder="Rejection reason (optional)"
+              className="mb-4 w-full rounded-lg border border-[#1f2534] bg-[#0a0f1a] p-3 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
+              rows={3}
+              id="rejection-reason"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  const reason = (document.getElementById('rejection-reason') as HTMLTextAreaElement)?.value;
+                  confirmBulkReject(reason);
+                }}
+                className="flex-1 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+              >
+                Confirm Reject
+              </button>
+              <button
+                onClick={() => setBulkRejectModalOpen(false)}
+                className="flex-1 rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Status Change Modal */}
+      {bulkStatusModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
+            <h3 className="mb-4 text-lg font-bold text-white">Change Product Status</h3>
+            <p className="mb-4 text-sm text-gray-400">
+              Change status for {selectedProductIds.size} product(s) to:
+            </p>
+            <div className="mb-4 space-y-2">
+              {Object.entries(productStatusLabel).map(([status, label]) => (
+                <button
+                  key={status}
+                  onClick={() => handleBulkStatusChange(status)}
+                  className="w-full rounded-lg border border-[#1f2534] bg-[#0a0f1a] px-4 py-2 text-left text-sm text-white transition hover:border-primary hover:bg-primary/10"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setBulkStatusModalOpen(false)}
+              className="w-full rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

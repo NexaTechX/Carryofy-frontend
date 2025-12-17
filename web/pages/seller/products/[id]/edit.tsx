@@ -5,7 +5,8 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import SellerLayout from '../../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../../lib/auth';
-import { X } from 'lucide-react';
+import { apiClient } from '../../../../lib/api/client';
+import { X, Plus, AlertCircle, Sparkles, Wand2, Loader2 } from 'lucide-react';
 
 interface FormData {
   title: string;
@@ -13,6 +14,7 @@ interface FormData {
   price: string;
   category: string;
   quantity: string;
+  keyFeatures?: string[];
 }
 
 interface Product {
@@ -23,6 +25,7 @@ interface Product {
   quantity: number;
   images: string[];
   status: string;
+  keyFeatures?: string[];
 }
 
 export default function EditProductPage() {
@@ -41,7 +44,18 @@ export default function EditProductPage() {
     price: '',
     category: '',
     quantity: '',
+    keyFeatures: [],
   });
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiGeneratedContent, setAiGeneratedContent] = useState<{
+    description?: string;
+    tags?: string[];
+    keyFeatures?: string[];
+    material?: string;
+    careInfo?: string;
+    keywords?: string[];
+  } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -91,6 +105,7 @@ export default function EditProductPage() {
           price: (product.price / 100).toFixed(2),
           category: '',
           quantity: product.quantity.toString(),
+          keyFeatures: product.keyFeatures || [],
         });
         
         setUploadedImageUrls(product.images || []);
@@ -117,6 +132,59 @@ export default function EditProductPage() {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  const validateKeyFeatures = (features: string[]): string => {
+    if (features.length > 3) {
+      return 'Maximum 3 key features allowed';
+    }
+    for (const feature of features) {
+      if (!feature.trim()) {
+        return 'Key features cannot be empty';
+      }
+      if (feature.length > 30) {
+        return 'Each key feature must be 30 characters or less';
+      }
+    }
+    return '';
+  };
+
+  const handleAddKeyFeature = () => {
+    const currentFeatures = formData.keyFeatures || [];
+    if (currentFeatures.length < 3) {
+      setFormData((prev) => ({
+        ...prev,
+        keyFeatures: [...(prev.keyFeatures || []), ''],
+      }));
+    }
+  };
+
+  const handleRemoveKeyFeature = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      keyFeatures: (prev.keyFeatures || []).filter((_, i) => i !== index),
+    }));
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors.keyFeatures;
+      return newErrors;
+    });
+  };
+
+  const handleKeyFeatureChange = (index: number, value: string) => {
+    const updatedFeatures = [...(formData.keyFeatures || [])];
+    updatedFeatures[index] = value;
+    setFormData((prev) => ({
+      ...prev,
+      keyFeatures: updatedFeatures,
+    }));
+    
+    // Validate on change
+    const error = validateKeyFeatures(updatedFeatures);
+    setErrors((prev) => ({
+      ...prev,
+      keyFeatures: error || undefined,
     }));
   };
 
@@ -177,6 +245,56 @@ export default function EditProductPage() {
     }
   };
 
+  const handleGenerateAIContent = async () => {
+    if (!formData.title.trim()) {
+      toast.error('Please enter a product title first');
+      return;
+    }
+
+    setAiGenerating(true);
+    try {
+      const response = await apiClient.post('/products/ai/generate-content', {
+        title: formData.title,
+        price: formData.price ? Math.round(parseFloat(formData.price) * 100) : undefined,
+        existingDescription: formData.description || undefined,
+      });
+
+      setAiGeneratedContent(response.data);
+      toast.success('AI content generated successfully! Review and accept the fields you want to use.');
+    } catch (error: any) {
+      console.error('Error generating AI content:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to generate AI content';
+      toast.error(errorMessage);
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const handleAcceptAIContent = (field: 'description' | 'keyFeatures') => {
+    if (!aiGeneratedContent) return;
+
+    if (field === 'description' && aiGeneratedContent.description) {
+      setFormData(prev => ({ ...prev, description: aiGeneratedContent.description! }));
+      toast.success('Description applied');
+    } else if (field === 'keyFeatures' && aiGeneratedContent.keyFeatures) {
+      setFormData(prev => ({ ...prev, keyFeatures: aiGeneratedContent.keyFeatures! }));
+      toast.success('Key features applied');
+    }
+  };
+
+  const handleAcceptAllAIContent = () => {
+    if (!aiGeneratedContent) return;
+
+    setFormData(prev => ({
+      ...prev,
+      description: aiGeneratedContent.description || prev.description,
+      keyFeatures: aiGeneratedContent.keyFeatures || prev.keyFeatures,
+    }));
+
+    toast.success('All AI-generated content applied!');
+    setAiGeneratedContent(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -197,12 +315,26 @@ export default function EditProductPage() {
       // Convert price from naira to kobo (multiply by 100)
       const priceInKobo = Math.round(parseFloat(formData.price) * 100);
 
+      // Validate keyFeatures
+      if (formData.keyFeatures) {
+        const keyFeaturesError = validateKeyFeatures(formData.keyFeatures);
+        if (keyFeaturesError) {
+          setErrors({ keyFeatures: keyFeaturesError });
+          toast.error(keyFeaturesError);
+          setLoading(false);
+          return;
+        }
+      }
+
       const productData = {
         title: formData.title,
         description: formData.description || undefined,
         price: priceInKobo,
         images: uploadedImageUrls,
         quantity: parseInt(formData.quantity),
+        keyFeatures: formData.keyFeatures && formData.keyFeatures.length > 0 
+          ? formData.keyFeatures.filter(f => f.trim()).map(f => f.trim())
+          : undefined,
       };
 
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
@@ -371,6 +503,178 @@ export default function EditProductPage() {
                     required
                     className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-[#1a1a1a] focus:border-[#ff6600] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
                   />
+                </div>
+
+                {/* AI Assistant */}
+                <div className="bg-gradient-to-br from-[#ff6600]/10 to-[#ff6600]/5 border-2 border-[#ff6600]/30 rounded-xl p-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-10 h-10 bg-[#ff6600]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Wand2 className="w-5 h-5 text-[#ff6600]" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-semibold mb-1">AI Content Assistant</h3>
+                      <p className="text-[#ffcc99]/70 text-xs">
+                        Let AI generate product descriptions, key features, and other content for you.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={handleGenerateAIContent}
+                    disabled={aiGenerating || !formData.title.trim()}
+                    className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#ff6600] to-[#cc5200] text-white font-semibold hover:from-[#cc5200] hover:to-[#ff6600] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {aiGenerating ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Generating Content...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-5 h-5" />
+                        <span>Generate Content with AI</span>
+                      </>
+                    )}
+                  </button>
+
+                  {aiGeneratedContent && (
+                    <div className="mt-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[#ff6600] text-sm font-medium">Generated Content Preview</p>
+                        <button
+                          type="button"
+                          onClick={handleAcceptAllAIContent}
+                          className="px-3 py-1.5 bg-[#ff6600] text-black text-xs font-semibold rounded-lg hover:bg-[#cc5200] transition"
+                        >
+                          Accept All
+                        </button>
+                      </div>
+
+                      {aiGeneratedContent.description && (
+                        <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-lg p-3">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <p className="text-white text-xs font-medium">Description</p>
+                            <button
+                              type="button"
+                              onClick={() => handleAcceptAIContent('description')}
+                              className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] text-xs rounded hover:bg-[#ff6600]/30 transition"
+                            >
+                              Accept
+                            </button>
+                          </div>
+                          <p className="text-[#ffcc99] text-xs line-clamp-3">{aiGeneratedContent.description}</p>
+                        </div>
+                      )}
+
+                      {aiGeneratedContent.keyFeatures && aiGeneratedContent.keyFeatures.length > 0 && (
+                        <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-lg p-3">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <p className="text-white text-xs font-medium">Key Features</p>
+                            <button
+                              type="button"
+                              onClick={() => handleAcceptAIContent('keyFeatures')}
+                              className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] text-xs rounded hover:bg-[#ff6600]/30 transition"
+                            >
+                              Accept
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {aiGeneratedContent.keyFeatures.map((feature, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] rounded text-xs"
+                              >
+                                {feature}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setAiGeneratedContent(null)}
+                        className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] text-xs rounded-lg hover:bg-[#ff6600]/10 transition"
+                      >
+                        Dismiss Preview
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Key Features */}
+                <div>
+                  <label className="block text-white text-sm font-medium mb-2">
+                    Key Features
+                  </label>
+                  <p className="text-[#ffcc99]/60 text-xs mb-3">
+                    Highlight 1-3 key features that appear in the product headline
+                  </p>
+                  
+                  <div className="space-y-2">
+                    {(formData.keyFeatures || []).map((feature, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          placeholder={`Feature ${index + 1} (e.g., Wireless, Noise Cancelling)`}
+                          value={feature}
+                          onChange={(e) => handleKeyFeatureChange(index, e.target.value)}
+                          maxLength={30}
+                          className={`flex-1 px-4 py-2 rounded-xl bg-[#1a1a1a] border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${
+                            errors.keyFeatures ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveKeyFeature(index)}
+                          className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 hover:border-red-500/50 transition-all flex items-center justify-center"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <span className="text-[#ffcc99]/60 text-xs w-12 text-right">
+                          {feature.length}/30
+                        </span>
+                      </div>
+                    ))}
+                    
+                    {(formData.keyFeatures || []).length < 3 && (
+                      <button
+                        type="button"
+                        onClick={handleAddKeyFeature}
+                        className="w-full px-4 py-2 rounded-xl border-2 border-dashed border-[#ff6600]/30 text-[#ffcc99] hover:border-[#ff6600]/60 hover:bg-[#ff6600]/5 transition-all flex items-center justify-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span className="text-sm">Add Key Feature</span>
+                      </button>
+                    )}
+                  </div>
+                  
+                  {errors.keyFeatures && (
+                    <p className="mt-2 text-red-400 text-xs flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {errors.keyFeatures}
+                    </p>
+                  )}
+                  
+                  {(formData.keyFeatures || []).length > 0 && !errors.keyFeatures && (
+                    <div className="mt-3 p-3 bg-[#ff6600]/5 rounded-lg border border-[#ff6600]/10">
+                      <p className="text-[#ff6600] text-xs font-medium mb-2 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        Preview: These features will appear as badges in the product headline
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {(formData.keyFeatures || []).filter(f => f.trim()).map((feature, index) => (
+                          <span
+                            key={index}
+                            className="px-3 py-1 bg-[#ff6600]/20 text-[#ff6600] rounded-full text-xs font-medium"
+                          >
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Product Description */}

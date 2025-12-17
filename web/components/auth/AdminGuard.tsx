@@ -1,11 +1,12 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth, getRoleRedirect } from '../../lib/auth';
+import { useAuth } from '../../lib/auth';
 import type { User, UserRole } from '../../lib/auth';
 import { fetchAdminProfile } from '../../lib/admin/api';
 import { LoadingState } from '../admin/ui';
+import NotFound from '../common/NotFound';
 
-type GuardState = 'idle' | 'checking' | 'authorized' | 'redirecting';
+type GuardState = 'idle' | 'checking' | 'authorized' | 'notFound';
 
 const ADMIN_PATH_REGEX = /^\/admin(\/.*)?$/;
 
@@ -41,10 +42,9 @@ export function AdminGuard({ children }: AdminGuardProps) {
 
       // Check if user is authenticated
       if (!isAuthenticated) {
+        // Show 404 instead of redirecting to login
         if (!cancelled) {
-          setState('redirecting');
-          const nextParam = encodeURIComponent(router.asPath ?? '/admin');
-          router.replace(`/auth/login?next=${nextParam}`);
+          setState('notFound');
         }
         return;
       }
@@ -84,18 +84,18 @@ export function AdminGuard({ children }: AdminGuardProps) {
         if (profile.role?.toUpperCase() === 'ADMIN') {
           setState('authorized');
         } else {
-          // If user is not admin, redirect to login to allow switching accounts
-          // instead of redirecting to their current dashboard
-          setState('redirecting');
-          const nextParam = encodeURIComponent(router.asPath ?? '/admin');
-          router.replace(`/auth/login?next=${nextParam}&error=unauthorized`);
+          // If user is not admin, show 404 instead of redirecting
+          if (!cancelled) {
+            setState('notFound');
+          }
         }
       } catch (error) {
         if (cancelled) return;
         console.error('Failed to validate admin access', error);
-        setState('redirecting');
-        const nextParam = encodeURIComponent(router.asPath ?? '/admin');
-        router.replace(`/auth/login?next=${nextParam}`);
+        // Show 404 on error instead of redirecting
+        if (!cancelled) {
+          setState('notFound');
+        }
       }
     }
 
@@ -112,6 +112,10 @@ export function AdminGuard({ children }: AdminGuardProps) {
 
   if (state === 'checking' || isLoading) {
     return <LoadingState fullscreen />;
+  }
+
+  if (state === 'notFound') {
+    return <NotFound />;
   }
 
   return null;

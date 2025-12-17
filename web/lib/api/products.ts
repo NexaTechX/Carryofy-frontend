@@ -93,7 +93,7 @@ export async function createProductReview(
 export async function getFeaturedProducts(limit: number = 8): Promise<Product[]> {
     try {
         const response = await getProducts({
-            status: 'APPROVED' as any, // ProductStatus.APPROVED
+            status: 'ACTIVE' as any, // ProductStatus.ACTIVE (backend uses ACTIVE, not APPROVED)
             limit,
             page: 1,
         });

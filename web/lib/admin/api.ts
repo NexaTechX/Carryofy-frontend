@@ -44,62 +44,97 @@ export const adminDashboardKeys = {
   all: [ADMIN_DASHBOARD_CACHE_TAG] as const,
 };
 
+/**
+ * Standardized response normalization utility
+ * Handles both wrapped (data.data) and unwrapped (data) responses consistently
+ */
+function normalizeResponse<T>(response: unknown): T {
+  if (!response || typeof response !== 'object') {
+    return response as T;
+  }
+  
+  const dataObj = response as Record<string, unknown>;
+  
+  // Check if response is wrapped in a 'data' property (TransformInterceptor pattern)
+  if ('data' in dataObj && dataObj.data !== undefined) {
+    return dataObj.data as T;
+  }
+  
+  // Return the response as-is if not wrapped
+  return response as T;
+}
+
+/**
+ * Transform product from backend format (title, quantity) to frontend format (name, stockQuantity)
+ */
+function transformProduct<T extends { title?: string; name?: string; quantity?: number; stockQuantity?: number }>(product: T): T {
+  return {
+    ...product,
+    name: product.title || product.name,
+    stockQuantity: product.quantity ?? product.stockQuantity ?? 0,
+  } as T;
+}
+
+/**
+ * Transform array of products
+ */
+function transformProducts<T extends { title?: string; name?: string; quantity?: number; stockQuantity?: number }>(products: T[]): T[] {
+  return products.map(transformProduct);
+}
+
 export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
   const { data } = await apiClient.get('/reports/dashboard');
   
-  // Handle wrapped response
-  const metrics = (data as Record<string, unknown>)?.data || (data as Record<string, unknown>)?.metrics || data;
-  
-  const metricsData = metrics as Record<string, unknown>;
+  // Normalize response - handle wrapped or unwrapped
+  const normalized = normalizeResponse<Record<string, unknown>>(data);
+  const metrics = (normalized?.metrics || normalized) as Record<string, unknown>;
   
   return {
-    totalUsers: (metricsData?.totalUsers as number) ?? 0,
-    totalSellers: (metricsData?.totalSellers as number) ?? 0,
-    totalProducts: (metricsData?.totalProducts as number) ?? 0,
-    totalOrders: (metricsData?.totalOrders as number) ?? 0,
-    totalRevenue: (metricsData?.totalRevenue as number) ?? 0,
-    totalCommissions: (metricsData?.totalCommissions as number) ?? 0,
-    pendingOrders: (metricsData?.pendingOrders as number) ?? 0,
-    activeDeliveries: (metricsData?.activeDeliveries as number) ?? 0,
-    pendingApprovals: (metricsData?.pendingApprovals as number) ?? 0,
-    totalCustomers: (metricsData?.totalCustomers as number) ?? 0,
-    newCustomersThisMonth: (metricsData?.newCustomersThisMonth as number) ?? 0,
-    activeCustomersThisMonth: (metricsData?.activeCustomersThisMonth as number) ?? 0,
-    customerRetentionRate: (metricsData?.customerRetentionRate as number) ?? 0,
+    totalUsers: (metrics?.totalUsers as number) ?? 0,
+    totalSellers: (metrics?.totalSellers as number) ?? 0,
+    totalProducts: (metrics?.totalProducts as number) ?? 0,
+    totalOrders: (metrics?.totalOrders as number) ?? 0,
+    totalRevenue: (metrics?.totalRevenue as number) ?? 0,
+    totalCommissions: (metrics?.totalCommissions as number) ?? 0,
+    pendingOrders: (metrics?.pendingOrders as number) ?? 0,
+    activeDeliveries: (metrics?.activeDeliveries as number) ?? 0,
+    pendingApprovals: (metrics?.pendingApprovals as number) ?? 0,
+    totalCustomers: (metrics?.totalCustomers as number) ?? 0,
+    newCustomersThisMonth: (metrics?.newCustomersThisMonth as number) ?? 0,
+    activeCustomersThisMonth: (metrics?.activeCustomersThisMonth as number) ?? 0,
+    customerRetentionRate: (metrics?.customerRetentionRate as number) ?? 0,
   };
 }
 
 export async function fetchSalesTrend(): Promise<SalesTrendResponse> {
   const { data } = await apiClient.get('/reports/sales-trend');
   
-  // Handle wrapped response
-  const response = (data as Record<string, unknown>)?.data || data;
-  
-  const responseData = response as Record<string, unknown>;
+  const normalized = normalizeResponse<Record<string, unknown>>(data);
   
   return {
-    trend: Array.isArray(responseData?.trend) ? responseData.trend : [],
-    totalSales: (responseData?.totalSales as number) ?? 0,
-    totalOrders: (responseData?.totalOrders as number) ?? 0,
-    period: (responseData?.period as string) ?? 'last-7-days',
+    trend: Array.isArray(normalized?.trend) ? normalized.trend : [],
+    totalSales: (normalized?.totalSales as number) ?? 0,
+    totalOrders: (normalized?.totalOrders as number) ?? 0,
+    period: (normalized?.period as string) ?? 'last-7-days',
   };
 }
 
 export async function fetchOrderDistribution(): Promise<OrderDistributionEntry[]> {
   const { data } = await apiClient.get('/reports/order-distribution');
   
-  // Handle wrapped response
-  const response = (data as Record<string, unknown>)?.data || data;
+  const normalized = normalizeResponse<unknown>(data);
   
   // If it's already an array, return it
-  if (Array.isArray(response)) {
-    return response;
+  if (Array.isArray(normalized)) {
+    return normalized;
   }
   
   // If it has a distribution property, use that
-  const responseData = response as Record<string, unknown>;
-  if (responseData?.distribution && Array.isArray(responseData.distribution)) {
-    return responseData.distribution;
+  if (normalized && typeof normalized === 'object' && 'distribution' in normalized) {
+    const responseData = normalized as { distribution: unknown };
+    if (Array.isArray(responseData.distribution)) {
+      return responseData.distribution;
+    }
   }
   
   // Otherwise return empty array
@@ -110,17 +145,14 @@ export async function fetchTopCategories(): Promise<TopCategoriesResponse> {
   try {
     const { data } = await apiClient.get('/reports/top-categories');
     
-    // Handle wrapped response
-    const response = (data as Record<string, unknown>)?.data || data;
-    const responseData = response as Record<string, unknown>;
+    const normalized = normalizeResponse<Record<string, unknown>>(data);
     
     return {
-      categories: normalizeListResponse(responseData?.categories, ['categories', 'items', 'data']),
-      total: (responseData?.total as number) ?? 0,
+      categories: normalizeListResponse(normalized?.categories, ['categories', 'items', 'data']),
+      total: (normalized?.total as number) ?? 0,
     };
   } catch (error) {
     // Return empty data if endpoint doesn't exist yet
-    console.warn('Top categories endpoint not implemented yet:', error);
     return {
       categories: [],
       total: 0,
@@ -132,18 +164,15 @@ export async function fetchCommissionRevenue(): Promise<CommissionRevenueRespons
   try {
     const { data } = await apiClient.get('/reports/commission-revenue');
     
-    // Handle wrapped response
-    const response = (data as Record<string, unknown>)?.data || data;
-    const responseData = response as Record<string, unknown>;
+    const normalized = normalizeResponse<Record<string, unknown>>(data);
     
     return {
-      periods: normalizeListResponse(responseData?.periods, ['periods', 'items', 'data']),
-      totalRevenue: (responseData?.totalRevenue as number) ?? 0,
-      growth: (responseData?.growth as number) ?? 0,
+      periods: normalizeListResponse(normalized?.periods, ['periods', 'items', 'data']),
+      totalRevenue: (normalized?.totalRevenue as number) ?? 0,
+      growth: (normalized?.growth as number) ?? 0,
     };
   } catch (error) {
     // Return empty data if endpoint doesn't exist yet
-    console.warn('Commission revenue endpoint not implemented yet:', error);
     return {
       periods: [],
       totalRevenue: 0,
@@ -179,11 +208,7 @@ export async function rejectSellerRequest(sellerId: string, rejectionReason?: st
 
 export async function bulkApproveSellersRequest(sellerIds: string[]): Promise<{ approved: number; failed: number }> {
   const { data } = await apiClient.post('/sellers/bulk-approve', { sellerIds });
-  // Handle wrapped response from TransformInterceptor
-  if (data && typeof data === 'object' && 'data' in data && 'statusCode' in data) {
-    return data.data as { approved: number; failed: number };
-  }
-  return data as { approved: number; failed: number };
+  return normalizeResponse<{ approved: number; failed: number }>(data);
 }
 
 export async function bulkRejectSellersRequest(sellerIds: string[], rejectionReason?: string): Promise<{ rejected: number; failed: number }> {
@@ -191,21 +216,19 @@ export async function bulkRejectSellersRequest(sellerIds: string[], rejectionRea
     sellerIds,
     rejectionReason: rejectionReason || undefined,
   });
-  // Handle wrapped response from TransformInterceptor
-  if (data && typeof data === 'object' && 'data' in data && 'statusCode' in data) {
-    return data.data as { rejected: number; failed: number };
-  }
-  return data as { rejected: number; failed: number };
+  return normalizeResponse<{ rejected: number; failed: number }>(data);
 }
 
 export async function fetchPendingProducts(): Promise<PendingProduct[]> {
   const { data } = await apiClient.get('/products/pending');
-  return normalizeListResponse<PendingProduct>(data, ['products', 'items', 'data', 'results', 'pending']);
+  const normalized = normalizeListResponse<PendingProduct>(data, ['products', 'items', 'data', 'results', 'pending']);
+  return transformProducts(normalized);
 }
 
 export async function fetchAllProducts(): Promise<PendingProduct[]> {
   const { data } = await apiClient.get('/products/admin/all');
-  return normalizeListResponse<PendingProduct>(data, ['products', 'items', 'data', 'results']);
+  const normalized = normalizeListResponse<PendingProduct>(data, ['products', 'items', 'data', 'results']);
+  return transformProducts(normalized);
 }
 
 export async function approveProductRequest(productId: string): Promise<void> {
@@ -216,14 +239,35 @@ export async function rejectProductRequest(productId: string): Promise<void> {
   await apiClient.put(`/products/${productId}/reject`);
 }
 
+// Admin bulk product operations
+export async function bulkApproveProductsRequest(productIds: string[]): Promise<{ approved: number; failed: number }> {
+  const { data } = await apiClient.post('/products/admin/bulk-approve', { productIds });
+  return normalizeResponse<{ approved: number; failed: number }>(data);
+}
+
+export async function bulkRejectProductsRequest(productIds: string[], reason?: string): Promise<{ rejected: number; failed: number }> {
+  const { data } = await apiClient.post('/products/admin/bulk-reject', { productIds, reason });
+  return normalizeResponse<{ rejected: number; failed: number }>(data);
+}
+
+export async function bulkDeleteProductsRequest(productIds: string[]): Promise<{ deleted: number; failed: number }> {
+  const { data } = await apiClient.post('/products/admin/bulk-delete', { productIds });
+  return normalizeResponse<{ deleted: number; failed: number }>(data);
+}
+
+export async function bulkStatusChangeRequest(productIds: string[], status: string): Promise<{ updated: number; failed: number }> {
+  const { data } = await apiClient.post('/products/admin/bulk-status-change', { productIds, status });
+  return normalizeResponse<{ updated: number; failed: number }>(data);
+}
+
 export async function fetchAdminOrders(): Promise<AdminOrder[]> {
   const { data } = await apiClient.get('/orders');
   return normalizeListResponse<AdminOrder>(data, ['orders', 'items', 'data', 'results']);
 }
 
 export async function fetchAdminOrderById(orderId: string): Promise<AdminOrder> {
-  const { data } = await apiClient.get<AdminOrder>(`/orders/${orderId}`);
-  return data;
+  const { data } = await apiClient.get(`/orders/${orderId}`);
+  return normalizeResponse<AdminOrder>(data);
 }
 
 export async function updateOrderStatusRequest(orderId: string, status: AdminOrderStatus): Promise<void> {
@@ -236,8 +280,8 @@ export async function fetchActiveDeliveries(): Promise<AdminDelivery[]> {
 }
 
 export async function fetchDeliveryByOrderId(orderId: string): Promise<AdminDelivery> {
-  const { data } = await apiClient.get<AdminDelivery>(`/delivery/orders/${orderId}`);
-  return data;
+  const { data } = await apiClient.get(`/delivery/orders/${orderId}`);
+  return normalizeResponse<AdminDelivery>(data);
 }
 
 export interface AvailableRider {
@@ -259,18 +303,14 @@ export interface AvailableRider {
 export async function fetchAvailableRiders(): Promise<AvailableRider[]> {
   try {
     const { data } = await apiClient.get('/delivery/riders/available');
-    // Handle wrapped response
-    const responseData = data as unknown;
-    if (Array.isArray(responseData)) {
-      return responseData as AvailableRider[];
+    const normalized = normalizeResponse<unknown>(data);
+    
+    if (Array.isArray(normalized)) {
+      return normalized as AvailableRider[];
     }
-    if (responseData && typeof responseData === 'object' && 'data' in responseData) {
-      const wrappedData = (responseData as { data: unknown }).data;
-      return Array.isArray(wrappedData) ? (wrappedData as AvailableRider[]) : [];
-    }
+    
     return [];
   } catch (error: any) {
-    console.warn('Error fetching available riders:', error);
     return [];
   }
 }
@@ -288,8 +328,8 @@ export async function assignDeliveryRequest(input: {
     ...(input.rider && !input.riderId && { riderId: input.rider }), // Fallback to rider if riderId not provided
     ...(input.eta && { eta: input.eta }),
   };
-  const { data } = await apiClient.post<AdminDelivery>('/delivery/assign', payload);
-  return data;
+  const { data } = await apiClient.post('/delivery/assign', payload);
+  return normalizeResponse<AdminDelivery>(data);
 }
 
 export async function updateDeliveryStatusRequest(
@@ -297,11 +337,11 @@ export async function updateDeliveryStatusRequest(
   status: AdminDeliveryStatus,
   updates?: { rider?: string; eta?: string }
 ): Promise<AdminDelivery> {
-  const { data } = await apiClient.put<AdminDelivery>(`/delivery/${deliveryId}/status`, {
+  const { data } = await apiClient.put(`/delivery/${deliveryId}/status`, {
     status,
     ...updates,
   });
-  return data;
+  return normalizeResponse<AdminDelivery>(data);
 }
 
 export async function fetchWarehouseStock(): Promise<WarehouseStockItem[]> {
@@ -351,17 +391,15 @@ export async function fetchSalesReport(
 ): Promise<SalesReportDto> {
   const { data } = await apiClient.get('/reports/sales', { params });
   
-  // Handle both direct response and wrapped response
-  const dataObj = data as Record<string, unknown>;
-  const report = dataObj?.report || dataObj?.data || data;
-  const reportData = report as Record<string, unknown>;
+  const normalized = normalizeResponse<Record<string, unknown>>(data);
+  const report = (normalized?.report || normalized) as Record<string, unknown>;
   
   return {
-    totalSales: (reportData?.totalSales as number) ?? 0,
-    totalOrders: (reportData?.totalOrders as number) ?? 0,
-    totalProductsSold: (reportData?.totalProductsSold as number) ?? 0,
-    startDate: reportData?.startDate as string | undefined,
-    endDate: reportData?.endDate as string | undefined,
+    totalSales: (report?.totalSales as number) ?? 0,
+    totalOrders: (report?.totalOrders as number) ?? 0,
+    totalProductsSold: (report?.totalProductsSold as number) ?? 0,
+    startDate: report?.startDate as string | undefined,
+    endDate: report?.endDate as string | undefined,
   };
 }
 
@@ -370,34 +408,30 @@ export async function fetchEarningsReport(
 ): Promise<EarningsReportDto> {
   const { data } = await apiClient.get('/reports/earnings', { params });
   
-  // Handle both direct response and wrapped response
-  const dataObj = data as Record<string, unknown>;
-  const report = dataObj?.report || dataObj?.data || data;
-  const reportData = report as Record<string, unknown>;
+  const normalized = normalizeResponse<Record<string, unknown>>(data);
+  const report = (normalized?.report || normalized) as Record<string, unknown>;
   
   return {
-    totalGross: (reportData?.totalGross as number) ?? 0,
-    totalCommission: (reportData?.totalCommission as number) ?? 0,
-    totalNet: (reportData?.totalNet as number) ?? 0,
-    totalOrders: (reportData?.totalOrders as number) ?? 0,
-    startDate: reportData?.startDate as string | undefined,
-    endDate: reportData?.endDate as string | undefined,
+    totalGross: (report?.totalGross as number) ?? 0,
+    totalCommission: (report?.totalCommission as number) ?? 0,
+    totalNet: (report?.totalNet as number) ?? 0,
+    totalOrders: (report?.totalOrders as number) ?? 0,
+    startDate: report?.startDate as string | undefined,
+    endDate: report?.endDate as string | undefined,
   };
 }
 
 export async function fetchInventoryReport(): Promise<InventoryReportDto> {
   const { data } = await apiClient.get('/reports/inventory');
   
-  // Handle both direct response and wrapped response
-  const dataObj = data as Record<string, unknown>;
-  const report = dataObj?.report || dataObj?.data || data;
-  const reportData = report as Record<string, unknown>;
+  const normalized = normalizeResponse<Record<string, unknown>>(data);
+  const report = (normalized?.report || normalized) as Record<string, unknown>;
   
   return {
-    totalProducts: (reportData?.totalProducts as number) ?? 0,
-    totalQuantity: (reportData?.totalQuantity as number) ?? 0,
-    lowStockCount: (reportData?.lowStockCount as number) ?? 0,
-    outOfStockCount: (reportData?.outOfStockCount as number) ?? 0,
+    totalProducts: (report?.totalProducts as number) ?? 0,
+    totalQuantity: (report?.totalQuantity as number) ?? 0,
+    lowStockCount: (report?.lowStockCount as number) ?? 0,
+    outOfStockCount: (report?.outOfStockCount as number) ?? 0,
   };
 }
 
@@ -448,11 +482,11 @@ export async function updateSupportTicketStatusRequest(
   status: SupportTicketStatus,
   adminNotes?: string
 ): Promise<SupportTicket> {
-  const { data } = await apiClient.put<SupportTicket>(`/support/tickets/${ticketId}/status`, {
+  const { data } = await apiClient.put(`/support/tickets/${ticketId}/status`, {
     status,
     adminNotes,
   });
-  return data;
+  return normalizeResponse<SupportTicket>(data);
 }
 
 export async function fetchNotifications(params?: { limit?: number; unreadOnly?: boolean }): Promise<AdminNotification[]> {
@@ -467,22 +501,11 @@ export async function fetchNotifications(params?: { limit?: number; unreadOnly?:
 
 export async function fetchUnreadNotificationCount(): Promise<number> {
   try {
-    const { data } = await apiClient.get<{ count: number } | { data: { count: number } }>('/notifications/unread-count');
-    
-    // Handle wrapped response (data.data.count) or direct response (data.count)
-    if (data && typeof data === 'object') {
-      if ('data' in data && data.data && typeof data.data === 'object' && 'count' in data.data) {
-        return (data.data as { count: number }).count ?? 0;
-      }
-      if ('count' in data) {
-        return (data as { count: number }).count ?? 0;
-      }
-    }
-    
-    return 0;
+    const { data } = await apiClient.get('/notifications/unread-count');
+    const normalized = normalizeResponse<{ count?: number }>(data);
+    return normalized?.count ?? 0;
   } catch (error: any) {
     // Return 0 on error (e.g., 401 unauthorized, network error)
-    console.error('Error fetching unread notification count:', error);
     return 0;
   }
 }
@@ -490,20 +513,21 @@ export async function fetchUnreadNotificationCount(): Promise<number> {
 export async function createNotificationRequest(
   payload: CreateNotificationPayload
 ): Promise<AdminNotification> {
-  const { data } = await apiClient.post<AdminNotification>('/notifications', payload);
-  return data;
+  const { data } = await apiClient.post('/notifications', payload);
+  return normalizeResponse<AdminNotification>(data);
 }
 
 export async function markNotificationsReadRequest(notificationIds?: string[]): Promise<number> {
-  const { data } = await apiClient.put<{ count: number }>('/notifications/mark-as-read', {
+  const { data } = await apiClient.put('/notifications/mark-as-read', {
     notificationIds,
   });
-  return data.count;
+  const normalized = normalizeResponse<{ count?: number }>(data);
+  return normalized?.count ?? 0;
 }
 
 export async function markNotificationReadRequest(notificationId: string): Promise<AdminNotification> {
-  const { data } = await apiClient.put<AdminNotification>(`/notifications/${notificationId}/mark-as-read`);
-  return data;
+  const { data } = await apiClient.put(`/notifications/${notificationId}/mark-as-read`);
+  return normalizeResponse<AdminNotification>(data);
 }
 
 export async function deleteNotificationRequest(notificationId: string): Promise<void> {
@@ -511,8 +535,8 @@ export async function deleteNotificationRequest(notificationId: string): Promise
 }
 
 export async function fetchAdminProfile(): Promise<AdminProfile> {
-  const { data } = await apiClient.get<AdminProfile>('/users/me');
-  return data;
+  const { data } = await apiClient.get('/users/me');
+  return normalizeResponse<AdminProfile>(data);
 }
 
 export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
@@ -617,16 +641,13 @@ export async function globalSearch(query: string): Promise<GlobalSearchResult> {
     params: { q: query },
   });
   
-  // Normalize response - handle both direct response and wrapped response
-  const dataObj = data as Record<string, unknown>;
-  const response = dataObj?.data || data;
-  const searchData = response as Record<string, unknown>;
+  const normalized = normalizeResponse<Record<string, unknown>>(data);
   
   return {
-    sellers: normalizeListResponse(searchData?.sellers, ['sellers', 'items', 'data']),
-    orders: normalizeListResponse(searchData?.orders, ['orders', 'items', 'data']),
-    products: normalizeListResponse(searchData?.products, ['products', 'items', 'data']),
-    deliveries: normalizeListResponse(searchData?.deliveries, ['deliveries', 'items', 'data']),
+    sellers: normalizeListResponse(normalized?.sellers, ['sellers', 'items', 'data']),
+    orders: normalizeListResponse(normalized?.orders, ['orders', 'items', 'data']),
+    products: normalizeListResponse(normalized?.products, ['products', 'items', 'data']),
+    deliveries: normalizeListResponse(normalized?.deliveries, ['deliveries', 'items', 'data']),
   };
 }
 
@@ -634,8 +655,7 @@ export async function globalSearch(query: string): Promise<GlobalSearchResult> {
 export async function fetchPlatformSettings(): Promise<PlatformSettings> {
   try {
     const { data } = await apiClient.get('/settings/platform');
-    const response = (data as Record<string, unknown>)?.data || data;
-    return response as PlatformSettings;
+    return normalizeResponse<PlatformSettings>(data);
   } catch (error: any) {
     // Return default settings if endpoint doesn't exist
     if (error?.response?.status === 404) {
@@ -655,15 +675,13 @@ export async function fetchPlatformSettings(): Promise<PlatformSettings> {
 
 export async function updatePlatformSettings(settings: Partial<PlatformSettings>): Promise<PlatformSettings> {
   const { data } = await apiClient.put('/settings/platform', settings);
-  const response = (data as Record<string, unknown>)?.data || data;
-  return response as PlatformSettings;
+  return normalizeResponse<PlatformSettings>(data);
 }
 
 export async function fetchPaymentGatewaySettings(): Promise<PaymentGatewaySettings> {
   try {
     const { data } = await apiClient.get('/settings/payment-gateway');
-    const response = (data as Record<string, unknown>)?.data || data;
-    return response as PaymentGatewaySettings;
+    return normalizeResponse<PaymentGatewaySettings>(data);
   } catch (error: any) {
     // Return default settings if endpoint doesn't exist
     if (error?.response?.status === 404) {
@@ -678,8 +696,7 @@ export async function fetchPaymentGatewaySettings(): Promise<PaymentGatewaySetti
 
 export async function updatePaymentGatewaySettings(settings: Partial<PaymentGatewaySettings>): Promise<PaymentGatewaySettings> {
   const { data } = await apiClient.put('/settings/payment-gateway', settings);
-  const response = (data as Record<string, unknown>)?.data || data;
-  return response as PaymentGatewaySettings;
+  return normalizeResponse<PaymentGatewaySettings>(data);
 }
 
 export async function fetchTeamMembers(): Promise<TeamMember[]> {
@@ -697,14 +714,12 @@ export async function fetchTeamMembers(): Promise<TeamMember[]> {
 
 export async function createTeamMember(payload: CreateTeamMemberPayload): Promise<TeamMember> {
   const { data } = await apiClient.post('/settings/team', payload);
-  const response = (data as Record<string, unknown>)?.data || data;
-  return response as TeamMember;
+  return normalizeResponse<TeamMember>(data);
 }
 
 export async function updateTeamMember(memberId: string, payload: UpdateTeamMemberPayload): Promise<TeamMember> {
   const { data } = await apiClient.put(`/settings/team/${memberId}`, payload);
-  const response = (data as Record<string, unknown>)?.data || data;
-  return response as TeamMember;
+  return normalizeResponse<TeamMember>(data);
 }
 
 export async function deleteTeamMember(memberId: string): Promise<void> {
@@ -715,17 +730,15 @@ export async function deleteTeamMember(memberId: string): Promise<void> {
 export async function fetchFeedbacks(): Promise<Feedback[]> {
   try {
     const { data } = await apiClient.get('/feedback');
-    console.log('Feedback API Response:', data);
+    const normalized = normalizeResponse<unknown>(data);
+    
     // Handle direct array response or wrapped response
-    if (Array.isArray(data)) {
-      console.log('Returning direct array, count:', data.length);
-      return data;
+    if (Array.isArray(normalized)) {
+      return normalized;
     }
-    const normalized = normalizeListResponse<Feedback>(data, ['feedbacks', 'items', 'data', 'results']);
-    console.log('Returning normalized array, count:', normalized.length);
-    return normalized;
+    
+    return normalizeListResponse<Feedback>(normalized, ['feedbacks', 'items', 'data', 'results']);
   } catch (error) {
-    console.error('Error fetching feedbacks:', error);
     throw error;
   }
 }

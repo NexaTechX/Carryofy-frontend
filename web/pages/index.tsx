@@ -253,12 +253,19 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
       }
     } else {
       const error = productsResponse.reason;
-      console.error('Error fetching products for homepage:', error);
-      console.error('Error details:', {
-        code: error?.code,
-        message: error?.message,
-        response: error?.response?.status,
-      });
+      
+      // Only log non-connection errors (connection refused is expected if backend isn't running)
+      if (error?.code !== 'ECONNREFUSED') {
+        console.error('Error fetching products for homepage:', error);
+        console.error('Error details:', {
+          code: error?.code,
+          message: error?.message,
+          response: error?.response?.status,
+        });
+      } else {
+        // Quietly handle connection refused - backend likely not running
+        console.warn('API server not available. Make sure the backend is running on port 3000.');
+      }
       
       // Only set error if it's a real connection issue
       if (error?.code === 'ECONNREFUSED' || error?.response?.status >= 500) {
@@ -275,7 +282,13 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
       const responseData = categoriesResponse.value.data?.data || categoriesResponse.value.data;
       categories = Array.isArray(responseData?.categories) ? responseData.categories : [];
     } else {
-      console.error('Error fetching categories for homepage:', categoriesResponse.reason);
+      const error = categoriesResponse.reason;
+      
+      // Only log non-connection errors (connection refused is expected if backend isn't running)
+      if (error?.code !== 'ECONNREFUSED') {
+        console.error('Error fetching categories for homepage:', error);
+      }
+      
       categoriesError = 'Unable to load categories at this time';
       // categories is already initialized as empty array, so no need to reassign
     }

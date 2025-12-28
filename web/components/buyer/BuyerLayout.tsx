@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import {
   Home,
-  List,
+  ShoppingBag,
   Package,
   MapPin,
   User,
@@ -14,6 +14,7 @@ import {
   LogOut,
   HelpCircle,
   MessageSquare,
+  Heart,
 } from 'lucide-react';
 import NotificationsDropdown from './NotificationsDropdown';
 import { useAuth, tokenManager } from '../../lib/auth';
@@ -62,8 +63,9 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
 
   const navigation = [
     { name: 'Home', href: '/buyer', icon: Home },
-    { name: 'Categories', href: '/buyer/categories', icon: List },
+    { name: 'Shop', href: '/buyer/categories', icon: ShoppingBag },
     { name: 'My Orders', href: '/buyer/orders', icon: Package },
+    { name: 'Wishlist', href: '/buyer/wishlist', icon: Heart },
     { name: 'Track Order', href: '/buyer/track', icon: MapPin },
     { name: 'Profile', href: '/buyer/profile', icon: User },
   ];

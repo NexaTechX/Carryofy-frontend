@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
+import { useCategories, Category } from '../../../lib/buyer/hooks/useCategories';
 import { 
   Package, 
   Upload, 
@@ -29,7 +30,7 @@ interface FormData {
   title: string;
   description: string;
   price: string;
-  category: string;
+  categoryId: string;
   quantity: string;
   material?: string;
   careInfo?: string;
@@ -41,20 +42,7 @@ interface UploadedImage {
   preview: string;
 }
 
-const categories = [
-  { value: 'electronics', label: 'Electronics', icon: '📱' },
-  { value: 'clothing', label: 'Clothing & Fashion', icon: '👕' },
-  { value: 'food', label: 'Food & Groceries', icon: '🍕' },
-  { value: 'books', label: 'Books & Media', icon: '📚' },
-  { value: 'home', label: 'Home & Garden', icon: '🏠' },
-  { value: 'beauty', label: 'Beauty & Health', icon: '💄' },
-  { value: 'sports', label: 'Sports & Outdoors', icon: '⚽' },
-  { value: 'toys', label: 'Toys & Games', icon: '🎮' },
-  { value: 'automotive', label: 'Automotive', icon: '🚗' },
-  { value: 'other', label: 'Other', icon: '📦' },
-];
-
-// Categories that strongly benefit from material and care information
+// Categories that strongly benefit from material and care information (by slug)
 const MATERIAL_CARE_REQUIRED_CATEGORIES = ['clothing', 'home', 'fashion'];
 const MATERIAL_CARE_RECOMMENDED_CATEGORIES = ['beauty', 'sports'];
 
@@ -95,6 +83,8 @@ const getCategoryExamples = (category: string) => {
 export default function AddProductPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { data: categoriesData, isLoading: categoriesLoading } = useCategories();
+  const categories = categoriesData?.categories || [];
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -105,7 +95,7 @@ export default function AddProductPage() {
     title: '',
     description: '',
     price: '',
-    category: '',
+    categoryId: '',
     quantity: '',
     material: '',
     careInfo: '',
@@ -137,12 +127,26 @@ export default function AddProductPage() {
     }
   }, [router, authLoading, isAuthenticated, user]);
 
+  // Helper to get selected category
+  const getSelectedCategory = () => {
+    return categories.find(c => c.id === formData.categoryId);
+  };
+
+  // Helper to get category slug
+  const getCategorySlug = () => {
+    const category = getSelectedCategory();
+    return category?.slug || '';
+  };
+
   const validateField = (name: string, value: string) => {
     switch (name) {
       case 'title':
         if (!value.trim()) return 'Product title is required';
         if (value.length < 3) return 'Title must be at least 3 characters';
         if (value.length > 100) return 'Title must be less than 100 characters';
+        break;
+      case 'categoryId':
+        if (!value) return 'Category is required';
         break;
       case 'price':
         if (!value) return 'Price is required';
@@ -155,8 +159,9 @@ export default function AddProductPage() {
       case 'material':
       case 'careInfo':
         // Warn if category requires material/care but field is empty
-        if (formData.category) {
-          const categoryInfo = shouldShowMaterialCarePrompt(formData.category);
+        const categorySlug = getCategorySlug();
+        if (categorySlug) {
+          const categoryInfo = shouldShowMaterialCarePrompt(categorySlug);
           if (categoryInfo.required && !value.trim()) {
             return 'This information is highly recommended for this product category. 88% of customers look for this information.';
           }
@@ -330,13 +335,14 @@ export default function AddProductPage() {
 
     setAiGenerating(true);
     try {
-      const categoryInfo = formData.category ? shouldShowMaterialCarePrompt(formData.category) : { required: false, recommended: false };
-      const categoryName = categories.find(c => c.value === formData.category)?.label;
+      const selectedCategory = getSelectedCategory();
+      const categorySlug = getCategorySlug();
+      const categoryInfo = categorySlug ? shouldShowMaterialCarePrompt(categorySlug) : { required: false, recommended: false };
 
       const response = await apiClient.post('/products/ai/generate-content', {
         title: formData.title,
-        category: formData.category || undefined,
-        categoryName: categoryName || undefined,
+        category: categorySlug || undefined,
+        categoryName: selectedCategory?.name || undefined,
         price: formData.price ? Math.round(parseFloat(formData.price) * 100) : undefined,
         existingDescription: formData.description || undefined,
         needsMaterial: categoryInfo.required || categoryInfo.recommended,
@@ -392,6 +398,12 @@ export default function AddProductPage() {
 
     // Validate all fields
     const newErrors: Partial<Record<keyof FormData, string>> = {};
+    
+    // Validate categoryId first
+    if (!formData.categoryId) {
+      newErrors.categoryId = 'Category is required';
+    }
+    
     Object.entries(formData).forEach(([key, value]) => {
       if (key !== 'keyFeatures') {
         const error = validateField(key, value as string);
@@ -422,12 +434,19 @@ export default function AddProductPage() {
     try {
       const priceInKobo = Math.round(parseFloat(formData.price) * 100);
 
+      if (!formData.categoryId) {
+        toast.error('Please select a category');
+        setLoading(false);
+        return;
+      }
+
       const productData = {
         title: formData.title,
         description: formData.description || undefined,
         price: priceInKobo,
         images: uploadedImages.map(img => img.url),
         quantity: parseInt(formData.quantity),
+        categoryId: formData.categoryId,
         material: formData.material || undefined,
         careInfo: formData.careInfo || undefined,
         keyFeatures: formData.keyFeatures && formData.keyFeatures.length > 0 
@@ -452,6 +471,7 @@ export default function AddProductPage() {
   const isFormValid = () => {
     return (
       formData.title.trim() &&
+      formData.categoryId &&
       formData.price &&
       parseFloat(formData.price) > 0 &&
       formData.quantity &&
@@ -883,8 +903,10 @@ export default function AddProductPage() {
 
                     {/* Material Information */}
                     {(() => {
-                      const categoryInfo = formData.category ? shouldShowMaterialCarePrompt(formData.category) : { required: false, recommended: false };
-                      const examples = formData.category ? getCategoryExamples(formData.category) : null;
+                      const categorySlug = getCategorySlug();
+                      const categoryInfo = categorySlug ? shouldShowMaterialCarePrompt(categorySlug) : { required: false, recommended: false };
+                      const examples = categorySlug ? getCategoryExamples(categorySlug) : null;
+                      const selectedCategory = getSelectedCategory();
                       const needsMaterial = categoryInfo.required || categoryInfo.recommended;
                       
                       return (
@@ -894,11 +916,10 @@ export default function AddProductPage() {
                               Materials & Composition
                               {categoryInfo.required && <span className="text-yellow-400 ml-1">*</span>}
                             </label>
-                            {needsMaterial && !formData.material && (
+                            {needsMaterial && !formData.material && examples && (
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const examples = getCategoryExamples(formData.category);
                                   setFormData(prev => ({ ...prev, material: examples.material }));
                                 }}
                                 className="text-xs text-[#ff6600] hover:text-[#ff8800] underline"
@@ -910,7 +931,7 @@ export default function AddProductPage() {
                           <textarea
                             name="material"
                             placeholder={examples?.material || "e.g., 100% Cotton, Linen blend, Polyester, etc. Include specific materials, blends, dimensions, or composition details."}
-                            value={formData.material}
+                            value={formData.material || ''}
                             onChange={handleInputChange}
                             rows={4}
                             className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all resize-none ${
@@ -921,11 +942,11 @@ export default function AddProductPage() {
                                 : 'border-[#ff6600]/30'
                             }`}
                           />
-                          {categoryInfo.required && !formData.material && (
+                          {categoryInfo.required && !formData.material && selectedCategory && (
                             <div className="mt-2 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
                               <p className="text-yellow-400 text-xs font-medium flex items-center gap-2">
                                 <AlertCircle className="w-4 h-4" />
-                                <span>88% of customers actively look for material information for {categories.find(c => c.value === formData.category)?.label.toLowerCase()} products. Adding this information improves customer confidence and reduces product returns.</span>
+                                <span>88% of customers actively look for material information for {selectedCategory.name.toLowerCase()} products. Adding this information improves customer confidence and reduces product returns.</span>
                               </p>
                             </div>
                           )}
@@ -951,8 +972,10 @@ export default function AddProductPage() {
 
                     {/* Care Instructions */}
                     {(() => {
-                      const categoryInfo = formData.category ? shouldShowMaterialCarePrompt(formData.category) : { required: false, recommended: false };
-                      const examples = formData.category ? getCategoryExamples(formData.category) : null;
+                      const categorySlug = getCategorySlug();
+                      const categoryInfo = categorySlug ? shouldShowMaterialCarePrompt(categorySlug) : { required: false, recommended: false };
+                      const examples = categorySlug ? getCategoryExamples(categorySlug) : null;
+                      const selectedCategory = getSelectedCategory();
                       const needsCareInfo = categoryInfo.required || categoryInfo.recommended;
                       
                       return (
@@ -962,11 +985,10 @@ export default function AddProductPage() {
                               Care Instructions
                               {categoryInfo.required && <span className="text-yellow-400 ml-1">*</span>}
                             </label>
-                            {needsCareInfo && !formData.careInfo && (
+                            {needsCareInfo && !formData.careInfo && examples && (
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const examples = getCategoryExamples(formData.category);
                                   setFormData(prev => ({ ...prev, careInfo: examples.careInfo }));
                                 }}
                                 className="text-xs text-[#ff6600] hover:text-[#ff8800] underline"
@@ -978,7 +1000,7 @@ export default function AddProductPage() {
                           <textarea
                             name="careInfo"
                             placeholder={examples?.careInfo || "e.g., Machine wash cold, tumble dry low, do not bleach, iron on low heat. Include washing, cleaning, storage, or maintenance instructions."}
-                            value={formData.careInfo}
+                            value={formData.careInfo || ''}
                             onChange={handleInputChange}
                             rows={4}
                             className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all resize-none ${
@@ -989,11 +1011,11 @@ export default function AddProductPage() {
                                 : 'border-[#ff6600]/30'
                             }`}
                           />
-                          {categoryInfo.required && !formData.careInfo && (
+                          {categoryInfo.required && !formData.careInfo && selectedCategory && (
                             <div className="mt-2 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
                               <p className="text-yellow-400 text-xs font-medium flex items-center gap-2">
                                 <AlertCircle className="w-4 h-4" />
-                                <span>88% of customers need care instructions for {categories.find(c => c.value === formData.category)?.label.toLowerCase()} products. Without this, customers may skip your product or make returns due to improper care.</span>
+                                <span>88% of customers need care instructions for {selectedCategory.name.toLowerCase()} products. Without this, customers may skip your product or make returns due to improper care.</span>
                               </p>
                             </div>
                           )}
@@ -1020,25 +1042,55 @@ export default function AddProductPage() {
                     {/* Category */}
                     <div>
                       <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                        Category
+                        Category <span className="text-red-400">*</span>
                       </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                        {categories.map((cat) => (
-                          <button
-                            key={cat.value}
-                            type="button"
-                            onClick={() => setFormData(prev => ({ ...prev, category: cat.value }))}
-                            className={`p-3 rounded-xl border text-center transition-all ${
-                              formData.category === cat.value
-                                ? 'bg-[#ff6600] border-[#ff6600] text-black'
-                                : 'bg-black border-[#ff6600]/30 text-[#ffcc99] hover:border-[#ff6600]/60'
-                            }`}
-                          >
-                            <span className="text-lg block mb-1">{cat.icon}</span>
-                            <span className="text-xs font-medium">{cat.label}</span>
-                          </button>
-                        ))}
-                      </div>
+                      {categoriesLoading ? (
+                        <div className="flex items-center justify-center p-8">
+                          <div className="w-8 h-8 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin"></div>
+                          <span className="ml-3 text-[#ffcc99]">Loading categories...</span>
+                        </div>
+                      ) : categories.length === 0 ? (
+                        <div className="p-4 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
+                          <p className="text-yellow-400 text-sm">No categories available. Please contact support.</p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                            {categories.map((cat) => (
+                              <button
+                                key={cat.id}
+                                type="button"
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, categoryId: cat.id }));
+                                  // Clear category error when selecting
+                                  setErrors(prev => ({ ...prev, categoryId: undefined }));
+                                }}
+                                className={`p-4 rounded-xl border text-center transition-all ${
+                                  formData.categoryId === cat.id
+                                    ? 'bg-[#ff6600] border-[#ff6600] text-black shadow-lg shadow-[#ff6600]/30'
+                                    : 'bg-black border-[#ff6600]/30 text-[#ffcc99] hover:border-[#ff6600]/60 hover:bg-[#1a1a1a]'
+                                } ${errors.categoryId ? 'border-red-500' : ''}`}
+                              >
+                                {cat.icon && (
+                                  <span className="text-2xl block mb-2">{cat.icon}</span>
+                                )}
+                                <span className="text-sm font-medium block">{cat.name}</span>
+                                {cat.productCount !== undefined && cat.productCount > 0 && (
+                                  <span className="text-xs opacity-70 mt-1 block">
+                                    {cat.productCount} product{cat.productCount !== 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                          {errors.categoryId && (
+                            <p className="mt-2 text-red-400 text-xs flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              {errors.categoryId}
+                            </p>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -102,6 +102,26 @@ export default function SettingsPage() {
     addressProofImage: false,
   });
 
+  // Notification preferences state
+  const [notificationPreferences, setNotificationPreferences] = useState({
+    email: {
+      orders: true,
+      products: true,
+      payouts: true,
+      system: true,
+      kyc: true,
+    },
+    push: {
+      orders: true,
+      products: true,
+      payouts: true,
+      system: false,
+      kyc: true,
+    },
+  });
+  const [loadingPreferences, setLoadingPreferences] = useState(false);
+  const [savingPreferences, setSavingPreferences] = useState(false);
+
 
   // Nigerian Banks list (common banks for Paystack)
   const nigerianBanks = [
@@ -157,6 +177,7 @@ export default function SettingsPage() {
     // Fetch profiles (non-blocking - page structure renders immediately)
     fetchProfiles();
     fetchKycStatus();
+    fetchNotificationPreferences();
   }, [router, authLoading, isAuthenticated, authUser]);
 
   const fetchProfiles = async () => {
@@ -793,6 +814,89 @@ export default function SettingsPage() {
         bankCode: selectedBank.code,
         bankName: selectedBank.name,
       });
+    }
+  };
+
+  const fetchNotificationPreferences = async () => {
+    setLoadingPreferences(true);
+    try {
+      const token = tokenManager.getAccessToken();
+      if (!token) {
+        setLoadingPreferences(false);
+        return;
+      }
+
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+
+      const response = await fetch(`${apiUrl}/notifications/preferences`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const preferencesData = result.data || result;
+        if (preferencesData) {
+          setNotificationPreferences({
+            email: preferencesData.email || {
+              orders: true,
+              products: true,
+              payouts: true,
+              system: true,
+              kyc: true,
+            },
+            push: preferencesData.push || {
+              orders: true,
+              products: true,
+              payouts: true,
+              system: false,
+              kyc: true,
+            },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching notification preferences:', error);
+    } finally {
+      setLoadingPreferences(false);
+    }
+  };
+
+  const handleSaveNotificationPreferences = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingPreferences(true);
+
+    try {
+      const token = tokenManager.getAccessToken();
+      if (!token) {
+        toast.error('Please log in to save preferences');
+        setSavingPreferences(false);
+        return;
+      }
+
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+
+      const response = await fetch(`${apiUrl}/notifications/preferences`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(notificationPreferences),
+      });
+
+      if (response.ok) {
+        toast.success('Notification preferences saved successfully!');
+      } else {
+        const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+        toast.error(`Failed to save preferences: ${error.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error saving notification preferences:', error);
+      toast.error('Failed to save preferences. Please try again.');
+    } finally {
+      setSavingPreferences(false);
     }
   };
 
@@ -1693,14 +1797,86 @@ export default function SettingsPage() {
                 {activeTab === 'notifications' && (
                   <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                     <h2 className="text-white text-xl font-bold mb-6">Notification Preferences</h2>
-                    <div className="space-y-4">
-                      <div className="p-4 bg-black rounded-xl border border-[#ff6600]/30">
-                        <p className="text-[#ffcc99] text-sm mb-2">Notification settings coming soon</p>
-                        <p className="text-[#ffcc99] text-xs">
-                          You'll be able to manage email notifications, push notifications, and more.
-                        </p>
+                    <p className="text-[#ffcc99] text-sm mb-6">
+                      Manage your email and push notification preferences for different types of updates.
+                    </p>
+
+                    {loadingPreferences ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin"></div>
                       </div>
-                    </div>
+                    ) : (
+                      <form onSubmit={handleSaveNotificationPreferences} className="space-y-6">
+                        {/* Email Notifications */}
+                        <div>
+                          <h3 className="text-white font-semibold mb-4">Email Notifications</h3>
+                          <div className="space-y-3">
+                            {(['orders', 'products', 'payouts', 'system', 'kyc'] as const).map((type) => (
+                              <div key={type} className="flex items-center justify-between p-3 bg-black rounded-xl border border-[#ff6600]/30">
+                                <label className="text-[#ffcc99] text-sm capitalize cursor-pointer flex-1">
+                                  {type === 'kyc' ? 'KYC' : type}
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => setNotificationPreferences({
+                                    ...notificationPreferences,
+                                    email: { ...notificationPreferences.email, [type]: !notificationPreferences.email[type] }
+                                  })}
+                                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                                    notificationPreferences.email[type] ? 'bg-[#ff6600]' : 'bg-[#1a1a1a] border border-[#ff6600]/30'
+                                  }`}
+                                >
+                                  <span
+                                    className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                                      notificationPreferences.email[type] ? 'translate-x-6' : 'translate-x-0'
+                                    }`}
+                                  />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Push Notifications */}
+                        <div>
+                          <h3 className="text-white font-semibold mb-4">Push Notifications</h3>
+                          <div className="space-y-3">
+                            {(['orders', 'products', 'payouts', 'system', 'kyc'] as const).map((type) => (
+                              <div key={type} className="flex items-center justify-between p-3 bg-black rounded-xl border border-[#ff6600]/30">
+                                <label className="text-[#ffcc99] text-sm capitalize cursor-pointer flex-1">
+                                  {type === 'kyc' ? 'KYC' : type}
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => setNotificationPreferences({
+                                    ...notificationPreferences,
+                                    push: { ...notificationPreferences.push, [type]: !notificationPreferences.push[type] }
+                                  })}
+                                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                                    notificationPreferences.push[type] ? 'bg-[#ff6600]' : 'bg-[#1a1a1a] border border-[#ff6600]/30'
+                                  }`}
+                                >
+                                  <span
+                                    className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                                      notificationPreferences.push[type] ? 'translate-x-6' : 'translate-x-0'
+                                    }`}
+                                  />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={savingPreferences}
+                          className="flex items-center justify-center gap-2 px-6 py-3 bg-[#ff6600] text-black text-sm font-bold rounded-xl hover:bg-[#cc5200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Save className="w-4 h-4" />
+                          {savingPreferences ? 'Saving...' : 'Save Preferences'}
+                        </button>
+                      </form>
+                    )}
                   </div>
                 )}
                 </>

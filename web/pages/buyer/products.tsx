@@ -32,12 +32,11 @@ interface ProductsResponse {
 }
 
 const sortOptions = [
-  { value: 'createdAt:desc', label: 'Newest First' },
-  { value: 'createdAt:asc', label: 'Oldest First' },
-  { value: 'price:asc', label: 'Price: Low to High' },
-  { value: 'price:desc', label: 'Price: High to Low' },
-  { value: 'title:asc', label: 'Name: A to Z' },
-  { value: 'title:desc', label: 'Name: Z to A' },
+  { value: 'newest', label: 'Newest First' },
+  { value: 'oldest', label: 'Oldest First' },
+  { value: 'price-low', label: 'Price: Low to High' },
+  { value: 'price-high', label: 'Price: High to Low' },
+  { value: 'popular', label: 'Most Popular' },
 ];
 
 export default function ProductsPage() {
@@ -56,7 +55,7 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
-  const [sortBy, setSortBy] = useState('createdAt:desc');
+  const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -123,9 +122,9 @@ export default function ProductsPage() {
         params.append('maxPrice', (parseFloat(maxPrice) * 100).toString());
       }
 
-      const [sortField, sortOrder] = sortBy.split(':');
-      params.append('sortBy', sortField);
-      params.append('sortOrder', sortOrder);
+      if (sortBy && sortBy !== 'newest') {
+        params.append('sortBy', sortBy);
+      }
 
       const response = await apiClient.get<ProductsResponse>(`/products?${params.toString()}`);
       
@@ -156,7 +155,7 @@ export default function ProductsPage() {
     setSelectedCategory('');
     setMinPrice('');
     setMaxPrice('');
-    setSortBy('createdAt:desc');
+    setSortBy('newest');
     setSearchQuery('');
     setCurrentPage(1);
     router.push('/buyer/products', undefined, { shallow: true });

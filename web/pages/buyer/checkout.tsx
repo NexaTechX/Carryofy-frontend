@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
+import { validateCoupon } from '../../lib/api/coupons';
 import {
   CreditCard,
   Truck,
@@ -56,6 +57,8 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [couponCode, setCouponCode] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponValidating, setCouponValidating] = useState(false);
 
   const [contactInfo, setContactInfo] = useState({
     fullName: '',
@@ -69,6 +72,10 @@ export default function CheckoutPage() {
     state: '',
     landmark: '',
   });
+
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
 
   const [cardDetails, setCardDetails] = useState({
     cardNumber: '',
@@ -175,7 +182,7 @@ export default function CheckoutPage() {
     }
   }, [shippingMethod]);
 
-  const discount = couponApplied ? Math.round((cart?.totalAmount || 0) * 0.05) : 0;
+  const discount = couponDiscount;
 
   const totalAmount = useMemo(() => {
     if (!cart) return 0;
@@ -224,16 +231,58 @@ export default function CheckoutPage() {
     }
   };
 
-  const applyCoupon = () => {
+  const applyCoupon = async () => {
     if (!couponCode.trim()) {
       setOrderMessage({ type: 'error', text: 'Please enter a coupon code.' });
       setTimeout(() => setOrderMessage(null), 2500);
       return;
     }
 
-    setCouponApplied(true);
-    setOrderMessage({ type: 'success', text: 'Coupon applied! 5% discount added.' });
-    setTimeout(() => setOrderMessage(null), 2500);
+    if (!cart || cart.items.length === 0) {
+      setOrderMessage({ type: 'error', text: 'Cart is empty.' });
+      setTimeout(() => setOrderMessage(null), 2500);
+      return;
+    }
+
+    try {
+      setCouponValidating(true);
+      setOrderMessage(null);
+      
+      const subtotal = cart.items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+      const result = await validateCoupon({
+        code: couponCode.trim(),
+        orderAmount: subtotal,
+      });
+
+      if (result.valid) {
+        setCouponApplied(true);
+        setCouponDiscount(result.discountAmount);
+        setOrderMessage({ 
+          type: 'success', 
+          text: result.message || `Coupon applied! Discount: ₦${(result.discountAmount / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+        });
+        setTimeout(() => setOrderMessage(null), 3000);
+      } else {
+        setCouponApplied(false);
+        setCouponDiscount(0);
+        setOrderMessage({ 
+          type: 'error', 
+          text: result.message || 'Invalid coupon code' 
+        });
+        setTimeout(() => setOrderMessage(null), 3000);
+      }
+    } catch (err: any) {
+      console.error('Error validating coupon:', err);
+      setCouponApplied(false);
+      setCouponDiscount(0);
+      setOrderMessage({ 
+        type: 'error', 
+        text: err.response?.data?.message || 'Failed to validate coupon code' 
+      });
+      setTimeout(() => setOrderMessage(null), 3000);
+    } finally {
+      setCouponValidating(false);
+    }
   };
 
   const validateForm = () => {
@@ -279,27 +328,35 @@ export default function CheckoutPage() {
       let addressId: string;
       
       if (shippingMethod !== 'pickup') {
-        // Create address from delivery info
-        const addressResponse = await apiClient.post('/users/me/addresses', {
-          label: 'Checkout Address',
-          line1: deliveryInfo.address,
-          line2: deliveryInfo.landmark || undefined,
-          city: deliveryInfo.city,
-          state: deliveryInfo.state,
-          country: 'Nigeria',
-        });
-        addressId = addressResponse.data.id || addressResponse.data.data?.id;
+        // Use selected address if available, otherwise create new one
+        if (selectedAddressId) {
+          addressId = selectedAddressId;
+        } else {
+          // Create address from delivery info
+          const addressResponse = await apiClient.post('/users/me/addresses', {
+            label: 'Checkout Address',
+            line1: deliveryInfo.address,
+            line2: deliveryInfo.landmark || undefined,
+            city: deliveryInfo.city,
+            state: deliveryInfo.state,
+            country: 'Nigeria',
+          });
+          addressId = addressResponse.data.id || addressResponse.data.data?.id;
+        }
       } else {
-        // For pickup, we still need an address - use a default or create one
-        // For now, we'll create a minimal address
-        const addressResponse = await apiClient.post('/users/me/addresses', {
-          label: 'Pickup Location',
-          line1: 'Store Pickup',
-          city: 'Lagos',
-          state: 'Lagos',
-          country: 'Nigeria',
-        });
-        addressId = addressResponse.data.id || addressResponse.data.data?.id;
+        // For pickup, use selected address or create a minimal one
+        if (selectedAddressId) {
+          addressId = selectedAddressId;
+        } else {
+          const addressResponse = await apiClient.post('/users/me/addresses', {
+            label: 'Pickup Location',
+            line1: 'Store Pickup',
+            city: 'Lagos',
+            state: 'Lagos',
+            country: 'Nigeria',
+          });
+          addressId = addressResponse.data.id || addressResponse.data.data?.id;
+        }
       }
 
       // Step 2: Create order with cart items
@@ -315,60 +372,23 @@ export default function CheckoutPage() {
 
       const orderId = orderResponse.data.id || orderResponse.data.data?.id;
 
-      // Step 3: Process payment based on payment method
+      // Step 4: Process payment based on payment method
       if (paymentMethod === 'card') {
-        // Validate and format card details before sending
-        const cleanedCardNumber = cardDetails.cardNumber.replace(/\s/g, '');
-        const cleanedExpiry = cardDetails.expiry.trim();
-        const cleanedCvv = cardDetails.cvv.trim();
-
-        // Validate card number format
-        if (!/^\d{13,19}$/.test(cleanedCardNumber)) {
-          throw new Error('Card number must be between 13 and 19 digits');
-        }
-
-        // Validate expiry format (MM/YY)
-        if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cleanedExpiry)) {
-          throw new Error('Expiry must be in MM/YY format (e.g., 12/25)');
-        }
-
-        // Validate CVV
-        if (!/^\d{3,4}$/.test(cleanedCvv)) {
-          throw new Error('CVV must be 3 or 4 digits');
-        }
-
-        // Prepare payment data
-        const paymentData: any = {
+        // Initialize Paystack payment
+        const paymentInitResponse = await apiClient.post('/payments/initialize', {
           orderId,
-          cardNumber: cleanedCardNumber,
-          expiry: cleanedExpiry,
-          cvv: cleanedCvv,
-        };
-        
-        // Only include cardholderName if it's not empty
-        if (contactInfo.fullName && contactInfo.fullName.trim()) {
-          paymentData.cardholderName = contactInfo.fullName.trim();
-        }
-
-        console.log('Sending payment data:', {
-          orderId,
-          cardNumber: cleanedCardNumber.replace(/\d(?=\d{4})/g, '*'), // Mask card number in logs
-          expiry: cleanedExpiry,
-          cvv: '***',
-          hasCardholderName: !!paymentData.cardholderName,
         });
 
-        // Process fake payment with card details
-        const paymentResponse = await apiClient.post('/payments/fake/process', paymentData);
+        const paymentData = paymentInitResponse.data.data || paymentInitResponse.data;
         
-        // The TransformInterceptor wraps the response, so we need to check data.data
-        const paymentResult = paymentResponse.data.data || paymentResponse.data;
-        
-        console.log('Payment response:', paymentResult);
-
-        if (!paymentResult.success) {
-          throw new Error(paymentResult.message || 'Payment failed');
+        if (!paymentData.authorization_url) {
+          throw new Error('Failed to initialize payment. Please try again.');
         }
+
+        // Redirect to Paystack payment page
+        // The webhook will handle payment confirmation
+        window.location.href = paymentData.authorization_url;
+        return; // Don't continue - user will be redirected to Paystack
       } else if (paymentMethod === 'transfer') {
         // For transfer, order remains in PENDING_PAYMENT status
         // User will need to complete payment manually
@@ -407,7 +427,7 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Step 4: Clear cart and redirect (for card payments)
+      // Step 5: Clear cart and redirect (for card payments)
       try {
         await apiClient.delete('/cart');
       } catch (err) {
@@ -716,20 +736,11 @@ export default function CheckoutPage() {
                     <h2 className="text-white text-xl font-bold">Payment Method</h2>
                   </div>
 
-                  {/* Test Card Info */}
+                  {/* Payment Info */}
                   {paymentMethod === 'card' && (
-                    <div className="mb-4 p-3 bg-[#ff6600]/10 border border-[#ff6600]/30 rounded-lg">
-                      <p className="text-xs text-[#ffcc99] mb-1">
-                        <strong className="text-white">Test Mode:</strong> Use these test card numbers:
-                      </p>
-                      <ul className="text-xs text-[#ffcc99] space-y-1 ml-4">
-                        <li>• <code className="text-[#ff6600]">4111111111111111</code> - Visa (Success)</li>
-                        <li>• <code className="text-[#ff6600]">5555555555554444</code> - Mastercard (Success)</li>
-                        <li>• <code className="text-[#ff6600]">4242424242424242</code> - Visa (Success)</li>
-                        <li>• <code className="text-[#ff6600]">4000000000000002</code> - Visa (Declined)</li>
-                      </ul>
-                      <p className="text-xs text-[#ffcc99] mt-2">
-                        Use any future expiry date (e.g., 12/25) and any 3-digit CVV.
+                    <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <p className="text-xs text-[#ffcc99]">
+                        <strong className="text-white">Secure Payment:</strong> You will be redirected to Paystack for secure payment processing. All card details are handled securely by Paystack.
                       </p>
                     </div>
                   )}
@@ -869,16 +880,16 @@ export default function CheckoutPage() {
                     <button
                       type="button"
                       onClick={applyCoupon}
-                      disabled={couponApplied}
+                      disabled={couponApplied || couponValidating}
                       className="px-6 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
-                      {couponApplied ? 'Applied' : 'Apply'}
+                      {couponValidating ? 'Validating...' : couponApplied ? 'Applied' : 'Apply'}
                     </button>
                   </div>
                   {couponApplied && (
                     <p className="mt-2 text-green-400 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4" />
-                      Coupon applied! 5% discount added to your order.
+                      Coupon applied! Discount: ₦{(couponDiscount / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   )}
                 </section>

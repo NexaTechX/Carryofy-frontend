@@ -16,6 +16,9 @@ import {
   ShoppingCart,
   Clock,
   ShieldCheck,
+  Star,
+  BarChart3,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuth, tokenManager } from '../../lib/auth';
 
@@ -215,6 +218,8 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
     { name: 'Dashboard', href: '/seller', icon: LayoutDashboard },
     { name: 'Products', href: '/seller/products', icon: Package },
     { name: 'Orders', href: '/seller/orders', icon: Files },
+    { name: 'Reviews', href: '/seller/reviews', icon: Star },
+    { name: 'Analytics', href: '/seller/analytics', icon: BarChart3 },
     { name: 'Earnings', href: '/seller/earnings', icon: DollarSign },
     { name: 'Identity Verification', href: '/seller/settings?tab=kyc', icon: ShieldCheck },
     { name: 'Settings', href: '/seller/settings', icon: Settings },
@@ -452,13 +457,20 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             </div>
 
             {/* Help and Support */}
-            <div className="px-3 sm:px-4 py-3 sm:py-4 border-t border-primary/30 safe-bottom">
+            <div className="px-3 sm:px-4 py-3 sm:py-4 border-t border-primary/30 safe-bottom space-y-1">
               <Link
                 href="/seller/help"
                 className="flex items-center space-x-3 px-3 py-3 sm:py-2 text-[#ffcc99] hover:bg-gray-800 hover:text-white rounded-xl transition touch-target btn-mobile"
               >
                 <HelpCircle className="w-5 h-5" />
                 <span className="font-medium text-sm">Help and Support</span>
+              </Link>
+              <Link
+                href="/seller/feedback"
+                className="flex items-center space-x-3 px-3 py-3 sm:py-2 text-[#ffcc99] hover:bg-gray-800 hover:text-white rounded-xl transition touch-target btn-mobile"
+              >
+                <MessageSquare className="w-5 h-5" />
+                <span className="font-medium text-sm">Feedback</span>
               </Link>
             </div>
           </div>

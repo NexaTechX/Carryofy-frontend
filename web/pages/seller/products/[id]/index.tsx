@@ -19,6 +19,7 @@ import {
   TrendingUp,
   AlertCircle,
   ExternalLink,
+  Copy,
 } from 'lucide-react';
 
 interface Product {
@@ -78,6 +79,7 @@ export default function ProductDetailPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
   const [stats, setStats] = useState<{
     views: number;
     orders: number;
@@ -212,6 +214,24 @@ export default function ProductDetailPage() {
     } finally {
       setDeleting(false);
       setDeleteConfirm(false);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    if (!product) return;
+    setDuplicating(true);
+    try {
+      const response = await apiClient.post('/products/clone', {
+        productId: product.id,
+      });
+      const clonedProduct = response.data?.data || response.data;
+      toast.success('Product duplicated successfully');
+      router.push(`/seller/products/${clonedProduct.id}`);
+    } catch (error: any) {
+      console.error('Error duplicating product:', error);
+      toast.error(error?.response?.data?.message || 'Failed to duplicate product');
+    } finally {
+      setDuplicating(false);
     }
   };
 

@@ -17,40 +17,40 @@ export default function Blog() {
     const blogKeywords = [
         // Blog intent keywords
         'ecommerce blog Nigeria',
-        'logistics blog Africa',
-        'business tips Nigeria',
-        'online selling tips',
-        'merchant growth strategies',
+        'logistics blog Lagos',
+        'business tips Lagos',
+        'online shopping tips',
+        'delivery tips Lagos',
         
         // Content keywords
-        'how to sell online Nigeria',
-        'ecommerce tips Africa',
-        'logistics insights Nigeria',
-        'delivery business tips',
-        'online business Nigeria',
-        'African commerce news',
-        'startup tips Nigeria',
+        'how to shop online Lagos',
+        'ecommerce tips Lagos',
+        'logistics insights Lagos',
+        'delivery tips',
+        'online shopping Lagos',
+        'Lagos commerce news',
+        'shopping tips Lagos',
         
         // Industry news
-        'ecommerce news Nigeria',
-        'logistics news Africa',
-        'African business news',
-        'tech news Nigeria',
+        'ecommerce news Lagos',
+        'logistics news Lagos',
+        'delivery news Lagos',
+        'tech news Lagos',
         'startup news Lagos',
         
         // Educational keywords
-        'learn ecommerce Nigeria',
-        'online selling guide Africa',
-        'logistics guide Nigeria',
-        'merchant success stories',
-        'ecommerce case studies Africa',
+        'learn online shopping Lagos',
+        'shopping guide Lagos',
+        'delivery guide Lagos',
+        'buyer tips',
+        'ecommerce case studies Lagos',
         
         // Trending keywords
-        'dropshipping Nigeria',
-        'fulfillment tips Africa',
-        'inventory management Nigeria',
+        'same day delivery Lagos',
+        'delivery tips Lagos',
+        'shopping Lagos',
         'delivery optimization Lagos',
-        'AI commerce Africa',
+        'local sellers Lagos',
     ].join(', ');
 
     // Placeholder blog posts for structured data
@@ -68,9 +68,9 @@ export default function Blog() {
             date: '2024-01-10',
         },
         {
-            title: 'AI in African E-Commerce: The Future is Here',
-            excerpt: 'Explore how artificial intelligence is revolutionizing commerce in Africa, from pricing optimization to customer service.',
-            category: 'AI in Commerce',
+            title: 'How to Shop from Local Sellers in Lagos: A Complete Guide',
+            excerpt: 'Learn how to shop safely from local sellers in Lagos and get same-day delivery with Carryofy.',
+            category: 'Buyer Tips',
             date: '2024-01-05',
         },
     ];
@@ -78,8 +78,8 @@ export default function Blog() {
     return (
         <>
             <SEO
-                title="Carryofy Blog - E-Commerce Tips, Logistics Insights & African Business News"
-                description="Stay updated with the latest e-commerce trends, logistics innovations, and business tips for African entrepreneurs. Expert insights on selling online, delivery optimization, AI commerce, and growing your business in Nigeria and Africa."
+                title="Carryofy Blog - E-Commerce Tips & Delivery Insights for Lagos"
+                description="Stay updated with the latest e-commerce trends and delivery tips for Lagos. Expert insights on shopping online, delivery optimization, and local business growth."
                 keywords={blogKeywords}
                 canonical="https://carryofy.com/blog"
                 ogType="website"
@@ -100,9 +100,9 @@ export default function Blog() {
                     <div className="container mx-auto px-4">
                         {/* Hero Section */}
                         <header className="text-center mb-16">
-                            <h1 className="text-4xl font-bold mb-6">Insights on African Commerce, Logistics & AI</h1>
+                            <h1 className="text-4xl font-bold mb-6">Insights on Shopping & Delivery in Lagos</h1>
                             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                                Stay updated with the latest trends, tips, and strategies for growing your business in Nigeria and across Africa.
+                                Stay updated with the latest trends, tips, and strategies for shopping from local sellers in Lagos.
                             </p>
                         </header>
 
@@ -150,7 +150,7 @@ export default function Blog() {
                         <section className="text-center py-12 bg-white rounded-2xl max-w-4xl mx-auto">
                             <h2 className="text-2xl font-bold mb-4">More Content Coming Soon!</h2>
                             <p className="text-gray-600 mb-8 max-w-xl mx-auto">
-                                We&apos;re working on more valuable content for Nigerian and African entrepreneurs. 
+                                We&apos;re working on more valuable content for shoppers and sellers in Lagos. 
                                 Subscribe to get notified when new articles are published.
                             </p>
                             <form className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto px-4">
@@ -182,8 +182,8 @@ export default function Blog() {
                                         desc: 'Insights on optimizing delivery, reducing costs, and improving customer satisfaction.',
                                     },
                                     {
-                                        title: 'AI & Technology',
-                                        desc: 'How AI and technology are transforming African commerce.',
+                                        title: 'Buyer Tips',
+                                        desc: 'Learn how to shop safely from local sellers in Lagos and get reliable same-day delivery.',
                                     },
                                     {
                                         title: 'Merchant Success Stories',

@@ -42,6 +42,7 @@ export default function NotificationsPage() {
   const [showPreferences, setShowPreferences] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [savingPreferences, setSavingPreferences] = useState(false);
 
   // Notification preferences
   const [preferences, setPreferences] = useState({
@@ -80,8 +81,9 @@ export default function NotificationsPage() {
       return;
     }
 
-    // Fetch notifications
+    // Fetch notifications and preferences
     fetchNotifications();
+    fetchPreferences();
   }, [router, authLoading, isAuthenticated, user]);
 
   const fetchNotifications = async () => {
@@ -275,14 +277,86 @@ export default function NotificationsPage() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const fetchPreferences = async () => {
+    try {
+      const token = tokenManager.getAccessToken();
+      if (!token) {
+        return;
+      }
+
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+
+      const response = await fetch(`${apiUrl}/notifications/preferences`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const preferencesData = result.data || result;
+        if (preferencesData) {
+          setPreferences({
+            email: preferencesData.email || {
+              orders: true,
+              products: true,
+              payouts: true,
+              system: true,
+              kyc: true,
+            },
+            push: preferencesData.push || {
+              orders: true,
+              products: true,
+              payouts: true,
+              system: false,
+              kyc: true,
+            },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching notification preferences:', error);
+    }
+  };
+
   const filteredNotifications = filter === 'all' 
     ? notifications 
     : notifications.filter(n => n.type === filter);
 
   const savePreferences = async () => {
-    // TODO: Implement API call to save notification preferences
-    toast.success('Notification preferences saved!');
-    setShowPreferences(false);
+    setSavingPreferences(true);
+    try {
+      const token = tokenManager.getAccessToken();
+      if (!token) {
+        toast.error('Please log in to save preferences');
+        setSavingPreferences(false);
+        return;
+      }
+
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+
+      const response = await fetch(`${apiUrl}/notifications/preferences`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(preferences),
+      });
+
+      if (response.ok) {
+        toast.success('Notification preferences saved!');
+        setShowPreferences(false);
+      } else {
+        const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+        toast.error(`Failed to save preferences: ${error.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error saving notification preferences:', error);
+      toast.error('Failed to save preferences. Please try again.');
+    } finally {
+      setSavingPreferences(false);
+    }
   };
 
   // Show loading state while auth is initializing
@@ -449,9 +523,10 @@ export default function NotificationsPage() {
 
                   <button
                     onClick={savePreferences}
-                    className="w-full px-6 py-3 bg-[#ff6600] text-black text-sm font-bold rounded-xl hover:bg-[#cc5200] transition-colors"
+                    disabled={savingPreferences}
+                    className="w-full px-6 py-3 bg-[#ff6600] text-black text-sm font-bold rounded-xl hover:bg-[#cc5200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Save Preferences
+                    {savingPreferences ? 'Saving...' : 'Save Preferences'}
                   </button>
                 </div>
               </div>

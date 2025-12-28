@@ -41,13 +41,13 @@ export default function About() {
   return (
     <>
       <SEO
-        title="About Carryofy - Leading AI E-Commerce & Logistics Company in Nigeria | Our Mission & Vision"
-        description="Learn about Carryofy, Nigeria's trusted AI-powered e-commerce fulfillment platform founded in Lagos. We connect sellers and buyers across Africa with integrated marketplace, logistics, and warehouse solutions. Transforming African commerce with technology."
+        title="About Carryofy - Same-Day Delivery Platform for Lagos | Our Mission & Vision"
+        description="Learn about Carryofy, Lagos' trusted same-day delivery platform. We connect buyers with verified local sellers and handle reliable delivery in Lagos, Nigeria."
         keywords={aboutKeywords}
         canonical="https://carryofy.com/about"
         ogType="website"
         ogImage="https://carryofy.com/og/about.png"
-        ogImageAlt="About Carryofy - Africa's Leading E-Commerce Platform"
+        ogImageAlt="About Carryofy - Same-Day Delivery Platform for Lagos"
       />
       
       <CombinedSchema
@@ -68,7 +68,7 @@ export default function About() {
                 About Carryofy
               </h1>
               <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-                Empowering Nigerian businesses with seamless e-commerce fulfillment and AI-powered logistics solutions
+                Enabling same-day delivery for trusted local sellers in Lagos
               </p>
             </div>
           </section>
@@ -82,7 +82,7 @@ export default function About() {
                     Our Mission
                   </h2>
                   <p className="text-base sm:text-lg text-gray-600 leading-relaxed text-center">
-                    Carryofy is transforming African commerce by building a reliable, scalable, and intelligent infrastructure for buying and selling. We empower merchants with AI-powered tools, seamless logistics, and same-day delivery to compete in the global marketplace.
+                    Carryofy helps urban customers in Lagos get same-day delivery from trusted local sellers. We connect buyers with verified sellers and handle reliable delivery, without the WhatsApp stress.
                   </p>
                 </div>
 
@@ -91,7 +91,7 @@ export default function About() {
                     Our Vision
                   </h2>
                   <p className="text-base sm:text-lg text-gray-600 leading-relaxed text-center">
-                    To become Africa&apos;s most trusted commerce engine—powering millions of businesses with AI, logistics, and financial tools. We envision a future where every African entrepreneur has access to world-class e-commerce infrastructure.
+                    To become Lagos' most trusted same-day delivery platform. We envision a future where buying from local sellers is as reliable and easy as ordering from any major retailer.
                   </p>
                 </div>
               </div>
@@ -106,7 +106,7 @@ export default function About() {
                   Our Story
                 </h2>
                 <p className="text-base sm:text-lg text-gray-600 leading-relaxed text-center">
-                  Born in Lagos, Carryofy began with a simple idea: make commerce seamless for sellers and fast for buyers. We saw the challenges African merchants face—fragmented logistics, unreliable delivery, and complex fulfillment. Today, we are building the continent&apos;s first integrated commerce OS, serving thousands of merchants across Nigeria.
+                  Born in Lagos, Carryofy began with a simple idea: help urban customers get same-day delivery from trusted local sellers, without WhatsApp stress. We saw the challenges buyers face with unreliable Instagram vendors and delayed deliveries. Today, we're building reliable same-day delivery in Lagos, connecting buyers with verified sellers.
                 </p>
               </div>
             </div>
@@ -120,9 +120,9 @@ export default function About() {
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
                 {[
-                  { title: 'Innovation', desc: 'We constantly push boundaries to create better solutions with AI and technology.' },
-                  { title: 'Reliability', desc: 'We deliver on our promises, every single time. 99.8% satisfaction rate.' },
-                  { title: 'Efficiency', desc: 'We optimize every step to save time and resources for our merchants.' },
+                  { title: 'Reliability', desc: 'We deliver on our promises. Order today, receive today. Or your money back.' },
+                  { title: 'Simplicity', desc: 'Buying from local sellers should be simple. No WhatsApp stress, just order and receive.' },
+                  { title: 'Trust', desc: 'We verify every seller so you can shop with confidence.' },
                   { title: 'Customer-first', desc: 'Your success is our top priority. We grow when you grow.' },
                   { title: 'Transparency', desc: 'We believe in open and honest communication with all stakeholders.' },
                 ].map((value, index) => (
@@ -143,7 +143,7 @@ export default function About() {
                   { value: '12,450+', label: 'Deliveries Completed' },
                   { value: '99.8%', label: 'Satisfaction Rate' },
                   { value: '1,000+', label: 'Active Merchants' },
-                  { value: '36', label: 'Nigerian States Covered' },
+                  { value: 'Lagos', label: 'Coverage Area' },
                 ].map((stat, index) => (
                   <div key={index}>
                     <p className="text-3xl md:text-4xl font-bold text-primary mb-2">{stat.value}</p>
@@ -161,8 +161,7 @@ export default function About() {
                 Join Us Today
               </h2>
               <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto">
-                Whether you&apos;re a seller looking to expand your reach or a buyer seeking quality
-                products with fast delivery, Carryofy is here to help you succeed in African commerce.
+                Shop from trusted local sellers in Lagos and get same-day delivery, without the WhatsApp stress. Order today, receive today.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <a

@@ -63,7 +63,7 @@ export default function Contact() {
     'Carryofy partnership',
     'Carryofy business inquiries',
     'logistics partnership Nigeria',
-    'ecommerce partnership Africa',
+    'ecommerce partnership Lagos',
     
     // Location keywords
     'Carryofy Lagos office',

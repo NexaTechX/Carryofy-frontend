@@ -128,7 +128,7 @@ export default function MerchantOnboarding() {
         },
         {
             name: 'Add Your Products',
-            text: 'Upload your product photos, write compelling descriptions, and set competitive prices. Our AI-powered tools help optimize your listings for maximum visibility.',
+            text: 'Upload your product photos, write compelling descriptions, and set competitive prices. We help optimize your listings for maximum visibility.',
             url: '/seller/products/new',
         },
         {
@@ -145,7 +145,7 @@ export default function MerchantOnboarding() {
         <>
             <SEO
                 title="Become a Seller on Carryofy - Sell Online in Nigeria | Free Registration, Fast Payouts"
-                description="Join thousands of successful merchants on Carryofy. List your products, reach millions of Nigerian buyers, and enjoy seamless logistics with same-day delivery in Lagos. Zero upfront costs, AI-powered tools, warehouse storage included, and payouts within 24-48 hours. Start selling today!"
+                description="Join trusted sellers on Carryofy. List your products, reach buyers in Lagos, and enjoy reliable same-day delivery. Zero upfront costs, fast payouts within 24-48 hours. Start selling today!"
                 keywords={merchantKeywords}
                 canonical="https://carryofy.com/merchant-onboarding"
                 ogType="website"
@@ -160,7 +160,7 @@ export default function MerchantOnboarding() {
                 ]}
                 howTo={{
                     name: 'How to Start Selling on Carryofy in Nigeria',
-                    description: 'A complete guide to becoming a successful seller on Carryofy, Africa\'s leading e-commerce platform. Learn how to register, list products, and start earning.',
+                    description: 'A complete guide to becoming a successful seller on Carryofy in Lagos. Learn how to register, list products, and start earning.',
                     steps: howToSteps,
                     totalTime: 'PT15M',
                 }}
@@ -177,7 +177,7 @@ export default function MerchantOnboarding() {
                             </span>
                             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">Sell Smarter with Carryofy</h1>
                             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-                                The all-in-one platform for African merchants. Zero upfront costs, AI-powered tools, same-day delivery, and fast payouts.
+                                Start selling to buyers in Lagos. Zero upfront costs, same-day delivery, and fast payouts.
                             </p>
                             <div className="flex flex-col sm:flex-row justify-center gap-4">
                                 <a

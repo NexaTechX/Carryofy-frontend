@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
-import { Search, Trash2, Plus, Package, Edit, Eye, MoreVertical, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Search, Trash2, Plus, Package, Edit, Eye, MoreVertical, Clock, CheckCircle, XCircle, AlertCircle, CheckSquare, Square, Copy } from 'lucide-react';
 import { useAuth } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
 import Link from 'next/link';
@@ -54,6 +54,10 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [duplicating, setDuplicating] = useState<string | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<string | null>(null);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -143,9 +147,91 @@ export default function ProductsPage() {
     }
   };
 
+  const handleDuplicate = async (productId: string) => {
+    setDuplicating(productId);
+    try {
+      const response = await apiClient.post('/products/clone', {
+        productId,
+      });
+      const clonedProduct = response.data?.data || response.data;
+      toast.success('Product duplicated successfully');
+      // Navigate to the cloned product's edit page
+      window.location.href = `/seller/products/${clonedProduct.id}`;
+    } catch (error: any) {
+      console.error('Error duplicating product:', error);
+      toast.error(error?.response?.data?.message || 'Failed to duplicate product');
+    } finally {
+      setDuplicating(null);
+    }
+  };
+
   const filteredProducts = products.filter((product) =>
     product.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleSelectProduct = (productId: string) => {
+    setSelectedProducts((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedProducts.size === filteredProducts.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedProducts.size === 0) return;
+
+    if (!confirm(`Are you sure you want to delete ${selectedProducts.size} product(s)? This action cannot be undone.`)) {
+      return;
+    }
+
+    setBulkProcessing(true);
+    try {
+      const response = await apiClient.post('/products/bulk/delete', {
+        productIds: Array.from(selectedProducts),
+      });
+      toast.success(response.data?.message || `Successfully deleted ${response.data?.deleted || 0} product(s)`);
+      setSelectedProducts(new Set());
+      fetchProducts();
+    } catch (error: any) {
+      console.error('Error bulk deleting products:', error);
+      toast.error(error?.response?.data?.message || 'Failed to delete products');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const handleBulkStatusChange = async (status: string) => {
+    if (selectedProducts.size === 0) return;
+
+    setBulkProcessing(true);
+    try {
+      const response = await apiClient.post('/products/bulk/status', {
+        productIds: Array.from(selectedProducts),
+        status,
+      });
+      toast.success(response.data?.message || `Successfully updated ${response.data?.updated || 0} product(s)`);
+      setSelectedProducts(new Set());
+      setBulkAction(null);
+      fetchProducts();
+    } catch (error: any) {
+      console.error('Error bulk updating status:', error);
+      toast.error(error?.response?.data?.message || 'Failed to update product status');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
 
   if (authLoading) {
     return (
@@ -273,6 +359,19 @@ export default function ProductsPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-[#0a0a0a] border-b border-[#ff6600]/20">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider w-12">
+                        <button
+                          onClick={handleSelectAll}
+                          className="p-1 hover:bg-[#ff6600]/10 rounded transition-colors"
+                          title="Select All"
+                        >
+                          {selectedProducts.size === filteredProducts.length && filteredProducts.length > 0 ? (
+                            <CheckSquare className="w-5 h-5 text-[#ff6600]" />
+                          ) : (
+                            <Square className="w-5 h-5 text-[#ffcc99]/60" />
+                          )}
+                        </button>
+                      </th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
                         Product
                       </th>
@@ -295,8 +394,21 @@ export default function ProductsPage() {
                       const statusCfg = getStatusConfig(product.status);
                       const stockStatus = getStockStatus(product.quantity);
                       
+                      const isSelected = selectedProducts.has(product.id);
                       return (
                         <tr key={product.id} className="hover:bg-[#ff6600]/5 transition-colors">
+                          <td className="px-6 py-4">
+                            <button
+                              onClick={() => handleSelectProduct(product.id)}
+                              className="p-1 hover:bg-[#ff6600]/10 rounded transition-colors"
+                            >
+                              {isSelected ? (
+                                <CheckSquare className="w-5 h-5 text-[#ff6600]" />
+                              ) : (
+                                <Square className="w-5 h-5 text-[#ffcc99]/60" />
+                              )}
+                            </button>
+                          </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-4">
                               <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#0a0a0a] border border-[#ff6600]/20 flex-shrink-0">
@@ -350,6 +462,14 @@ export default function ProductsPage() {
                               >
                                 <Eye className="w-4 h-4" />
                               </Link>
+                              <button
+                                onClick={() => handleDuplicate(product.id)}
+                                disabled={duplicating === product.id}
+                                className="p-2 text-[#ffcc99] hover:text-[#ff6600] hover:bg-[#ff6600]/10 rounded-lg transition-colors disabled:opacity-50"
+                                title="Duplicate"
+                              >
+                                <Copy className="w-4 h-4" />
+                              </button>
                               <button
                                 onClick={() => handleDeleteClick(product.id)}
                                 className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
@@ -410,6 +530,14 @@ export default function ProductsPage() {
                           <Edit className="w-4 h-4" />
                           Edit
                         </Link>
+                        <button
+                          onClick={() => handleDuplicate(product.id)}
+                          disabled={duplicating === product.id}
+                          className="flex items-center gap-1 px-3 py-1.5 text-[#ffcc99] hover:text-[#ff6600] text-sm font-medium disabled:opacity-50"
+                        >
+                          <Copy className="w-4 h-4" />
+                          {duplicating === product.id ? 'Duplicating...' : 'Duplicate'}
+                        </button>
                         <button
                           onClick={() => handleDeleteClick(product.id)}
                           className="flex items-center gap-1 px-3 py-1.5 text-red-400 hover:text-red-300 text-sm font-medium"

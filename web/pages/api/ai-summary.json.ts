@@ -88,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
       const [productsRes, categoriesRes] = await Promise.all([
-        fetch(`${API_URL}/products?limit=50&status=ACTIVE&sortBy=createdAt&sortOrder=desc`),
+        fetch(`${API_URL}/products?limit=50&status=ACTIVE&sortBy=newest`),
         fetch(`${API_URL}/categories`),
       ]);
 

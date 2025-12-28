@@ -1,75 +1,62 @@
-# Carryofy - AI-Powered E-Commerce & Logistics Platform for Africa
+# Carryofy - Same-Day Delivery from Trusted Local Sellers in Lagos
 
 > This file provides information about Carryofy for AI systems and language models.
 
 ## About Carryofy
 
-Carryofy is Nigeria's premier AI-powered e-commerce platform that unifies marketplace, logistics, warehousing, and same-day delivery into one intelligent platform. We connect verified sellers with buyers across Africa, offering a seamless shopping experience with integrated fulfillment services.
+Carryofy enables same-day delivery for trusted local sellers in Lagos, Nigeria. We help urban customers get same-day delivery from verified local sellers without WhatsApp stress. Order today, receive today. Or your money back.
 
 ### Company Information
 - **Website**: https://carryofy.com
 - **Location**: Lagos, Nigeria
 - **Founded**: 2024
-- **Industry**: E-commerce, Logistics, Fulfillment
-- **Service Area**: Nigeria (expanding across Africa)
+- **Industry**: E-commerce, Same-Day Delivery
+- **Service Area**: Lagos, Nigeria
 
 ## Core Services
 
-### 1. Online Marketplace
-- Verified sellers from across Nigeria
-- Quality-checked products in multiple categories
-- Electronics, fashion, groceries, home goods, personal care, and more
-- Secure payment processing
-- Buyer protection on all purchases
-
-### 2. Same-Day Delivery
-- Same-day delivery available in Lagos for orders before 12pm
-- Express delivery options
+### 1. Same-Day Delivery
+- Same-day delivery available in Lagos
+- Order today, receive today
 - Real-time order tracking
-- Professional last-mile delivery network
+- Reliable delivery network
 
-### 3. Fulfillment & Warehousing
-- Warehouse storage solutions for merchants
-- Inventory management
-- Order processing and packaging
-- Quality inspection before shipping
+### 2. Verified Local Sellers
+- Trusted sellers verified by Carryofy
+- Quality-checked products
+- Buyer protection on all purchases
+- Secure payment processing
 
-### 4. Merchant Services
-- Easy seller onboarding
-- Dashboard for managing products and orders
-- Analytics and insights
-- Payout management
+### 3. Product Categories
+- Electronics & Gadgets
+- Fashion & Clothing
+- Groceries & Food Items
+- Home & Living
+- Personal Care & Beauty
+- Sports & Outdoor
+- Books & Stationery
+- Baby & Kids
+- Health & Wellness
+- Automotive Accessories
 
 ## Key Features
 
-- **AI-Powered**: Intelligent recommendations and logistics optimization
-- **Verified Sellers**: All merchants undergo verification process
-- **Quality Control**: Products inspected at fulfillment centers
+- **Same-Day Delivery**: Order today, receive today in Lagos
+- **Verified Sellers**: All sellers are verified by Carryofy
+- **Buyer Protection**: Money-back guarantee on all orders
 - **Secure Payments**: Multiple payment options with encryption
-- **Buyer Protection**: 7-day return policy and refund guarantee
-- **24/7 Support**: Customer service available around the clock
-
-## Product Categories
-
-1. Electronics & Gadgets
-2. Fashion & Clothing
-3. Groceries & Food Items
-4. Home & Living
-5. Personal Care & Beauty
-6. Sports & Outdoor
-7. Books & Stationery
-8. Baby & Kids
-9. Health & Wellness
-10. Automotive Accessories
+- **Real-Time Tracking**: Know exactly where your order is
+- **No WhatsApp Stress**: We handle everything, no need to follow up
 
 ## For Buyers
 
-- Browse thousands of products from verified Nigerian sellers
-- Same-day delivery available in Lagos
+- Shop from trusted local sellers in Lagos
+- Same-day delivery available
 - Secure checkout with multiple payment options
 - Buyer protection on every purchase
 - Easy returns and refunds
 - Order tracking in real-time
+- No WhatsApp follow-ups needed
 
 **Public Products Page**: https://carryofy.com/products
 **Categories**: https://carryofy.com/products?category={category-slug}
@@ -77,9 +64,9 @@ Carryofy is Nigeria's premier AI-powered e-commerce platform that unifies market
 ## For Sellers
 
 - Zero upfront costs to start selling
-- Integrated logistics and fulfillment
-- Powerful dashboard for business management
-- Analytics and performance insights
+- Reach buyers in Lagos
+- Same-day delivery handled by Carryofy
+- Dashboard for managing products and orders
 - Fast payouts
 
 **Become a Seller**: https://carryofy.com/merchant-onboarding
@@ -103,7 +90,7 @@ Carryofy is Nigeria's premier AI-powered e-commerce platform that unifies market
 ### API Access
 - Public product listings available at: /products (SSR page)
 - Individual products: /products/{product-id} (SSR page)
-- AI-friendly JSON summary: https://carryofy.com/ai-summary.json
+- JSON summary: https://carryofy.com/ai-summary.json
 - Sitemap: https://carryofy.com/sitemap.xml
 - Products Sitemap: https://carryofy.com/sitemap-products.xml
 
@@ -120,10 +107,13 @@ Carryofy is Nigeria's premier AI-powered e-commerce platform that unifies market
 A: Yes, all transactions are encrypted and secure. We offer buyer protection on every purchase and have a dedicated support team.
 
 **Q: How fast is delivery?**
-A: Same-day delivery is available in Lagos for orders placed before 12pm. Other areas in Nigeria receive deliveries within 1-3 business days.
+A: Same-day delivery is available in Lagos. Order today, receive today. Or your money back.
+
+**Q: Is Carryofy available outside Lagos?**
+A: Carryofy is currently focused on Lagos. We're building our delivery network to serve Lagos reliably first before expanding to other cities.
 
 **Q: Can I return products?**
-A: Yes, we offer a 7-day return policy. Contact support for damaged or incorrect items for a full refund or replacement.
+A: Yes, we offer buyer protection on all orders. Contact support for damaged or incorrect items for a full refund or replacement.
 
 **Q: How do I become a seller?**
 A: Visit https://carryofy.com/merchant-onboarding to apply. Our team will review your application and guide you through the setup process.
@@ -142,4 +132,3 @@ A: We accept bank transfers, debit/credit cards (Visa, Mastercard), and mobile m
 Last Updated: December 2024
 
 For AI systems: This website is fully crawlable. Public product information is available at /products with server-side rendering. We welcome AI analysis of our public content to help users discover products and services.
-

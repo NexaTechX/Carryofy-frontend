@@ -14,6 +14,8 @@ interface FormData {
   price: string;
   category: string;
   quantity: string;
+  material?: string;
+  careInfo?: string;
   keyFeatures?: string[];
 }
 
@@ -25,6 +27,9 @@ interface Product {
   quantity: number;
   images: string[];
   status: string;
+  category?: string;
+  material?: string;
+  careInfo?: string;
   keyFeatures?: string[];
 }
 
@@ -44,6 +49,8 @@ export default function EditProductPage() {
     price: '',
     category: '',
     quantity: '',
+    material: '',
+    careInfo: '',
     keyFeatures: [],
   });
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -103,8 +110,10 @@ export default function EditProductPage() {
           title: product.title,
           description: product.description || '',
           price: (product.price / 100).toFixed(2),
-          category: '',
+          category: product.category || '',
           quantity: product.quantity.toString(),
+          material: product.material || '',
+          careInfo: product.careInfo || '',
           keyFeatures: product.keyFeatures || [],
         });
         
@@ -253,10 +262,17 @@ export default function EditProductPage() {
 
     setAiGenerating(true);
     try {
+      // Determine if material/careInfo should be generated based on category
+      const materialCareCategories = ['clothing', 'home', 'fashion', 'beauty', 'sports'];
+      const needsMaterialCare = formData.category && materialCareCategories.includes(formData.category);
+
       const response = await apiClient.post('/products/ai/generate-content', {
         title: formData.title,
+        category: formData.category || undefined,
         price: formData.price ? Math.round(parseFloat(formData.price) * 100) : undefined,
         existingDescription: formData.description || undefined,
+        needsMaterial: needsMaterialCare || false,
+        needsCareInfo: needsMaterialCare || false,
       });
 
       setAiGeneratedContent(response.data);
@@ -270,7 +286,7 @@ export default function EditProductPage() {
     }
   };
 
-  const handleAcceptAIContent = (field: 'description' | 'keyFeatures') => {
+  const handleAcceptAIContent = (field: 'description' | 'keyFeatures' | 'material' | 'careInfo') => {
     if (!aiGeneratedContent) return;
 
     if (field === 'description' && aiGeneratedContent.description) {
@@ -279,6 +295,12 @@ export default function EditProductPage() {
     } else if (field === 'keyFeatures' && aiGeneratedContent.keyFeatures) {
       setFormData(prev => ({ ...prev, keyFeatures: aiGeneratedContent.keyFeatures! }));
       toast.success('Key features applied');
+    } else if (field === 'material' && aiGeneratedContent.material) {
+      setFormData(prev => ({ ...prev, material: aiGeneratedContent.material! }));
+      toast.success('Material information applied');
+    } else if (field === 'careInfo' && aiGeneratedContent.careInfo) {
+      setFormData(prev => ({ ...prev, careInfo: aiGeneratedContent.careInfo! }));
+      toast.success('Care instructions applied');
     }
   };
 
@@ -289,6 +311,8 @@ export default function EditProductPage() {
       ...prev,
       description: aiGeneratedContent.description || prev.description,
       keyFeatures: aiGeneratedContent.keyFeatures || prev.keyFeatures,
+      material: aiGeneratedContent.material || prev.material,
+      careInfo: aiGeneratedContent.careInfo || prev.careInfo,
     }));
 
     toast.success('All AI-generated content applied!');
@@ -332,6 +356,8 @@ export default function EditProductPage() {
         price: priceInKobo,
         images: uploadedImageUrls,
         quantity: parseInt(formData.quantity),
+        material: formData.material || undefined,
+        careInfo: formData.careInfo || undefined,
         keyFeatures: formData.keyFeatures && formData.keyFeatures.length > 0 
           ? formData.keyFeatures.filter(f => f.trim()).map(f => f.trim())
           : undefined,
@@ -589,6 +615,40 @@ export default function EditProductPage() {
                               </span>
                             ))}
                           </div>
+                        </div>
+                      )}
+
+                      {/* Material Preview */}
+                      {aiGeneratedContent.material && (
+                        <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-lg p-3">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <p className="text-white text-xs font-medium">Material Information</p>
+                            <button
+                              type="button"
+                              onClick={() => handleAcceptAIContent('material')}
+                              className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] text-xs rounded hover:bg-[#ff6600]/30 transition"
+                            >
+                              Accept
+                            </button>
+                          </div>
+                          <p className="text-[#ffcc99] text-xs line-clamp-2">{aiGeneratedContent.material}</p>
+                        </div>
+                      )}
+
+                      {/* Care Info Preview */}
+                      {aiGeneratedContent.careInfo && (
+                        <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-lg p-3">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <p className="text-white text-xs font-medium">Care Instructions</p>
+                            <button
+                              type="button"
+                              onClick={() => handleAcceptAIContent('careInfo')}
+                              className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] text-xs rounded hover:bg-[#ff6600]/30 transition"
+                            >
+                              Accept
+                            </button>
+                          </div>
+                          <p className="text-[#ffcc99] text-xs line-clamp-2">{aiGeneratedContent.careInfo}</p>
                         </div>
                       )}
 

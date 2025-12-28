@@ -1,12 +1,14 @@
 import { GetServerSideProps } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useRouter } from 'next/router';
+import { useState, useEffect } from 'react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import SEO, { generateKeywords } from '../../components/seo/SEO';
 import { BreadcrumbSchema, FAQSchema } from '../../components/seo/JsonLd';
-import { ChevronLeft, ChevronRight, Star, Truck, Shield, Package, Filter, X } from 'lucide-react';
+import ProductComparison from '../../components/products/ProductComparison';
+import { ChevronLeft, ChevronRight, Star, Truck, Shield, Package, Filter, X, ChevronDown, GitCompare } from 'lucide-react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
 
@@ -52,6 +54,9 @@ export const getServerSideProps: GetServerSideProps<ProductsPageProps> = async (
   const page = parseInt(query.page as string) || 1;
   const category = (query.category as string) || '';
   const search = (query.search as string) || '';
+  const sortBy = (query.sortBy as string) || 'newest';
+  const minPrice = (query.minPrice as string) || '';
+  const maxPrice = (query.maxPrice as string) || '';
   const limit = 24;
 
   try {
@@ -62,6 +67,9 @@ export const getServerSideProps: GetServerSideProps<ProductsPageProps> = async (
     // Don't send status - backend defaults to ACTIVE for public browsing
     if (category) params.append('category', category);
     if (search) params.append('search', search);
+    if (sortBy && sortBy !== 'newest') params.append('sortBy', sortBy);
+    if (minPrice) params.append('minPrice', (parseFloat(minPrice) * 100).toString()); // Convert to kobo
+    if (maxPrice) params.append('maxPrice', (parseFloat(maxPrice) * 100).toString()); // Convert to kobo
 
     const [productsResponse, categoriesResponse] = await Promise.all([
       fetch(`${API_BASE_URL}/products?${params.toString()}`),
@@ -124,7 +132,66 @@ export default function PublicProductsPage({
   searchQuery,
   error,
 }: ProductsPageProps) {
+  const router = useRouter();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  
+  // Get initial values from URL query
+  const [sortBy, setSortBy] = useState<string>((router.query.sortBy as string) || 'newest');
+  const [minPrice, setMinPrice] = useState<string>((router.query.minPrice as string) ? (parseInt(router.query.minPrice as string) / 100).toString() : '');
+  const [maxPrice, setMaxPrice] = useState<string>((router.query.maxPrice as string) ? (parseInt(router.query.maxPrice as string) / 100).toString() : '');
+  const [comparisonProducts, setComparisonProducts] = useState<Product[]>([]);
+
+  // Load comparison products from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('productComparison');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Filter to only include products that exist in current products list
+        const validProducts = parsed.filter((p: Product) => 
+          products.some(prod => prod.id === p.id)
+        );
+        setComparisonProducts(validProducts);
+      } catch (e) {
+        console.error('Error loading comparison products:', e);
+      }
+    }
+  }, [products]);
+
+  // Update state when router query changes
+  useEffect(() => {
+    setSortBy((router.query.sortBy as string) || 'newest');
+    setMinPrice((router.query.minPrice as string) ? (parseInt(router.query.minPrice as string) / 100).toString() : '');
+    setMaxPrice((router.query.maxPrice as string) ? (parseInt(router.query.maxPrice as string) / 100).toString() : '');
+  }, [router.query]);
+
+  const handleAddToComparison = (product: Product) => {
+    if (comparisonProducts.length >= 4) {
+      alert('You can compare up to 4 products at a time');
+      return;
+    }
+    if (comparisonProducts.some(p => p.id === product.id)) {
+      return; // Already in comparison
+    }
+    const updated = [...comparisonProducts, product];
+    setComparisonProducts(updated);
+    localStorage.setItem('productComparison', JSON.stringify(updated));
+  };
+
+  const handleRemoveFromComparison = (productId: string) => {
+    const updated = comparisonProducts.filter(p => p.id !== productId);
+    setComparisonProducts(updated);
+    if (updated.length === 0) {
+      localStorage.removeItem('productComparison');
+    } else {
+      localStorage.setItem('productComparison', JSON.stringify(updated));
+    }
+  };
+
+  const handleClearComparison = () => {
+    setComparisonProducts([]);
+    localStorage.removeItem('productComparison');
+  };
 
   const formatPrice = (priceInKobo: number) => {
     return `₦${(priceInKobo / 100).toLocaleString('en-NG', {
@@ -139,13 +206,46 @@ export default function PublicProductsPage({
   };
 
   // Build canonical URL
-  const buildUrl = (params: { page?: number; category?: string; search?: string }) => {
+  const buildUrl = (params: { 
+    page?: number; 
+    category?: string; 
+    search?: string;
+    sortBy?: string;
+    minPrice?: string;
+    maxPrice?: string;
+  }) => {
     const urlParams = new URLSearchParams();
     if (params.category) urlParams.set('category', params.category);
     if (params.search) urlParams.set('search', params.search);
+    if (params.sortBy && params.sortBy !== 'newest') urlParams.set('sortBy', params.sortBy);
+    if (params.minPrice) urlParams.set('minPrice', params.minPrice);
+    if (params.maxPrice) urlParams.set('maxPrice', params.maxPrice);
     if (params.page && params.page > 1) urlParams.set('page', params.page.toString());
     const queryString = urlParams.toString();
     return `/products${queryString ? `?${queryString}` : ''}`;
+  };
+
+  const handleSortChange = (newSort: string) => {
+    setSortBy(newSort);
+    const url = buildUrl({ 
+      category: selectedCategory, 
+      search: searchQuery, 
+      sortBy: newSort,
+      minPrice: minPrice || undefined,
+      maxPrice: maxPrice || undefined,
+    });
+    window.location.href = url;
+  };
+
+  const handlePriceFilter = () => {
+    const url = buildUrl({ 
+      category: selectedCategory, 
+      search: searchQuery, 
+      sortBy: sortBy !== 'newest' ? sortBy : undefined,
+      minPrice: minPrice || undefined,
+      maxPrice: maxPrice || undefined,
+    });
+    window.location.href = url;
   };
 
   // SEO content
@@ -349,6 +449,58 @@ export default function PublicProductsPage({
                     </ul>
                   </nav>
 
+                  {/* Price Range Filter */}
+                  <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-[#ff6600]/30">
+                    <h3 className="text-white font-bold text-sm mb-3">Price Range</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[#ffcc99] text-xs mb-1 block">Min Price (₦)</label>
+                        <input
+                          type="number"
+                          value={minPrice}
+                          onChange={(e) => setMinPrice(e.target.value)}
+                          placeholder="0"
+                          min="0"
+                          className="w-full px-3 py-2 bg-black border border-[#ff6600]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#ff6600]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[#ffcc99] text-xs mb-1 block">Max Price (₦)</label>
+                        <input
+                          type="number"
+                          value={maxPrice}
+                          onChange={(e) => setMaxPrice(e.target.value)}
+                          placeholder="Any"
+                          min="0"
+                          className="w-full px-3 py-2 bg-black border border-[#ff6600]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#ff6600]"
+                        />
+                      </div>
+                      <button
+                        onClick={handlePriceFilter}
+                        className="w-full px-4 py-2 bg-[#ff6600] text-black font-bold rounded-lg hover:bg-[#cc5200] transition text-sm"
+                      >
+                        Apply Filter
+                      </button>
+                      {(minPrice || maxPrice) && (
+                        <button
+                          onClick={() => {
+                            setMinPrice('');
+                            setMaxPrice('');
+                            const url = buildUrl({ 
+                              category: selectedCategory, 
+                              search: searchQuery, 
+                              sortBy: sortBy !== 'newest' ? sortBy : undefined,
+                            });
+                            window.location.href = url;
+                          }}
+                          className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] rounded-lg hover:border-[#ff6600] transition text-sm"
+                        >
+                          Clear Filter
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Why Shop Here */}
                   <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-[#ff6600]/30">
                     <h3 className="text-white font-bold text-sm mb-3">Why Shop on Carryofy?</h3>
@@ -366,16 +518,31 @@ export default function PublicProductsPage({
               {/* Products Grid */}
               <div className="flex-1 min-w-0">
                 {/* Results Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 sm:mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
                   <p className="text-[#ffcc99] text-sm sm:text-base">
                     Showing <span className="text-white font-bold">{products.length}</span> of{' '}
                     <span className="text-white font-bold">{total.toLocaleString()}</span> products
                     {selectedCategory && (
                       <>
-                        {' '}in <span className="text-[#ff6600]">{getCategoryName(selectedCategory)}</span>
+                        {' '}in <span className="text-[#ff6600] font-semibold">{getCategoryName(selectedCategory)}</span>
                       </>
                     )}
                   </p>
+                  {/* Sort Options */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-[#ffcc99] text-sm">Sort by:</label>
+                    <select 
+                      value={sortBy}
+                      onChange={(e) => handleSortChange(e.target.value)}
+                      className="px-3 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                    >
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="price-low">Price: Low to High</option>
+                      <option value="price-high">Price: High to Low</option>
+                      <option value="popular">Most Popular</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Error State */}
@@ -388,7 +555,7 @@ export default function PublicProductsPage({
                 {/* Products Grid */}
                 {products.length > 0 ? (
                   <section
-                    className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4"
+                    className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5"
                     aria-label="Products"
                     itemScope
                     itemType="https://schema.org/ItemList"
@@ -397,48 +564,78 @@ export default function PublicProductsPage({
                     {products.map((product, index) => (
                       <article
                         key={product.id}
-                        className="group bg-[#1a1a1a] border border-[#ff6600]/30 rounded-lg sm:rounded-xl overflow-hidden hover:border-[#ff6600] transition"
+                        className="group bg-[#1a1a1a] border border-[#ff6600]/20 rounded-xl overflow-hidden hover:border-[#ff6600] hover:shadow-lg hover:shadow-[#ff6600]/20 transition-all duration-300"
                         itemScope
                         itemType="https://schema.org/Product"
                         itemProp="itemListElement"
                       >
                         <meta itemProp="position" content={(index + 1).toString()} />
-                        <Link href={`/products/${product.id}`} className="block">
+                        <Link href={`/products/${product.id}`} className="block h-full flex flex-col">
                           {/* Product Image */}
-                          <div className="aspect-square bg-black relative overflow-hidden">
+                          <div className="aspect-square bg-gradient-to-br from-black to-[#1a1a1a] relative overflow-hidden">
                             {product.images && product.images.length > 0 ? (
                               <img
                                 src={product.images[0]}
                                 alt={product.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                 loading="lazy"
                                 itemProp="image"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[#ffcc99] text-sm">
-                                No Image
+                              <div className="w-full h-full flex items-center justify-center text-[#ffcc99]/50">
+                                <Package className="w-12 h-12" />
                               </div>
                             )}
                             {product.quantity === 0 && (
-                              <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
-                                <span className="text-red-400 font-bold text-xs sm:text-sm">Out of Stock</span>
+                              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-10">
+                                <span className="text-red-400 font-bold text-sm px-3 py-1 bg-black/50 rounded-full border border-red-400/50">Out of Stock</span>
                               </div>
                             )}
+                            {product.quantity > 0 && product.quantity <= 5 && (
+                              <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded-full z-10">
+                                Only {product.quantity} left
+                              </div>
+                            )}
+                            {/* Compare Button */}
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleAddToComparison(product);
+                              }}
+                              className="absolute top-2 left-2 bg-black/80 backdrop-blur-sm text-white p-2 rounded-full hover:bg-[#ff6600] transition z-10"
+                              title="Add to comparison"
+                            >
+                              <GitCompare className="w-4 h-4" />
+                            </button>
                           </div>
 
                           {/* Product Info */}
-                          <div className="p-3 sm:p-4">
+                          <div className="p-4 flex-1 flex flex-col">
                             <h3
-                              className="text-white font-medium text-xs sm:text-sm mb-1 line-clamp-2 group-hover:text-[#ff6600] transition leading-tight"
+                              className="text-white font-semibold text-sm mb-2 line-clamp-2 group-hover:text-[#ff6600] transition-colors leading-snug min-h-[2.5rem]"
                               itemProp="name"
                             >
                               {product.title}
                             </h3>
-                            <p className="text-[#ffcc99]/70 text-[10px] sm:text-xs mb-1 sm:mb-2 truncate" itemProp="brand">
-                              {product.seller.businessName}
+                            
+                            {/* Key Features */}
+                            {product.keyFeatures && product.keyFeatures.length > 0 && (
+                              <ul className="mb-2 space-y-1">
+                                {product.keyFeatures.slice(0, 2).map((feature, idx) => (
+                                  <li key={idx} className="text-[#ffcc99]/80 text-xs flex items-start gap-1.5">
+                                    <span className="text-[#ff6600] mt-0.5">•</span>
+                                    <span className="line-clamp-1">{feature}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            
+                            <p className="text-[#ffcc99]/60 text-xs mb-3 truncate" itemProp="brand">
+                              by {product.seller.businessName}
                             </p>
-                            <div itemProp="offers" itemScope itemType="https://schema.org/Offer">
-                              <p className="text-[#ff6600] font-bold text-sm sm:text-lg" itemProp="price" content={(product.price / 100).toString()}>
+                            
+                            <div className="mt-auto" itemProp="offers" itemScope itemType="https://schema.org/Offer">
+                              <p className="text-[#ff6600] font-bold text-lg mb-1" itemProp="price" content={(product.price / 100).toString()}>
                                 {formatPrice(product.price)}
                               </p>
                               <meta itemProp="priceCurrency" content="NGN" />
@@ -446,6 +643,12 @@ export default function PublicProductsPage({
                                 itemProp="availability"
                                 href={product.quantity > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}
                               />
+                              {product.quantity > 0 && (
+                                <span className="text-green-400 text-xs flex items-center gap-1">
+                                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                                  In Stock
+                                </span>
+                              )}
                             </div>
                           </div>
                         </Link>
@@ -547,19 +750,13 @@ export default function PublicProductsPage({
                     ) : (
                       <>
                         <p>
-                          Carryofy is Nigeria&apos;s premier AI-powered e-commerce platform connecting buyers with verified sellers
-                          across the country. With over {total.toLocaleString()} products available, we offer everything from
-                          electronics and fashion to groceries and home goods.
+                          Carryofy connects you with trusted local sellers in Lagos for same-day delivery. Browse {total.toLocaleString()}+ products from verified sellers, from electronics and fashion to groceries and home goods.
                         </p>
                         <p>
-                          What sets Carryofy apart is our integrated logistics network offering same-day delivery in Lagos and
-                          fast, reliable shipping across Nigeria. Every product is inspected at our fulfillment centers ensuring
-                          quality and authenticity.
+                          Order today, receive today in Lagos. Our reliable delivery network ensures fast, safe delivery without the WhatsApp stress.
                         </p>
                         <p className="hidden sm:block">
-                          Whether you&apos;re looking to buy or sell, Carryofy provides a secure, seamless experience with multiple
-                          payment options, buyer protection, and 24/7 customer support. Join thousands of satisfied customers
-                          shopping on Nigeria&apos;s most trusted marketplace.
+                          Shop with confidence from verified sellers, enjoy same-day delivery in Lagos, secure payments, and buyer protection. Order today, receive today. Or your money back.
                         </p>
                       </>
                     )}
@@ -571,6 +768,13 @@ export default function PublicProductsPage({
         </main>
 
         <Footer />
+
+        {/* Product Comparison Component */}
+        <ProductComparison
+          products={comparisonProducts}
+          onRemove={handleRemoveFromComparison}
+          onClear={handleClearComparison}
+        />
       </div>
     </>
   );

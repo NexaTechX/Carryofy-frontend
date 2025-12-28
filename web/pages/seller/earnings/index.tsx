@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
-import { DollarSign, TrendingUp, TrendingDown, Wallet, Download } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Wallet, Download, X } from 'lucide-react';
 
 interface EarningsReport {
   totalGross: number;
@@ -27,6 +27,20 @@ interface Payout {
   updatedAt: string;
 }
 
+interface PayoutRequest {
+  id: string;
+  sellerId: string;
+  amount: number;
+  status: string;
+  requestedAt: string;
+  approvedAt?: string;
+  processedAt?: string;
+  paidAt?: string;
+  cancelledAt?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
+}
+
 export default function EarningsPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -34,11 +48,13 @@ export default function EarningsPage() {
   const [loading, setLoading] = useState(true);
   const [earningsReport, setEarningsReport] = useState<EarningsReport | null>(null);
   const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
   const [availableForWithdrawal, setAvailableForWithdrawal] = useState(0);
   const [dateRange, setDateRange] = useState<'all' | 'month' | 'quarter' | 'year'>('all');
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState('');
   const [requesting, setRequesting] = useState(false);
+  const [cancelling, setCancelling] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -62,6 +78,7 @@ export default function EarningsPage() {
     // Fetch earnings data
     fetchEarningsData();
     fetchPayouts();
+    fetchPayoutRequests();
   }, [router, dateRange, authLoading, isAuthenticated, user]);
 
   const getDateRangeParams = () => {
@@ -149,6 +166,64 @@ export default function EarningsPage() {
     }
   };
 
+  const fetchPayoutRequests = async () => {
+    try {
+      const token = tokenManager.getAccessToken();
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+
+      const response = await fetch(`${apiUrl}/payouts/requests`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const requestsData = result.data || result;
+        const requestsList = Array.isArray(requestsData) ? requestsData : [];
+        setPayoutRequests(requestsList);
+      }
+    } catch (error) {
+      console.error('Error fetching payout requests:', error);
+    }
+  };
+
+  const handleCancelPayoutRequest = async (requestId: string) => {
+    if (!confirm('Are you sure you want to cancel this payout request?')) {
+      return;
+    }
+
+    setCancelling(requestId);
+    try {
+      const token = tokenManager.getAccessToken();
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+
+      const response = await fetch(`${apiUrl}/payouts/requests/${requestId}/cancel`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        toast.success('Payout request cancelled successfully');
+        fetchPayoutRequests();
+        fetchEarningsData(); // Refresh available balance
+        fetchPayouts();
+      } else {
+        const error = await response.json();
+        toast.error(error.message || 'Failed to cancel payout request');
+      }
+    } catch (error) {
+      console.error('Error cancelling payout request:', error);
+      toast.error('Failed to cancel payout request');
+    } finally {
+      setCancelling(null);
+    }
+  };
+
   const formatPrice = (priceInKobo: number) => {
     return `₦${(priceInKobo / 100).toFixed(2)}`;
   };
@@ -170,6 +245,14 @@ export default function EarningsPage() {
         return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       case 'PAID':
         return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'REQUESTED':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'CANCELLED':
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      case 'REJECTED':
+        return 'bg-red-500/20 text-red-400 border-red-500/30';
+      case 'PROCESSING':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       default:
         return 'bg-[#1a1a1a] text-white border-[#ff6600]/30';
     }
@@ -400,6 +483,75 @@ export default function EarningsPage() {
                     </span>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Payout Requests Table */}
+          {payoutRequests.length > 0 && (
+            <div className="px-4 py-3">
+              <h3 className="text-white text-lg font-bold mb-4">Payout Requests</h3>
+              <div className="flex overflow-hidden rounded-xl border border-[#ff6600]/30 bg-black">
+                <table className="flex-1">
+                  <thead>
+                    <tr className="bg-[#1a1a1a]">
+                      <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
+                        Request ID
+                      </th>
+                      <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
+                        Amount
+                      </th>
+                      <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
+                        Requested
+                      </th>
+                      <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payoutRequests.map((request) => (
+                      <tr
+                        key={request.id}
+                        className="border-t border-t-[#ff6600]/30"
+                      >
+                        <td className="h-[72px] px-4 py-2 text-white text-sm font-normal leading-normal">
+                          #{request.id.slice(0, 8)}
+                        </td>
+                        <td className="h-[72px] px-4 py-2 text-white text-sm font-bold leading-normal">
+                          {formatPrice(request.amount)}
+                        </td>
+                        <td className="h-[72px] px-4 py-2 text-[#ffcc99] text-sm font-normal leading-normal">
+                          {formatDate(request.requestedAt)}
+                        </td>
+                        <td className="h-[72px] px-4 py-2 text-sm font-normal leading-normal">
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border ${getStatusBadgeColor(
+                              request.status
+                            )}`}
+                          >
+                            {request.status}
+                          </span>
+                        </td>
+                        <td className="h-[72px] px-4 py-2 text-sm font-normal leading-normal">
+                          {request.status === 'REQUESTED' && (
+                            <button
+                              onClick={() => handleCancelPayoutRequest(request.id)}
+                              disabled={cancelling === request.id}
+                              className="flex items-center gap-1 px-3 py-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50 text-sm font-medium"
+                            >
+                              <X className="w-4 h-4" />
+                              {cancelling === request.id ? 'Cancelling...' : 'Cancel'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}

@@ -9,17 +9,17 @@ export default function Careers() {
         {
             icon: Rocket,
             title: 'Work on impactful technology',
-            desc: 'Build the infrastructure that powers African commerce and impacts millions of lives.',
+            desc: 'Build reliable same-day delivery infrastructure that serves Lagos buyers and sellers.',
         },
         {
             icon: Globe,
             title: 'Help millions of merchants scale',
-            desc: 'Your work directly impacts the livelihoods of business owners across Africa.',
+            desc: 'Your work directly impacts buyers and sellers in Lagos.',
         },
         {
             icon: Users,
             title: 'Be part of a high-growth startup',
-            desc: 'Join a team of passionate individuals changing the status quo in African tech.',
+            desc: 'Join a team of passionate individuals building reliable delivery in Lagos.',
         },
         {
             icon: Heart,
@@ -71,9 +71,9 @@ export default function Careers() {
         // Company culture keywords
         'best tech companies Nigeria',
         'top startups Lagos',
-        'African tech companies hiring',
-        'remote jobs Nigeria',
-        'tech startup careers Africa',
+        'tech companies hiring Lagos',
+        'remote jobs Lagos',
+        'tech startup careers Lagos',
         
         // Role specific keywords
         'frontend developer jobs Lagos',
@@ -87,8 +87,8 @@ export default function Careers() {
     return (
         <>
             <SEO
-                title="Careers at Carryofy - Join Africa's Leading Commerce Platform | Jobs in Lagos Nigeria"
-                description="Join the Carryofy team and help transform commerce in Africa. We're hiring engineers, product managers, designers, and operations professionals in Lagos, Nigeria. Build your career with Africa's fastest-growing e-commerce and logistics platform. Competitive salary, equity, and benefits."
+                title="Careers at Carryofy - Join Our Team in Lagos | Jobs in Lagos Nigeria"
+                description="Join the Carryofy team and help build reliable same-day delivery in Lagos. We're hiring engineers, product managers, designers, and operations professionals in Lagos, Nigeria. Build your career with Lagos' same-day delivery platform. Competitive salary, equity, and benefits."
                 keywords={careersKeywords}
                 canonical="https://carryofy.com/careers"
                 ogType="website"
@@ -109,9 +109,9 @@ export default function Careers() {
                     {/* Hero Section */}
                     <section className="bg-gradient-to-r from-primary/10 to-primary/5 py-20">
                         <div className="container mx-auto px-4 text-center">
-                            <h1 className="text-4xl md:text-5xl font-bold mb-6">Build the Future of African Commerce with Us</h1>
+                            <h1 className="text-4xl md:text-5xl font-bold mb-6">Build Reliable Same-Day Delivery in Lagos</h1>
                             <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-                                We&apos;re looking for talented individuals to join our mission of transforming e-commerce and logistics across Africa.
+                                We&apos;re looking for talented individuals to join our mission of building reliable same-day delivery for Lagos.
                             </p>
                             <a 
                                 href="#openings" 
@@ -189,7 +189,7 @@ export default function Careers() {
                         <div className="container mx-auto px-4 text-center">
                             <h2 className="text-3xl font-bold mb-4">Ready to Make an Impact?</h2>
                             <p className="text-gray-400 mb-8 max-w-xl mx-auto">
-                                Join us in building the future of commerce in Africa. Send your resume and we&apos;ll be in touch.
+                                Join us in building reliable same-day delivery in Lagos. Send your resume and we&apos;ll be in touch.
                             </p>
                             <a 
                                 href="mailto:careers@carryofy.com"

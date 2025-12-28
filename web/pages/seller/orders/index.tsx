@@ -85,10 +85,16 @@ export default function OrdersPage() {
 
       if (response.ok) {
         const result = await response.json();
-        // Handle both wrapped response (from TransformInterceptor) and direct array
-        const ordersData = result.data || result;
-        // Ensure it's always an array
-        setOrders(Array.isArray(ordersData) ? ordersData : []);
+        // Handle both wrapped response (from TransformInterceptor) and direct response
+        const responseData = result.data || result;
+        // Handle paginated response: { orders: [...], pagination: {...} } or direct array for backward compatibility
+        if (responseData.orders && Array.isArray(responseData.orders)) {
+          setOrders(responseData.orders);
+        } else if (Array.isArray(responseData)) {
+          setOrders(responseData);
+        } else {
+          setOrders([]);
+        }
       }
     } catch (error) {
       console.error('Error fetching orders:', error);

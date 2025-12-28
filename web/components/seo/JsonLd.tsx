@@ -26,7 +26,7 @@ export function OrganizationSchema({
   name = SITE_NAME,
   url = SITE_URL,
   logo = LOGO_URL,
-  description = 'Carryofy is Africa\'s leading AI-powered e-commerce platform unifying marketplace, logistics, warehousing, and delivery services for Nigerian merchants and buyers.',
+  description = 'Carryofy enables same-day delivery for trusted local sellers in Lagos. Shop from verified sellers and get fast, reliable delivery without WhatsApp stress.',
   email = 'support@carryofy.com',
   telephone = '+234-XXX-XXX-XXXX',
   address = {
@@ -69,8 +69,9 @@ export function OrganizationSchema({
       },
     ],
     areaServed: [
+      { '@type': 'City', name: 'Lagos' },
+      { '@type': 'State', name: 'Lagos State' },
       { '@type': 'Country', name: 'Nigeria' },
-      { '@type': 'Continent', name: 'Africa' },
     ],
     serviceType: [
       'E-commerce Platform',
@@ -102,7 +103,7 @@ export interface WebsiteSchemaProps {
 export function WebsiteSchema({
   url = SITE_URL,
   name = SITE_NAME,
-  description = 'AI-powered e-commerce and logistics platform for Africa',
+  description = 'Same-day delivery platform for trusted local sellers in Lagos',
   searchUrlTemplate = `${SITE_URL}/buyer/products?search={search_term_string}`,
 }: WebsiteSchemaProps) {
   const schema = {
@@ -163,7 +164,7 @@ export interface LocalBusinessSchemaProps {
 
 export function LocalBusinessSchema({
   name = 'Carryofy',
-  description = 'AI-powered e-commerce and logistics platform serving Nigeria and Africa with same-day delivery, warehouse storage, and merchant services.',
+  description = 'Same-day delivery platform for trusted local sellers in Lagos, Nigeria.',
   telephone = '+234-XXX-XXX-XXXX',
   email = 'support@carryofy.com',
   address = {
@@ -216,9 +217,7 @@ export function LocalBusinessSchema({
     priceRange,
     areaServed: [
       { '@type': 'City', name: 'Lagos' },
-      { '@type': 'City', name: 'Abuja' },
-      { '@type': 'City', name: 'Port Harcourt' },
-      { '@type': 'Country', name: 'Nigeria' },
+      { '@type': 'State', name: 'Lagos State' },
     ],
     hasOfferCatalog: {
       '@type': 'OfferCatalog',
@@ -568,7 +567,7 @@ export function SoftwareApplicationSchema() {
     name: 'Carryofy',
     operatingSystem: 'Web',
     applicationCategory: 'BusinessApplication',
-    description: 'AI-powered e-commerce and logistics platform for African merchants',
+    description: 'Same-day delivery platform for trusted local sellers in Lagos',
     offers: {
       '@type': 'Offer',
       price: '0',
@@ -584,12 +583,11 @@ export function SoftwareApplicationSchema() {
     featureList: [
       'Online Marketplace',
       'Same-Day Delivery',
-      'AI-Powered Analytics',
-      'Warehouse Management',
       'Real-Time Tracking',
       'Secure Payments',
-      'Seller Dashboard',
       'Buyer Protection',
+      'Verified Sellers',
+      'Lagos Coverage',
     ],
   };
 

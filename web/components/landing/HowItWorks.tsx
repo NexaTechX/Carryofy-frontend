@@ -1,36 +1,30 @@
 import { motion } from 'framer-motion';
-import { UserPlus, Package, Truck, CheckCircle, CreditCard } from 'lucide-react';
+import { Search, ShoppingCart, MapPin, Package } from 'lucide-react';
 
 const steps = [
   {
     id: 1,
-    title: 'Upload Products',
-    description: 'AI enhances titles & images for better visibility.',
-    icon: UserPlus,
+    title: 'Browse Products',
+    description: 'Explore verified sellers and products in Lagos.',
+    icon: Search,
   },
   {
     id: 2,
-    title: 'Send Inventory',
-    description: 'Stored in our Smart Fulfillment Center.',
-    icon: Package,
+    title: 'Add to Cart',
+    description: 'Select items and checkout securely.',
+    icon: ShoppingCart,
   },
   {
     id: 3,
-    title: 'Customer Orders',
-    description: 'We pick, pack, and ship within 15 minutes.',
-    icon: Truck,
+    title: 'Track Order',
+    description: 'Real-time tracking from pickup to delivery.',
+    icon: MapPin,
   },
   {
     id: 4,
-    title: 'Delivery',
-    description: '90-minute zones in Lagos.',
-    icon: CheckCircle,
-  },
-  {
-    id: 5,
-    title: 'Instant Payment',
-    description: 'Merchants get paid within 24 hours.',
-    icon: CreditCard,
+    title: 'Receive Same-Day',
+    description: 'Get your order delivered within hours.',
+    icon: Package,
   },
 ];
 
@@ -63,16 +57,16 @@ export default function HowItWorks() {
             transition={{ delay: 0.2 }}
             className="text-gray-600 max-w-2xl mx-auto text-sm sm:text-base lg:text-lg"
           >
-            Seamless logistics from start to finish. We make it easy for everyone.
+            Shop from trusted local sellers in Lagos and get same-day delivery. It's that simple.
           </motion.p>
         </div>
 
         <div className="relative">
-          {/* Connecting Line (Desktop - only for xl and above where we show 5 columns) */}
-          <div className="hidden xl:block absolute top-1/2 left-[10%] right-[10%] h-0.5 bg-gray-100 -translate-y-1/2 z-0"></div>
+          {/* Connecting Line (Desktop - only for xl and above where we show 4 columns) */}
+          <div className="hidden xl:block absolute top-1/2 left-[12.5%] right-[12.5%] h-0.5 bg-gray-100 -translate-y-1/2 z-0"></div>
 
-          {/* Mobile: 1 col, Tablet: 2 col, Desktop: 3 col, Large Desktop: 5 col */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 sm:gap-8 lg:gap-10 xl:gap-6 relative z-10">
+          {/* Mobile: 1 col, Tablet: 2 col, Desktop: 4 col */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10 relative z-10">
             {steps.map((step, index) => (
               <motion.div
                 key={step.id}

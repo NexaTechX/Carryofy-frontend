@@ -5,18 +5,18 @@ export default function ProblemSection() {
     const problems = [
         {
             icon: PackageX,
-            title: 'Delivery Failures',
-            description: '60%+ of online orders arrive late or never arrive at all, leading to frustrated customers and lost sales.',
+            title: 'Unreliable Vendors',
+            description: 'Instagram and WhatsApp sellers often don\'t deliver on time, or at all. You\'re left wondering where your order is.',
         },
         {
             icon: TrendingDown,
-            title: 'Seller Struggles',
-            description: 'Sellers lack professional storage, packaging, and reliable delivery services to scale their businesses.',
+            title: 'Delayed Deliveries',
+            description: 'Orders take days or weeks, with no tracking or accountability. You have to keep following up via WhatsApp.',
         },
         {
             icon: AlertTriangle,
-            title: 'Logistics Chaos',
-            description: 'No unified platform combines marketplace, logistics, fulfillment, and AI, creating operational headaches.',
+            title: 'No Accountability',
+            description: 'When something goes wrong, there\'s no customer service or refund policy. You\'re on your own.',
         },
     ];
 
@@ -25,10 +25,10 @@ export default function ProblemSection() {
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-10 sm:mb-12 lg:mb-16">
                     <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">
-                        The Problem: African Commerce Is Broken
+                        Shopping Online in Lagos Shouldn't Be This Hard
                     </h2>
                     <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto px-4">
-                        Merchants and buyers face daily challenges that hinder growth and trust.
+                        Buying from sellers shouldn't mean dealing with unreliable deliveries and WhatsApp stress in Lagos.
                     </p>
                 </div>
 

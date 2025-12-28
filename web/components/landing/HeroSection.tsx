@@ -64,11 +64,11 @@ export default function HeroSection() {
             className="text-left"
           >
             <h1 className="font-heading text-3xl xs:text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 sm:mb-6 leading-[1.1] text-white">
-              The AI-Powered Commerce Platform Transforming <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-light">African E-Commerce</span>
+              Same-Day Delivery from <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-light">Verified Sellers</span>
             </h1>
 
             <p className="text-base sm:text-lg lg:text-xl mb-6 sm:mb-8 text-gray-300 max-w-xl leading-relaxed">
-              Carryofy unifies marketplace, logistics, warehousing, and delivery into one intelligent platform—built specifically for African merchants.
+              Carryofy helps urban customers get same-day delivery from trusted local sellers without WhatsApp stress.
             </p>
 
             <div className="flex flex-col xs:flex-row gap-3 sm:gap-4">
@@ -76,14 +76,14 @@ export default function HeroSection() {
                 href="/auth/signup"
                 className="group px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-primary to-primary-light text-white rounded-full hover:shadow-lg hover:shadow-primary/40 transition-all duration-300 font-bold text-base sm:text-lg flex items-center justify-center gap-2 touch-target btn-mobile"
               >
-                Get Early Access
+                Shop Now
                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
                 href="/merchant-onboarding"
                 className="px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-md text-white rounded-full hover:bg-white/20 border border-white/20 transition-all duration-300 font-semibold text-base sm:text-lg flex items-center justify-center gap-2 touch-target btn-mobile"
               >
-                Become a Merchant
+                Become a Seller
                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Link>
             </div>
@@ -91,8 +91,8 @@ export default function HeroSection() {
             <div className="mt-8 sm:mt-12 grid grid-cols-3 gap-3 sm:gap-6 border-t border-white/10 pt-6 sm:pt-8">
               {[
                 { icon: Clock, label: "Same-Day Delivery" },
-                { icon: ShieldCheck, label: "Secure Handling" },
-                { icon: Truck, label: "Nationwide Reach" },
+                { icon: ShieldCheck, label: "Trusted Sellers" },
+                { icon: Truck, label: "Lagos Coverage" },
               ].map((item, index) => (
                 <div key={index} className="flex flex-col gap-1 sm:gap-2">
                   <item.icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />

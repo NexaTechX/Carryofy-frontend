@@ -97,9 +97,16 @@ export default function OrdersPage() {
       setError(null);
       const response = await apiClient.get('/orders');
       
-      // Handle API response wrapping
-      const ordersData = response.data.data || response.data;
-      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      // Handle API response wrapping - support both paginated and array responses
+      const responseData = response.data.data || response.data;
+      // Handle paginated response: { orders: [...], pagination: {...} } or direct array
+      if (responseData && typeof responseData === 'object' && 'orders' in responseData && Array.isArray(responseData.orders)) {
+        setOrders(responseData.orders);
+      } else if (Array.isArray(responseData)) {
+        setOrders(responseData);
+      } else {
+        setOrders([]);
+      }
     } catch (err: any) {
       console.error('Error fetching orders:', err);
       setError(err.response?.data?.message || 'Failed to load orders');

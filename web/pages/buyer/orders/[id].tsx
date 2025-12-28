@@ -20,8 +20,9 @@ import {
   XCircle,
 } from 'lucide-react';
 import { showErrorToast, showSuccessToast } from '../../../lib/ui/toast';
-import { userManager } from '../../../lib/auth';
+import { userManager, tokenManager } from '../../../lib/auth';
 import SubmitReviewModal from '../../../components/buyer/SubmitReviewModal';
+import RefundRequestModal from '../../../components/buyer/RefundRequestModal';
 
 interface OrderItem {
   id: string;
@@ -132,6 +133,8 @@ export default function BuyerOrderDetailPage() {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewItem, setReviewItem] = useState<OrderItem | null>(null);
   const [reviewedProducts, setReviewedProducts] = useState<Record<string, boolean>>({});
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [hasRefund, setHasRefund] = useState(false);
 
   // Fetch order details
   const fetchOrder = async (orderId: string) => {
@@ -158,7 +161,19 @@ export default function BuyerOrderDetailPage() {
     }
 
     fetchOrder(id);
+    checkRefundStatus(id);
   }, [router.isReady, id]);
+
+  const checkRefundStatus = async (orderId: string) => {
+    try {
+      const response = await apiClient.get(`/refunds/my-refunds`);
+      const refunds = (response.data.data || response.data) as any[];
+      const orderRefund = refunds.find((r: any) => r.orderId === orderId);
+      setHasRefund(!!orderRefund);
+    } catch (err) {
+      console.warn('Error checking refund status:', err);
+    }
+  };
 
   useEffect(() => {
     const currentUser = userManager.getUser();
@@ -272,6 +287,13 @@ export default function BuyerOrderDetailPage() {
   const canCancel = useMemo(() => {
     return order && ['PENDING_PAYMENT', 'PAID', 'PROCESSING'].includes(order.status);
   }, [order]);
+
+  // Check if order can be refunded
+  const canRefund = useMemo(() => {
+    if (!order || hasRefund) return false;
+    // Can refund if order is paid, processing, out for delivery, or delivered
+    return ['PAID', 'PROCESSING', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status);
+  }, [order, hasRefund]);
 
   // Handle marking order as received
   const handleMarkAsReceived = async () => {
@@ -563,6 +585,21 @@ export default function BuyerOrderDetailPage() {
                           {marking ? 'Confirming...' : 'Mark as received'}
                         </button>
                       )}
+                      {canRefund && (
+                        <button
+                          onClick={() => setRefundModalOpen(true)}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-xl font-bold hover:bg-blue-500/20 hover:border-blue-500 transition"
+                        >
+                          <Gift className="w-4 h-4" />
+                          Request Refund
+                        </button>
+                      )}
+                      {hasRefund && (
+                        <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 rounded-xl font-semibold">
+                          <Gift className="w-4 h-4" />
+                          Refund Requested
+                        </div>
+                      )}
                       {canCancel && (
                         <button
                           onClick={handleCancelOrder}
@@ -606,14 +643,23 @@ export default function BuyerOrderDetailPage() {
                   <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                     <h2 className="text-white text-xl font-bold mb-3">Invoice</h2>
                     <p className="text-[#ffcc99]/80 text-sm mb-4">
-                      Need a receipt for this order? Invoice downloads are coming soon. For now, you can screenshot this page or reach out to support.
+                      Download your invoice for this order. The invoice will open in a new window where you can print or save as PDF.
                     </p>
                     <button
-                      disabled
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-black border border-[#ff6600]/30 text-[#ffcc99]/60 rounded-xl cursor-not-allowed"
+                      onClick={() => {
+                        const token = tokenManager.getAccessToken();
+                        if (!token) {
+                          showErrorToast('Please log in to download invoice');
+                          return;
+                        }
+                        const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+                        const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+                        window.open(`${apiUrl}/orders/${order.id}/invoice`, '_blank');
+                      }}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
                     >
                       <Download className="w-4 h-4" />
-                      Download invoice (coming soon)
+                      Download Invoice
                     </button>
                   </div>
 
@@ -647,6 +693,19 @@ export default function BuyerOrderDetailPage() {
           setReviewModalOpen(false);
         }}
       />
+
+      {order && (
+        <RefundRequestModal
+          open={refundModalOpen}
+          orderId={order.id}
+          orderAmount={order.amount}
+          onClose={() => setRefundModalOpen(false)}
+          onSuccess={() => {
+            setHasRefund(true);
+            fetchOrder(order.id);
+          }}
+        />
+      )}
     </>
   );
 }

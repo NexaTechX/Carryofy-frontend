@@ -1,53 +1,91 @@
 import { motion } from 'framer-motion';
-import { ShoppingBag, Truck, Zap, CreditCard } from 'lucide-react';
+import { CheckCircle, ShoppingBag, Truck, CreditCard, Clock, ShieldCheck, MessageSquare } from 'lucide-react';
 
 export default function WhyChooseCarryofy() {
   const features = [
     {
-      icon: ShoppingBag,
-      title: 'Marketplace',
-      description: 'Verified sellers and personalized product discovery using AI.',
+      icon: ShieldCheck,
+      title: 'Trusted Sellers',
+      description: 'Buy from verified local sellers you can trust in Lagos.',
+    },
+    {
+      icon: Clock,
+      title: 'Same-Day Delivery',
+      description: 'Order today, receive today in Lagos.',
     },
     {
       icon: Truck,
-      title: 'Logistics',
-      description: 'Real-time rider tracking and automated dispatch engine.',
-    },
-    {
-      icon: Zap,
-      title: 'AI Tools',
-      description: 'Auto product descriptions, dynamic AI pricing, and AI-powered ads.',
+      title: 'Real-Time Tracking',
+      description: 'Know exactly where your order is at all times.',
     },
     {
       icon: CreditCard,
-      title: 'Fintech / Payments',
-      description: 'Instant wallet payouts and merchant credit (BNPL).',
+      title: 'Buyer Protection',
+      description: 'Money-back guarantee on all orders.',
+    },
+    {
+      icon: MessageSquare,
+      title: 'No WhatsApp Stress',
+      description: 'No more following up via WhatsApp. We handle everything.',
+    },
+    {
+      icon: ShoppingBag,
+      title: 'Secure Payments',
+      description: 'Safe and encrypted payment options for peace of mind.',
     },
   ];
 
   return (
-    <section className="py-12 sm:py-16 bg-gray-50">
+    <section className="py-12 sm:py-16 lg:py-20 bg-white overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4 sm:mb-6 text-black">
-          Everything a Modern African Business Needs
-        </h2>
-        <div className="text-center mb-8 sm:mb-12 px-4">
-          <p className="text-base sm:text-lg font-semibold text-black mb-2">Our Commitment to You</p>
-          <p className="text-sm sm:text-base text-gray-600 max-w-3xl mx-auto">
-            Carryofy is dedicated to providing a trustworthy and efficient e-commerce
-            experience for both sellers and buyers in Nigeria.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 max-w-7xl mx-auto">
-          {features.map((feature, index) => (
-            <div key={index} className="text-center bg-white p-5 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-primary/10 rounded-full flex items-center justify-center">
-                <feature.icon className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
-              </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-2 text-black">{feature.title}</h3>
-              <p className="text-sm sm:text-base text-gray-600">{feature.description}</p>
+        <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
+          <div>
+            <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
+              Why Choose Carryofy <br className="hidden sm:block" />
+              <span className="text-primary">Order Today, Receive Today</span>
+            </h2>
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed">
+              Carryofy connects you with trusted local sellers in Lagos and handles reliable same-day delivery.
+            </p>
+
+            <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
+              {[
+                'Verified sellers you can trust',
+                'Same-day delivery in Lagos',
+                'Real-time order tracking',
+                'No more WhatsApp follow-ups',
+                'Money-back guarantee',
+                'Secure payment options'
+              ].map((item, index) => (
+                <li key={index} className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base text-gray-700">
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-purple-500/5 rounded-2xl sm:rounded-3xl -rotate-2 sm:-rotate-3"></div>
+            <div className="relative bg-white border border-gray-100 rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-6 lg:p-8 grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+              {features.map((feature, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-gray-50 p-4 sm:p-5 lg:p-6 rounded-lg sm:rounded-xl text-center hover:bg-primary/5 transition-colors"
+                >
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-3 sm:mb-4 text-primary">
+                    <feature.icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </div>
+                  <h3 className="font-bold text-gray-900 mb-1 sm:mb-2 text-sm sm:text-base">{feature.title}</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">{feature.description}</p>
+                </motion.div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </section>

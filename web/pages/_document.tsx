@@ -76,7 +76,7 @@ export default function Document() {
                 width: 512,
                 height: 512,
               },
-              description: 'Carryofy is Africa\'s leading AI-powered e-commerce platform unifying marketplace, logistics, warehousing, and delivery services for Nigerian merchants and buyers.',
+              description: 'Carryofy enables same-day delivery for trusted local sellers in Lagos. Shop from verified sellers and get fast, reliable delivery without WhatsApp stress.',
               email: 'support@carryofy.com',
               address: {
                 '@type': 'PostalAddress',
@@ -92,8 +92,9 @@ export default function Document() {
                 'https://www.tiktok.com/@carryofy',
               ],
               areaServed: [
+                { '@type': 'City', name: 'Lagos' },
+                { '@type': 'State', name: 'Lagos State' },
                 { '@type': 'Country', name: 'Nigeria' },
-                { '@type': 'Continent', name: 'Africa' },
               ],
             }),
           }}
@@ -109,7 +110,7 @@ export default function Document() {
               '@id': 'https://carryofy.com/#website',
               url: 'https://carryofy.com',
               name: 'Carryofy',
-              description: 'AI-powered e-commerce and logistics platform for Africa - Buy and sell online with same-day delivery',
+              description: 'Same-day delivery platform for trusted local sellers in Lagos - Shop from verified sellers with same-day delivery',
               publisher: {
                 '@id': 'https://carryofy.com/#organization',
               },

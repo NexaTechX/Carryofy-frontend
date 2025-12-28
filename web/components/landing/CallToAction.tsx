@@ -8,13 +8,13 @@ export default function CallToAction() {
       <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary-dark z-0"></div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-        <motion.h2
+          <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="font-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-6 leading-tight px-2"
         >
-          Be Part of the Future of African Commerce
+          Ready for Reliable Same-Day Delivery in Lagos?
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -23,7 +23,7 @@ export default function CallToAction() {
           transition={{ delay: 0.1 }}
           className="text-base sm:text-lg lg:text-xl text-white/90 mb-8 sm:mb-10 max-w-2xl mx-auto px-4"
         >
-          Join thousands of merchants and customers who trust Carryofy for their e-commerce needs.
+          Shop from trusted local sellers and get same-day delivery, without the WhatsApp stress.
         </motion.p>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -36,14 +36,14 @@ export default function CallToAction() {
             href="/auth/signup"
             className="px-6 sm:px-8 py-3 sm:py-4 bg-white text-primary rounded-full font-bold text-base sm:text-lg hover:shadow-xl hover:shadow-black/20 transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center gap-2 touch-target btn-mobile"
           >
-            Join Waitlist
+            Start Shopping
             <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </Link>
           <Link
             href="/products"
             className="px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur text-white rounded-full font-bold text-base sm:text-lg hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-2 border border-white/30 touch-target btn-mobile"
           >
-            Shop Now
+            Browse Products
             <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </Link>
         </motion.div>

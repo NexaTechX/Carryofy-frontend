@@ -3,10 +3,8 @@ import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
 import HowItWorks from '../components/landing/HowItWorks';
 import ProblemSection from '../components/landing/ProblemSection';
-import SolutionSection from '../components/landing/SolutionSection';
 import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
 import FeaturedProducts from '../components/landing/FeaturedProducts';
-import ProductCategories from '../components/landing/ProductCategories';
 import Testimonials from '../components/landing/Testimonials';
 import CallToAction from '../components/landing/CallToAction';
 import SEO, { PAGE_SEO, generateKeywords } from '../components/seo/SEO';
@@ -17,24 +15,12 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
 
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  icon?: string;
-  color?: string;
-  productCount?: number;
-}
-
 interface HomeProps {
   products: Product[];
   productsError?: string;
-  categories: Category[];
-  categoriesError?: string;
 }
 
-export default function Home({ products, productsError, categories, categoriesError }: HomeProps) {
+export default function Home({ products, productsError }: HomeProps) {
   // Comprehensive keywords for maximum SEO coverage
   const homeKeywords = generateKeywords(['primary', 'problemAware', 'longTail', 'brand', 'locations', 'industry']);
 
@@ -49,8 +35,8 @@ export default function Home({ products, productsError, categories, categoriesEr
     'buy and sell Nigeria',
     'online store Nigeria',
     'shop online Lagos',
-    'Nigerian marketplace',
-    'African ecommerce',
+    'Lagos marketplace',
+    'local sellers Lagos',
 
     // Delivery and logistics keywords
     'same day delivery Nigeria',
@@ -64,33 +50,20 @@ export default function Home({ products, productsError, categories, categoriesEr
     'order delivery Nigeria',
     'parcel delivery Lagos',
 
-    // Business and merchant keywords
-    'start online business Nigeria',
-    'sell products online Africa',
-    'merchant platform Nigeria',
-    'vendor marketplace Africa',
-    'business platform Nigeria',
-    'dropshipping Nigeria',
-    'fulfillment service Nigeria',
-    'warehouse Nigeria',
-    'inventory management Nigeria',
+    // Buyer-focused keywords
+    'shop from local sellers Lagos',
+    'trusted sellers Lagos',
+    'buyer protection Lagos',
+    'reliable delivery Lagos',
 
-    // AI and technology keywords
-    'AI ecommerce Nigeria',
-    'AI commerce platform',
-    'intelligent commerce',
-    'smart logistics Nigeria',
-    'automated delivery',
-    'AI powered marketplace',
-
-    // Location variations
+    // Location variations - Lagos focus
     'ecommerce Lagos',
-    'online shopping Abuja',
-    'delivery service Port Harcourt',
-    'marketplace Ibadan',
-    'online store Kano',
-    'West Africa ecommerce',
-    'African online marketplace',
+    'online shopping Lagos',
+    'delivery service Lagos',
+    'marketplace Lagos',
+    'online store Lagos',
+    'local delivery Lagos',
+    'Lagos ecommerce platform',
 
     // Problem/Solution keywords
     'reliable delivery Nigeria',
@@ -114,13 +87,13 @@ export default function Home({ products, productsError, categories, categoriesEr
   return (
     <>
       <SEO
-        title="Carryofy - #1 AI-Powered E-Commerce & Logistics Platform in Nigeria | Same-Day Delivery Africa"
-        description="Carryofy is Africa's leading AI-powered commerce platform. Buy and sell online in Nigeria with same-day delivery in Lagos. Integrated marketplace, logistics, warehousing, and fulfillment for African merchants. Join 12,000+ sellers. 99.8% satisfaction rate."
+        title="Carryofy - Same-Day Delivery from Trusted Local Sellers in Lagos"
+        description="Carryofy enables same-day delivery for trusted local sellers in Lagos. Shop from verified sellers and get fast, reliable delivery without WhatsApp stress. Order today, receive today."
         keywords={fullKeywords}
         canonical="https://carryofy.com"
         ogType="website"
         ogImage="https://carryofy.com/og/home.png"
-        ogImageAlt="Carryofy - AI-Powered E-Commerce Platform for Africa with Same-Day Delivery"
+        ogImageAlt="Carryofy - Same-Day Delivery from Trusted Local Sellers in Lagos"
       />
 
       <CombinedSchema
@@ -133,19 +106,19 @@ export default function Home({ products, productsError, categories, categoriesEr
         faqs={[
           {
             question: 'What is Carryofy?',
-            answer: 'Carryofy is an AI-powered e-commerce platform that unifies marketplace, logistics, warehousing, and delivery into one intelligent platform, built specifically for African merchants and buyers.',
+            answer: 'Carryofy helps urban customers in Lagos get same-day delivery from trusted local sellers, without WhatsApp stress. We connect you with verified sellers and handle reliable delivery.',
           },
           {
             question: 'How fast is delivery on Carryofy?',
-            answer: 'Carryofy offers same-day delivery in Lagos and major Nigerian cities, with 2-5 business day delivery for other areas across Nigeria.',
+            answer: 'Carryofy offers same-day delivery in Lagos. Order today, receive today. Or your money back.',
           },
           {
             question: 'How do I become a seller on Carryofy?',
-            answer: 'Simply click "Become a Merchant" on our homepage, create an account, and follow the onboarding process. Our team will review your application and guide you through the setup with zero upfront costs.',
+            answer: 'Simply click "Become a Seller" on our homepage, create an account, and follow the onboarding process. Our team will review your application and guide you through the setup.',
           },
           {
-            question: 'Is Carryofy available outside Nigeria?',
-            answer: 'Carryofy is currently focused on Nigeria but is expanding to other African countries including Ghana, Kenya, and South Africa. Sign up for updates on our expansion.',
+            question: 'Is Carryofy available outside Lagos?',
+            answer: 'Carryofy is currently focused on Lagos. We\'re building our delivery network to serve Lagos reliably first before expanding to other cities.',
           },
           {
             question: 'What payment methods does Carryofy accept?',
@@ -159,10 +132,8 @@ export default function Home({ products, productsError, categories, categoriesEr
         <main className="flex-grow">
           <HeroSection />
           <ProblemSection />
-          <SolutionSection />
           <WhyChooseCarryofy />
           <HowItWorks />
-          <ProductCategories categories={categories} products={products} />
           <FeaturedProducts products={products} error={productsError} />
           <Testimonials />
           <CallToAction />
@@ -175,18 +146,15 @@ export default function Home({ products, productsError, categories, categoriesEr
 
 export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
   try {
-    // Fetch featured products and categories in parallel
-    const [productsResponse, categoriesResponse] = await Promise.allSettled([
+    // Fetch featured products
+    const [productsResponse] = await Promise.allSettled([
       axios.get(`${API_BASE_URL}/products`, {
         params: {
           status: 'ACTIVE',
           limit: 8,
           page: 1,
         },
-        timeout: 5000,
-      }),
-      axios.get(`${API_BASE_URL}/categories`, {
-        timeout: 5000,
+        timeout: 15000, // Increased timeout for server-side rendering (15 seconds)
       }),
     ]);
 
@@ -274,31 +242,10 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
       // If it's a 404 or empty, don't show error - just empty products
     }
 
-    // Handle categories - always ensure it's an array, never undefined or null
-    let categories: Category[] = [];
-    let categoriesError: string | undefined;
-
-    if (categoriesResponse.status === 'fulfilled') {
-      const responseData = categoriesResponse.value.data?.data || categoriesResponse.value.data;
-      categories = Array.isArray(responseData?.categories) ? responseData.categories : [];
-    } else {
-      const error = categoriesResponse.reason;
-      
-      // Only log non-connection errors (connection refused is expected if backend isn't running)
-      if (error?.code !== 'ECONNREFUSED') {
-        console.error('Error fetching categories for homepage:', error);
-      }
-      
-      categoriesError = 'Unable to load categories at this time';
-      // categories is already initialized as empty array, so no need to reassign
-    }
-
     return {
       props: {
         products, // Always an array, even if empty
         ...(productsError && products.length === 0 && { productsError }), // Only show error if no products AND there's an error
-        categories, // Always an array, never undefined or null
-        ...(categoriesError && categories.length === 0 && { categoriesError }), // Only show error if no categories AND there's an error
       },
     };
   } catch (error: any) {
@@ -309,8 +256,6 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
       props: {
         products: [],
         productsError: 'Unable to load products at this time',
-        categories: [], // Always return an array, never undefined
-        categoriesError: 'Unable to load categories at this time',
       },
     };
   }

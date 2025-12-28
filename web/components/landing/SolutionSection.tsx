@@ -1,27 +1,27 @@
-import { CheckCircle, ShoppingBag, Warehouse, Truck, CreditCard } from 'lucide-react';
+import { CheckCircle, ShoppingBag, Truck, CreditCard, Clock, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function SolutionSection() {
     const solutions = [
         {
             icon: ShoppingBag,
-            title: 'AI-Powered Marketplace',
-            description: 'Smart product discovery and verified sellers.',
+            title: 'Verified Sellers',
+            description: 'Trusted local sellers you can rely on.',
         },
         {
-            icon: Warehouse,
-            title: 'Smart Fulfillment',
-            description: 'Automated picking, packing, and storage.',
+            icon: Clock,
+            title: 'Same-Day Delivery',
+            description: 'Order today, receive today in Nigeria.',
         },
         {
             icon: Truck,
-            title: '90-Minute Delivery',
-            description: 'Fastest delivery zones in Lagos.',
+            title: 'Real-Time Tracking',
+            description: 'Know exactly where your order is.',
         },
         {
             icon: CreditCard,
-            title: 'Instant Payouts',
-            description: 'Secure payments and 24h settlements.',
+            title: 'Buyer Protection',
+            description: 'Money-back guarantee on all orders.',
         },
     ];
 
@@ -31,21 +31,21 @@ export default function SolutionSection() {
                 <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
                     <div>
                         <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
-                            Carryofy Solves All of These—<br className="hidden sm:block" />
-                            <span className="text-primary">In One Platform</span>
+                            Order Today, Receive Today <br className="hidden sm:block" />
+                            <span className="text-primary">Or Get Your Money Back</span>
                         </h2>
                         <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed">
-                            Carryofy is Africa's first full-stack commerce OS, giving merchants everything they need to succeed.
+                            Carryofy connects you with trusted local sellers in Nigeria and handles reliable same-day delivery.
                         </p>
 
                         <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
                             {[
-                                'AI-powered marketplace',
-                                'Smart fulfillment centers',
-                                '90-minute & same-day delivery',
-                                'Real-time inventory management',
-                                'Automated picking and packaging',
-                                'Secure payments and 24h settlements'
+                                'Verified sellers you can trust',
+                                'Same-day delivery in Nigeria',
+                                'Real-time order tracking',
+                                'No more WhatsApp follow-ups',
+                                'Money-back guarantee',
+                                'Secure payment options'
                             ].map((item, index) => (
                                 <li key={index} className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base text-gray-700">
                                     <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />

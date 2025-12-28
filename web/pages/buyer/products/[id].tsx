@@ -15,10 +15,13 @@ import {
   Package,
   Info,
   Droplets,
+  Heart,
 } from 'lucide-react';
 import { tokenManager, userManager } from '../../../lib/auth';
 import SEO from '../../../components/seo/SEO';
 import { ProductSchema, BreadcrumbSchema } from '../../../components/seo/JsonLd';
+import { addToWishlist, removeFromWishlist, checkWishlist } from '../../../lib/api/wishlist';
+import { showSuccessToast, showErrorToast } from '../../../lib/ui/toast';
 
 interface Product {
   id: string;
@@ -116,6 +119,8 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [inWishlist, setInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -139,8 +144,20 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
       fetchProduct();
     } else if (initialProduct) {
       fetchReviews(initialProduct.id);
+      if (isAuthenticated) {
+        checkWishlistStatus(initialProduct.id);
+      }
     }
-  }, [mounted, id, initialProduct]);
+  }, [mounted, id, initialProduct, isAuthenticated]);
+
+  const checkWishlistStatus = async (productId: string) => {
+    try {
+      const status = await checkWishlist(productId);
+      setInWishlist(status);
+    } catch (err) {
+      console.error('Error checking wishlist status:', err);
+    }
+  };
 
   const fetchReviews = useCallback(async (productId: string) => {
     try {
@@ -220,6 +237,31 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
       setTimeout(() => setCartMessage(null), 3000);
     } finally {
       setAddingToCart(false);
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    if (!product || !isAuthenticated) {
+      router.push(`/auth/login?redirect=/buyer/products/${product?.id}`);
+      return;
+    }
+
+    try {
+      setWishlistLoading(true);
+      if (inWishlist) {
+        await removeFromWishlist(product.id);
+        setInWishlist(false);
+        showSuccessToast('Removed from wishlist');
+      } else {
+        await addToWishlist(product.id);
+        setInWishlist(true);
+        showSuccessToast('Added to wishlist');
+      }
+    } catch (err: any) {
+      console.error('Error toggling wishlist:', err);
+      showErrorToast(err.response?.data?.message || 'Failed to update wishlist');
+    } finally {
+      setWishlistLoading(false);
     }
   };
 
@@ -603,24 +645,40 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                     </span>
                   </button>
                   
-                  {/* Add to Cart Button */}
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={product.quantity === 0 || addingToCart}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#1a1a1a] text-white border-2 border-[#ff6600]/50 rounded-xl font-bold hover:bg-[#ff6600]/10 hover:border-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed transition"
-                  >
-                    <ShoppingCart className="w-5 h-5" />
-                    <span>
-                      {!isAuthenticated 
-                        ? 'Login to Add to Cart' 
-                        : addingToCart 
-                          ? 'Adding...' 
-                          : product.quantity === 0 
-                            ? 'Out of Stock' 
-                            : 'Add to Cart'
-                      }
-                    </span>
-                  </button>
+                  <div className="flex gap-3">
+                    {/* Add to Cart Button */}
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={product.quantity === 0 || addingToCart}
+                      className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#1a1a1a] text-white border-2 border-[#ff6600]/50 rounded-xl font-bold hover:bg-[#ff6600]/10 hover:border-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                      <span>
+                        {!isAuthenticated 
+                          ? 'Login to Add to Cart' 
+                          : addingToCart 
+                            ? 'Adding...' 
+                            : product.quantity === 0 
+                              ? 'Out of Stock' 
+                              : 'Add to Cart'
+                        }
+                      </span>
+                    </button>
+                    
+                    {/* Wishlist Button */}
+                    <button
+                      onClick={handleToggleWishlist}
+                      disabled={wishlistLoading || !isAuthenticated}
+                      className={`px-6 py-4 border-2 rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                        inWishlist
+                          ? 'bg-[#ff6600]/20 border-[#ff6600] text-[#ff6600]'
+                          : 'bg-[#1a1a1a] border-[#ff6600]/50 text-white hover:bg-[#ff6600]/10 hover:border-[#ff6600]'
+                      }`}
+                      title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                    >
+                      <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Trust Badges */}

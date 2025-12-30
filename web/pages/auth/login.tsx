@@ -82,7 +82,20 @@ export default function Login() {
 
       let message = 'Invalid email or password';
       
-      if (error.response?.data) {
+      // Handle network errors specifically
+      if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.message === 'Network Error') {
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
+        message = `Cannot connect to the server. Please check:\n\n` +
+          `1. Is the backend server running? (Expected: ${apiBase})\n` +
+          `2. Check your browser console for more details\n` +
+          `3. Verify NEXT_PUBLIC_API_BASE is set correctly in your .env.local file`;
+        console.error('Network Error Details:', {
+          code: error.code,
+          message: error.message,
+          apiBase,
+          fullURL: `${apiBase}/auth/login`,
+        });
+      } else if (error.response?.data) {
         const errorData = error.response.data;
         if (typeof errorData === 'object' && errorData.message) {
           message = Array.isArray(errorData.message) 

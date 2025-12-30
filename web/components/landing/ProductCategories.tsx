@@ -27,6 +27,7 @@ import {
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Product } from '../../types/product';
+import ProductCard from '../common/ProductCard';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
 
@@ -187,35 +188,24 @@ export default function ProductCategories({ categories: initialCategories, produ
                 transition={{ delay: index * 0.05 }}
                 whileHover={{ y: -4 }}
               >
-                <Link
+                <ProductCard
+                  product={{
+                    id: product.id,
+                    title: (product as any).title || product.name || 'Product',
+                    price: product.price,
+                    images: product.images || [],
+                    quantity: product.stockQuantity || (product as any).quantity || 0,
+                    status: product.status,
+                    seller: {
+                      id: product.sellerId || product.seller?.id || '',
+                      businessName: product.seller?.businessName || 'Seller',
+                    },
+                    keyFeatures: (product as any).keyFeatures,
+                    category: product.category,
+                  }}
                   href={`/products/${product.id}`}
-                  className="block bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 group"
-                >
-                  <div className="relative h-32 sm:h-40 bg-gray-100 overflow-hidden">
-                    {product.images && product.images[0] ? (
-                      <img
-                        src={product.images[0]}
-                        alt={product.name || 'Product'}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        {(() => {
-                          const IconComponent = getCategoryIcon(product.category || '');
-                          return <IconComponent className="w-16 h-16 text-gray-400" />;
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-3 sm:p-4">
-                    <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1 line-clamp-2 group-hover:text-primary transition-colors">
-                      {product.name || 'Product'}
-                    </h3>
-                    <p className="text-primary font-bold text-sm sm:text-base">
-                      ₦{(product.price / 100).toLocaleString()}
-                    </p>
-                  </div>
-                </Link>
+                  showFeatures={false}
+                />
               </motion.div>
             ))}
           </div>

@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, Filter, X } from 'lucide-react';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
 import SEO from '../../components/seo/SEO';
 import { BreadcrumbSchema } from '../../components/seo/JsonLd';
+import ProductCard from '../../components/common/ProductCard';
 
 interface Product {
   id: string;
@@ -366,41 +367,12 @@ export default function ProductsPage() {
           {!loading && !error && products.length > 0 && (
             <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4" aria-label="Products list">
               {products.map((product) => (
-                <Link
+                <ProductCard
                   key={product.id}
+                  product={product}
                   href={`/buyer/products/${product.id}`}
-                  className="group bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl overflow-hidden hover:border-[#ff6600] transition"
-                >
-                  {/* Product Image */}
-                  <div className="aspect-square bg-black relative overflow-hidden">
-                    {product.images && product.images.length > 0 ? (
-                      <img
-                        src={product.images[0]}
-                        alt={product.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[#ffcc99]">
-                        No Image
-                      </div>
-                    )}
-                    {product.quantity === 0 && (
-                      <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
-                        <span className="text-red-400 font-bold text-lg">Out of Stock</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Product Details */}
-                  <div className="p-4">
-                    <h2 className="text-white font-medium text-sm mb-1 line-clamp-2 group-hover:text-[#ff6600] transition">
-                      {product.title}
-                    </h2>
-                    <p className="text-[#ffcc99] text-xs mb-2">{product.seller.businessName}</p>
-                    <p className="text-[#ff6600] font-bold text-lg">{formatPrice(product.price)}</p>
-                  </div>
-                </Link>
+                  showFeatures={false}
+                />
               ))}
             </section>
           )}

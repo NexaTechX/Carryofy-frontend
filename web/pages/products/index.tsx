@@ -8,6 +8,7 @@ import Footer from '../../components/layout/Footer';
 import SEO, { generateKeywords } from '../../components/seo/SEO';
 import { BreadcrumbSchema, FAQSchema } from '../../components/seo/JsonLd';
 import ProductComparison from '../../components/products/ProductComparison';
+import ProductCard from '../../components/common/ProductCard';
 import { ChevronLeft, ChevronRight, Star, Truck, Shield, Package, Filter, X, ChevronDown, GitCompare } from 'lucide-react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
@@ -562,97 +563,13 @@ export default function PublicProductsPage({
                   >
                     <meta itemProp="numberOfItems" content={total.toString()} />
                     {products.map((product, index) => (
-                      <article
+                      <ProductCard
                         key={product.id}
-                        className="group bg-[#1a1a1a] border border-[#ff6600]/20 rounded-xl overflow-hidden hover:border-[#ff6600] hover:shadow-lg hover:shadow-[#ff6600]/20 transition-all duration-300"
-                        itemScope
-                        itemType="https://schema.org/Product"
-                        itemProp="itemListElement"
-                      >
-                        <meta itemProp="position" content={(index + 1).toString()} />
-                        <Link href={`/products/${product.id}`} className="block h-full flex flex-col">
-                          {/* Product Image */}
-                          <div className="aspect-square bg-gradient-to-br from-black to-[#1a1a1a] relative overflow-hidden">
-                            {product.images && product.images.length > 0 ? (
-                              <img
-                                src={product.images[0]}
-                                alt={product.title}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                loading="lazy"
-                                itemProp="image"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[#ffcc99]/50">
-                                <Package className="w-12 h-12" />
-                              </div>
-                            )}
-                            {product.quantity === 0 && (
-                              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-10">
-                                <span className="text-red-400 font-bold text-sm px-3 py-1 bg-black/50 rounded-full border border-red-400/50">Out of Stock</span>
-                              </div>
-                            )}
-                            {product.quantity > 0 && product.quantity <= 5 && (
-                              <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded-full z-10">
-                                Only {product.quantity} left
-                              </div>
-                            )}
-                            {/* Compare Button */}
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleAddToComparison(product);
-                              }}
-                              className="absolute top-2 left-2 bg-black/80 backdrop-blur-sm text-white p-2 rounded-full hover:bg-[#ff6600] transition z-10"
-                              title="Add to comparison"
-                            >
-                              <GitCompare className="w-4 h-4" />
-                            </button>
-                          </div>
-
-                          {/* Product Info */}
-                          <div className="p-4 flex-1 flex flex-col">
-                            <h3
-                              className="text-white font-semibold text-sm mb-2 line-clamp-2 group-hover:text-[#ff6600] transition-colors leading-snug min-h-[2.5rem]"
-                              itemProp="name"
-                            >
-                              {product.title}
-                            </h3>
-                            
-                            {/* Key Features */}
-                            {product.keyFeatures && product.keyFeatures.length > 0 && (
-                              <ul className="mb-2 space-y-1">
-                                {product.keyFeatures.slice(0, 2).map((feature, idx) => (
-                                  <li key={idx} className="text-[#ffcc99]/80 text-xs flex items-start gap-1.5">
-                                    <span className="text-[#ff6600] mt-0.5">•</span>
-                                    <span className="line-clamp-1">{feature}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                            
-                            <p className="text-[#ffcc99]/60 text-xs mb-3 truncate" itemProp="brand">
-                              by {product.seller.businessName}
-                            </p>
-                            
-                            <div className="mt-auto" itemProp="offers" itemScope itemType="https://schema.org/Offer">
-                              <p className="text-[#ff6600] font-bold text-lg mb-1" itemProp="price" content={(product.price / 100).toString()}>
-                                {formatPrice(product.price)}
-                              </p>
-                              <meta itemProp="priceCurrency" content="NGN" />
-                              <link
-                                itemProp="availability"
-                                href={product.quantity > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}
-                              />
-                              {product.quantity > 0 && (
-                                <span className="text-green-400 text-xs flex items-center gap-1">
-                                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                                  In Stock
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </Link>
-                      </article>
+                        product={product}
+                        onAddToComparison={handleAddToComparison}
+                        href={`/products/${product.id}`}
+                        showFeatures={true}
+                      />
                     ))}
                   </section>
                 ) : (

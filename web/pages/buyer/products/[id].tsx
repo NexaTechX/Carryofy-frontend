@@ -201,7 +201,29 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
       fetchReviews(productData.id);
     } catch (err: any) {
       console.error('Error fetching product:', err);
-      setError(err.response?.data?.message || 'Failed to load product');
+      
+      // Handle network errors with helpful messages
+      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error' || err.code === 'ECONNREFUSED') {
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
+        const fullUrl = `${apiBase}/products/${id}`;
+        
+        setError(
+          `Cannot connect to backend server.\n\n` +
+          `API URL: ${fullUrl}\n\n` +
+          `Please check:\n` +
+          `1. Backend server is running (cd apps/api && npm run start:dev)\n` +
+          `2. Backend is on port 3000\n` +
+          `3. Environment variable NEXT_PUBLIC_API_BASE is set correctly\n` +
+          `4. No firewall is blocking the connection`
+        );
+      } else if (err.response?.status === 404) {
+        setError('Product not found');
+      } else if (err.response?.status === 401) {
+        // This shouldn't happen if endpoint is public, but handle it anyway
+        setError('Authentication required. Please log in.');
+      } else {
+        setError(err.response?.data?.message || err.message || 'Failed to load product');
+      }
     } finally {
       setLoading(false);
     }

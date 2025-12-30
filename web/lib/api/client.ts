@@ -3,6 +3,12 @@ import { tokenManager } from '../auth/token';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
 
+// Log API URL in development for debugging (only on client-side)
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.log('🔗 API Base URL:', API_BASE_URL);
+  console.log('📝 Environment variable NEXT_PUBLIC_API_BASE:', process.env.NEXT_PUBLIC_API_BASE || 'NOT SET (using default)');
+}
+
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

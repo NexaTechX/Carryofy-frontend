@@ -42,8 +42,23 @@ export const authService = {
     },
 
     login: async (data: LoginRequest): Promise<AuthResponse> => {
-        const response = await apiClient.post<AuthResponse>('/auth/login', data);
-        return extractResponseData<AuthResponse>(response);
+        try {
+            const response = await apiClient.post<AuthResponse>('/auth/login', data);
+            return extractResponseData<AuthResponse>(response);
+        } catch (error: any) {
+            // Enhanced error logging for login
+            if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
+                const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
+                console.error('🚨 Login Network Error:', {
+                    code: error.code,
+                    message: error.message,
+                    apiBase,
+                    fullURL: `${apiBase}/auth/login`,
+                    hint: 'Make sure the backend is running on port 3000'
+                });
+            }
+            throw error;
+        }
     },
 
     verifyEmail: async (data: VerifyEmailRequest): Promise<{ message: string }> => {

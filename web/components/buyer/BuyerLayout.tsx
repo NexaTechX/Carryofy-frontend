@@ -17,7 +17,9 @@ import {
   Heart,
 } from 'lucide-react';
 import NotificationsDropdown from './NotificationsDropdown';
+import CartDrawer from './CartDrawer';
 import { useAuth, tokenManager } from '../../lib/auth';
+import { useCart } from '../../lib/contexts/CartContext';
 import ErrorBoundary from '../common/ErrorBoundary';
 import OnboardingBanner from '../ai-onboarding/OnboardingBanner';
 
@@ -28,38 +30,13 @@ interface BuyerLayoutProps {
 export default function BuyerLayout({ children }: BuyerLayoutProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { cartCount, openDrawer } = useCart();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     setMounted(true);
-    fetchCartCount();
   }, []);
-
-  const fetchCartCount = async () => {
-    try {
-      const token = tokenManager.getAccessToken();
-      if (!token) return;
-
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      const response = await fetch(`${apiUrl}/cart`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        const cart = result.data || result;
-        setCartCount(cart.totalItems || 0);
-      }
-    } catch (error) {
-      console.warn('Failed to fetch cart count:', error);
-    }
-  };
 
   const navigation = [
     { name: 'Home', href: '/buyer', icon: Home },
@@ -120,8 +97,8 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
           {/* Right Actions */}
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Cart */}
-            <Link
-              href="/buyer/cart"
+            <button
+              onClick={openDrawer}
               className="relative p-2 text-[#ffcc99] hover:text-white transition touch-target btn-mobile"
               aria-label={`Cart ${cartCount > 0 ? `(${cartCount} items)` : ''}`}
             >
@@ -131,7 +108,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
                   {cartCount > 9 ? '9+' : cartCount}
                 </span>
               )}
-            </Link>
+            </button>
 
             {/* Notifications */}
             <NotificationsDropdown className="relative" />
@@ -247,6 +224,9 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
           </ErrorBoundary>
         </main>
       </div>
+
+      {/* Cart Drawer */}
+      <CartDrawer />
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Heart, Package, GitCompare } from 'lucide-react';
+import { useRouter } from 'next/router';
+import { Heart, Package, GitCompare, ShoppingCart } from 'lucide-react';
 import { useWishlist } from '../../lib/hooks/useWishlist';
+import { useCart } from '../../lib/contexts/CartContext';
 import { tokenManager } from '../../lib/auth';
 
 export interface ProductCardProps {
@@ -32,9 +34,12 @@ export default function ProductCard({
   showFeatures = true,
   className = '',
 }: ProductCardProps) {
+  const router = useRouter();
   const isAuthenticated = tokenManager.isAuthenticated();
   const { isInWishlist, toggleWishlist, loading: wishlistLoading, initialized } = useWishlist();
+  const { addToCart } = useCart();
   const [isToggling, setIsToggling] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   // Get current wishlist status
   const inWishlist = isAuthenticated && initialized ? isInWishlist(product.id) : false;
@@ -77,6 +82,29 @@ export default function ProductCard({
     e.stopPropagation();
     if (onAddToComparison) {
       onAddToComparison(product);
+    }
+  };
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isAuthenticated) {
+      router.push(`/auth/login?redirect=${encodeURIComponent(router.asPath)}`);
+      return;
+    }
+
+    if (product.quantity === 0) {
+      return;
+    }
+
+    try {
+      setIsAddingToCart(true);
+      await addToCart(product.id, 1);
+    } catch (error) {
+      // Error is handled by the cart context (toast notification)
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
@@ -173,14 +201,32 @@ export default function ProductCard({
           </p>
           
           <div className="mt-auto">
-            <p className="text-[#ff6600] font-bold text-lg mb-1">
+            <p className="text-[#ff6600] font-bold text-lg mb-2">
               {formatPrice(product.price)}
             </p>
             {product.quantity > 0 && (
-              <span className="text-green-400 text-xs flex items-center gap-1">
+              <span className="text-green-400 text-xs flex items-center gap-1 mb-3">
                 <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                 In Stock
               </span>
+            )}
+            
+            {/* Add to Cart Button */}
+            {product.quantity > 0 && (
+              <button
+                onClick={handleAddToCart}
+                disabled={isAddingToCart || !isAuthenticated}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#ff6600] text-black rounded-lg font-semibold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm"
+                title={!isAuthenticated ? 'Login to add to cart' : 'Add to cart'}
+              >
+                <ShoppingCart className={`w-4 h-4 ${isAddingToCart ? 'animate-pulse' : ''}`} />
+                <span>{isAddingToCart ? 'Adding...' : 'Add to Cart'}</span>
+              </button>
+            )}
+            {product.quantity === 0 && (
+              <div className="w-full px-4 py-2.5 bg-gray-700/50 text-gray-400 rounded-lg text-center text-sm font-medium cursor-not-allowed">
+                Out of Stock
+              </div>
             )}
           </div>
         </div>

@@ -4,17 +4,20 @@ import { UserCheck, Package, TrendingUp, Search, ShoppingCart, PackageCheck } fr
 const vendorSteps = [
   {
     id: 1,
-    title: 'Apply & get verified',
+    title: 'Apply & get intelligently verified',
+    description: 'Smart checks help ensure quality and trust from day one.',
     icon: UserCheck,
   },
   {
     id: 2,
-    title: 'List your products',
+    title: 'List products with guidance',
+    description: 'Intelligent suggestions help you optimize listings faster.',
     icon: Package,
   },
   {
     id: 3,
-    title: 'Sell and get paid securely',
+    title: 'Sell and grow',
+    description: 'Manage orders and performance with built‑in insights.',
     icon: TrendingUp,
   },
 ];
@@ -22,17 +25,20 @@ const vendorSteps = [
 const buyerSteps = [
   {
     id: 1,
-    title: 'Discover trusted products',
+    title: 'Discover trusted products faster',
+    description: 'Relevant listings from verified sellers surface first.',
     icon: Search,
   },
   {
     id: 2,
-    title: 'Place your order',
+    title: 'Place your order securely',
+    description: 'Protected checkout and transparent pricing.',
     icon: ShoppingCart,
   },
   {
     id: 3,
-    title: 'Receive with confidence',
+    title: 'Shop with confidence',
+    description: 'Smart systems help reduce risk throughout the journey.',
     icon: PackageCheck,
   },
 ];
@@ -99,9 +105,14 @@ export default function HowItWorks() {
                     </div>
                     <div className="flex-1 pt-1">
                       <div className="text-xs text-primary font-semibold mb-2 uppercase tracking-wide">Step {step.id}</div>
-                      <div className="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-primary transition-colors">
+                      <div className="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-primary transition-colors mb-1">
                         {step.title}
                       </div>
+                      {step.description && (
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          {step.description}
+                        </p>
+                      )}
                     </div>
                   </motion.div>
                 ))}
@@ -144,9 +155,14 @@ export default function HowItWorks() {
                     </div>
                     <div className="flex-1 pt-1">
                       <div className="text-xs text-primary font-semibold mb-2 uppercase tracking-wide">Step {step.id}</div>
-                      <div className="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-primary transition-colors">
+                      <div className="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-primary transition-colors mb-1">
                         {step.title}
                       </div>
+                      {step.description && (
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          {step.description}
+                        </p>
+                      )}
                     </div>
                   </motion.div>
                 ))}

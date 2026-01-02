@@ -1,30 +1,30 @@
 import { motion } from 'framer-motion';
-import { Shield, FileCheck, TrendingUp, Target } from 'lucide-react';
+import { Shield, FileCheck, Activity, Target } from 'lucide-react';
 
 export default function TrustCredibility() {
   const trustPoints = [
     {
       icon: Shield,
-      title: 'Secure payment infrastructure',
-      description: 'Bank-level encryption and secure transactions',
+      title: 'Secure Payment Infrastructure',
+      description: 'Bank‑level encryption and protected transactions.',
       gradient: 'from-green-500/10 to-emerald-500/5',
     },
     {
       icon: FileCheck,
-      title: 'Admin‑approved products',
-      description: 'Quality assurance for every listing',
+      title: 'Admin‑Approved Products',
+      description: 'Quality checks ensure listings meet marketplace standards.',
       gradient: 'from-blue-500/10 to-cyan-500/5',
     },
     {
-      icon: TrendingUp,
-      title: 'Clear commission structure',
-      description: 'Transparent pricing with no hidden fees',
+      icon: Activity,
+      title: 'Intelligent Risk Monitoring',
+      description: 'Automated systems detect fraud, risky behavior, and low‑quality activity.',
       gradient: 'from-purple-500/10 to-violet-500/5',
     },
     {
       icon: Target,
-      title: 'Founder‑led, long‑term vision',
-      description: 'Built for sustainable growth',
+      title: 'Founder‑Led, Long‑Term Vision',
+      description: 'Built to create sustainable, trusted commerce at scale.',
       gradient: 'from-orange-500/10 to-amber-500/5',
     },
   ];
@@ -43,7 +43,7 @@ export default function TrustCredibility() {
               Trust & Credibility
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Built on transparency, security, and quality assurance
+              Built on transparency, security, and intelligent quality control.
             </p>
           </motion.div>
 

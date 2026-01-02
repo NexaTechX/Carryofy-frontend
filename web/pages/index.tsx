@@ -3,6 +3,7 @@ import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
 import WhoCarryofyIsFor from '../components/landing/WhoCarryofyIsFor';
 import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
+import SmartCommerce from '../components/landing/SmartCommerce';
 import HowItWorks from '../components/landing/HowItWorks';
 import TrustCredibility from '../components/landing/TrustCredibility';
 import CallToAction from '../components/landing/CallToAction';
@@ -102,6 +103,7 @@ export default function Home() {
           <HeroSection />
           <WhoCarryofyIsFor />
           <WhyChooseCarryofy />
+          <SmartCommerce />
           <HowItWorks />
           <TrustCredibility />
           <CallToAction />

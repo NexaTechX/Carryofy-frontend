@@ -5,32 +5,32 @@ export default function WhyChooseCarryofy() {
   const features = [
     {
       icon: Shield,
-      title: 'Verification first',
-      description: 'Quality vendors only',
+      title: 'Verification First',
+      description: 'Only quality vendors and approved products reach buyers.',
       gradient: 'from-blue-500/10 to-blue-600/5',
       iconBg: 'bg-blue-50',
       iconColor: 'text-blue-600',
     },
     {
       icon: TrendingUp,
-      title: 'Transparent rules',
-      description: 'No hidden fees',
+      title: 'Transparent Rules',
+      description: 'Clear commissions, no hidden fees, no surprises.',
       gradient: 'from-green-500/10 to-green-600/5',
       iconBg: 'bg-green-50',
       iconColor: 'text-green-600',
     },
     {
       icon: Zap,
-      title: 'Built for speed',
-      description: 'Clean UI, focused experience',
+      title: 'Intelligence‑Led Decisions',
+      description: 'Smarter approvals, recommendations, and protections built into the platform.',
       gradient: 'from-yellow-500/10 to-yellow-600/5',
       iconBg: 'bg-yellow-50',
       iconColor: 'text-yellow-600',
     },
     {
       icon: Globe,
-      title: 'Designed for Africa',
-      description: 'Scalable globally',
+      title: 'Built for Scale',
+      description: 'Proven in high‑friction markets and designed to grow globally.',
       gradient: 'from-purple-500/10 to-purple-600/5',
       iconBg: 'bg-purple-50',
       iconColor: 'text-purple-600',
@@ -56,7 +56,7 @@ export default function WhyChooseCarryofy() {
             transition={{ delay: 0.1 }}
             className="text-xl sm:text-2xl text-gray-600 font-medium"
           >
-            Not just another marketplace.
+            Not just another marketplace — a smarter way to trade.
           </motion.p>
         </div>
 

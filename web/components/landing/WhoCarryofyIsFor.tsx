@@ -17,7 +17,7 @@ export default function WhoCarryofyIsFor() {
               Built for Everyone
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Whether you're selling or shopping, Carryofy is designed to make commerce simple and secure
+              Whether you're selling or shopping, Carryofy combines <strong>trust, transparency, and intelligent tools</strong> to make commerce simple and secure.
             </p>
           </motion.div>
 
@@ -45,10 +45,11 @@ export default function WhoCarryofyIsFor() {
                 
                 <ul className="space-y-5 mb-10">
                   {[
-                    'Get approved as a verified seller',
-                    'Transparent commission per product',
-                    'Built‑in tools to manage listings and orders',
-                    'Focus on sales, not platform confusion',
+                    'Intelligent product onboarding and validation',
+                    'Faster approvals through smart verification checks',
+                    'Transparent, per‑product commissions',
+                    'Built‑in tools to manage listings, orders, and performance',
+                    'Insights that help you focus on selling, not platform complexity',
                   ].map((item, index) => (
                     <motion.li
                       key={index}
@@ -99,9 +100,10 @@ export default function WhoCarryofyIsFor() {
                 
                 <ul className="space-y-5 mb-10">
                   {[
-                    'Discover quality products from verified vendors',
-                    'Secure checkout and buyer protection',
-                    'Simple browsing, fast decisions',
+                    'Smarter product discovery from verified vendors',
+                    'Personalized recommendations based on browsing behavior',
+                    'Secure checkout with buyer protection',
+                    'Faster decisions with relevant, trusted listings',
                   ].map((item, index) => (
                     <motion.li
                       key={index}

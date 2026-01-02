@@ -32,12 +32,12 @@ export default function HeroSection() {
             </motion.div>
 
             <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 sm:mb-8 leading-tight text-gray-900">
-              Sell and buy with confidence —{' '}
-              <span className="text-gradient">built for modern African commerce</span>
+              Sell and buy with confidence{' '}
+              <span className="text-gradient">built for modern commerce</span>
             </h1>
 
             <p className="text-lg sm:text-xl lg:text-2xl mb-10 sm:mb-12 text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Carryofy is a verified multi‑vendor marketplace that helps businesses sell faster and buyers shop safely, without the chaos of traditional marketplaces.
+              A verified multi‑vendor marketplace with <strong>intelligent automation</strong> that helps vendors sell faster and buyers shop safer starting in Africa, built for scale.
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 mb-10 sm:mb-12">
@@ -84,6 +84,12 @@ export default function HeroSection() {
                   <Check className="w-3.5 h-3.5 text-green-600" />
                 </div>
                 <span className="font-medium text-gray-700">Transparent commissions</span>
+              </div>
+              <div className="flex items-center gap-2.5 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 shadow-sm">
+                <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                  <Check className="w-3.5 h-3.5 text-green-600" />
+                </div>
+                <span className="font-medium text-gray-700">Smart automation built in</span>
               </div>
             </motion.div>
           </motion.div>

@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import '../styles/globals.css';
 import { AdminGuard } from '../components/auth/AdminGuard';
 import { AuthProvider } from '../lib/auth';
+import { CartProvider } from '../lib/contexts/CartContext';
 
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -23,9 +24,11 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AdminGuard>
-          <Component {...pageProps} />
-        </AdminGuard>
+        <CartProvider>
+          <AdminGuard>
+            <Component {...pageProps} />
+          </AdminGuard>
+        </CartProvider>
       </AuthProvider>
       <Toaster
         position="top-right"

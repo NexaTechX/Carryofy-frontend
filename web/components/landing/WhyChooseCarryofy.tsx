@@ -1,90 +1,89 @@
 import { motion } from 'framer-motion';
-import { CheckCircle, ShoppingBag, Truck, CreditCard, Clock, ShieldCheck, MessageSquare } from 'lucide-react';
+import { Shield, TrendingUp, Zap, Globe } from 'lucide-react';
 
 export default function WhyChooseCarryofy() {
   const features = [
     {
-      icon: ShieldCheck,
-      title: 'Trusted Sellers',
-      description: 'Buy from verified local sellers you can trust in Lagos.',
+      icon: Shield,
+      title: 'Verification first',
+      description: 'Quality vendors only',
+      gradient: 'from-blue-500/10 to-blue-600/5',
+      iconBg: 'bg-blue-50',
+      iconColor: 'text-blue-600',
     },
     {
-      icon: Clock,
-      title: 'Same-Day Delivery',
-      description: 'Order today, receive today in Lagos.',
+      icon: TrendingUp,
+      title: 'Transparent rules',
+      description: 'No hidden fees',
+      gradient: 'from-green-500/10 to-green-600/5',
+      iconBg: 'bg-green-50',
+      iconColor: 'text-green-600',
     },
     {
-      icon: Truck,
-      title: 'Real-Time Tracking',
-      description: 'Know exactly where your order is at all times.',
+      icon: Zap,
+      title: 'Built for speed',
+      description: 'Clean UI, focused experience',
+      gradient: 'from-yellow-500/10 to-yellow-600/5',
+      iconBg: 'bg-yellow-50',
+      iconColor: 'text-yellow-600',
     },
     {
-      icon: CreditCard,
-      title: 'Buyer Protection',
-      description: 'Money-back guarantee on all orders.',
-    },
-    {
-      icon: MessageSquare,
-      title: 'No WhatsApp Stress',
-      description: 'No more following up via WhatsApp. We handle everything.',
-    },
-    {
-      icon: ShoppingBag,
-      title: 'Secure Payments',
-      description: 'Safe and encrypted payment options for peace of mind.',
+      icon: Globe,
+      title: 'Designed for Africa',
+      description: 'Scalable globally',
+      gradient: 'from-purple-500/10 to-purple-600/5',
+      iconBg: 'bg-purple-50',
+      iconColor: 'text-purple-600',
     },
   ];
 
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-white overflow-hidden">
+    <section className="py-16 sm:py-20 lg:py-24 bg-gradient-to-b from-white to-gray-50/50 overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
-          <div>
-            <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
-              Why Choose Carryofy <br className="hidden sm:block" />
-              <span className="text-primary">Order Today, Receive Today</span>
-            </h2>
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed">
-              Carryofy connects you with trusted local sellers in Lagos and handles reliable same-day delivery.
-            </p>
+        <div className="max-w-4xl mx-auto text-center mb-12 sm:mb-16">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight"
+          >
+            Why Carryofy
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="text-xl sm:text-2xl text-gray-600 font-medium"
+          >
+            Not just another marketplace.
+          </motion.p>
+        </div>
 
-            <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-              {[
-                'Verified sellers you can trust',
-                'Same-day delivery in Lagos',
-                'Real-time order tracking',
-                'No more WhatsApp follow-ups',
-                'Money-back guarantee',
-                'Secure payment options'
-              ].map((item, index) => (
-                <li key={index} className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base text-gray-700">
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-purple-500/5 rounded-2xl sm:rounded-3xl -rotate-2 sm:-rotate-3"></div>
-            <div className="relative bg-white border border-gray-100 rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-6 lg:p-8 grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
-              {features.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-gray-50 p-4 sm:p-5 lg:p-6 rounded-lg sm:rounded-xl text-center hover:bg-primary/5 transition-colors"
-                >
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-3 sm:mb-4 text-primary">
-                    <feature.icon className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </div>
-                  <h3 className="font-bold text-gray-900 mb-1 sm:mb-2 text-sm sm:text-base">{feature.title}</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">{feature.description}</p>
-                </motion.div>
-              ))}
-            </div>
+        <div className="max-w-6xl mx-auto">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -8 }}
+                className="group relative bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300"
+              >
+                <div className={`w-16 h-16 ${feature.iconBg} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                  <feature.icon className={`w-8 h-8 ${feature.iconColor}`} />
+                </div>
+                <h3 className="font-bold text-gray-900 mb-3 text-lg sm:text-xl group-hover:text-primary transition-colors">
+                  {feature.title}
+                </h3>
+                <p className="text-gray-600 text-base leading-relaxed">
+                  {feature.description}
+                </p>
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`}></div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </div>

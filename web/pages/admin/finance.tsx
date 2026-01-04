@@ -25,25 +25,37 @@ import {
 import { AdminPayout, ProcessPayoutPayload, PayoutStatus } from '../../lib/admin/types';
 
 const payoutStatusTone: Record<PayoutStatus, 'warning' | 'success' | 'danger' | 'neutral'> = {
-  PENDING: 'warning',
+  REQUESTED: 'warning',
   APPROVED: 'success',
+  PROCESSING: 'warning',
   PAID: 'success',
+  CANCELLED: 'neutral',
   REJECTED: 'danger',
 };
 
 const payoutStatusLabel: Record<PayoutStatus, string> = {
-  PENDING: 'Pending',
+  REQUESTED: 'Requested',
   APPROVED: 'Approved',
+  PROCESSING: 'Processing',
   PAID: 'Paid',
+  CANCELLED: 'Cancelled',
   REJECTED: 'Rejected',
 };
 
 const NGN = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 });
 
-const PAYOUT_FILTERS: Array<'ALL' | PayoutStatus> = ['ALL', 'PENDING', 'APPROVED', 'PAID', 'REJECTED'];
+const PAYOUT_FILTERS: Array<'ALL' | PayoutStatus> = [
+  'ALL',
+  'REQUESTED',
+  'APPROVED',
+  'PROCESSING',
+  'PAID',
+  'REJECTED',
+  'CANCELLED',
+];
 
 export default function AdminFinance() {
-  const [filter, setFilter] = useState<'ALL' | PayoutStatus>('PENDING');
+  const [filter, setFilter] = useState<'ALL' | PayoutStatus>('REQUESTED');
   const [selectedPayout, setSelectedPayout] = useState<AdminPayout | null>(null);
   const [processForm, setProcessForm] = useState<ProcessPayoutPayload>({
     bankAccount: '',
@@ -65,7 +77,16 @@ export default function AdminFinance() {
     return payouts.filter((payout) => payout.status === filter);
   }, [payouts, filter]);
 
-  const pendingPayouts = payouts?.filter((payout) => payout.status === 'PENDING') ?? [];
+  const pendingPayouts = payouts?.filter((payout) => payout.status === 'REQUESTED') ?? [];
+
+  const copyToClipboard = async (value?: string | null) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      // no-op fallback; clipboard may be unavailable in some contexts
+    }
+  };
 
   const handleProcessSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -76,9 +97,8 @@ export default function AdminFinance() {
   };
 
   const metrics = dashboardData?.metrics;
-  const totalRevenue = metrics ? metrics.totalRevenue / 100 : 0;
-  const totalCommission = metrics ? metrics.totalCommissions / 100 : 0;
-  const netRevenue = totalRevenue - totalCommission;
+  const grossOrderVolume = metrics ? metrics.totalRevenue / 100 : 0;
+  const platformCommissionRevenue = metrics ? metrics.totalCommissions / 100 : 0;
 
   return (
     <AdminLayout>
@@ -94,14 +114,14 @@ export default function AdminFinance() {
             <LoadingState fullscreen />
           ) : metrics ? (
             <section className="mb-10 grid gap-4 sm:grid-cols-3">
-              <AdminCard title="Gross Revenue" description="Lifetime order revenue.">
-                <p className="text-3xl font-semibold text-white">{NGN.format(totalRevenue)}</p>
+              <AdminCard title="Gross Order Volume" description="Total value of paid orders (before commissions).">
+                <p className="text-3xl font-semibold text-white">{NGN.format(grossOrderVolume)}</p>
               </AdminCard>
-              <AdminCard title="Carryofy Commission" description="Fees collected by Carryofy.">
-                <p className="text-3xl font-semibold text-primary">{NGN.format(totalCommission)}</p>
+              <AdminCard title="Platform Commission Revenue" description="Total commissions earned across all orders.">
+                <p className="text-3xl font-semibold text-primary">{NGN.format(platformCommissionRevenue)}</p>
               </AdminCard>
-              <AdminCard title="Net Marketplace Earnings" description="Gross minus commission.">
-                <p className="text-3xl font-semibold text-[#6ce7a2]">{NGN.format(netRevenue)}</p>
+              <AdminCard title="Payout Operations" description="Review and process seller payout requests.">
+                <p className="text-3xl font-semibold text-[#6ce7a2]">{pendingPayouts.length}</p>
               </AdminCard>
             </section>
           ) : null}
@@ -144,8 +164,8 @@ export default function AdminFinance() {
                   <DataTableHead>
                     <tr>
                       <th className="px-6 py-4 text-white">Seller</th>
-                      <th className="px-6 py-4 text-white">Order</th>
-                      <th className="px-6 py-4 text-white">Net amount</th>
+                      <th className="px-6 py-4 text-white">Requested</th>
+                      <th className="px-6 py-4 text-white">Amount</th>
                       <th className="px-6 py-4 text-white">Status</th>
                       <th className="px-6 py-4 text-right text-gray-500">Actions</th>
                     </tr>
@@ -155,15 +175,21 @@ export default function AdminFinance() {
                       <tr key={payout.id} className="transition hover:bg-[#10151d]">
                         <DataTableCell>
                           <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-white">Seller #{payout.sellerId.slice(0, 8)}</span>
-                            <span className="text-xs text-gray-500">Created {new Date(payout.createdAt).toLocaleString()}</span>
+                            <span className="text-sm font-semibold text-white">
+                              {payout.seller?.businessName ?? `Seller #${payout.sellerId.slice(0, 8)}`}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              Requested {new Date(payout.requestedAt).toLocaleString()}
+                            </span>
                           </div>
                         </DataTableCell>
                         <DataTableCell>
-                          <span className="text-sm text-gray-300">#{payout.orderId.slice(0, 8)}</span>
+                          <span className="text-sm text-gray-300">
+                            {new Date(payout.requestedAt).toLocaleDateString()}
+                          </span>
                         </DataTableCell>
                         <DataTableCell>
-                          <span className="text-sm font-semibold text-primary">{NGN.format(payout.net / 100)}</span>
+                          <span className="text-sm font-semibold text-primary">{NGN.format(payout.amount / 100)}</span>
                         </DataTableCell>
                         <DataTableCell>
                           <StatusBadge
@@ -173,7 +199,7 @@ export default function AdminFinance() {
                         </DataTableCell>
                         <DataTableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            {payout.status === 'PENDING' ? (
+                            {payout.status === 'REQUESTED' ? (
                               <>
                                 <button
                                   type="button"
@@ -203,6 +229,15 @@ export default function AdminFinance() {
                                 Process
                               </button>
                             ) : null}
+                            {payout.status === 'PAID' ? (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPayout(payout)}
+                                className="rounded-full border border-[#1f2534] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary"
+                              >
+                                View
+                              </button>
+                            ) : null}
                           </div>
                         </DataTableCell>
                       </tr>
@@ -219,10 +254,50 @@ export default function AdminFinance() {
         open={Boolean(selectedPayout)}
         onClose={() => setSelectedPayout(null)}
         title={selectedPayout ? `Process payout ${selectedPayout.id.slice(0, 8)}` : 'Process payout'}
-        description={selectedPayout ? `Net ${NGN.format(selectedPayout.net / 100)}` : ''}
+        description={selectedPayout ? `Amount ${NGN.format(selectedPayout.amount / 100)}` : ''}
       >
         {selectedPayout ? (
-          <form className="space-y-4" onSubmit={handleProcessSubmit}>
+          <form className="space-y-6" onSubmit={handleProcessSubmit}>
+            <div className="rounded-xl border border-[#1f2534] bg-[#0b1322] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Audit</p>
+              <div className="mt-3 space-y-2 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-gray-400">Paystack transfer ref</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-gray-200">
+                      {selectedPayout.paystackTransferRef ?? 'Not available yet'}
+                    </span>
+                    {selectedPayout.paystackTransferRef ? (
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(selectedPayout.paystackTransferRef)}
+                        className="rounded-full border border-[#1f2534] px-3 py-1 text-[11px] font-semibold text-gray-300 hover:border-primary hover:text-primary"
+                      >
+                        Copy
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-gray-400">Paystack recipient code</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-gray-200">
+                      {selectedPayout.paystackRecipientCode ?? 'Not available yet'}
+                    </span>
+                    {selectedPayout.paystackRecipientCode ? (
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(selectedPayout.paystackRecipientCode)}
+                        className="rounded-full border border-[#1f2534] px-3 py-1 text-[11px] font-semibold text-gray-300 hover:border-primary hover:text-primary"
+                      >
+                        Copy
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-1">
               <label className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
                 Bank Account Number
@@ -258,6 +333,7 @@ export default function AdminFinance() {
             </div>
             <button
               type="submit"
+              disabled={selectedPayout.status !== 'APPROVED' || processPayout.isPending}
               className="w-full rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light"
             >
               Process payout

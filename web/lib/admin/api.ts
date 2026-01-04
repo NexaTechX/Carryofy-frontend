@@ -367,23 +367,23 @@ export async function adjustStockRequest(payload: AdjustStockPayload): Promise<v
 }
 
 export async function fetchPayouts(): Promise<AdminPayout[]> {
-  const { data } = await apiClient.get('/payouts');
+  const { data } = await apiClient.get('/payouts/requests');
   return normalizeListResponse<AdminPayout>(data, ['payouts', 'items', 'data', 'results']);
 }
 
 export async function approvePayoutRequest(payoutId: string): Promise<void> {
-  await apiClient.put(`/payouts/${payoutId}/approve`);
+  await apiClient.put(`/payouts/requests/${payoutId}/approve`);
 }
 
 export async function rejectPayoutRequest(payoutId: string): Promise<void> {
-  await apiClient.put(`/payouts/${payoutId}/reject`);
+  await apiClient.put(`/payouts/requests/${payoutId}/reject`);
 }
 
 export async function processPayoutRequest(
   payoutId: string,
   payload: ProcessPayoutPayload
 ): Promise<void> {
-  await apiClient.post(`/payouts/${payoutId}/process`, payload);
+  await apiClient.post(`/payouts/requests/${payoutId}/process`, payload);
 }
 
 export async function fetchSalesReport(

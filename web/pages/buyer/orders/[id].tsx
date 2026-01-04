@@ -53,6 +53,7 @@ interface OrderDetail {
   amount: number;
   status: string;
   paymentRef?: string;
+  paystackReference?: string;
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
@@ -135,6 +136,7 @@ export default function BuyerOrderDetailPage() {
   const [reviewedProducts, setReviewedProducts] = useState<Record<string, boolean>>({});
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [hasRefund, setHasRefund] = useState(false);
+  const [refundInfo, setRefundInfo] = useState<{ id: string; status: string; createdAt: string; updatedAt: string } | null>(null);
 
   // Fetch order details
   const fetchOrder = async (orderId: string) => {
@@ -170,6 +172,16 @@ export default function BuyerOrderDetailPage() {
       const refunds = (response.data.data || response.data) as any[];
       const orderRefund = refunds.find((r: any) => r.orderId === orderId);
       setHasRefund(!!orderRefund);
+      setRefundInfo(
+        orderRefund
+          ? {
+              id: orderRefund.id,
+              status: orderRefund.status,
+              createdAt: orderRefund.createdAt,
+              updatedAt: orderRefund.updatedAt,
+            }
+          : null,
+      );
     } catch (err) {
       console.warn('Error checking refund status:', err);
     }
@@ -406,9 +418,9 @@ export default function BuyerOrderDetailPage() {
                   </p>
                 </div>
                 <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-5">
-                  <p className="text-[#ffcc99]/70 text-sm">Payment reference</p>
+                  <p className="text-[#ffcc99]/70 text-sm">Paystack reference</p>
                   <p className="text-white text-lg font-semibold mt-2">
-                    {order.paymentRef ? order.paymentRef : 'Pending' }
+                    {order.paystackReference ?? order.paymentRef ?? 'Pending'}
                   </p>
                   <p className="text-[#ffcc99]/60 text-xs mt-2">
                     Save this reference if you need to contact support.
@@ -524,6 +536,49 @@ export default function BuyerOrderDetailPage() {
                       ))}
                     </div>
                   </div>
+
+                  {refundInfo ? (
+                    <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
+                      <h2 className="text-white text-xl font-bold mb-2">Refund Timeline</h2>
+                      <p className="text-[#ffcc99]/70 text-sm mb-6">
+                        Refunds can take time to process depending on your bank and the payment provider.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {(['REQUESTED', 'APPROVED', 'PROCESSING', 'COMPLETED', 'REJECTED'] as const).map((step) => {
+                          const isActive =
+                            refundInfo.status === step ||
+                            (refundInfo.status === 'COMPLETED' && step !== 'REJECTED') ||
+                            (refundInfo.status === 'PROCESSING' &&
+                              ['REQUESTED', 'APPROVED', 'PROCESSING'].includes(step)) ||
+                            (refundInfo.status === 'APPROVED' && ['REQUESTED', 'APPROVED'].includes(step)) ||
+                            (refundInfo.status === 'REQUESTED' && step === 'REQUESTED') ||
+                            (refundInfo.status === 'REJECTED' &&
+                              ['REQUESTED', 'APPROVED', 'PROCESSING', 'REJECTED'].includes(step));
+
+                          const tone =
+                            step === 'REJECTED'
+                              ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                              : step === 'COMPLETED'
+                              ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                              : 'bg-blue-500/10 text-blue-400 border-blue-500/30';
+
+                          return (
+                            <span
+                              key={step}
+                              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${
+                                isActive ? tone : 'bg-black border-[#ff6600]/30 text-[#ffcc99]/60'
+                              }`}
+                            >
+                              {step}
+                            </span>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[#ffcc99]/60 text-xs mt-4">
+                        Last updated: {refundInfo.updatedAt ? formatDate(refundInfo.updatedAt) : '—'}
+                      </p>
+                    </div>
+                  ) : null}
 
                   <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                     <h2 className="text-white text-xl font-bold mb-3">Delivery Information</h2>

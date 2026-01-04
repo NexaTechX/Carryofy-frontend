@@ -21,7 +21,10 @@ interface Payout {
   orderId: string;
   gross: number;
   commission: number;
+  commissionRate?: string; // percentage snapshot, e.g. "15.00"
   net: number;
+  refundedAmount?: number; // in kobo
+  isReversed?: boolean;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -44,6 +47,7 @@ interface PayoutRequest {
 export default function EarningsPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const MIN_PAYOUT_AMOUNT = 100000; // 1,000 NGN in kobo
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [earningsReport, setEarningsReport] = useState<EarningsReport | null>(null);
@@ -263,6 +267,10 @@ export default function EarningsPage() {
       toast.error('No funds available for withdrawal');
       return;
     }
+    if (availableForWithdrawal < MIN_PAYOUT_AMOUNT) {
+      toast.error('Minimum payout is ₦1,000');
+      return;
+    }
     // Set default amount to available balance
     setPayoutAmount((availableForWithdrawal / 100).toFixed(2));
     setShowPayoutModal(true);
@@ -280,6 +288,11 @@ export default function EarningsPage() {
     }
 
     const amountInKobo = Math.round(parseFloat(payoutAmount) * 100);
+
+    if (amountInKobo < MIN_PAYOUT_AMOUNT) {
+      toast.error('Minimum payout is ₦1,000');
+      return;
+    }
     
     if (amountInKobo > availableForWithdrawal) {
       toast.error('Amount exceeds available balance');
@@ -446,12 +459,15 @@ export default function EarningsPage() {
                 </p>
                 <button
                   onClick={handleRequestPayout}
-                  disabled={availableForWithdrawal === 0}
+                  disabled={availableForWithdrawal < MIN_PAYOUT_AMOUNT}
                   className="mt-3 w-full px-4 py-2 bg-[#ff6600] text-black text-sm font-bold rounded-xl hover:bg-[#cc5200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   <Download className="w-4 h-4" />
                   Request Payout
                 </button>
+                <p className="text-[#ffcc99] text-xs mt-2">
+                  Minimum payout: ₦1,000
+                </p>
               </div>
             </div>
           ) : null}
@@ -576,7 +592,13 @@ export default function EarningsPage() {
                       Commission
                     </th>
                     <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
+                      Rate (Snapshot)
+                    </th>
+                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
                       Net Amount
+                    </th>
+                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
+                      Refunded
                     </th>
                     <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
                       Status
@@ -586,7 +608,7 @@ export default function EarningsPage() {
                 <tbody>
                   {payouts.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-white">
+                      <td colSpan={8} className="px-4 py-8 text-center text-white">
                         No payout history available
                       </td>
                     </tr>
@@ -608,17 +630,41 @@ export default function EarningsPage() {
                         <td className="h-[72px] px-4 py-2 text-red-400 text-sm font-normal leading-normal">
                           -{formatPrice(payout.commission)}
                         </td>
+                        <td className="h-[72px] px-4 py-2 text-[#ffcc99] text-sm font-normal leading-normal">
+                          {payout.commissionRate ? `${payout.commissionRate}%` : '—'}
+                        </td>
                         <td className="h-[72px] px-4 py-2 text-white text-sm font-bold leading-normal">
                           {formatPrice(payout.net)}
                         </td>
                         <td className="h-[72px] px-4 py-2 text-sm font-normal leading-normal">
-                          <span
-                            className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border ${getStatusBadgeColor(
-                              payout.status
-                            )}`}
-                          >
-                            {payout.status}
-                          </span>
+                          {payout.refundedAmount && payout.refundedAmount > 0 ? (
+                            <span className="text-yellow-400 font-medium">
+                              {formatPrice(payout.refundedAmount)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">—</span>
+                          )}
+                        </td>
+                        <td className="h-[72px] px-4 py-2 text-sm font-normal leading-normal">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border ${getStatusBadgeColor(
+                                payout.status
+                              )}`}
+                            >
+                              {payout.status}
+                            </span>
+                            {payout.isReversed ? (
+                              <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border bg-red-500/20 text-red-400 border-red-500/30">
+                                Reversed
+                              </span>
+                            ) : null}
+                            {!payout.isReversed && (payout.refundedAmount ?? 0) > 0 ? (
+                              <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                                Refunded
+                              </span>
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -635,6 +681,9 @@ export default function EarningsPage() {
                 <h2 className="text-white text-2xl font-bold mb-4">Request Payout</h2>
                 <p className="text-[#ffcc99] text-sm mb-6">
                   Enter the amount you want to withdraw. Available balance: {formatPrice(availableForWithdrawal)}
+                </p>
+                <p className="text-[#ffcc99] text-xs mb-4">
+                  Minimum payout: ₦1,000
                 </p>
                 
                 <div className="mb-6">

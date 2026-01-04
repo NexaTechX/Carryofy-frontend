@@ -89,7 +89,6 @@ export default function AdminDashboard() {
   const { metrics, salesTrend, topCategories, commissionRevenue, lowStock, pendingSellerApprovals, pendingPayments } =
     data;
 
-  const netEarnings = Math.max(metrics.totalRevenue - metrics.totalCommissions, 0);
   const sparklineValues = (salesTrend?.trend || []).map((point) => point.amount);
   const trendPercentage = getTrendPercentage(sparklineValues);
   const trendLabel = `${trendPercentage >= 0 ? '+' : ''}${trendPercentage.toFixed(0)}%`;
@@ -104,7 +103,7 @@ export default function AdminDashboard() {
       value: formatNumber(metrics.activeDeliveries),
     },
     {
-      label: 'Total Revenue',
+      label: 'Gross Order Volume',
       value: formatCurrency(metrics.totalRevenue / 100),
     },
     {
@@ -202,7 +201,7 @@ export default function AdminDashboard() {
           <section className="mb-10">
             <div className="flex flex-col gap-4 rounded-2xl border border-primary/20 bg-linear-to-br from-[#0f1729] via-primary/10 to-[#0a101b] p-6 shadow-[0_32px_60px_-40px_rgba(255,102,0,0.5)] sm:flex-row sm:items-center sm:justify-between">
               <div className="max-w-xl">
-                <p className="text-lg font-bold text-white">Commission Revenue</p>
+                <p className="text-lg font-bold text-white">Platform Commission Revenue</p>
                 <p className="mt-2 text-3xl font-bold text-primary">
                   {formatCurrency((commissionRevenue?.totalRevenue || metrics.totalCommissions) / 100)}
                 </p>
@@ -210,7 +209,7 @@ export default function AdminDashboard() {
                   {commissionRevenue?.growth >= 0 ? '+' : ''}{commissionRevenue?.growth.toFixed(1) || '0'}% growth this period
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
-                  Company's main profit source
+                  Total commissions earned across all orders
                 </p>
               </div>
               <div className="h-32 w-full rounded-xl border border-primary/30 bg-[#0b1322] p-3 sm:max-w-xs">

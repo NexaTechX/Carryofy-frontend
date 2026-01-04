@@ -25,3 +25,33 @@ export const getApiUrl = (endpoint: string = ''): string => {
   return endpoint ? `${apiUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}` : apiUrl;
 };
 
+/**
+ * Format a kobo amount as NGN currency string.
+ * All money values in the system are stored as integers in kobo.
+ */
+export const formatNgnFromKobo = (
+  koboAmount: number,
+  options: { maximumFractionDigits?: number } = {},
+): string => {
+  const { maximumFractionDigits = 0 } = options;
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits,
+  }).format((koboAmount || 0) / 100);
+};
+
+/**
+ * Copy a value to clipboard (best-effort).
+ * Returns true if the copy likely succeeded.
+ */
+export const copyToClipboard = async (value: string): Promise<boolean> => {
+  if (!value) return false;
+  try {
+    await navigator.clipboard.writeText(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+

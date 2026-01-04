@@ -26,25 +26,37 @@ import { AdminPayout, ProcessPayoutPayload, PayoutStatus } from '../../lib/admin
 import { toast } from 'react-hot-toast';
 
 const payoutStatusTone: Record<PayoutStatus, 'warning' | 'success' | 'danger' | 'neutral'> = {
-  PENDING: 'warning',
+  REQUESTED: 'warning',
   APPROVED: 'success',
+  PROCESSING: 'warning',
   PAID: 'success',
+  CANCELLED: 'neutral',
   REJECTED: 'danger',
 };
 
 const payoutStatusLabel: Record<PayoutStatus, string> = {
-  PENDING: 'Pending',
+  REQUESTED: 'Requested',
   APPROVED: 'Approved',
+  PROCESSING: 'Processing',
   PAID: 'Paid',
+  CANCELLED: 'Cancelled',
   REJECTED: 'Rejected',
 };
 
 const NGN = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 });
 
-const PAYOUT_FILTERS: Array<'ALL' | PayoutStatus> = ['ALL', 'PENDING', 'APPROVED', 'PAID', 'REJECTED'];
+const PAYOUT_FILTERS: Array<'ALL' | PayoutStatus> = [
+  'ALL',
+  'REQUESTED',
+  'APPROVED',
+  'PROCESSING',
+  'PAID',
+  'REJECTED',
+  'CANCELLED',
+];
 
 export default function AdminPayouts() {
-  const [filter, setFilter] = useState<'ALL' | PayoutStatus>('PENDING');
+  const [filter, setFilter] = useState<'ALL' | PayoutStatus>('REQUESTED');
   const [selectedPayout, setSelectedPayout] = useState<AdminPayout | null>(null);
   const [processForm, setProcessForm] = useState<ProcessPayoutPayload>({
     bankAccount: '',
@@ -67,13 +79,13 @@ export default function AdminPayouts() {
   }, [payouts, filter]);
 
   const metrics = dashboardData?.metrics;
-  const totalRevenue = metrics ? metrics.totalRevenue / 100 : 0;
-  const totalCommission = metrics ? metrics.totalCommissions / 100 : 0;
+  const grossOrderVolume = metrics ? metrics.totalRevenue / 100 : 0;
+  const platformCommissionRevenue = metrics ? metrics.totalCommissions / 100 : 0;
   const totalPayouts = payouts
     ?.filter((p) => p.status === 'PAID')
-    .reduce((sum, p) => sum + p.net / 100, 0) ?? 0;
-  const pendingPayouts = payouts?.filter((p) => p.status === 'PENDING' || p.status === 'APPROVED') ?? [];
-  const totalPendingAmount = pendingPayouts.reduce((sum, p) => sum + p.net / 100, 0);
+    .reduce((sum, p) => sum + p.amount / 100, 0) ?? 0;
+  const pendingPayouts = payouts?.filter((p) => p.status === 'REQUESTED' || p.status === 'APPROVED') ?? [];
+  const totalPendingAmount = pendingPayouts.reduce((sum, p) => sum + p.amount / 100, 0);
 
   const handleApprove = (payout: AdminPayout) => {
     approvePayout.mutate(payout.id, {
@@ -111,15 +123,23 @@ export default function AdminPayouts() {
       return;
     }
 
-    const headers = ['Seller ID', 'Order ID', 'Gross', 'Commission', 'Net', 'Status', 'Created At'];
+    const headers = [
+      'Seller ID',
+      'Amount (NGN)',
+      'Status',
+      'Requested At',
+      'Paid At',
+      'Paystack Transfer Ref',
+      'Paystack Recipient Code',
+    ];
     const rows = payouts.map((p) => [
       p.sellerId,
-      p.orderId,
-      (p.gross / 100).toFixed(2),
-      (p.commission / 100).toFixed(2),
-      (p.net / 100).toFixed(2),
+      (p.amount / 100).toFixed(2),
       p.status,
-      new Date(p.createdAt).toLocaleString(),
+      new Date(p.requestedAt).toLocaleString(),
+      p.paidAt ? new Date(p.paidAt).toLocaleString() : '',
+      p.paystackTransferRef ?? '',
+      p.paystackRecipientCode ?? '',
     ]);
 
     const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
@@ -147,16 +167,16 @@ export default function AdminPayouts() {
             <LoadingState fullscreen />
           ) : metrics ? (
             <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <AdminCard title="Total Sales" description="Lifetime order revenue">
-                <p className="text-3xl font-semibold text-white">{NGN.format(totalRevenue)}</p>
+              <AdminCard title="Gross Order Volume" description="Total value of paid orders (before commissions)">
+                <p className="text-3xl font-semibold text-white">{NGN.format(grossOrderVolume)}</p>
               </AdminCard>
-              <AdminCard title="Commissions" description="Carryofy fees collected">
-                <p className="text-3xl font-semibold text-primary">{NGN.format(totalCommission)}</p>
+              <AdminCard title="Platform Commission Revenue" description="Total commissions earned across all orders">
+                <p className="text-3xl font-semibold text-primary">{NGN.format(platformCommissionRevenue)}</p>
               </AdminCard>
               <AdminCard title="Payouts" description="Total paid to sellers">
                 <p className="text-3xl font-semibold text-[#6ce7a2]">{NGN.format(totalPayouts)}</p>
               </AdminCard>
-              <AdminCard title="Net Balance" description="Pending payouts">
+              <AdminCard title="Pending Requests" description="Total requested amount pending review/processing">
                 <p className="text-3xl font-semibold text-[#ffd700]">{NGN.format(totalPendingAmount)}</p>
               </AdminCard>
             </section>
@@ -211,9 +231,9 @@ export default function AdminPayouts() {
                   <DataTableHead>
                     <tr>
                       <th className="px-6 py-4 text-white">Seller</th>
-                      <th className="px-6 py-4 text-white">Order</th>
+                      <th className="px-6 py-4 text-white">Requested</th>
                       <th className="px-6 py-4 text-white">Amount</th>
-                      <th className="px-6 py-4 text-white">Date</th>
+                      <th className="px-6 py-4 text-white">Paid</th>
                       <th className="px-6 py-4 text-white">Status</th>
                       <th className="px-6 py-4 text-right text-gray-500">Action</th>
                     </tr>
@@ -224,7 +244,7 @@ export default function AdminPayouts() {
                         <DataTableCell>
                           <div className="flex flex-col">
                             <span className="text-sm font-semibold text-white">
-                              Seller #{payout.sellerId.slice(0, 8)}
+                              {payout.seller?.businessName ?? `Seller #${payout.sellerId.slice(0, 8)}`}
                             </span>
                             <span className="text-xs uppercase tracking-[0.16em] text-gray-500">
                               ID: {payout.id.slice(0, 8)}…
@@ -232,14 +252,16 @@ export default function AdminPayouts() {
                           </div>
                         </DataTableCell>
                         <DataTableCell>
-                          <span className="text-sm text-gray-300">#{payout.orderId.slice(0, 8)}</span>
+                          <span className="text-xs text-gray-400">
+                            {new Date(payout.requestedAt).toLocaleDateString()}
+                          </span>
                         </DataTableCell>
                         <DataTableCell>
-                          <span className="text-sm font-semibold text-primary">{NGN.format(payout.net / 100)}</span>
+                          <span className="text-sm font-semibold text-primary">{NGN.format(payout.amount / 100)}</span>
                         </DataTableCell>
                         <DataTableCell>
                           <span className="text-xs text-gray-400">
-                            {new Date(payout.createdAt).toLocaleDateString()}
+                            {payout.paidAt ? new Date(payout.paidAt).toLocaleDateString() : '—'}
                           </span>
                         </DataTableCell>
                         <DataTableCell>
@@ -250,7 +272,7 @@ export default function AdminPayouts() {
                         </DataTableCell>
                         <DataTableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            {payout.status === 'PENDING' ? (
+                            {payout.status === 'REQUESTED' ? (
                               <>
                                 <button
                                   type="button"
@@ -307,7 +329,7 @@ export default function AdminPayouts() {
         title={selectedPayout ? `Payout ${selectedPayout.id.slice(0, 8)}` : 'Payout Details'}
         description={selectedPayout ? payoutStatusLabel[selectedPayout.status] : ''}
         footer={
-          selectedPayout?.status === 'PENDING' ? (
+          selectedPayout?.status === 'REQUESTED' ? (
             <div className="flex justify-between gap-3">
               <button
                 type="button"
@@ -331,16 +353,11 @@ export default function AdminPayouts() {
           selectedPayout.status === 'APPROVED' ? (
             <form className="space-y-4" onSubmit={handleProcessSubmit}>
               <div className="mb-4 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Net Amount</p>
-                <p className="mt-1 text-2xl font-bold text-primary">{NGN.format(selectedPayout.net / 100)}</p>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-400">
-                  <div>
-                    <span className="text-gray-500">Gross:</span> {NGN.format(selectedPayout.gross / 100)}
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Commission:</span> {NGN.format(selectedPayout.commission / 100)}
-                  </div>
-                </div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Requested Amount</p>
+                <p className="mt-1 text-2xl font-bold text-primary">{NGN.format(selectedPayout.amount / 100)}</p>
+                <p className="mt-2 text-xs text-gray-400">
+                  Requested {new Date(selectedPayout.requestedAt).toLocaleString()}
+                </p>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
@@ -402,25 +419,30 @@ export default function AdminPayouts() {
                     <p className="mt-1 text-sm text-white">{selectedPayout.sellerId.slice(0, 16)}…</p>
                   </div>
                   <div>
-                    <span className="font-semibold uppercase tracking-[0.16em] text-gray-500">Order ID</span>
-                    <p className="mt-1 text-sm text-white">{selectedPayout.orderId.slice(0, 16)}…</p>
+                    <span className="font-semibold uppercase tracking-[0.16em] text-gray-500">Requested</span>
+                    <p className="mt-1 text-sm text-white">{new Date(selectedPayout.requestedAt).toLocaleString()}</p>
                   </div>
                 </div>
               </div>
               <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Payment Details</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Amount</p>
                 <div className="mt-3 space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Gross Amount:</span>
-                    <span className="font-semibold text-white">{NGN.format(selectedPayout.gross / 100)}</span>
+                    <span className="text-gray-400">Requested amount:</span>
+                    <span className="font-semibold text-white">{NGN.format(selectedPayout.amount / 100)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Audit</p>
+                <div className="mt-3 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Paystack transfer ref:</span>
+                    <span className="font-mono text-white">{selectedPayout.paystackTransferRef ?? 'Not available yet'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Commission:</span>
-                    <span className="font-semibold text-primary">-{NGN.format(selectedPayout.commission / 100)}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-gray-700 pt-2">
-                    <span className="font-semibold text-gray-400">Net Amount:</span>
-                    <span className="text-lg font-bold text-[#6ce7a2]">{NGN.format(selectedPayout.net / 100)}</span>
+                    <span className="text-gray-400">Paystack recipient code:</span>
+                    <span className="font-mono text-white">{selectedPayout.paystackRecipientCode ?? 'Not available yet'}</span>
                   </div>
                 </div>
               </div>
@@ -430,8 +452,10 @@ export default function AdminPayouts() {
                   <p className="mt-1 text-sm text-white">{new Date(selectedPayout.createdAt).toLocaleString()}</p>
                 </div>
                 <div>
-                  <span className="font-semibold uppercase tracking-[0.16em] text-gray-500">Updated</span>
-                  <p className="mt-1 text-sm text-white">{new Date(selectedPayout.updatedAt).toLocaleString()}</p>
+                  <span className="font-semibold uppercase tracking-[0.16em] text-gray-500">Paid</span>
+                  <p className="mt-1 text-sm text-white">
+                    {selectedPayout.paidAt ? new Date(selectedPayout.paidAt).toLocaleString() : '—'}
+                  </p>
                 </div>
               </div>
             </div>

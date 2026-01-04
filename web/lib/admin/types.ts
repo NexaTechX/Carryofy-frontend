@@ -257,18 +257,38 @@ export interface AdjustStockPayload {
   reason: string;
 }
 
-export type PayoutStatus = 'PENDING' | 'APPROVED' | 'PAID' | 'REJECTED';
+export type PayoutStatus = 'REQUESTED' | 'APPROVED' | 'PROCESSING' | 'PAID' | 'CANCELLED' | 'REJECTED';
 
 export interface AdminPayout {
   id: string;
   sellerId: string;
-  orderId: string;
-  gross: number;
-  commission: number;
-  net: number;
+  amount: number; // in kobo
   status: PayoutStatus;
+  requestedAt: string;
+  approvedAt?: string | null;
+  processedAt?: string | null;
+  paidAt?: string | null;
+  cancelledAt?: string | null;
+  rejectedAt?: string | null;
+  rejectionReason?: string | null;
+  paystackTransferRef?: string | null;
+  paystackRecipientCode?: string | null;
   createdAt: string;
   updatedAt: string;
+  seller?: {
+    id: string;
+    businessName: string;
+    user?: {
+      id: string;
+      name: string;
+      email: string;
+    };
+  };
+  earnings?: Array<{
+    id: string;
+    orderId: string;
+    net: number; // in kobo
+  }>;
 }
 
 export interface ProcessPayoutPayload {

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
   AdminCard,
@@ -22,6 +23,8 @@ import {
   type AdminRefund,
   type RefundStatus,
 } from '../../lib/admin/hooks/useRefunds';
+import { useAdminPayouts } from '../../lib/admin/hooks/usePayouts';
+import apiClient from '../../lib/api/client';
 import { toast } from 'react-hot-toast';
 
 const NGN_FORMATTER = new Intl.NumberFormat('en-NG', {
@@ -72,6 +75,28 @@ export default function AdminRefunds() {
   const { data, isLoading, isError, error, refetch } = useAdminRefunds(queryParams);
   const { data: refundDetail } = useRefundDetail(selectedRefundId);
   const updateStatus = useUpdateRefundStatus();
+  const { data: payoutRequests } = useAdminPayouts();
+
+  const paidOrderIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const payout of payoutRequests ?? []) {
+      if (payout.status !== 'PAID') continue;
+      for (const earning of payout.earnings ?? []) {
+        if (earning?.orderId) set.add(earning.orderId);
+      }
+    }
+    return set;
+  }, [payoutRequests]);
+
+  const { data: refundOrder } = useQuery({
+    queryKey: ['admin', 'order', refundDetail?.orderId],
+    queryFn: async () => {
+      if (!refundDetail?.orderId) return null;
+      const { data } = await apiClient.get(`/orders/${refundDetail.orderId}`);
+      return data as { id: string; paystackReference?: string | null };
+    },
+    enabled: Boolean(refundDetail?.orderId),
+  });
 
   const refunds = data?.refunds || [];
   const pagination = data
@@ -193,6 +218,7 @@ export default function AdminRefunds() {
                       <th className="px-6 py-4 text-left text-white">Amount</th>
                       <th className="px-6 py-4 text-left text-white">Reason</th>
                       <th className="px-6 py-4 text-left text-white">Status</th>
+                      <th className="px-6 py-4 text-left text-white">Impact</th>
                       <th className="px-6 py-4 text-right text-gray-500">Actions</th>
                     </tr>
                   </DataTableHead>
@@ -228,6 +254,17 @@ export default function AdminRefunds() {
                             tone={STATUS_TONE[refund.status]}
                             label={STATUS_LABEL[refund.status]}
                           />
+                        </DataTableCell>
+                        <DataTableCell>
+                          {refund.status === 'COMPLETED' ? (
+                            paidOrderIds.has(refund.orderId) ? (
+                              <StatusBadge tone="danger" label="Reversal" />
+                            ) : (
+                              <StatusBadge tone="info" label="Adjusts earnings" />
+                            )
+                          ) : (
+                            <span className="text-xs text-gray-500">—</span>
+                          )}
                         </DataTableCell>
                         <DataTableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -377,6 +414,25 @@ export default function AdminRefunds() {
                 <p className="mt-2 text-2xl font-bold text-white">
                   {refundDetail.orderAmount ? NGN_FORMATTER.format(refundDetail.orderAmount / 100) : '—'}
                 </p>
+              </div>
+            </div>
+
+            {/* Paystack Reference */}
+            <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Paystack Reference</p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <p className="font-mono text-sm text-white">
+                  {refundOrder?.paystackReference ?? 'Not available yet'}
+                </p>
+                {refundOrder?.paystackReference ? (
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(refundOrder.paystackReference as string)}
+                    className="rounded-full border border-gray-700 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary"
+                  >
+                    Copy
+                  </button>
+                ) : null}
               </div>
             </div>
 

@@ -4,10 +4,11 @@ import { tokenManager } from '../../lib/auth';
 interface StatCardProps {
   title: string;
   value: string;
+  description?: string;
   loading?: boolean;
 }
 
-function StatCard({ title, value, loading }: StatCardProps) {
+function StatCard({ title, value, description, loading }: StatCardProps) {
   return (
     <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-[#ff6600]/30">
       <p className="text-white text-base font-medium leading-normal">{title}</p>
@@ -16,6 +17,9 @@ function StatCard({ title, value, loading }: StatCardProps) {
       ) : (
         <p className="text-white tracking-light text-2xl font-bold leading-tight">{value}</p>
       )}
+      {description ? (
+        <p className="text-xs text-gray-400 leading-snug">{description}</p>
+      ) : null}
     </div>
   );
 }
@@ -24,6 +28,9 @@ interface DashboardKPIs {
   totalProducts: number;
   totalOrders: number;
   totalRevenue: number;
+  availableBalance: number;
+  pendingPayoutRequestsCount: number;
+  pendingPayoutRequestsTotal: number;
 }
 
 export default function DashboardStats() {
@@ -45,21 +52,49 @@ export default function DashboardStats() {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
-      const response = await fetch(`${apiUrl}/reports/dashboard`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const [dashboardResponse, payoutsResponse, payoutRequestsResponse] = await Promise.all([
+        fetch(`${apiUrl}/reports/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${apiUrl}/payouts`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${apiUrl}/payouts/requests`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
-      if (response.ok) {
-        const result = await response.json();
-        const data = result.data || result;
-        setStats({
-          totalProducts: data.totalProducts || 0,
-          totalOrders: data.totalOrders || 0,
-          totalRevenue: data.totalRevenue || 0,
-        });
-      }
+      const dashboardJson = dashboardResponse.ok ? await dashboardResponse.json() : null;
+      const payoutsJson = payoutsResponse.ok ? await payoutsResponse.json() : null;
+      const payoutRequestsJson = payoutRequestsResponse.ok ? await payoutRequestsResponse.json() : null;
+
+      const dashboardData = dashboardJson?.data || dashboardJson || {};
+      const payoutsList = Array.isArray(payoutsJson?.data || payoutsJson) ? (payoutsJson?.data || payoutsJson) : [];
+      const payoutRequestsList = Array.isArray(payoutRequestsJson?.data || payoutRequestsJson)
+        ? (payoutRequestsJson?.data || payoutRequestsJson)
+        : [];
+
+      // Available balance is derived from pending earnings (source of truth remains earnings)
+      const availableBalance = payoutsList
+        .filter((p: any) => p?.status === 'PENDING')
+        .reduce((sum: number, p: any) => sum + (p?.net || 0), 0);
+
+      const pendingRequestStatuses = new Set(['REQUESTED', 'APPROVED', 'PROCESSING']);
+      const pendingPayoutRequests = payoutRequestsList.filter((r: any) => pendingRequestStatuses.has(r?.status));
+      const pendingPayoutRequestsCount = pendingPayoutRequests.length;
+      const pendingPayoutRequestsTotal = pendingPayoutRequests.reduce(
+        (sum: number, r: any) => sum + (r?.amount || 0),
+        0,
+      );
+
+      setStats({
+        totalProducts: dashboardData.totalProducts || 0,
+        totalOrders: dashboardData.totalOrders || 0,
+        totalRevenue: dashboardData.totalRevenue || 0,
+        availableBalance,
+        pendingPayoutRequestsCount,
+        pendingPayoutRequestsTotal,
+      });
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
     } finally {
@@ -86,6 +121,18 @@ export default function DashboardStats() {
       <StatCard
         title="Total Revenue"
         value={stats ? formatPrice(stats.totalRevenue) : '₦0.00'}
+        loading={loading}
+      />
+      <StatCard
+        title="Available Balance"
+        value={stats ? formatPrice(stats.availableBalance) : '₦0.00'}
+        description="Available to request for payout (pending earnings minus refunds). Post‑payout refunds may make balance negative."
+        loading={loading}
+      />
+      <StatCard
+        title="Pending Requests"
+        value={stats ? `${stats.pendingPayoutRequestsCount}` : '0'}
+        description={stats ? `Total pending: ${formatPrice(stats.pendingPayoutRequestsTotal)}` : 'Total pending: ₦0.00'}
         loading={loading}
       />
     </div>

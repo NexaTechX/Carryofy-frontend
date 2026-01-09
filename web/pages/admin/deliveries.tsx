@@ -399,6 +399,48 @@ export default function AdminDeliveries() {
               </div>
             </div>
 
+            {/* Delivery Address Display */}
+            {(selectedDelivery.deliveryAddressInfo || selectedDelivery.deliveryAddress) && (
+              <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 mb-3">
+                  Delivery Address
+                </p>
+                <div className="bg-[#131924] rounded-lg p-3 space-y-1">
+                  {selectedDelivery.deliveryAddressInfo ? (
+                    <>
+                      <p className="text-sm text-gray-200 font-medium">
+                        {selectedDelivery.deliveryAddressInfo.line1}
+                        {selectedDelivery.deliveryAddressInfo.line2 && `, ${selectedDelivery.deliveryAddressInfo.line2}`}
+                      </p>
+                      <p className="text-sm text-gray-300">
+                        {selectedDelivery.deliveryAddressInfo.city}, {selectedDelivery.deliveryAddressInfo.state}
+                      </p>
+                      {selectedDelivery.deliveryAddressInfo.postalCode && (
+                        <p className="text-xs text-gray-400">
+                          Postal Code: {selectedDelivery.deliveryAddressInfo.postalCode}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-400">
+                        {selectedDelivery.deliveryAddressInfo.country}
+                      </p>
+                      {selectedDelivery.deliveryAddressInfo.fullAddress && (
+                        <p className="text-xs text-[#ffcc99] mt-2 pt-2 border-t border-[#1f1f1f]">
+                          <strong>Full Address:</strong> {selectedDelivery.deliveryAddressInfo.fullAddress}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-200">
+                      {selectedDelivery.deliveryAddress}
+                    </p>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-2 italic">
+                  This address is visible to assigned riders for navigation and delivery.
+                </p>
+              </div>
+            )}
+
             {orderDetail ? (
               <div className="space-y-3 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">

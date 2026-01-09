@@ -42,7 +42,7 @@ interface Cart {
 }
 
 type ShippingMethod = 'standard' | 'express' | 'pickup';
-type PaymentMethod = 'card' | 'transfer' | 'cod';
+type PaymentMethod = 'card' | 'transfer';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -114,8 +114,58 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (mounted) {
       fetchCart();
+      fetchAddresses();
     }
   }, [mounted]);
+
+  const fetchAddresses = async () => {
+    try {
+      setLoadingAddresses(true);
+      const response = await apiClient.get('/users/me/addresses');
+      const addressesData = response.data.data || response.data;
+      setSavedAddresses(Array.isArray(addressesData) ? addressesData : []);
+      
+      // Auto-select first address if available
+      if (addressesData && Array.isArray(addressesData) && addressesData.length > 0 && !selectedAddressId) {
+        const firstAddress = addressesData[0];
+        setSelectedAddressId(firstAddress.id);
+        // Pre-fill delivery info from selected address
+        setDeliveryInfo({
+          address: firstAddress.line1 || '',
+          city: firstAddress.city || '',
+          state: firstAddress.state || '',
+          landmark: firstAddress.line2 || '',
+        });
+      }
+    } catch (err: any) {
+      console.error('Error fetching addresses:', err);
+    } finally {
+      setLoadingAddresses(false);
+    }
+  };
+
+  const handleAddressSelect = (addressId: string) => {
+    setSelectedAddressId(addressId);
+    const selectedAddress = savedAddresses.find(addr => addr.id === addressId);
+    if (selectedAddress) {
+      setDeliveryInfo({
+        address: selectedAddress.line1 || '',
+        city: selectedAddress.city || '',
+        state: selectedAddress.state || '',
+        landmark: selectedAddress.line2 || '',
+      });
+    }
+  };
+
+  const handleCreateNewAddress = () => {
+    setSelectedAddressId(null);
+    setDeliveryInfo({
+      address: '',
+      city: '',
+      state: '',
+      landmark: '',
+    });
+  };
 
   const fetchCart = async () => {
     try {
@@ -334,7 +384,7 @@ export default function CheckoutPage() {
         } else {
           // Create address from delivery info
           const addressResponse = await apiClient.post('/users/me/addresses', {
-            label: 'Checkout Address',
+            label: deliveryInfo.city ? `${deliveryInfo.city} Address` : 'Delivery Address',
             line1: deliveryInfo.address,
             line2: deliveryInfo.landmark || undefined,
             city: deliveryInfo.city,
@@ -401,24 +451,6 @@ export default function CheckoutPage() {
         setOrderMessage({ 
           type: 'success', 
           text: 'Order created! Please complete bank transfer to finalize payment.' 
-        });
-        window.dispatchEvent(new Event('cartUpdated'));
-        setTimeout(() => {
-          router.push('/buyer/orders');
-        }, 2500);
-        return;
-      } else if (paymentMethod === 'cod') {
-        // For COD, we can mark as paid or keep pending - for now keep pending
-        // Admin/seller will handle COD orders
-        // Clear cart after order creation
-        try {
-          await apiClient.delete('/cart');
-        } catch (err) {
-          console.error('Error clearing cart:', err);
-        }
-        setOrderMessage({ 
-          type: 'success', 
-          text: 'Order placed! Payment will be collected on delivery.' 
         });
         window.dispatchEvent(new Event('cartUpdated'));
         setTimeout(() => {
@@ -504,9 +536,28 @@ export default function CheckoutPage() {
               <ShieldCheck className="w-8 h-8 text-[#ff6600]" />
               Secure Checkout
             </h1>
-            <p className="text-[#ffcc99] text-lg">
+            <p className="text-[#ffcc99] text-lg mb-4">
               Review your order, provide delivery details, and complete your purchase securely.
             </p>
+            {/* Reassurance Text */}
+            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-white font-semibold mb-1">Your payment is protected by Carryofy</p>
+                  <p className="text-[#ffcc99] text-sm">
+                    We release funds only after delivery. If something goes wrong, contact us via WhatsApp at{' '}
+                    <a href="https://wa.me/2349166783040" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 underline font-semibold">
+                      +234 916 678 3040
+                    </a>{' '}
+                    or email{' '}
+                    <a href="mailto:support@carryofy.com" className="text-green-400 hover:text-green-300 underline font-semibold">
+                      support@carryofy.com
+                    </a>
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {loadingCart ? (
@@ -618,65 +669,150 @@ export default function CheckoutPage() {
                     <h2 className="text-white text-xl font-bold">Delivery Information</h2>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
-                      <label className="block text-white text-sm font-medium mb-2">
-                        Delivery Address {shippingMethod !== 'pickup' && '*'}
-                      </label>
-                      <input
-                        type="text"
-                        name="address"
-                        value={deliveryInfo.address}
-                        onChange={handleDeliveryChange}
-                        placeholder="Street address"
-                        className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600] disabled:opacity-50"
-                        required={shippingMethod !== 'pickup'}
-                        disabled={shippingMethod === 'pickup'}
-                      />
+                  {shippingMethod !== 'pickup' && (
+                    <>
+                      {/* Saved Addresses Selection */}
+                      {savedAddresses.length > 0 && (
+                        <div className="mb-6">
+                          <label className="block text-white text-sm font-medium mb-2">
+                            Select Saved Address
+                          </label>
+                          {loadingAddresses ? (
+                            <div className="flex items-center gap-2 text-[#ffcc99]/70 py-3">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span className="text-sm">Loading addresses...</span>
+                            </div>
+                          ) : (
+                            <select
+                              value={selectedAddressId || ''}
+                              onChange={(e) => handleAddressSelect(e.target.value)}
+                              className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white focus:outline-none focus:border-[#ff6600] mb-3"
+                            >
+                              <option value="">-- Select a saved address --</option>
+                              {savedAddresses.map((address) => (
+                                <option key={address.id} value={address.id}>
+                                  {address.label} - {address.line1}, {address.city}, {address.state}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                          <button
+                            type="button"
+                            onClick={handleCreateNewAddress}
+                            className="text-[#ff6600] text-sm font-medium hover:text-[#cc5200] transition flex items-center gap-2"
+                          >
+                            <MapPin className="w-4 h-4" />
+                            Use a different address
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Address Form - Show when no address selected or creating new */}
+                      {(!selectedAddressId || savedAddresses.length === 0) && (
+                        <div className="space-y-4">
+                          {savedAddresses.length > 0 && (
+                            <div className="bg-[#ff6600]/10 border border-[#ff6600]/30 rounded-lg p-3 mb-4">
+                              <p className="text-[#ffcc99] text-sm">
+                                <strong className="text-white">New Address:</strong> Fill in the details below. This address will be saved for future orders.
+                              </p>
+                            </div>
+                          )}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="md:col-span-2">
+                              <label className="block text-white text-sm font-medium mb-2">
+                                Delivery Address *
+                              </label>
+                              <input
+                                type="text"
+                                name="address"
+                                value={deliveryInfo.address}
+                                onChange={handleDeliveryChange}
+                                placeholder="Street address"
+                                className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-white text-sm font-medium mb-2">
+                                City *
+                              </label>
+                              <input
+                                type="text"
+                                name="city"
+                                value={deliveryInfo.city}
+                                onChange={handleDeliveryChange}
+                                placeholder="City"
+                                className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-white text-sm font-medium mb-2">
+                                State *
+                              </label>
+                              <input
+                                type="text"
+                                name="state"
+                                value={deliveryInfo.state}
+                                onChange={handleDeliveryChange}
+                                placeholder="State"
+                                className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-white text-sm font-medium mb-2">Nearby Landmark</label>
+                              <input
+                                type="text"
+                                name="landmark"
+                                value={deliveryInfo.landmark}
+                                onChange={handleDeliveryChange}
+                                placeholder="Optional landmark for delivery"
+                                className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Display Selected Address */}
+                      {selectedAddressId && savedAddresses.length > 0 && (
+                        <div className="bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <p className="text-white font-semibold text-sm mb-1">
+                                {savedAddresses.find(addr => addr.id === selectedAddressId)?.label || 'Selected Address'}
+                              </p>
+                              <p className="text-[#ffcc99] text-sm">
+                                {savedAddresses.find(addr => addr.id === selectedAddressId)?.line1}
+                                {savedAddresses.find(addr => addr.id === selectedAddressId)?.line2 && 
+                                  `, ${savedAddresses.find(addr => addr.id === selectedAddressId)?.line2}`}
+                              </p>
+                              <p className="text-[#ffcc99] text-sm">
+                                {savedAddresses.find(addr => addr.id === selectedAddressId)?.city}, {' '}
+                                {savedAddresses.find(addr => addr.id === selectedAddressId)?.state}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleCreateNewAddress}
+                              className="text-[#ff6600] text-xs font-medium hover:text-[#cc5200] transition"
+                            >
+                              Change
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {shippingMethod === 'pickup' && (
+                    <div className="bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl p-4">
+                      <p className="text-[#ffcc99] text-sm">
+                        <strong className="text-white">Pickup Location:</strong> You'll collect your order from our nearest hub. We'll notify you when it's ready for pickup.
+                      </p>
                     </div>
-                    <div>
-                      <label className="block text-white text-sm font-medium mb-2">
-                        City {shippingMethod !== 'pickup' && '*'}
-                      </label>
-                      <input
-                        type="text"
-                        name="city"
-                        value={deliveryInfo.city}
-                        onChange={handleDeliveryChange}
-                        placeholder="City"
-                        className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600] disabled:opacity-50"
-                        required={shippingMethod !== 'pickup'}
-                        disabled={shippingMethod === 'pickup'}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-white text-sm font-medium mb-2">
-                        State {shippingMethod !== 'pickup' && '*'}
-                      </label>
-                      <input
-                        type="text"
-                        name="state"
-                        value={deliveryInfo.state}
-                        onChange={handleDeliveryChange}
-                        placeholder="State"
-                        className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600] disabled:opacity-50"
-                        required={shippingMethod !== 'pickup'}
-                        disabled={shippingMethod === 'pickup'}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-white text-sm font-medium mb-2">Nearby Landmark</label>
-                      <input
-                        type="text"
-                        name="landmark"
-                        value={deliveryInfo.landmark}
-                        onChange={handleDeliveryChange}
-                        placeholder="Optional landmark for delivery"
-                        className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600] disabled:opacity-50"
-                        disabled={shippingMethod === 'pickup'}
-                      />
-                    </div>
-                  </div>
+                  )}
                 </section>
 
                 {/* Shipping Method */}
@@ -787,28 +923,6 @@ export default function CheckoutPage() {
                       <div>
                         <p className="font-bold">Bank Transfer</p>
                         <p className="text-sm text-[#ffcc99]">Transfer to our verified bank account (details provided after placing order)</p>
-                      </div>
-                    </label>
-
-                    <label
-                      className={`flex items-center gap-3 px-4 py-4 rounded-xl border cursor-pointer transition ${
-                        paymentMethod === 'cod'
-                          ? 'border-[#ff6600] bg-[#ff6600]/10 text-white'
-                          : 'border-[#ff6600]/30 text-[#ffcc99] hover:border-[#ff6600] hover:bg-[#ff6600]/10'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="cod"
-                        checked={paymentMethod === 'cod'}
-                        onChange={() => setPaymentMethod('cod')}
-                        className="hidden"
-                      />
-                      <ShieldCheck className="w-5 h-5" />
-                      <div>
-                        <p className="font-bold">Pay on Delivery</p>
-                        <p className="text-sm text-[#ffcc99]">Pay with cash or POS when your order arrives</p>
                       </div>
                     </label>
                   </div>
@@ -972,9 +1086,20 @@ export default function CheckoutPage() {
                   </div>
 
                   {/* Security Badge */}
-                  <div className="flex items-center gap-2 text-[#ffcc99] text-sm">
-                    <Lock className="w-4 h-4" />
-                    <span>Secure payment encrypted with SSL</span>
+                  <div className="space-y-2 border-t border-[#ff6600]/30 pt-4">
+                    <div className="flex items-center gap-2 text-[#ffcc99] text-sm">
+                      <Lock className="w-4 h-4" />
+                      <span>Secure payment encrypted with SSL</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[#ffcc99] text-sm">
+                      <Phone className="w-4 h-4" />
+                      <span>
+                        Need help? WhatsApp{' '}
+                        <a href="https://wa.me/2349166783040" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 underline font-semibold">
+                          +234 916 678 3040
+                        </a>
+                      </span>
+                    </div>
                   </div>
 
                   {/* Place Order Button */}

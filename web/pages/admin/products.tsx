@@ -25,6 +25,7 @@ import {
   useBulkDeleteProducts,
   useBulkStatusChange,
 } from '../../lib/admin/hooks/useBulkProducts';
+import { usePlatformSettings } from '../../lib/admin/hooks/useSettings';
 import { PendingProduct } from '../../lib/admin/types';
 import { toast } from 'react-hot-toast';
 import { Check, X, Trash2, MoreVertical } from 'lucide-react';
@@ -67,6 +68,29 @@ export default function AdminProducts() {
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [bulkStatusModalOpen, setBulkStatusModalOpen] = useState(false);
   const [bulkRejectModalOpen, setBulkRejectModalOpen] = useState(false);
+  const [bulkApproveModalOpen, setBulkApproveModalOpen] = useState(false);
+  const [singleApproveModalOpen, setSingleApproveModalOpen] = useState(false);
+  const [productToApprove, setProductToApprove] = useState<PendingProduct | null>(null);
+  const [commissionPercentage, setCommissionPercentage] = useState<number>(15);
+  const [singleApprovalCommission, setSingleApprovalCommission] = useState<number>(15);
+
+  // Fetch platform settings for default commission
+  const { data: platformSettings } = usePlatformSettings();
+  
+  // Update commission percentage when platform settings load
+  useEffect(() => {
+    if (platformSettings?.commissionPercentage) {
+      setCommissionPercentage(platformSettings.commissionPercentage);
+      setSingleApprovalCommission(platformSettings.commissionPercentage);
+    }
+  }, [platformSettings]);
+
+  // Reset commission when focused product changes
+  useEffect(() => {
+    if (focusedProduct && platformSettings?.commissionPercentage) {
+      setSingleApprovalCommission(platformSettings.commissionPercentage);
+    }
+  }, [focusedProduct?.id, platformSettings?.commissionPercentage]);
 
   // Filter products based on active tab
   const filteredProducts = useMemo(() => {
@@ -109,13 +133,25 @@ export default function AdminProducts() {
     };
   }, [allProducts]);
 
+  const handleApproveSingleClick = (product: PendingProduct) => {
+    setProductToApprove(product);
+    setSingleApprovalCommission(platformSettings?.commissionPercentage || 15);
+    setSingleApproveModalOpen(true);
+  };
+
   const handleApproveSingle = async (product: PendingProduct) => {
-    await approveProduct.mutateAsync(product.id);
+    if (singleApprovalCommission < 0 || singleApprovalCommission > 100) {
+      toast.error('Commission percentage must be between 0 and 100');
+      return;
+    }
+    await approveProduct.mutateAsync({ productId: product.id, commissionPercentage: singleApprovalCommission });
     toast.success(`${product.title} has been approved.`);
     refetch();
     setFocusedProduct((current) =>
       current && current.id === product.id ? { ...current, status: 'ACTIVE' } : current
     );
+    setSingleApproveModalOpen(false);
+    setProductToApprove(null);
   };
 
   const handleRejectSingle = async (product: PendingProduct) => {
@@ -149,11 +185,20 @@ export default function AdminProducts() {
   };
 
   // Bulk action handlers
-  const handleBulkApprove = async () => {
+  const handleBulkApprove = () => {
     if (selectedProductIds.size === 0) return;
+    setBulkApproveModalOpen(true);
+  };
+
+  const confirmBulkApprove = async () => {
+    if (commissionPercentage < 0 || commissionPercentage > 100) {
+      toast.error('Commission percentage must be between 0 and 100');
+      return;
+    }
     const productIds = Array.from(selectedProductIds);
-    await bulkApprove.mutateAsync(productIds);
+    await bulkApprove.mutateAsync({ productIds, commissionPercentage });
     setSelectedProductIds(new Set());
+    setBulkApproveModalOpen(false);
     refetch();
   };
 
@@ -435,7 +480,7 @@ export default function AdminProducts() {
                             <>
                               <button
                                 type="button"
-                                onClick={() => handleApproveSingle(product)}
+                                onClick={() => handleApproveSingleClick(product)}
                                 disabled={approveProduct.isPending}
                                 className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:opacity-50"
                               >
@@ -477,23 +522,44 @@ export default function AdminProducts() {
         description={focusedProduct?.seller?.businessName}
         footer={
           focusedProduct && focusedProduct.status === 'PENDING_APPROVAL' ? (
-            <div className="flex justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => focusedProduct && handleRejectSingle(focusedProduct)}
-                disabled={rejectProduct.isPending}
-                className="rounded-full border border-[#3a1f1f] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6] disabled:opacity-50"
-              >
-                Reject
-              </button>
-              <button
-                type="button"
-                onClick={() => focusedProduct && handleApproveSingle(focusedProduct)}
-                disabled={approveProduct.isPending}
-                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:opacity-50"
-              >
-                Approve
-              </button>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="single-commission" className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                  Commission Percentage (%)
+                </label>
+                <input
+                  id="single-commission"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={singleApprovalCommission}
+                  onChange={(e) => setSingleApprovalCommission(parseFloat(e.target.value) || 0)}
+                  className="w-full rounded-lg border border-[#1f2534] bg-[#0a0f1a] p-2 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
+                  placeholder="Enter commission percentage (0-100)"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  This percentage will be deducted from the seller for each sale of this product.
+                </p>
+              </div>
+              <div className="flex justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => focusedProduct && handleRejectSingle(focusedProduct)}
+                  disabled={rejectProduct.isPending}
+                  className="rounded-full border border-[#3a1f1f] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6] disabled:opacity-50"
+                >
+                  Reject
+                </button>
+                <button
+                  type="button"
+                  onClick={() => focusedProduct && handleApproveSingle(focusedProduct)}
+                  disabled={approveProduct.isPending}
+                  className="rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:opacity-50"
+                >
+                  {approveProduct.isPending ? 'Approving...' : 'Approve'}
+                </button>
+              </div>
             </div>
           ) : null
         }
@@ -568,6 +634,101 @@ export default function AdminProducts() {
           </div>
         ) : null}
       </AdminDrawer>
+
+      {/* Single Approve Modal */}
+      {singleApproveModalOpen && productToApprove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
+            <h3 className="mb-2 text-lg font-bold text-white">Approve Product</h3>
+            <p className="mb-4 text-sm text-gray-400">{productToApprove.title}</p>
+            <div className="mb-4">
+              <label htmlFor="single-approve-commission" className="mb-2 block text-sm font-semibold text-gray-300">
+                Commission Percentage (%)
+              </label>
+              <input
+                id="single-approve-commission"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={singleApprovalCommission}
+                onChange={(e) => setSingleApprovalCommission(parseFloat(e.target.value) || 0)}
+                className="w-full rounded-lg border border-[#1f2534] bg-[#0a0f1a] p-3 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
+                placeholder="Enter commission percentage (0-100)"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                This percentage will be deducted from the seller for each sale of this product.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => productToApprove && handleApproveSingle(productToApprove)}
+                disabled={approveProduct.isPending}
+                className="flex-1 rounded-full bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+              >
+                {approveProduct.isPending ? 'Approving...' : 'Confirm Approve'}
+              </button>
+              <button
+                onClick={() => {
+                  setSingleApproveModalOpen(false);
+                  setProductToApprove(null);
+                }}
+                disabled={approveProduct.isPending}
+                className="flex-1 rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Approve Modal */}
+      {bulkApproveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
+            <h3 className="mb-4 text-lg font-bold text-white">Approve Products</h3>
+            <p className="mb-4 text-sm text-gray-400">
+              You are about to approve {selectedProductIds.size} product(s). Please set the commission percentage.
+            </p>
+            <div className="mb-4">
+              <label htmlFor="bulk-commission" className="mb-2 block text-sm font-semibold text-gray-300">
+                Commission Percentage (%)
+              </label>
+              <input
+                id="bulk-commission"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={commissionPercentage}
+                onChange={(e) => setCommissionPercentage(parseFloat(e.target.value) || 0)}
+                className="w-full rounded-lg border border-[#1f2534] bg-[#0a0f1a] p-3 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
+                placeholder="Enter commission percentage (0-100)"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                This percentage will be deducted from the seller for each sale of these products.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={confirmBulkApprove}
+                disabled={bulkApprove.isPending}
+                className="flex-1 rounded-full bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+              >
+                {bulkApprove.isPending ? 'Approving...' : 'Confirm Approve'}
+              </button>
+              <button
+                onClick={() => setBulkApproveModalOpen(false)}
+                disabled={bulkApprove.isPending}
+                className="flex-1 rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bulk Reject Modal */}
       {bulkRejectModalOpen && (

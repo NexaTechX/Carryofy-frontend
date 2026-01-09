@@ -63,6 +63,13 @@ const getErrorMessage = (error: unknown): string => {
     if (error.response?.status === 404) {
       return 'API endpoint not found. Please check your configuration.';
     }
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.data?.retryAfter;
+      if (retryAfter) {
+        return `Too many requests. Please wait ${retryAfter} seconds before trying again.`;
+      }
+      return error.response.data?.message || 'Too many requests. Please try again later.';
+    }
     if (error.response?.status === 500) {
       return 'Server error. Please try again later.';
     }

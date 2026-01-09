@@ -313,10 +313,15 @@ export default function BuyerOrderDetailPage() {
 
     try {
       setMarking(true);
-      // Note: This endpoint may need to be implemented on the backend
-      // For now, we'll just refresh the order
-      await fetchOrder(order.id);
+      const response = await apiClient.put(`/orders/${order.id}/confirm`);
+      // Update local state with response
+      const updatedOrder = response.data.data || response.data;
+      setOrder(updatedOrder);
       showSuccessToast('Order marked as received!');
+      // Optionally trigger review modal for products
+      if (updatedOrder.items && updatedOrder.items.length > 0) {
+        // Could trigger review modal here if desired
+      }
     } catch (err: unknown) {
       console.error('Error marking order as received:', err);
       const errorMessage = err instanceof AxiosError && err.response?.data?.message

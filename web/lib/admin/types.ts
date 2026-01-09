@@ -188,6 +188,16 @@ export interface AdminDelivery {
   rider?: string | { id: string; name: string; phone?: string } | null;
   riderId?: string | null;
   eta?: string | null;
+  deliveryAddress?: string | null;
+  deliveryAddressInfo?: {
+    line1: string;
+    line2?: string | null;
+    city: string;
+    state: string;
+    country: string;
+    postalCode?: string | null;
+    fullAddress: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -202,6 +212,14 @@ export interface AdminOrder {
   updatedAt: string;
   items: AdminOrderItem[];
   delivery?: AdminDelivery | null;
+  address?: {
+    line1: string;
+    line2?: string | null;
+    city: string;
+    state: string;
+    country: string;
+    postalCode?: string | null;
+  } | null;
   user?: {
     id: string;
     name?: string;

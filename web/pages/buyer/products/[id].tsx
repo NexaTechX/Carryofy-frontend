@@ -74,13 +74,34 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/products/${id}`);
+    // Add timeout to fetch request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
+      // Handle specific HTTP error codes
+      if (response.status === 404) {
+        return {
+          props: {
+            initialProduct: null,
+            error: 'Product not found',
+          },
+        };
+      }
+      
       return {
         props: {
           initialProduct: null,
-          error: 'Product not found',
+          error: `Failed to load product (${response.status})`,
         },
       };
     }
@@ -93,8 +114,21 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
         initialProduct: product,
       },
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching product for SSR:', error);
+    
+    // Handle connection errors
+    if (error.name === 'AbortError' || error.code === 'ECONNREFUSED' || error.message?.includes('fetch failed')) {
+      console.warn(`Backend API not available at ${API_BASE_URL}. Product will be loaded client-side.`);
+      // Return null product - client-side will handle fetching
+      return {
+        props: {
+          initialProduct: null,
+          // Don't show error, let client-side handle it
+        },
+      };
+    }
+    
     return {
       props: {
         initialProduct: null,

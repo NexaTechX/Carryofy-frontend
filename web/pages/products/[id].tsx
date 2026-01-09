@@ -19,6 +19,7 @@ import {
   ArrowRight,
   Info,
   Droplets,
+  MessageCircle,
 } from 'lucide-react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
@@ -547,7 +548,7 @@ export default function PublicProductDetailPage({
                   </div>
 
                   {/* Delivery Info */}
-                  <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-4 text-sm mb-4">
                     <div className="flex items-center gap-2 text-[#ffcc99]">
                       <Truck className="w-4 h-4 text-[#ff6600]" />
                       <span>Same-day delivery in Lagos</span>
@@ -555,6 +556,27 @@ export default function PublicProductDetailPage({
                     <div className="flex items-center gap-2 text-[#ffcc99]">
                       <Clock className="w-4 h-4 text-[#ff6600]" />
                       <span>Order before 12pm</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fulfillment & Trust Block */}
+                <div className="mb-6 p-6 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl">
+                  <h3 className="text-white font-bold text-lg mb-3 flex items-center gap-2">
+                    <Package className="w-5 h-5 text-[#ff6600]" />
+                    Fulfilled by Carryofy
+                  </h3>
+                  <p className="text-[#ffcc99] text-sm mb-4 leading-relaxed">
+                    This product is stocked in our warehouse. Carryofy handles delivery and customer support.
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-[#ffcc99] text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      <span>Fast delivery (Lagos priority)</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[#ffcc99] text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      <span>Issues? Call or WhatsApp Carryofy</span>
                     </div>
                   </div>
                 </div>
@@ -568,6 +590,15 @@ export default function PublicProductDetailPage({
                     <ShoppingCart className="w-5 h-5" />
                     <span>Buy Now</span>
                   </Link>
+                  <a
+                    href="https://wa.me/2349166783040"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition shadow-md"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    <span>Chat with Carryofy</span>
+                  </a>
                   <Link
                     href="/auth/login"
                     className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#1a1a1a] text-white border-2 border-[#ff6600]/50 rounded-xl font-bold hover:bg-[#ff6600]/10 hover:border-[#ff6600] transition"

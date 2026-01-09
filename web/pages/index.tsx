@@ -75,24 +75,24 @@ export default function Home() {
         ]}
         faqs={[
           {
-            question: 'What is Carryofy?',
-            answer: 'Carryofy is a verified multi-vendor marketplace that helps businesses sell faster and buyers shop safely, without the chaos of traditional marketplaces. We provide transparent commissions, secure payments, and a clean, focused experience.',
+            question: 'How does delivery work?',
+            answer: 'Carryofy stores all products in our warehouse. When you order, we pack and ship directly to you. Same-day delivery is available in Lagos for orders placed before 12pm. For other areas in Nigeria, delivery takes 1-3 business days. You\'ll receive tracking information once your order ships.',
           },
           {
-            question: 'How do I become a vendor on Carryofy?',
-            answer: 'Click "Become a Vendor" on our homepage, apply, and get verified. Once approved, you can list your products with transparent commissions per product and use our built-in tools to manage listings and orders.',
+            question: 'Who do I contact if something goes wrong?',
+            answer: 'Contact Carryofy support directly via WhatsApp at +234 916 678 3040 or email support@carryofy.com. Our Nigerian support team is available to help with orders, delivery issues, refunds, or any questions. We resolve issues quickly.',
           },
           {
-            question: 'What makes Carryofy different from other marketplaces?',
-            answer: 'Carryofy focuses on verification first with quality vendors only, transparent rules with no hidden fees, a clean UI built for speed, and is designed for Africa while being scalable globally.',
+            question: 'How do refunds work?',
+            answer: 'Carryofy offers a 7-day return policy. If you receive a damaged or incorrect item, contact our support team via WhatsApp or email. We\'ll arrange a full refund or replacement. Refunds are processed to your original payment method within 3-5 business days after we receive the returned item.',
           },
           {
-            question: 'How does payment work on Carryofy?',
-            answer: 'We use secure payment infrastructure with buyer protection. All transactions are secure and encrypted. Vendors receive payments securely after successful sales.',
+            question: 'Are products really in stock?',
+            answer: 'Yes. All products shown are stocked in our Carryofy warehouse. We display real-time inventory, so if a product shows "In stock — Fulfilled by Carryofy," it\'s ready to ship immediately.',
           },
           {
-            question: 'Are products on Carryofy verified?',
-            answer: 'Yes, all products are admin-approved and vendors go through a verification process to ensure quality and trust.',
+            question: 'Is it safe to pay on Carryofy?',
+            answer: 'Yes. Your payment is protected by Carryofy. We use secure payment infrastructure with buyer protection. All transactions are encrypted. We only release funds after successful delivery, so you\'re covered if anything goes wrong.',
           },
         ]}
       />

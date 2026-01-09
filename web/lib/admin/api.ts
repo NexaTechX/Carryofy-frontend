@@ -231,8 +231,13 @@ export async function fetchAllProducts(): Promise<PendingProduct[]> {
   return transformProducts(normalized);
 }
 
-export async function approveProductRequest(productId: string): Promise<void> {
-  await apiClient.put(`/products/${productId}/approve`);
+export async function approveProductRequest(
+  productId: string,
+  commissionPercentage: number
+): Promise<void> {
+  await apiClient.put(`/products/${productId}/approve`, {
+    commissionPercentage,
+  });
 }
 
 export async function rejectProductRequest(productId: string): Promise<void> {
@@ -240,8 +245,15 @@ export async function rejectProductRequest(productId: string): Promise<void> {
 }
 
 // Admin bulk product operations
-export async function bulkApproveProductsRequest(productIds: string[]): Promise<{ approved: number; failed: number }> {
-  const { data } = await apiClient.post('/products/admin/bulk-approve', { productIds });
+export async function bulkApproveProductsRequest(
+  productIds: string[],
+  commissionPercentage?: number
+): Promise<{ approved: number; failed: number }> {
+  const payload: { productIds: string[]; commissionPercentage?: number } = { productIds };
+  if (commissionPercentage !== undefined) {
+    payload.commissionPercentage = commissionPercentage;
+  }
+  const { data } = await apiClient.post('/products/admin/bulk-approve', payload);
   return normalizeResponse<{ approved: number; failed: number }>(data);
 }
 
@@ -321,15 +333,42 @@ export async function assignDeliveryRequest(input: {
   rider?: string; // For backward compatibility
   eta?: string;
 }): Promise<AdminDelivery> {
-  // Use riderId if provided, otherwise use rider (for backward compatibility)
-  const payload: any = {
-    orderId: input.orderId,
-    ...(input.riderId && { riderId: input.riderId }),
-    ...(input.rider && !input.riderId && { riderId: input.rider }), // Fallback to rider if riderId not provided
-    ...(input.eta && { eta: input.eta }),
-  };
-  const { data } = await apiClient.post('/delivery/assign', payload);
-  return normalizeResponse<AdminDelivery>(data);
+  try {
+    // Validate orderId is a valid UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(input.orderId)) {
+      throw new Error('Order ID must be a valid UUID format');
+    }
+
+    // Use riderId if provided, otherwise use rider (for backward compatibility)
+    const payload: any = {
+      orderId: input.orderId,
+      ...(input.riderId && { riderId: input.riderId }),
+      ...(input.rider && !input.riderId && { riderId: input.rider }), // Fallback to rider if riderId not provided
+      ...(input.eta && { eta: input.eta }),
+    };
+
+    // Validate riderId if provided
+    if (payload.riderId && !uuidRegex.test(payload.riderId)) {
+      throw new Error('Rider ID must be a valid UUID format');
+    }
+
+    const { data } = await apiClient.post('/delivery/assign', payload);
+    return normalizeResponse<AdminDelivery>(data);
+  } catch (error: any) {
+    // Provide more detailed error messages
+    if (error.response?.status === 400) {
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Invalid request. Please check your input.';
+      throw new Error(`Failed to assign delivery: ${errorMessage}`);
+    }
+    if (error.response?.status === 404) {
+      throw new Error('Order or rider not found. Please verify the IDs.');
+    }
+    if (error.response?.status === 403) {
+      throw new Error('You do not have permission to assign deliveries.');
+    }
+    throw error;
+  }
 }
 
 export async function updateDeliveryStatusRequest(

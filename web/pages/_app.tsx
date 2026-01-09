@@ -1,11 +1,13 @@
 import type { AppProps } from 'next/app';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import '../styles/globals.css';
 import { AdminGuard } from '../components/auth/AdminGuard';
 import { AuthProvider } from '../lib/auth';
 import { CartProvider } from '../lib/contexts/CartContext';
+import WhatsAppButton from '../components/common/WhatsAppButton';
+import { initAnalytics } from '../lib/firebase/config';
 
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -21,6 +23,15 @@ export default function App({ Component, pageProps }: AppProps) {
       })
   );
 
+  // Initialize Firebase Analytics on mount (client-side only)
+  useEffect(() => {
+    initAnalytics().then((analyticsInstance) => {
+      if (analyticsInstance) {
+        console.log('✅ Firebase Analytics initialized');
+      }
+    });
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -30,6 +41,7 @@ export default function App({ Component, pageProps }: AppProps) {
           </AdminGuard>
         </CartProvider>
       </AuthProvider>
+      <WhatsAppButton />
       <Toaster
         position="top-right"
         toastOptions={{

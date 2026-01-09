@@ -24,6 +24,7 @@ import {
   useAssignDeliveryMutation,
   useDeliveryByOrder,
   useDeliveryStatusMutation,
+  useAvailableRiders,
 } from '../../lib/admin/hooks/useAdminDeliveries';
 import { AdminDeliveryStatus, AdminOrder, AdminOrderStatus } from '../../lib/admin/types';
 import { toast } from 'react-hot-toast';
@@ -71,6 +72,7 @@ export default function AdminOrders() {
   const updateOrderStatus = useOrderStatusMutation();
   const assignDelivery = useAssignDeliveryMutation();
   const updateDeliveryStatus = useDeliveryStatusMutation();
+  const { data: availableRiders, isLoading: loadingRiders } = useAvailableRiders();
 
   const filteredOrders = useMemo(() => {
     if (!orders) return [];
@@ -95,14 +97,14 @@ export default function AdminOrders() {
   const handleAssignDelivery = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const rider = String(formData.get('rider') || '');
+    const riderId = String(formData.get('riderId') || '');
     const eta = formData.get('eta') ? new Date(String(formData.get('eta'))).toISOString() : undefined;
 
     if (!detailOrder) return;
 
     await assignDelivery.mutateAsync({
       orderId: detailOrder.id,
-      rider: rider || undefined,
+      riderId: riderId || undefined,
       eta,
     });
 
@@ -325,6 +327,32 @@ export default function AdminOrders() {
                   </p>
                 </div>
               </div>
+              
+              {/* Delivery Address */}
+              {detailOrder.address && (
+                <div className="mt-4 pt-4 border-t border-[#1f1f1f]">
+                  <span className="font-semibold uppercase tracking-[0.16em] text-gray-500 block mb-2">
+                    Delivery Address
+                  </span>
+                  <div className="bg-[#131924] rounded-lg p-3 space-y-1">
+                    <p className="text-sm text-gray-200">
+                      {detailOrder.address.line1}
+                      {detailOrder.address.line2 && `, ${detailOrder.address.line2}`}
+                    </p>
+                    <p className="text-sm text-gray-300">
+                      {detailOrder.address.city}, {detailOrder.address.state}
+                    </p>
+                    {detailOrder.address.postalCode && (
+                      <p className="text-xs text-gray-400">
+                        Postal Code: {detailOrder.address.postalCode}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-400">
+                      {detailOrder.address.country}
+                    </p>
+                  </div>
+                </div>
+              )}
             </section>
 
             <section className="space-y-4 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
@@ -383,9 +411,11 @@ export default function AdminOrders() {
                     <div>
                       <span className="font-semibold uppercase tracking-[0.16em]">Rider</span>
                       <p className="mt-1 text-sm text-gray-200">
-                        {typeof deliveryDetail.rider === 'string' 
-                          ? deliveryDetail.rider 
-                          : deliveryDetail.rider?.name ?? 'Unassigned'}
+                        {deliveryDetail.riderId
+                          ? (availableRiders?.find(r => r.id === deliveryDetail.riderId)?.name || 
+                             (typeof deliveryDetail.rider === 'string' ? deliveryDetail.rider : deliveryDetail.rider?.name) || 
+                             'Unknown Rider')
+                          : 'Unassigned'}
                       </p>
                     </div>
                     <div>
@@ -395,19 +425,122 @@ export default function AdminOrders() {
                       </p>
                     </div>
                   </div>
+                  
+                  {/* Delivery Address Display */}
+                  {(deliveryDetail.deliveryAddressInfo || deliveryDetail.deliveryAddress) && (
+                    <div className="mt-4 pt-4 border-t border-[#1f1f1f]">
+                      <span className="font-semibold uppercase tracking-[0.16em] text-gray-500 block mb-2">
+                        Delivery Address
+                      </span>
+                      <div className="bg-[#131924] rounded-lg p-3 space-y-1">
+                        {deliveryDetail.deliveryAddressInfo ? (
+                          <>
+                            <p className="text-sm text-gray-200">
+                              {deliveryDetail.deliveryAddressInfo.line1}
+                              {deliveryDetail.deliveryAddressInfo.line2 && `, ${deliveryDetail.deliveryAddressInfo.line2}`}
+                            </p>
+                            <p className="text-sm text-gray-300">
+                              {deliveryDetail.deliveryAddressInfo.city}, {deliveryDetail.deliveryAddressInfo.state}
+                            </p>
+                            {deliveryDetail.deliveryAddressInfo.postalCode && (
+                              <p className="text-xs text-gray-400">
+                                Postal Code: {deliveryDetail.deliveryAddressInfo.postalCode}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-400">
+                              {deliveryDetail.deliveryAddressInfo.country}
+                            </p>
+                            {deliveryDetail.deliveryAddressInfo.fullAddress && (
+                              <p className="text-xs text-[#ffcc99] mt-2 pt-2 border-t border-[#1f1f1f]">
+                                Full: {deliveryDetail.deliveryAddressInfo.fullAddress}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-200">
+                            {deliveryDetail.deliveryAddress}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Reassign Rider Form */}
+                  <form className="mt-4 space-y-3 rounded-lg border border-[#1f1f1f] bg-[#131924] p-3" onSubmit={handleAssignDelivery}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                      Reassign Rider
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="reassign-riderId" className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                        Select Rider
+                      </label>
+                      <select
+                        id="reassign-riderId"
+                        name="riderId"
+                        defaultValue={deliveryDetail.riderId || ''}
+                        className="rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                        disabled={loadingRiders}
+                      >
+                        <option value="">Unassigned</option>
+                        {availableRiders?.map((rider) => (
+                          <option key={rider.id} value={rider.id}>
+                            {rider.name} {rider.riderProfile?.vehicleNumber ? `(${rider.riderProfile.vehicleNumber})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {loadingRiders && (
+                        <p className="text-xs text-gray-500">Loading riders...</p>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="reassign-eta" className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                        Estimated arrival
+                      </label>
+                      <input
+                        id="reassign-eta"
+                        name="eta"
+                        type="datetime-local"
+                        defaultValue={
+                          deliveryDetail.eta
+                            ? new Date(deliveryDetail.eta).toISOString().slice(0, 16)
+                            : ''
+                        }
+                        className="rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light"
+                    >
+                      Update Assignment
+                    </button>
+                  </form>
                 </div>
               ) : (
                 <form className="space-y-3" onSubmit={handleAssignDelivery}>
                   <div className="flex flex-col gap-2 text-xs text-gray-500">
-                    <label htmlFor="rider" className="font-semibold uppercase tracking-[0.16em]">
-                      Rider / Partner
+                    <label htmlFor="riderId" className="font-semibold uppercase tracking-[0.16em]">
+                      Select Rider
                     </label>
-                    <input
-                      id="rider"
-                      name="rider"
-                      placeholder="Eg. Segun Ade – Dispatch Co."
+                    <select
+                      id="riderId"
+                      name="riderId"
                       className="rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-                    />
+                      disabled={loadingRiders}
+                    >
+                      <option value="">Select a rider</option>
+                      {availableRiders?.map((rider) => (
+                        <option key={rider.id} value={rider.id}>
+                          {rider.name} {rider.riderProfile?.vehicleNumber ? `(${rider.riderProfile.vehicleNumber})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {loadingRiders && (
+                      <p className="mt-1 text-xs text-gray-500">Loading available riders...</p>
+                    )}
+                    {!loadingRiders && availableRiders && availableRiders.length === 0 && (
+                      <p className="mt-1 text-xs text-yellow-500">No available riders at the moment.</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-2 text-xs text-gray-500">
                     <label htmlFor="eta" className="font-semibold uppercase tracking-[0.16em]">
@@ -422,7 +555,8 @@ export default function AdminOrders() {
                   </div>
                   <button
                     type="submit"
-                    className="w-full rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light"
+                    disabled={loadingRiders || (availableRiders && availableRiders.length === 0)}
+                    className="w-full rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Assign delivery
                   </button>

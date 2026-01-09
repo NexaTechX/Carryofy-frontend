@@ -22,9 +22,11 @@ export function useApproveProductMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: approveProductRequest,
+    mutationFn: ({ productId, commissionPercentage }: { productId: string; commissionPercentage: number }) =>
+      approveProductRequest(productId, commissionPercentage),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: productKeys.pending });
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       toast.success('Product approved successfully.');
     },
     onError: (error: unknown) => {

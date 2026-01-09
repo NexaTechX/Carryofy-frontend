@@ -32,6 +32,7 @@ interface Product {
   images: string[];
   createdAt: string;
   updatedAt: string;
+  commissionPercentage?: number;
   seller?: {
     id: string;
     businessName: string;
@@ -90,6 +91,7 @@ export default function ProductDetailPage() {
     revenue: 0,
   });
   const [statsLoading, setStatsLoading] = useState(false);
+  const [defaultCommission, setDefaultCommission] = useState<number>(15);
 
   useEffect(() => {
     if (authLoading) return;
@@ -115,9 +117,18 @@ export default function ProductDetailPage() {
     if (!productId) return;
     
     try {
-      const response = await apiClient.get(`/products/${productId}`);
-      const data = response.data?.data || response.data;
-      setProduct(data);
+      const [productResponse, settingsResponse] = await Promise.all([
+        apiClient.get(`/products/${productId}`),
+        apiClient.get('/settings/platform').catch(() => ({ data: { commissionPercentage: 15 } })),
+      ]);
+      
+      const productData = productResponse.data?.data || productResponse.data;
+      setProduct(productData);
+      
+      const settingsData = settingsResponse.data?.data || settingsResponse.data;
+      if (settingsData?.commissionPercentage) {
+        setDefaultCommission(settingsData.commissionPercentage);
+      }
     } catch (error: any) {
       console.error('Error fetching product:', error);
       toast.error('Failed to load product');
@@ -451,6 +462,45 @@ export default function ProductDetailPage() {
                 ) : (
                   <p className="text-[#ffcc99]/50 italic">No description provided</p>
                 )}
+              </div>
+
+              {/* Commission Info Card */}
+              <div className="bg-gradient-to-br from-[#ff6600]/10 to-[#cc5200]/10 border border-[#ff6600]/30 rounded-2xl p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h2 className="text-white font-semibold mb-1">Platform Commission</h2>
+                    <p className="text-[#ffcc99] text-sm">
+                      This is the percentage that will be deducted from each sale
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-bold text-[#ff6600]">
+                      {(product.commissionPercentage ?? defaultCommission).toFixed(1)}%
+                    </p>
+                    {product.commissionPercentage !== null && product.commissionPercentage !== undefined ? (
+                      <p className="text-[#ffcc99]/60 text-xs mt-1">Product-specific rate</p>
+                    ) : (
+                      <p className="text-[#ffcc99]/60 text-xs mt-1">Platform default</p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-4 p-4 bg-[#0a0a0a]/50 rounded-xl border border-[#ff6600]/20">
+                  <p className="text-[#ffcc99] text-xs mb-2">Example Calculation:</p>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between text-white">
+                      <span>Sale Price:</span>
+                      <span>{formatPrice(product.price)}</span>
+                    </div>
+                    <div className="flex justify-between text-[#ffcc99]">
+                      <span>Commission ({(product.commissionPercentage ?? defaultCommission).toFixed(1)}%):</span>
+                      <span>-{formatPrice(Math.round((product.price * (product.commissionPercentage ?? defaultCommission)) / 100))}</span>
+                    </div>
+                    <div className="flex justify-between text-white font-semibold pt-2 border-t border-[#ff6600]/20">
+                      <span>Your Earnings:</span>
+                      <span className="text-green-400">{formatPrice(product.price - Math.round((product.price * (product.commissionPercentage ?? defaultCommission)) / 100))}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Product Details Card */}

@@ -98,23 +98,22 @@ export default function FeaturedProducts({ products = [], loading = false, error
             transition={{ delay: 0.2 }}
             className="text-gray-600 max-w-2xl mx-auto text-sm sm:text-base lg:text-lg"
           >
-            Discover the hottest items being delivered by Carryofy today.
+            Real products stocked in our warehouse. Delivered fast by Carryofy.
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-8">
           {/* Loading state */}
-          {loading && Array.from({ length: 8 }).map((_, index) => (
+          {loading && Array.from({ length: 5 }).map((_, index) => (
             <ProductSkeleton key={index} index={index} />
           ))}
 
           {/* Error state - only show if there are no products AND there's an error */}
           {error && !loading && products.length === 0 && <ErrorState onRetry={onRetry} />}
 
-          {/* Products */}
-          {!loading && products.length > 0 && products.map((product, index) => {
-            const isNew = new Date(product.createdAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000; // New if created within 7 days
-            const isPopular = (product.averageRating ?? 0) >= 4.5 && (product.reviewCount ?? 0) >= 5;
+          {/* Products - Show only 3-5 real products */}
+          {!loading && products.length > 0 && products.slice(0, 5).map((product, index) => {
+            const isInStock = product.stockQuantity > 0;
 
             return (
               <motion.div
@@ -126,21 +125,12 @@ export default function FeaturedProducts({ products = [], loading = false, error
                 whileHover={{ y: -8 }}
                 className="bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 group border border-gray-100 relative"
               >
-                {/* Badge */}
-                {(isNew || isPopular) && (
+                {/* Fulfilled by Carryofy Badge */}
+                {isInStock && (
                   <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-10">
-                    {isNew && (
-                      <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide shadow-lg flex items-center gap-1">
-                        <Sparkles className="w-2.5 h-2.5" />
-                        New
-                      </div>
-                    )}
-                    {isPopular && !isNew && (
-                      <div className="bg-gradient-to-r from-primary to-orange-600 text-white px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide shadow-lg flex items-center gap-1">
-                        <TrendingUp className="w-2.5 h-2.5" />
-                        Popular
-                      </div>
-                    )}
+                    <div className="bg-gradient-to-r from-primary to-orange-600 text-white px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide shadow-lg">
+                      In stock — Fulfilled by Carryofy
+                    </div>
                   </div>
                 )}
 
@@ -191,15 +181,10 @@ export default function FeaturedProducts({ products = [], loading = false, error
                     </Link>
                   </div>
 
-                  {/* Stock indicator */}
-                  {product.stockQuantity <= 5 && product.stockQuantity > 0 && (
-                    <div className="mt-2 text-[10px] sm:text-xs text-orange-600 font-semibold">
-                      Only {product.stockQuantity} left!
-                    </div>
-                  )}
-                  {product.stockQuantity === 0 && (
-                    <div className="mt-2 text-[10px] sm:text-xs text-red-600 font-semibold">
-                      Out of Stock
+                  {/* Fulfilled by Carryofy indicator */}
+                  {isInStock && (
+                    <div className="mt-2 text-[10px] sm:text-xs text-primary font-semibold">
+                      ✓ Fulfilled by Carryofy
                     </div>
                   )}
                 </div>

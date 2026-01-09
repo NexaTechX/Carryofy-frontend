@@ -17,6 +17,7 @@ interface Product {
   status: string;
   images: string[];
   createdAt: string;
+  commissionPercentage?: number;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string; icon: React.ReactNode }> = {
@@ -58,6 +59,7 @@ export default function ProductsPage() {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<string | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [defaultCommission, setDefaultCommission] = useState<number>(15);
 
   useEffect(() => {
     if (authLoading) return;
@@ -86,9 +88,18 @@ export default function ProductsPage() {
         return;
       }
 
-      const response = await apiClient.get(`/products?sellerId=${sellerId}`);
-      const data = response.data?.data || response.data;
-      setProducts(data?.products || []);
+      const [productsResponse, settingsResponse] = await Promise.all([
+        apiClient.get(`/products?sellerId=${sellerId}`),
+        apiClient.get('/settings/platform').catch(() => ({ data: { commissionPercentage: 15 } })),
+      ]);
+      
+      const productsData = productsResponse.data?.data || productsResponse.data;
+      setProducts(productsData?.products || []);
+      
+      const settingsData = settingsResponse.data?.data || settingsResponse.data;
+      if (settingsData?.commissionPercentage) {
+        setDefaultCommission(settingsData.commissionPercentage);
+      }
     } catch (error: any) {
       console.error('Error fetching products:', error);
       if (error?.response?.status === 403) {
@@ -382,6 +393,9 @@ export default function ProductsPage() {
                         Stock
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
+                        Commission
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
                         Status
                       </th>
                       <th className="px-6 py-4 text-right text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
@@ -439,6 +453,18 @@ export default function ProductsPage() {
                             <p className={`text-sm font-medium ${stockStatus.color}`}>
                               {stockStatus.label}
                             </p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-white font-semibold text-sm">
+                                {(product.commissionPercentage ?? defaultCommission).toFixed(1)}%
+                              </span>
+                              <span className="text-[#ffcc99]/60 text-xs">
+                                {product.commissionPercentage !== null && product.commissionPercentage !== undefined
+                                  ? 'Product rate'
+                                  : 'Platform default'}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border ${statusCfg.bgColor} ${statusCfg.color}`}>
@@ -519,6 +545,17 @@ export default function ProductsPage() {
                             <span className={`text-xs ${stockStatus.color}`}>
                               {stockStatus.label}
                             </span>
+                          </div>
+                          <div className="mt-2 p-2 bg-[#0a0a0a] rounded-lg border border-[#ff6600]/20">
+                            <p className="text-[#ffcc99] text-xs mb-1">Platform Commission</p>
+                            <p className="text-white font-semibold text-sm">
+                              {(product.commissionPercentage ?? defaultCommission).toFixed(1)}%
+                            </p>
+                            {product.commissionPercentage !== null && product.commissionPercentage !== undefined ? (
+                              <p className="text-[#ffcc99]/60 text-xs mt-0.5">Product-specific rate</p>
+                            ) : (
+                              <p className="text-[#ffcc99]/60 text-xs mt-0.5">Platform default rate</p>
+                            )}
                           </div>
                         </div>
                       </div>

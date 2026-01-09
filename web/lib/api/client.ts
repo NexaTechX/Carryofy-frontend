@@ -66,6 +66,29 @@ apiClient.interceptors.response.use(
       console.error('3. CORS is properly configured on the backend');
     }
 
+    // Handle 429 Too Many Requests - rate limiting
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers['retry-after'];
+      const responseData = error.response.data as { message?: string } | undefined;
+      const message = (responseData?.message) || 'Too many requests. Please try again later.';
+      const retryMessage = retryAfter 
+        ? `${message} Please wait ${retryAfter} seconds before retrying.`
+        : message;
+      
+      // Enhance error with retry information
+      error.response.data = {
+        ...(responseData || {}),
+        message: retryMessage,
+        retryAfter: retryAfter ? parseInt(retryAfter, 10) : undefined,
+      };
+      
+      console.warn('Rate limit exceeded:', {
+        url: originalRequest?.url,
+        retryAfter,
+        message: retryMessage,
+      });
+    }
+
     // Handle 401 Unauthorized - try to refresh token
     // Skip refresh for login requests to avoid loops
     const isLoginRequest = originalRequest.url?.includes('/auth/login');

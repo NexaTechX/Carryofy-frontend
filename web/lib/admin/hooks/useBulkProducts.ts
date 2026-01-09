@@ -11,7 +11,8 @@ export function useBulkApproveProducts() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: bulkApproveProductsRequest,
+    mutationFn: ({ productIds, commissionPercentage }: { productIds: string[]; commissionPercentage?: number }) =>
+      bulkApproveProductsRequest(productIds, commissionPercentage),
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       toast.success(`${data.approved} product(s) approved successfully.`);

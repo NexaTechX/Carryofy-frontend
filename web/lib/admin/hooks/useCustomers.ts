@@ -94,6 +94,8 @@ export function useCustomerDetail(customerId: string | null) {
       return data as AdminCustomerDetail;
     },
     enabled: !!customerId,
+    retry: 1, // Only retry once on failure
+    retryOnMount: false, // Don't retry when component remounts
   });
 }
 

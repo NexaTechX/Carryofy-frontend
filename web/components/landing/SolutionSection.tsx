@@ -43,7 +43,7 @@ export default function SolutionSection() {
                                 'Verified sellers you can trust',
                                 'Same-day delivery in Nigeria',
                                 'Real-time order tracking',
-                                'No more WhatsApp follow-ups',
+                                'No more constant follow-ups',
                                 'Money-back guarantee',
                                 'Secure payment options'
                             ].map((item, index) => (

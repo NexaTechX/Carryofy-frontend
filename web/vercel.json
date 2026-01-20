@@ -4,8 +4,5 @@
   "framework": "nextjs",
   "installCommand": "npm install",
   "devCommand": "npm run dev",
-  "regions": ["iad1"],
-  "env": {
-    "NEXT_PUBLIC_API_BASE": "https://api.carryofy.com/api/v1"
-  }
+  "regions": ["iad1"]
 }

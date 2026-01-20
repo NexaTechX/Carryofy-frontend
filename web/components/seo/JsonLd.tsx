@@ -26,7 +26,7 @@ export function OrganizationSchema({
   name = SITE_NAME,
   url = SITE_URL,
   logo = LOGO_URL,
-  description = 'Carryofy enables same-day delivery for trusted local sellers in Lagos. Shop from verified sellers and get fast, reliable delivery without WhatsApp stress.',
+  description = 'Carryofy enables same-day delivery for trusted local sellers in Lagos. Shop from verified sellers and get fast, reliable delivery with real-time tracking.',
   email = 'support@carryofy.com',
   // TODO: Replace with actual contact phone number
   telephone = process.env.NEXT_PUBLIC_CONTACT_PHONE || '+234-XXX-XXX-XXXX',

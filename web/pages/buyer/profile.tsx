@@ -123,9 +123,15 @@ export default function BuyerProfilePage() {
         name: profileData.name || '',
         phone: profileData.phone || '',
       });
+      setProfileError(null); // Clear any previous errors
     } catch (err: any) {
       console.error('Error fetching profile:', err);
-      setProfileError(err.response?.data?.message || 'Failed to load profile');
+      // Handle network errors with a more user-friendly message
+      if (err?.code === 'ERR_NETWORK' || err?.code === 'ECONNREFUSED' || err?.message === 'Network Error') {
+        setProfileError('Unable to connect to the server. Please check your internet connection and ensure the API server is running.');
+      } else {
+        setProfileError(err.response?.data?.message || 'Failed to load profile');
+      }
     } finally {
       setLoadingProfile(false);
     }
@@ -137,9 +143,15 @@ export default function BuyerProfilePage() {
       const response = await apiClient.get<Address[] | { data: Address[] }>('/users/me/addresses');
       const addressesData = (response.data as { data?: Address[] }).data || (response.data as Address[]);
       setAddresses(Array.isArray(addressesData) ? addressesData : []);
+      setAddressError(null); // Clear any previous errors
     } catch (err: any) {
       console.error('Error fetching addresses:', err);
-      setAddressError(err.response?.data?.message || 'Failed to load addresses');
+      // Handle network errors with a more user-friendly message
+      if (err?.code === 'ERR_NETWORK' || err?.code === 'ECONNREFUSED' || err?.message === 'Network Error') {
+        setAddressError('Unable to connect to the server. Please check your internet connection and ensure the API server is running.');
+      } else {
+        setAddressError(err.response?.data?.message || 'Failed to load addresses');
+      }
     } finally {
       setLoadingAddresses(false);
     }

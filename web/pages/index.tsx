@@ -80,11 +80,11 @@ export default function Home() {
           },
           {
             question: 'Who do I contact if something goes wrong?',
-            answer: 'Contact Carryofy support directly via WhatsApp at +234 916 678 3040 or email support@carryofy.com. Our Nigerian support team is available to help with orders, delivery issues, refunds, or any questions. We resolve issues quickly.',
+            answer: 'Contact Carryofy support directly via phone at +234 916 678 3040 or email support@carryofy.com. Our Nigerian support team is available to help with orders, delivery issues, refunds, or any questions. We resolve issues quickly.',
           },
           {
             question: 'How do refunds work?',
-            answer: 'Carryofy offers a 7-day return policy. If you receive a damaged or incorrect item, contact our support team via WhatsApp or email. We\'ll arrange a full refund or replacement. Refunds are processed to your original payment method within 3-5 business days after we receive the returned item.',
+            answer: 'Carryofy offers a 7-day return policy. If you receive a damaged or incorrect item, contact our support team via phone or email. We\'ll arrange a full refund or replacement. Refunds are processed to your original payment method within 3-5 business days after we receive the returned item.',
           },
           {
             question: 'Are products really in stock?',

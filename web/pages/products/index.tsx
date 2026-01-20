@@ -670,7 +670,7 @@ export default function PublicProductsPage({
                           Carryofy connects you with trusted local sellers in Lagos for same-day delivery. Browse {total.toLocaleString()}+ products from verified sellers, from electronics and fashion to groceries and home goods.
                         </p>
                         <p>
-                          Order today, receive today in Lagos. Our reliable delivery network ensures fast, safe delivery without the WhatsApp stress.
+                          Order today, receive today in Lagos. Our reliable delivery network ensures fast, safe delivery with real-time tracking.
                         </p>
                         <p className="hidden sm:block">
                           Shop with confidence from verified sellers, enjoy same-day delivery in Lagos, secure payments, and buyer protection. Order today, receive today. Or your money back.

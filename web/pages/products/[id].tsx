@@ -19,7 +19,7 @@ import {
   ArrowRight,
   Info,
   Droplets,
-  MessageCircle,
+  Phone,
 } from 'lucide-react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
@@ -575,8 +575,8 @@ export default function PublicProductDetailPage({
                       <span>Fast delivery (Lagos priority)</span>
                     </div>
                     <div className="flex items-center gap-2 text-[#ffcc99] text-sm">
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                      <span>Issues? Call or WhatsApp Carryofy</span>
+                      <CheckCircle className="w-4 h-4 text-cyan-400" />
+                      <span>Issues? Call or Email Carryofy</span>
                     </div>
                   </div>
                 </div>
@@ -591,13 +591,11 @@ export default function PublicProductDetailPage({
                     <span>Buy Now</span>
                   </Link>
                   <a
-                    href="https://wa.me/2349166783040"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition shadow-md"
+                    href="tel:+2349166783040"
+                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl font-bold hover:shadow-lg transition shadow-md"
                   >
-                    <MessageCircle className="w-5 h-5" />
-                    <span>Chat with Carryofy</span>
+                    <Phone className="w-5 h-5" />
+                    <span>Call Support</span>
                   </a>
                   <Link
                     href="/auth/login"

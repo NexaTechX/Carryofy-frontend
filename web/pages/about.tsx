@@ -82,7 +82,7 @@ export default function About() {
                     Our Mission
                   </h2>
                   <p className="text-base sm:text-lg text-gray-600 leading-relaxed text-center">
-                    Carryofy helps urban customers in Lagos get same-day delivery from trusted local sellers. We connect buyers with verified sellers and handle reliable delivery, without the WhatsApp stress.
+                    Carryofy helps urban customers in Lagos get same-day delivery from trusted local sellers. We connect buyers with verified sellers and handle reliable delivery with real-time tracking.
                   </p>
                 </div>
 
@@ -106,7 +106,7 @@ export default function About() {
                   Our Story
                 </h2>
                 <p className="text-base sm:text-lg text-gray-600 leading-relaxed text-center">
-                  Born in Lagos, Carryofy began with a simple idea: help urban customers get same-day delivery from trusted local sellers, without WhatsApp stress. We saw the challenges buyers face with unreliable Instagram vendors and delayed deliveries. Today, we're building reliable same-day delivery in Lagos, connecting buyers with verified sellers.
+                  Born in Lagos, Carryofy began with a simple idea: help urban customers get same-day delivery from trusted local sellers with transparent tracking. We saw the challenges buyers face with unreliable social media vendors and delayed deliveries. Today, we're building reliable same-day delivery in Lagos, connecting buyers with verified sellers.
                 </p>
               </div>
             </div>
@@ -121,7 +121,7 @@ export default function About() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
                 {[
                   { title: 'Reliability', desc: 'We deliver on our promises. Order today, receive today. Or your money back.' },
-                  { title: 'Simplicity', desc: 'Buying from local sellers should be simple. No WhatsApp stress, just order and receive.' },
+                  { title: 'Simplicity', desc: 'Buying from local sellers should be simple. No hassle, just order and receive with tracking.' },
                   { title: 'Trust', desc: 'We verify every seller so you can shop with confidence.' },
                   { title: 'Customer-first', desc: 'Your success is our top priority. We grow when you grow.' },
                   { title: 'Transparency', desc: 'We believe in open and honest communication with all stakeholders.' },
@@ -161,7 +161,7 @@ export default function About() {
                 Join Us Today
               </h2>
               <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto">
-                Shop from trusted local sellers in Lagos and get same-day delivery, without the WhatsApp stress. Order today, receive today.
+                Shop from trusted local sellers in Lagos and get same-day delivery with real-time tracking. Order today, receive today.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <a

@@ -4,59 +4,79 @@
 
 import * as Sentry from "@sentry/nextjs";
 
-Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+// Only initialize Sentry if DSN is provided
+if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
-  // Adjust this value in production, or use tracesSampler for greater control
-  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+    // Adjust this value in production, or use tracesSampler for greater control
+    tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
 
-  // Setting this option to true will print useful information to the console while you're setting up Sentry.
-  debug: process.env.NODE_ENV === "development",
+    // Setting this option to true will print useful information to the console while you're setting up Sentry.
+    debug: process.env.NODE_ENV === "development",
 
-  // Enable Replay for better debugging
-  replaysOnErrorSampleRate: 1.0,
-  replaysSessionSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 0.1,
+    // Enable Replay for better debugging
+    replaysOnErrorSampleRate: 1.0,
+    replaysSessionSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 0.1,
 
-  integrations: [
-    Sentry.replayIntegration({
-      // Mask all text content and user input. Don't leave anything unmasked.
-      maskAllText: true,
-      blockAllMedia: true,
-    }),
-  ],
+    integrations: [
+      Sentry.replayIntegration({
+        // Mask all text content and user input. Don't leave anything unmasked.
+        maskAllText: true,
+        blockAllMedia: true,
+      }),
+    ],
 
-  // Set the environment
-  environment: process.env.NEXT_PUBLIC_ENV || process.env.NODE_ENV,
+    // Set the environment
+    environment: process.env.NEXT_PUBLIC_ENV || process.env.NODE_ENV,
 
-  // Filter out health check and other non-essential errors
-  ignoreErrors: [
-    // Browser extensions
-    "top.GLOBALS",
-    "originalCreateNotification",
-    "canvas.contentDocument",
-    "MyApp_RemoveAllHighlights",
-    "atomicFindClose",
-    "fb_xd_fragment",
-    "bmi_SafeAddOnload",
-    "EBCallBackMessageReceived",
-    // Network errors
-    "Network request failed",
-    "NetworkError",
-    "Failed to fetch",
-    "Load failed",
-    // Third-party scripts
-    "Non-Error promise rejection captured",
-  ],
+    // Filter out health check and other non-essential errors
+    ignoreErrors: [
+      // Browser extensions
+      "top.GLOBALS",
+      "originalCreateNotification",
+      "canvas.contentDocument",
+      "MyApp_RemoveAllHighlights",
+      "atomicFindClose",
+      "fb_xd_fragment",
+      "bmi_SafeAddOnload",
+      "EBCallBackMessageReceived",
+      // Network errors
+      "Network request failed",
+      "NetworkError",
+      "Failed to fetch",
+      "Load failed",
+      // Third-party scripts
+      "Non-Error promise rejection captured",
+    ],
 
-  // Filter out specific URLs (optional)
-  denyUrls: [
-    // Chrome extensions
-    /extensions\//i,
-    /^chrome:\/\//i,
-    /^chrome-extension:\/\//i,
-    // Browser extensions
-    /^moz-extension:\/\//i,
-    // Local development
-    /localhost/i,
-  ],
-});
+    // Filter out specific URLs (optional)
+    // Only deny localhost in production, allow it in development for testing
+    denyUrls:
+      process.env.NODE_ENV === "production"
+        ? [
+            // Chrome extensions
+            /extensions\//i,
+            /^chrome:\/\//i,
+            /^chrome-extension:\/\//i,
+            // Browser extensions
+            /^moz-extension:\/\//i,
+          ]
+        : [
+            // Chrome extensions
+            /extensions\//i,
+            /^chrome:\/\//i,
+            /^chrome-extension:\/\//i,
+            // Browser extensions
+            /^moz-extension:\/\//i,
+          ],
+  });
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("✅ Sentry client initialized");
+  }
+} else {
+  if (process.env.NODE_ENV === "development") {
+    console.warn("⚠️ Sentry DSN not found. Sentry client not initialized.");
+  }
+}

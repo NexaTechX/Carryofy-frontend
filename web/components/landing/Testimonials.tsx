@@ -9,7 +9,7 @@ export default function Testimonials() {
       time: '2 months ago',
       location: 'Ikoyi, Lagos',
       productCategory: 'Electronics',
-      quote: 'Ordered a smartphone from a seller in Victoria Island. The delivery was super fast - got it in just 3 hours! No WhatsApp back-and-forth, just smooth shopping. Carryofy is a game-changer.',
+      quote: 'Ordered a smartphone from a seller in Victoria Island. The delivery was super fast - got it in just 3 hours! No hassle, just smooth shopping. Carryofy is a game-changer.',
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&q=80',
     },
     {

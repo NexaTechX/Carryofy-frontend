@@ -88,7 +88,8 @@ export default function Login() {
         message = `Cannot connect to the server. Please check:\n\n` +
           `1. Is the backend server running? (Expected: ${apiBase})\n` +
           `2. Check your browser console for more details\n` +
-          `3. Verify NEXT_PUBLIC_API_BASE is set correctly in your .env.local file`;
+          `3. Verify NEXT_PUBLIC_API_BASE is set correctly in your .env file (should be: http://localhost:3000/api/v1)\n` +
+          `4. Restart your Next.js dev server after changing .env file`;
         console.error('Network Error Details:', {
           code: error.code,
           message: error.message,

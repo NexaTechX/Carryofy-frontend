@@ -69,7 +69,13 @@ export default function AdminCustomers() {
   };
 
   const { data, isLoading, isError, error, refetch } = useAdminCustomers(queryParams);
-  const { data: customerDetail } = useCustomerDetail(selectedCustomerId);
+  const { 
+    data: customerDetail, 
+    isLoading: isLoadingDetail, 
+    isError: isDetailError, 
+    error: detailError,
+    refetch: refetchDetail 
+  } = useCustomerDetail(selectedCustomerId);
   const updateStatus = useUpdateCustomerStatus();
 
   const customers = data?.users || [];
@@ -305,7 +311,28 @@ export default function AdminCustomers() {
           ) : null
         }
       >
-        {customerDetail ? (
+        {isLoadingDetail ? (
+          <LoadingState label="Loading customer details..." />
+        ) : isDetailError ? (
+          <AdminEmptyState
+            title="Unable to load customer details"
+            description={
+              (detailError as any)?.response?.data?.message ||
+              (detailError instanceof Error 
+                ? detailError.message 
+                : 'Please try again later.')
+            }
+            action={
+              <button
+                type="button"
+                onClick={() => refetchDetail()}
+                className="rounded-full border border-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary transition hover:bg-primary hover:text-black"
+              >
+                Retry
+              </button>
+            }
+          />
+        ) : customerDetail ? (
           <div className="space-y-6 text-sm text-gray-300">
             {/* Customer Info */}
             <div className="grid grid-cols-2 gap-4 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
@@ -416,9 +443,7 @@ export default function AdminCustomers() {
               </div>
             </div>
           </div>
-        ) : (
-          <LoadingState label="Loading customer details..." />
-        )}
+        ) : null}
       </AdminDrawer>
     </AdminLayout>
   );

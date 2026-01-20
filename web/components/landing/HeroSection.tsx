@@ -1,117 +1,226 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, Check, MessageCircle } from 'lucide-react';
+import { ArrowRight, Check, Shield, Zap, TrendingUp, Sparkles, Package } from 'lucide-react';
 
 export default function HeroSection() {
-  const whatsappNumber = '+2349166783040'; // WhatsApp Business number
+  const currentYear = new Date().getFullYear();
+  
+  const stats = [
+    { value: '100%', label: 'Verified Sellers' },
+    { value: '24/7', label: 'Support' },
+    { value: '1-3 Days', label: 'Delivery' },
+  ];
+
+  const floatingIcons = [
+    { Icon: Shield, color: 'text-cyan-500', delay: 0 },
+    { Icon: Zap, color: 'text-primary', delay: 0.2 },
+    { Icon: TrendingUp, color: 'text-cyan-600', delay: 0.4 },
+    { Icon: Package, color: 'text-primary-light', delay: 0.6 },
+  ];
   
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-orange-50/30 to-white pt-20 sm:pt-24">
-      {/* Animated Background Elements */}
+    <section className="relative min-h-[95vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-cyan-50/30 via-orange-50/20 to-white pt-20 sm:pt-24">
+      {/* Enhanced Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-pulse-slow"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/3 rounded-full blur-3xl"></div>
+        {/* Gradient Orbs */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-cyan-400/10 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-300/5 rounded-full blur-3xl"></div>
+        
+        {/* Floating Icons */}
+        {floatingIcons.map((item, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 0.15, scale: 1 }}
+            transition={{ delay: item.delay, duration: 0.8 }}
+            className={`absolute ${
+              index === 0 ? 'top-32 left-20' :
+              index === 1 ? 'top-40 right-32' :
+              index === 2 ? 'bottom-40 left-40' :
+              'bottom-32 right-20'
+            }`}
+            style={{
+              animation: index % 2 === 0 ? 'float 20s ease-in-out infinite' : 'float-delayed 25s ease-in-out infinite'
+            }}
+          >
+            <item.Icon className={`w-16 h-16 sm:w-20 sm:h-20 ${item.color}`} strokeWidth={1} />
+          </motion.div>
+        ))}
+
+        {/* Grid Pattern */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]"></div>
       </div>
 
       {/* Content */}
       <div className="relative z-20 container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
-        <div className="max-w-5xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            {/* Fulfilled by Carryofy Badge */}
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Left Column - Text Content */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-sm font-semibold text-primary mb-6"
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
             >
-              <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-              Fulfilled by Carryofy
-            </motion.div>
-
-            <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 sm:mb-8 leading-tight text-gray-900">
-              Verified Nigerian sellers.{' '}
-              <span className="text-gradient">We store, deliver, and support your order.</span>
-            </h1>
-
-            <p className="text-lg sm:text-xl lg:text-2xl mb-10 sm:mb-12 text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Buy confidently. Carryofy holds inventory, delivers fast, and resolves issues if anything goes wrong.
-            </p>
-
-            <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 mb-10 sm:mb-12">
-              <Link
-                href="/products"
-                className="group relative px-8 py-4 bg-gradient-to-r from-primary to-primary-light text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 font-semibold text-base sm:text-lg flex items-center justify-center gap-2 overflow-hidden"
+              {/* Badge */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500/10 to-primary/10 border border-cyan-500/20 rounded-full text-sm font-semibold text-gray-700 mb-6 backdrop-blur-sm"
               >
-                <span className="relative z-10 flex items-center gap-2">
-                  Shop verified products
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <Sparkles className="w-4 h-4 text-cyan-500" />
+                <span>Nigeria's Smart Marketplace • Est. {currentYear}</span>
+              </motion.div>
+
+              <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 leading-tight">
+                <span className="text-gray-900">Shop from </span>
+                <span className="text-gradient bg-gradient-to-r from-primary via-cyan-500 to-primary-light bg-clip-text text-transparent">
+                  verified Nigerian sellers
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-dark to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </Link>
-              <a
-                href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group px-8 py-4 bg-green-500 text-white rounded-xl hover:bg-green-600 border-2 border-green-500 hover:border-green-600 transition-all duration-300 font-semibold text-base sm:text-lg flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Chat with Carryofy
-              </a>
-            </div>
+                <span className="text-gray-900"> with confidence</span>
+              </h1>
 
-            {/* WhatsApp Business Number - Visible and Clickable */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-              className="mb-6"
-            >
-              <a
-                href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-green-700 hover:bg-green-100 transition-colors font-medium text-sm sm:text-base"
+              <p className="text-lg sm:text-xl lg:text-2xl mb-8 text-gray-600 leading-relaxed">
+                We store inventory, handle delivery, and provide support — so you can shop worry-free from trusted vendors.
+              </p>
+
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-10">
+                <Link
+                  href="/products"
+                  className="group relative px-8 py-4 bg-gradient-to-r from-primary to-primary-light text-white rounded-2xl hover:shadow-2xl hover:shadow-primary/40 transition-all duration-300 font-semibold text-base sm:text-lg flex items-center justify-center gap-2 overflow-hidden transform hover:-translate-y-1"
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    Start Shopping
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary-dark to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </Link>
+                <Link
+                  href="/merchant-onboarding"
+                  className="group px-8 py-4 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-2xl hover:shadow-2xl hover:shadow-cyan-500/40 transition-all duration-300 font-semibold text-base sm:text-lg flex items-center justify-center gap-2 transform hover:-translate-y-1"
+                >
+                  <span>Become a Seller</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+
+              {/* Trust Signals */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.6 }}
+                className="flex flex-wrap items-center gap-6 text-sm sm:text-base"
               >
-                <MessageCircle className="w-4 h-4" />
-                WhatsApp: {whatsappNumber}
-              </a>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-5 h-5 rounded-full bg-cyan-100 flex items-center justify-center">
+                    <Check className="w-3.5 h-3.5 text-cyan-600" />
+                  </div>
+                  <span className="font-medium text-gray-700">Verified Sellers Only</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-5 h-5 rounded-full bg-cyan-100 flex items-center justify-center">
+                    <Check className="w-3.5 h-3.5 text-cyan-600" />
+                  </div>
+                  <span className="font-medium text-gray-700">Fast Delivery</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-5 h-5 rounded-full bg-cyan-100 flex items-center justify-center">
+                    <Check className="w-3.5 h-3.5 text-cyan-600" />
+                  </div>
+                  <span className="font-medium text-gray-700">Secure Payments</span>
+                </div>
+              </motion.div>
             </motion.div>
 
-            {/* Trust signals */}
+            {/* Right Column - Visual Feature Cards */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-              className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-sm sm:text-base"
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="relative"
             >
-              <div className="flex items-center gap-2.5 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 shadow-sm">
-                <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
-                  <Check className="w-3.5 h-3.5 text-green-600" />
-                </div>
-                <span className="font-medium text-gray-700">Products stocked in Carryofy warehouse</span>
+              {/* Stats Cards */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                {stats.map((stat, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 + index * 0.1 }}
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 text-center"
+                  >
+                    <div className="text-2xl sm:text-3xl font-bold text-gradient bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent mb-1">
+                      {stat.value}
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600 font-medium">
+                      {stat.label}
+                    </div>
+                  </motion.div>
+                ))}
               </div>
-              <div className="flex items-center gap-2.5 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 shadow-sm">
-                <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
-                  <Check className="w-3.5 h-3.5 text-green-600" />
-                </div>
-                <span className="font-medium text-gray-700">Pay safely — support available</span>
-              </div>
-              <div className="flex items-center gap-2.5 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 shadow-sm">
-                <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
-                  <Check className="w-3.5 h-3.5 text-green-600" />
-                </div>
-                <span className="font-medium text-gray-700">Nigerian support team</span>
+
+              {/* Feature Highlights */}
+              <div className="space-y-4">
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-cyan-100 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center flex-shrink-0">
+                      <Shield className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-1 text-lg">Buyer Protection</h3>
+                      <p className="text-gray-600 text-sm">Every purchase is protected. Get refunds if anything goes wrong.</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.7 }}
+                  className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-primary/20 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center flex-shrink-0">
+                      <Package className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-1 text-lg">Fulfilled by Carryofy</h3>
+                      <p className="text-gray-600 text-sm">Products stored in our warehouse, ready to ship immediately.</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.8 }}
+                  className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-cyan-100 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center flex-shrink-0">
+                      <Zap className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-1 text-lg">AI-Powered Support</h3>
+                      <p className="text-gray-600 text-sm">Smart customer service that resolves issues quickly.</p>
+                    </div>
+                  </div>
+                </motion.div>
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
       </div>
+
+      {/* Decorative Bottom Wave */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
     </section>
   );
 }
-

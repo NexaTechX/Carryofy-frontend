@@ -12,11 +12,47 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+// Validate required Firebase configuration values
+const requiredConfigKeys: (keyof typeof firebaseConfig)[] = [
+  'apiKey',
+  'authDomain',
+  'projectId',
+  'storageBucket',
+  'messagingSenderId',
+  'appId',
+];
+
+const missingConfigKeys = requiredConfigKeys.filter(
+  (key) => !firebaseConfig[key]
+);
+
+// Map config keys to environment variable names
+const configKeyToEnvVar: Record<keyof typeof firebaseConfig, string> = {
+  apiKey: 'NEXT_PUBLIC_FIREBASE_API_KEY',
+  authDomain: 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  projectId: 'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  storageBucket: 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+  messagingSenderId: 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+  appId: 'NEXT_PUBLIC_FIREBASE_APP_ID',
+  measurementId: 'NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID',
+};
+
 // Initialize Firebase app (only once, client-side only)
 let app: FirebaseApp | undefined;
 if (typeof window !== 'undefined') {
-  if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig);
+  if (missingConfigKeys.length > 0) {
+    console.warn(
+      `⚠️ Firebase configuration incomplete. Missing: ${missingConfigKeys.join(', ')}. ` +
+      `Please set the following environment variables: ${missingConfigKeys
+        .map((key) => configKeyToEnvVar[key])
+        .join(', ')}`
+    );
+  } else if (getApps().length === 0) {
+    try {
+      app = initializeApp(firebaseConfig);
+    } catch (error) {
+      console.error('Failed to initialize Firebase:', error);
+    }
   } else {
     app = getApps()[0];
   }

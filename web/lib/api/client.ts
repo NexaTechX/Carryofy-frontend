@@ -16,7 +16,7 @@ const apiClient: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Enable cookies for CORS if needed
-  timeout: 10000, // 10 second timeout
+  timeout: 30000, // 30 second timeout (increased from 10s to handle slow queries)
 });
 
 // Request interceptor to add Access Token
@@ -52,18 +52,26 @@ apiClient.interceptors.response.use(
         data: error.response.data,
         headers: error.response.headers,
       });
-    } else if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
+    } else if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.message === 'Network Error') {
+      const fullURL = originalRequest ? `${API_BASE_URL}${originalRequest.url}` : 'N/A';
       console.error('Network Error Details:', {
         message: error.message,
         code: error.code,
         baseURL: API_BASE_URL,
         url: originalRequest?.url,
-        fullURL: originalRequest ? `${API_BASE_URL}${originalRequest.url}` : 'N/A',
+        fullURL,
       });
       console.error('Please ensure:');
       console.error('1. The backend server is running');
       console.error('2. The API_BASE_URL is correct (currently:', API_BASE_URL, ')');
       console.error('3. CORS is properly configured on the backend');
+      console.error('4. Check your .env file has NEXT_PUBLIC_API_BASE set correctly (should be: http://localhost:3000/api/v1)');
+      console.error('5. Restart your Next.js dev server after changing .env file');
+      
+      // Enhance error message for better debugging
+      if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+        error.message = `Network Error: Unable to connect to ${fullURL}. Please ensure the API server is running at ${API_BASE_URL}`;
+      }
     }
 
     // Handle 429 Too Many Requests - rate limiting

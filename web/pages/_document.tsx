@@ -76,7 +76,7 @@ export default function Document() {
                 width: 512,
                 height: 512,
               },
-              description: 'Carryofy enables same-day delivery for trusted local sellers in Lagos. Shop from verified sellers and get fast, reliable delivery without WhatsApp stress.',
+              description: 'Carryofy enables same-day delivery for trusted local sellers in Lagos. Shop from verified sellers and get fast, reliable delivery with real-time tracking.',
               email: 'support@carryofy.com',
               address: {
                 '@type': 'PostalAddress',

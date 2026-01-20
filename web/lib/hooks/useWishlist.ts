@@ -22,13 +22,25 @@ export function useWishlist() {
 
     try {
       setLoading(true);
+      console.log('🔄 Initializing wishlist...');
       const response = await getWishlist();
       const productIds = new Set(response.items.map(item => item.productId));
       setWishlistItems(productIds);
       setInitialized(true);
-    } catch (error) {
-      console.error('Error initializing wishlist:', error);
+      console.log(`✅ Wishlist initialized with ${productIds.size} items`);
+    } catch (error: any) {
+      console.error('❌ Error initializing wishlist:', {
+        message: error?.message,
+        code: error?.code,
+        status: error?.response?.status,
+      });
+      
+      // Set empty wishlist on error to allow the app to continue working
+      setWishlistItems(new Set());
       setInitialized(true); // Set initialized even on error to prevent infinite loops
+      
+      // Don't throw the error - just log it and continue
+      // This prevents the entire page from breaking if wishlist fails
     } finally {
       setLoading(false);
     }

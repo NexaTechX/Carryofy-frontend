@@ -41,6 +41,11 @@ export const aiOnboardingApi = {
       if (error?.response?.status === 404) {
         return null;
       }
+      // Handle network errors gracefully - return null instead of throwing
+      if (error?.code === 'ERR_NETWORK' || error?.code === 'ECONNREFUSED' || error?.message === 'Network Error') {
+        console.warn('Network error fetching AI onboarding preferences - API may be unavailable');
+        return null;
+      }
       // For other errors, rethrow to let caller handle
       throw error;
     }

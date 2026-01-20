@@ -6,12 +6,12 @@ export default function ProblemSection() {
         {
             icon: PackageX,
             title: 'Unreliable Vendors',
-            description: 'Instagram and WhatsApp sellers often don\'t deliver on time, or at all. You\'re left wondering where your order is.',
+            description: 'Social media sellers often don\'t deliver on time, or at all. You\'re left wondering where your order is.',
         },
         {
             icon: TrendingDown,
             title: 'Delayed Deliveries',
-            description: 'Orders take days or weeks, with no tracking or accountability. You have to keep following up via WhatsApp.',
+            description: 'Orders take days or weeks, with no tracking or accountability. You have to keep following up constantly.',
         },
         {
             icon: AlertTriangle,
@@ -28,7 +28,7 @@ export default function ProblemSection() {
                         Shopping Online in Lagos Shouldn't Be This Hard
                     </h2>
                     <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto px-4">
-                        Buying from sellers shouldn't mean dealing with unreliable deliveries and WhatsApp stress in Lagos.
+                        Buying from sellers shouldn't mean dealing with unreliable deliveries and constant follow-ups in Lagos.
                     </p>
                 </div>
 

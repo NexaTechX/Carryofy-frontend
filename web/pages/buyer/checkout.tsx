@@ -139,6 +139,9 @@ export default function CheckoutPage() {
       }
     } catch (err: any) {
       console.error('Error fetching addresses:', err);
+      // Don't show error to user - addresses are optional
+      // Just log it and continue with empty addresses array
+      setSavedAddresses([]);
     } finally {
       setLoadingAddresses(false);
     }
@@ -382,30 +385,70 @@ export default function CheckoutPage() {
         if (selectedAddressId) {
           addressId = selectedAddressId;
         } else {
-          // Create address from delivery info
-          const addressResponse = await apiClient.post('/users/me/addresses', {
-            label: deliveryInfo.city ? `${deliveryInfo.city} Address` : 'Delivery Address',
-            line1: deliveryInfo.address,
-            line2: deliveryInfo.landmark || undefined,
-            city: deliveryInfo.city,
-            state: deliveryInfo.state,
-            country: 'Nigeria',
-          });
-          addressId = addressResponse.data.id || addressResponse.data.data?.id;
+          // Validate required fields before creating address
+          if (!deliveryInfo.address?.trim() || !deliveryInfo.city?.trim() || !deliveryInfo.state?.trim()) {
+            setOrderMessage({ 
+              type: 'error', 
+              text: 'Please provide complete delivery address (address, city, and state).' 
+            });
+            setSubmitting(false);
+            return;
+          }
+
+          try {
+            // Create address from delivery info
+            const addressResponse = await apiClient.post('/users/me/addresses', {
+              label: deliveryInfo.city ? `${deliveryInfo.city} Address` : 'Delivery Address',
+              line1: deliveryInfo.address.trim(),
+              line2: deliveryInfo.landmark?.trim() || undefined,
+              city: deliveryInfo.city.trim(),
+              state: deliveryInfo.state.trim(),
+              country: 'Nigeria',
+            });
+            addressId = addressResponse.data.id || addressResponse.data.data?.id;
+            
+            if (!addressId) {
+              throw new Error('Failed to create address: No address ID returned');
+            }
+          } catch (err: any) {
+            console.error('Error creating address:', err);
+            const errorMessage = err.response?.data?.message || err.message || 'Failed to create delivery address. Please try again.';
+            setOrderMessage({ 
+              type: 'error', 
+              text: errorMessage 
+            });
+            setSubmitting(false);
+            return;
+          }
         }
       } else {
         // For pickup, use selected address or create a minimal one
         if (selectedAddressId) {
           addressId = selectedAddressId;
         } else {
-          const addressResponse = await apiClient.post('/users/me/addresses', {
-            label: 'Pickup Location',
-            line1: 'Store Pickup',
-            city: 'Lagos',
-            state: 'Lagos',
-            country: 'Nigeria',
-          });
-          addressId = addressResponse.data.id || addressResponse.data.data?.id;
+          try {
+            const addressResponse = await apiClient.post('/users/me/addresses', {
+              label: 'Pickup Location',
+              line1: 'Store Pickup',
+              city: 'Lagos',
+              state: 'Lagos',
+              country: 'Nigeria',
+            });
+            addressId = addressResponse.data.id || addressResponse.data.data?.id;
+            
+            if (!addressId) {
+              throw new Error('Failed to create address: No address ID returned');
+            }
+          } catch (err: any) {
+            console.error('Error creating pickup address:', err);
+            const errorMessage = err.response?.data?.message || err.message || 'Failed to create pickup address. Please try again.';
+            setOrderMessage({ 
+              type: 'error', 
+              text: errorMessage 
+            });
+            setSubmitting(false);
+            return;
+          }
         }
       }
 
@@ -539,25 +582,6 @@ export default function CheckoutPage() {
             <p className="text-[#ffcc99] text-lg mb-4">
               Review your order, provide delivery details, and complete your purchase securely.
             </p>
-            {/* Reassurance Text */}
-            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-6">
-              <div className="flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-white font-semibold mb-1">Your payment is protected by Carryofy</p>
-                  <p className="text-[#ffcc99] text-sm">
-                    We release funds only after delivery. If something goes wrong, contact us via WhatsApp at{' '}
-                    <a href="https://wa.me/2349166783040" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 underline font-semibold">
-                      +234 916 678 3040
-                    </a>{' '}
-                    or email{' '}
-                    <a href="mailto:support@carryofy.com" className="text-green-400 hover:text-green-300 underline font-semibold">
-                      support@carryofy.com
-                    </a>
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
 
           {loadingCart ? (
@@ -1094,8 +1118,8 @@ export default function CheckoutPage() {
                     <div className="flex items-center gap-2 text-[#ffcc99] text-sm">
                       <Phone className="w-4 h-4" />
                       <span>
-                        Need help? WhatsApp{' '}
-                        <a href="https://wa.me/2349166783040" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 underline font-semibold">
+                        Need help? Call{' '}
+                        <a href="tel:+2349166783040" className="text-cyan-400 hover:text-cyan-300 underline font-semibold">
                           +234 916 678 3040
                         </a>
                       </span>

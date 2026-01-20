@@ -233,7 +233,7 @@ export default function SEO({
 export const PAGE_SEO = {
   home: {
     title: 'Carryofy - Same-Day Delivery from Trusted Local Sellers in Lagos',
-    description: 'Carryofy enables same-day delivery for trusted local sellers in Lagos. Shop from verified sellers and get fast, reliable delivery without WhatsApp stress. Order today, receive today.',
+    description: 'Carryofy enables same-day delivery for trusted local sellers in Lagos. Shop from verified sellers and get fast, reliable delivery with real-time tracking. Order today, receive today.',
     keywords: generateKeywords(['primary', 'problemAware', 'longTail', 'brand', 'locations']),
   },
   about: {

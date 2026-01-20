@@ -27,8 +27,14 @@ export default function OnboardingBanner() {
     } catch (error: any) {
       // Silently handle errors - don't show banner if API fails
       // This prevents the banner from showing if the endpoint doesn't exist or has issues
-      if (error?.response?.status === 404 || error?.response?.status === 500) {
-        // If endpoint doesn't exist or has server error, don't show banner
+      if (
+        error?.response?.status === 404 || 
+        error?.response?.status === 500 ||
+        error?.code === 'ERR_NETWORK' ||
+        error?.code === 'ECONNREFUSED' ||
+        error?.message === 'Network Error'
+      ) {
+        // If endpoint doesn't exist, has server error, or network error, don't show banner
         setShowBanner(false);
       } else {
         console.error('Failed to check onboarding status:', error);

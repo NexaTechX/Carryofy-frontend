@@ -1,173 +1,76 @@
 import { motion } from 'framer-motion';
-import { UserCheck, Package, TrendingUp, Search, ShoppingCart, PackageCheck } from 'lucide-react';
-
-const vendorSteps = [
-  {
-    id: 1,
-    title: 'Apply & get intelligently verified',
-    description: 'Smart checks help ensure quality and trust from day one.',
-    icon: UserCheck,
-  },
-  {
-    id: 2,
-    title: 'List products with guidance',
-    description: 'Intelligent suggestions help you optimize listings faster.',
-    icon: Package,
-  },
-  {
-    id: 3,
-    title: 'Sell and grow',
-    description: 'Manage orders and performance with built‑in insights.',
-    icon: TrendingUp,
-  },
-];
-
-const buyerSteps = [
-  {
-    id: 1,
-    title: 'Discover trusted products faster',
-    description: 'Relevant listings from verified sellers surface first.',
-    icon: Search,
-  },
-  {
-    id: 2,
-    title: 'Place your order securely',
-    description: 'Protected checkout and transparent pricing.',
-    icon: ShoppingCart,
-  },
-  {
-    id: 3,
-    title: 'Shop with confidence',
-    description: 'Smart systems help reduce risk throughout the journey.',
-    icon: PackageCheck,
-  },
-];
+import { UserCheck, Store, Truck, Headphones } from 'lucide-react';
 
 export default function HowItWorks() {
+  const steps = [
+    {
+      id: 1,
+      title: 'Verify',
+      description: 'Sellers pass our multi-stage vetting.',
+      icon: UserCheck,
+      iconColor: 'text-white',
+      bgColor: 'bg-primary',
+    },
+    {
+      id: 2,
+      title: 'Store',
+      description: 'Products are stored in Carryofy hubs.',
+      icon: Store,
+      iconColor: 'text-white',
+      bgColor: 'bg-primary',
+    },
+    {
+      id: 3,
+      title: 'Deliver',
+      description: 'Orders ship fulfilled in record time.',
+      icon: Truck,
+      iconColor: 'text-white',
+      bgColor: 'bg-primary',
+    },
+    {
+      id: 4,
+      title: 'Support',
+      description: 'Get support for every single order.',
+      icon: Headphones,
+      iconColor: 'text-white',
+      bgColor: 'bg-primary',
+    },
+  ];
+
   return (
-    <section className="py-16 sm:py-20 lg:py-24 bg-gradient-to-b from-gray-50 to-white overflow-hidden">
+    <section className="py-16 sm:py-20 lg:py-24 bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12 sm:mb-16">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-gray-900"
-          >
-            How It Works
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-lg text-gray-600 max-w-2xl mx-auto"
-          >
-            Simple, transparent, and designed for both sellers and buyers
-          </motion.p>
-        </div>
-
         <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
-            {/* Vendors */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
+          <div className="text-center mb-12 sm:mb-16">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="bg-white rounded-2xl p-8 sm:p-10 border border-gray-100 shadow-sm"
+              className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-gray-900"
             >
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <UserCheck className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  For Vendors
-                </h3>
-              </div>
-              <div className="space-y-6">
-                {vendorSteps.map((step, index) => (
-                  <motion.div
-                    key={step.id}
-                    initial={{ opacity: 0, x: -30 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-start gap-4 group"
-                  >
-                    <div className="relative flex-shrink-0">
-                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
-                        <step.icon className="w-7 h-7" />
-                      </div>
-                      {index < vendorSteps.length - 1 && (
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0.5 h-6 bg-gradient-to-b from-primary/30 to-transparent"></div>
-                      )}
-                    </div>
-                    <div className="flex-1 pt-1">
-                      <div className="text-xs text-primary font-semibold mb-2 uppercase tracking-wide">Step {step.id}</div>
-                      <div className="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-primary transition-colors mb-1">
-                        {step.title}
-                      </div>
-                      {step.description && (
-                        <p className="text-sm text-gray-600 leading-relaxed">
-                          {step.description}
-                        </p>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
+              How it Works
+            </motion.h2>
+          </div>
 
-            {/* Buyers */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="bg-white rounded-2xl p-8 sm:p-10 border border-gray-100 shadow-sm"
-            >
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <ShoppingCart className="w-6 h-6 text-primary" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+            {steps.map((step, index) => (
+              <motion.div
+                key={step.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="text-center"
+              >
+                <div className={`w-16 h-16 ${step.bgColor} rounded-full flex items-center justify-center mb-6 mx-auto`}>
+                  <step.icon className={`w-8 h-8 ${step.iconColor}`} />
                 </div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  For Buyers
-                </h3>
-              </div>
-              <div className="space-y-6">
-                {buyerSteps.map((step, index) => (
-                  <motion.div
-                    key={step.id}
-                    initial={{ opacity: 0, x: -30 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-start gap-4 group"
-                  >
-                    <div className="relative flex-shrink-0">
-                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
-                        <step.icon className="w-7 h-7" />
-                      </div>
-                      {index < buyerSteps.length - 1 && (
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0.5 h-6 bg-gradient-to-b from-primary/30 to-transparent"></div>
-                      )}
-                    </div>
-                    <div className="flex-1 pt-1">
-                      <div className="text-xs text-primary font-semibold mb-2 uppercase tracking-wide">Step {step.id}</div>
-                      <div className="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-primary transition-colors mb-1">
-                        {step.title}
-                      </div>
-                      {step.description && (
-                        <p className="text-sm text-gray-600 leading-relaxed">
-                          {step.description}
-                        </p>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
+                <div className="text-sm text-primary font-bold mb-2">{step.id}. {step.title}</div>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {step.description}
+                </p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </div>

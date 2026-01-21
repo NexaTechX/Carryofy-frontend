@@ -1,10 +1,11 @@
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
-import WhoCarryofyIsFor from '../components/landing/WhoCarryofyIsFor';
-import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
-import SmartCommerce from '../components/landing/SmartCommerce';
+import ProblemSection from '../components/landing/ProblemSection';
 import HowItWorks from '../components/landing/HowItWorks';
+import BuyerSellerSection from '../components/landing/BuyerSellerSection';
+import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
+import AIEfficiency from '../components/landing/AIEfficiency';
 import TrustCredibility from '../components/landing/TrustCredibility';
 import CallToAction from '../components/landing/CallToAction';
 import SEO, { generateKeywords } from '../components/seo/SEO';
@@ -99,12 +100,13 @@ export default function Home() {
 
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-grow">
+        <main className="grow">
           <HeroSection />
-          <WhoCarryofyIsFor />
-          <WhyChooseCarryofy />
-          <SmartCommerce />
+          <ProblemSection />
           <HowItWorks />
+          <BuyerSellerSection />
+          <WhyChooseCarryofy />
+          <AIEfficiency />
           <TrustCredibility />
           <CallToAction />
         </main>

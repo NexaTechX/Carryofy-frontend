@@ -233,215 +233,215 @@ export default function ProductsPage() {
       />
       
       <BuyerLayout>
-        <div>
-          {/* Header */}
-          <header className="mb-8">
-            <h1 className="text-white text-3xl md:text-4xl font-bold mb-2">
-              {selectedCategory ? `Shop ${getCategoryDisplayName(selectedCategory)}` : 'Explore Products'}
-            </h1>
-            <p className="text-[#ffcc99] text-lg">
-              {total} {total === 1 ? 'product' : 'products'} available
-              {selectedCategory ? ` in ${getCategoryDisplayName(selectedCategory)}` : ''}
-            </p>
-          </header>
-
-          {/* Filter Bar */}
-          <div className="mb-6 flex flex-wrap gap-4">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] transition"
-              aria-expanded={showFilters}
-            >
-              <Filter className="w-5 h-5" />
-              <span>Filters</span>
-              {activeFiltersCount > 0 && (
-                <span className="bg-[#ff6600] text-black px-2 py-0.5 rounded-full text-sm font-bold">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
-
-            {/* Category Pills */}
-            {categories.length > 0 && (
-              <nav className="flex flex-wrap gap-2" aria-label="Product categories">
-                {categories
-                  .sort((a, b) => a.displayOrder - b.displayOrder)
-                  .map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => {
-                        setSelectedCategory(selectedCategory === cat.slug ? '' : cat.slug);
-                        setCurrentPage(1);
-                      }}
-                      className={`px-4 py-2 rounded-xl font-medium transition ${
-                        selectedCategory === cat.slug
-                          ? 'bg-[#ff6600] text-black'
-                          : 'bg-[#1a1a1a] text-white border border-[#ff6600]/30 hover:border-[#ff6600]'
-                      }`}
-                      aria-pressed={selectedCategory === cat.slug}
-                    >
-                      {cat.name}
-                    </button>
-                  ))}
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+          {/* Left Sidebar - Categories & Filters */}
+          <aside className="lg:w-64 lg:flex-shrink-0">
+            <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 lg:sticky lg:top-24">
+              {/* Categories Section */}
+              <h2 className="text-white font-bold text-lg mb-4">Categories</h2>
+              <nav aria-label="Product categories">
+                <ul className="space-y-1 sm:space-y-2">
+                  {categories
+                    .sort((a, b) => a.displayOrder - b.displayOrder)
+                    .map((cat) => (
+                      <li key={cat.id}>
+                        <button
+                          onClick={() => {
+                            setSelectedCategory(selectedCategory === cat.slug ? '' : cat.slug);
+                            setCurrentPage(1);
+                          }}
+                          className={`w-full text-left px-4 py-3 sm:py-2 rounded-lg transition ${
+                            selectedCategory === cat.slug
+                              ? 'bg-[#ff6600] text-black font-bold'
+                              : 'text-white hover:bg-[#ff6600]/10 hover:text-white'
+                          }`}
+                        >
+                          {cat.name}
+                        </button>
+                      </li>
+                    ))}
+                </ul>
               </nav>
-            )}
 
-            {/* Sort Dropdown */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] transition focus:outline-none focus:border-[#ff6600]"
-              aria-label="Sort products"
-            >
-              {sortOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-
-            {activeFiltersCount > 0 && (
-              <button
-                onClick={handleClearFilters}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-[#ff6600] hover:bg-[#ff6600] hover:text-black transition"
-              >
-                <X className="w-5 h-5" />
-                <span>Clear All</span>
-              </button>
-            )}
-          </div>
-
-          {/* Collapsible Filter Panel */}
-          {showFilters && (
-            <div className="mb-6 p-6 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl">
-              <h3 className="text-white text-lg font-bold mb-4">Price Range</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="minPrice" className="block text-[#ffcc99] text-sm mb-2">Min Price (₦)</label>
-                  <input
-                    type="number"
-                    id="minPrice"
-                    value={minPrice}
-                    onChange={(e) => setMinPrice(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-4 py-2 bg-black border border-[#ff6600]/30 rounded-xl text-white focus:outline-none focus:border-[#ff6600]"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="maxPrice" className="block text-[#ffcc99] text-sm mb-2">Max Price (₦)</label>
-                  <input
-                    type="number"
-                    id="maxPrice"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                    placeholder="999999.00"
-                    className="w-full px-4 py-2 bg-black border border-[#ff6600]/30 rounded-xl text-white focus:outline-none focus:border-[#ff6600]"
-                  />
+              {/* Price Range Filter */}
+              <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-[#ff6600]/30">
+                <h3 className="text-white font-bold text-sm mb-3">Price Range (₦)</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[#ffcc99] text-xs mb-1 block">Min Price (₦)</label>
+                    <input
+                      type="number"
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      className="w-full px-3 py-2 bg-black border border-[#ff6600]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#ff6600]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[#ffcc99] text-xs mb-1 block">Max Price (₦)</label>
+                    <input
+                      type="number"
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      placeholder="Any"
+                      min="0"
+                      className="w-full px-3 py-2 bg-black border border-[#ff6600]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#ff6600]"
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      setCurrentPage(1);
+                      fetchProducts();
+                    }}
+                    className="w-full px-4 py-2 bg-[#ff6600] text-black font-bold rounded-lg hover:bg-[#cc5200] transition text-sm"
+                  >
+                    Apply Filter
+                  </button>
+                  {(minPrice || maxPrice) && (
+                    <button
+                      onClick={() => {
+                        setMinPrice('');
+                        setMaxPrice('');
+                        setCurrentPage(1);
+                        fetchProducts();
+                      }}
+                      className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] rounded-lg hover:border-[#ff6600] transition text-sm"
+                    >
+                      Clear Filter
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
-          )}
+          </aside>
 
-          {/* Loading State */}
-          {loading && (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff6600]"></div>
-              <p className="text-[#ffcc99] mt-4">Loading products...</p>
+          {/* Main Content Area */}
+          <div className="flex-1 min-w-0 bg-black/50 rounded-xl p-4 sm:p-6">
+            {/* Results Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+              <p className="text-white text-sm sm:text-base">
+                Showing <span className="font-bold">{products.length}</span> of{' '}
+                <span className="font-bold">{total.toLocaleString()}</span> products
+              </p>
+              {/* Sort Options */}
+              <div className="flex items-center gap-2">
+                <label className="text-white text-sm">Sort by:</label>
+                <select 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-3 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                >
+                  {sortOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          )}
 
-          {/* Error State */}
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-6 text-center" role="alert">
-              <p className="text-red-400">{error}</p>
-              <button
-                onClick={fetchProducts}
-                className="mt-4 px-6 py-2 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
-              >
-                Try Again
-              </button>
-            </div>
-          )}
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff6600]"></div>
+                <p className="text-white mt-4">Loading products...</p>
+              </div>
+            )}
 
-          {/* Products Grid */}
-          {!loading && !error && products.length > 0 && (
-            <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4" aria-label="Products list">
-              {products.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  href={`/buyer/products/${product.id}`}
-                  showFeatures={false}
-                />
-              ))}
-            </section>
-          )}
+            {/* Error State */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-6 text-center" role="alert">
+                <p className="text-red-400">{error}</p>
+                <button
+                  onClick={fetchProducts}
+                  className="mt-4 px-6 py-2 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
 
-          {/* Empty State */}
-          {!loading && !error && products.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-[#ffcc99] text-xl mb-4">No products found</div>
-              <p className="text-[#ffcc99]/70 mb-6">Try adjusting your filters or search query</p>
-              <button
-                onClick={handleClearFilters}
-                className="px-6 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
-              >
-                Clear Filters
-              </button>
-            </div>
-          )}
+            {/* Products Grid */}
+            {!loading && !error && products.length > 0 && (
+              <section className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5" aria-label="Products list">
+                {products.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    href={`/buyer/products/${product.id}`}
+                    showFeatures={true}
+                  />
+                ))}
+              </section>
+            )}
 
-          {/* Pagination */}
-          {!loading && !error && products.length > 0 && totalPages > 1 && (
-            <nav className="mt-8 flex justify-center items-center gap-2" aria-label="Pagination">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="p-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed transition"
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
+            {/* Empty State */}
+            {!loading && !error && products.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-white text-xl mb-4">No products found</div>
+                <p className="text-[#ffcc99]/70 mb-6">Try adjusting your filters or search query</p>
+                <button
+                  onClick={handleClearFilters}
+                  className="px-6 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
 
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
+            {/* Pagination */}
+            {!loading && !error && products.length > 0 && totalPages > 1 && (
+              <nav className="mt-6 sm:mt-8 flex justify-center items-center gap-1 sm:gap-2" aria-label="Pagination">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-lg sm:rounded-xl text-white hover:border-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
 
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => handlePageChange(pageNum)}
-                    className={`w-10 h-10 rounded-xl font-medium transition ${
-                      currentPage === pageNum
-                        ? 'bg-[#ff6600] text-black'
-                        : 'bg-[#1a1a1a] border border-[#ff6600]/30 text-white hover:border-[#ff6600]'
-                    }`}
-                    aria-label={`Page ${pageNum}`}
-                    aria-current={currentPage === pageNum ? 'page' : undefined}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
 
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="p-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed transition"
-                aria-label="Next page"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </nav>
-          )}
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg sm:rounded-xl font-medium text-sm sm:text-base transition ${
+                        currentPage === pageNum
+                          ? 'bg-[#ff6600] text-black'
+                          : 'bg-[#1a1a1a] border border-[#ff6600]/30 text-white hover:border-[#ff6600]'
+                      }`}
+                      aria-label={`Page ${pageNum}`}
+                      aria-current={currentPage === pageNum ? 'page' : undefined}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-lg sm:rounded-xl text-white hover:border-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              </nav>
+            )}
+          </div>
         </div>
       </BuyerLayout>
     </>

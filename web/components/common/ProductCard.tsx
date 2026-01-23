@@ -180,7 +180,7 @@ export default function ProductCard({
 
         {/* Product Info */}
         <div className="p-4 flex-1 flex flex-col">
-          <h3 className="text-white font-semibold text-sm mb-2 line-clamp-2 group-hover:text-[#ff6600] transition-colors leading-snug min-h-[2.5rem]">
+          <h3 className="text-white font-bold text-base mb-2 line-clamp-2 group-hover:text-[#ff6600] transition-colors leading-snug min-h-[2.5rem]">
             {product.title}
           </h3>
           
@@ -188,15 +188,15 @@ export default function ProductCard({
           {showFeatures && product.keyFeatures && product.keyFeatures.length > 0 && (
             <ul className="mb-2 space-y-1">
               {product.keyFeatures.slice(0, 2).map((feature, idx) => (
-                <li key={idx} className="text-[#ffcc99]/80 text-xs flex items-start gap-1.5">
-                  <span className="text-[#ff6600] mt-0.5">•</span>
+                <li key={idx} className="text-[#ff6600] text-xs flex items-start gap-1.5">
+                  <span className="mt-0.5">•</span>
                   <span className="line-clamp-1">{feature}</span>
                 </li>
               ))}
             </ul>
           )}
           
-          <p className="text-[#ffcc99]/60 text-xs mb-3 truncate">
+          <p className="text-white text-xs mb-3 truncate">
             by {product.seller.businessName}
           </p>
           
@@ -206,7 +206,7 @@ export default function ProductCard({
             </p>
             {product.quantity > 0 && (
               <span className="text-green-400 text-xs flex items-center gap-1 mb-3">
-                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
                 In Stock
               </span>
             )}
@@ -216,7 +216,7 @@ export default function ProductCard({
               <button
                 onClick={handleAddToCart}
                 disabled={isAddingToCart || !isAuthenticated}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#ff6600] text-black rounded-lg font-semibold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#ff6600] text-white rounded-lg font-semibold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm"
                 title={!isAuthenticated ? 'Login to add to cart' : 'Add to cart'}
               >
                 <ShoppingCart className={`w-4 h-4 ${isAddingToCart ? 'animate-pulse' : ''}`} />

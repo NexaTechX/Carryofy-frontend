@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import { 
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { aiOnboardingApi, AIOnboardingPreferences, UpdateAIOnboardingDto } from '../../lib/api/ai-onboarding';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
+import BrandSelector from './BrandSelector';
 
 interface StepProps {
   currentStep: number;
@@ -300,7 +301,33 @@ function Step6Notifications({ preferences, updatePreferences }: StepProps) {
   );
 }
 
-function Step7Interests({ preferences, updatePreferences }: StepProps) {
+function Step7Brands({ preferences, updatePreferences }: StepProps) {
+  const [selectedBrands, setSelectedBrands] = useState<string[]>(preferences.preferredBrands || []);
+
+  const handleBrandsChange = (brands: string[]) => {
+    setSelectedBrands(brands);
+    updatePreferences({ preferredBrands: brands });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Tag className="w-8 h-8 text-primary" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Any preferred brands?</h2>
+        <p className="text-gray-600">Search and select your favorite brands (optional)</p>
+      </div>
+      <BrandSelector
+        selectedBrands={selectedBrands}
+        onBrandsChange={handleBrandsChange}
+        favoriteCategories={preferences.favoriteCategories}
+      />
+    </div>
+  );
+}
+
+function Step8Interests({ preferences, updatePreferences }: StepProps) {
   const [selectedInterests, setSelectedInterests] = useState<string[]>(preferences.specialInterests || []);
 
   const toggleInterest = (interestId: string) => {
@@ -340,7 +367,7 @@ function Step7Interests({ preferences, updatePreferences }: StepProps) {
   );
 }
 
-function Step8Consent({ preferences, updatePreferences, onComplete, isLoading }: StepProps) {
+function Step9Consent({ preferences, updatePreferences, onComplete, isLoading }: StepProps) {
   const [consent, setConsent] = useState(preferences.consent || false);
 
   return (
@@ -353,33 +380,87 @@ function Step8Consent({ preferences, updatePreferences, onComplete, isLoading }:
         <p className="text-gray-600">Review and complete your setup</p>
       </div>
       <div className="bg-gray-50 rounded-xl p-6 space-y-4 max-w-2xl mx-auto">
-        <div className="space-y-2">
+        <h3 className="font-semibold text-lg mb-4">Your Preferences Summary</h3>
+        <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-green-500" />
+            <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
             <span className="font-semibold">Categories:</span>
             <span>{preferences.favoriteCategories?.length || 0} selected</span>
           </div>
           {preferences.budgetRange && (
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
               <span className="font-semibold">Budget:</span>
-              <span className="capitalize">{BUDGET_OPTIONS.find(b => b.id === preferences.budgetRange)?.label}</span>
+              <span>{BUDGET_OPTIONS.find(b => b.id === preferences.budgetRange)?.label}</span>
             </div>
           )}
           {preferences.deliveryPreference && (
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
               <span className="font-semibold">Delivery:</span>
               <span>{DELIVERY_OPTIONS.find(d => d.id === preferences.deliveryPreference)?.label}</span>
             </div>
           )}
           {preferences.shoppingFrequency && (
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
               <span className="font-semibold">Frequency:</span>
               <span className="capitalize">{preferences.shoppingFrequency}</span>
             </div>
           )}
+          {preferences.priceSensitivity && (
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <span className="font-semibold">Price Sensitivity:</span>
+              <span>{PRICE_SENSITIVITY_OPTIONS.find(p => p.id === preferences.priceSensitivity)?.label}</span>
+            </div>
+          )}
+          {preferences.notificationPreference && (
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <span className="font-semibold">Notifications:</span>
+              <span>{NOTIFICATION_OPTIONS.find(n => n.id === preferences.notificationPreference)?.label}</span>
+            </div>
+          )}
+          {preferences.preferredBrands && preferences.preferredBrands.length > 0 && (
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold">Preferred Brands:</span>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {preferences.preferredBrands.slice(0, 5).map((brand) => (
+                    <span key={brand} className="px-2 py-1 bg-primary/10 text-primary rounded text-sm">
+                      {brand}
+                    </span>
+                  ))}
+                  {preferences.preferredBrands.length > 5 && (
+                    <span className="text-sm text-gray-500">+{preferences.preferredBrands.length - 5} more</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          {preferences.specialInterests && preferences.specialInterests.length > 0 && (
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold">Special Interests:</span>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {preferences.specialInterests.map((interest) => (
+                    <span key={interest} className="px-2 py-1 bg-primary/10 text-primary rounded text-sm capitalize">
+                      {interest}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+          <p className="text-sm text-gray-700">
+            <strong>How this helps you:</strong> We'll use these preferences to personalize product recommendations, 
+            show you relevant deals, and tailor your shopping experience to match your style and budget.
+          </p>
         </div>
       </div>
       <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg max-w-2xl mx-auto">
@@ -424,8 +505,44 @@ export default function AIOnboardingWizard() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [preferences, setPreferences] = useState<Partial<AIOnboardingPreferences>>({});
-  const totalSteps = 8;
+  const [validationErrors, setValidationErrors] = useState<Record<number, string>>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isOffline, setIsOffline] = useState(false);
+  const totalSteps = 9;
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const isEditMode = router.query.edit === 'true';
+
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false);
+      // Try to sync saved data when coming back online
+      if (retryCount > 0) {
+        const saved = localStorage.getItem('ai-onboarding-draft');
+        if (saved) {
+          try {
+            const draft = JSON.parse(saved);
+            debouncedAutoSave(draft, draft.lastStepCompleted || currentStep);
+          } catch (e) {
+            console.error('Failed to sync on reconnect:', e);
+          }
+        }
+      }
+    };
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    setIsOffline(!navigator.onLine);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [retryCount, currentStep]);
 
   useEffect(() => {
     loadPreferences();
@@ -436,18 +553,174 @@ export default function AIOnboardingWizard() {
       const data = await aiOnboardingApi.getPreferences();
       if (data) {
         setPreferences(data);
-        // If already completed, redirect
-        if (data.completedAt) {
+        // If already completed and not in edit mode, redirect
+        if (data.completedAt && !isEditMode) {
           router.push('/buyer');
+          return;
+        }
+        // Resume from last step if draft exists
+        if (data.isDraft && data.lastStepCompleted) {
+          setCurrentStep(Math.min(data.lastStepCompleted + 1, totalSteps));
         }
       }
     } catch (error: any) {
       console.error('Failed to load preferences:', error);
+      // Try to load from localStorage as fallback
+      try {
+        const saved = localStorage.getItem('ai-onboarding-draft');
+        if (saved) {
+          const draft = JSON.parse(saved);
+          setPreferences(draft);
+          if (draft.lastStepCompleted) {
+            setCurrentStep(Math.min(draft.lastStepCompleted + 1, totalSteps));
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load from localStorage:', e);
+      }
     }
   };
 
   const updatePreferences = (data: Partial<UpdateAIOnboardingDto>) => {
-    setPreferences((prev) => ({ ...prev, ...data }));
+    setPreferences((prev) => {
+      const updated = { ...prev, ...data };
+      // Auto-save draft after a delay
+      debouncedAutoSave(updated, currentStep);
+      return updated;
+    });
+  };
+
+  const debouncedAutoSave = async (prefs: Partial<AIOnboardingPreferences>, step: number, retry = 0): Promise<void> => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      try {
+        setIsSaving(true);
+        setSaveError(null);
+        const dataToSave: UpdateAIOnboardingDto = {
+          favoriteCategories: Array.isArray(prefs.favoriteCategories) ? prefs.favoriteCategories : [],
+          preferredBrands: Array.isArray(prefs.preferredBrands) ? prefs.preferredBrands : [],
+          specialInterests: Array.isArray(prefs.specialInterests) ? prefs.specialInterests : [],
+          budgetRange: prefs.budgetRange,
+          deliveryPreference: prefs.deliveryPreference,
+          shoppingFrequency: prefs.shoppingFrequency,
+          priceSensitivity: prefs.priceSensitivity,
+          notificationPreference: prefs.notificationPreference,
+          lastStepCompleted: step,
+          isDraft: true,
+        };
+
+        // Always save to localStorage first as backup
+        try {
+          localStorage.setItem('ai-onboarding-draft', JSON.stringify({
+            ...prefs,
+            lastStepCompleted: step,
+          }));
+        } catch (e) {
+          console.error('Failed to save to localStorage:', e);
+        }
+
+        // Try to save to API
+        if (!isOffline) {
+          try {
+            await aiOnboardingApi.saveDraft(dataToSave);
+            setRetryCount(0);
+          } catch (error: any) {
+            // If network error and retries left, retry
+            if (
+              (error?.code === 'ERR_NETWORK' || 
+               error?.code === 'ECONNREFUSED' || 
+               error?.message === 'Network Error') &&
+              retry < 3
+            ) {
+              console.warn(`Auto-save failed, retrying (${retry + 1}/3)...`);
+              setRetryCount(retry + 1);
+              // Retry after exponential backoff
+              setTimeout(() => {
+                debouncedAutoSave(prefs, step, retry + 1);
+              }, Math.pow(2, retry) * 1000);
+              return;
+            } else {
+              throw error;
+            }
+          }
+        }
+      } catch (error: any) {
+        console.error('Auto-save failed:', error);
+        const errorMessage = error?.response?.data?.message || 
+                            error?.message || 
+                            'Failed to save. Your progress is saved locally.';
+        setSaveError(errorMessage);
+        setRetryCount(retry);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 1000); // 1 second debounce
+  };
+
+  const validateStep = (step: number): boolean => {
+    const errors: Record<number, string> = {};
+    
+    switch (step) {
+      case 1:
+        if (!preferences.favoriteCategories || preferences.favoriteCategories.length === 0) {
+          errors[1] = 'Please select at least one category';
+          setValidationErrors(errors);
+          return false;
+        }
+        break;
+      case 2:
+        if (!preferences.budgetRange) {
+          errors[2] = 'Please select a budget range';
+          setValidationErrors(errors);
+          return false;
+        }
+        break;
+      case 3:
+        if (!preferences.deliveryPreference) {
+          errors[3] = 'Please select a delivery preference';
+          setValidationErrors(errors);
+          return false;
+        }
+        break;
+      case 4:
+        if (!preferences.shoppingFrequency) {
+          errors[4] = 'Please select shopping frequency';
+          setValidationErrors(errors);
+          return false;
+        }
+        break;
+      case 5:
+        if (!preferences.priceSensitivity) {
+          errors[5] = 'Please select price sensitivity';
+          setValidationErrors(errors);
+          return false;
+        }
+        break;
+      case 6:
+        if (!preferences.notificationPreference) {
+          errors[6] = 'Please select notification preference';
+          setValidationErrors(errors);
+          return false;
+        }
+        break;
+      case 7:
+      case 8:
+        // Optional steps - no validation needed
+        break;
+      case 9:
+        if (!preferences.consent) {
+          errors[9] = 'Please provide consent to continue';
+          setValidationErrors(errors);
+          return false;
+        }
+        break;
+    }
+
+    setValidationErrors({});
+    return true;
   };
 
   const handleNext = () => {
@@ -459,10 +732,16 @@ export default function AIOnboardingWizard() {
   const handlePrevious = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      // Clear validation errors when going back
+      setValidationErrors({});
     }
   };
 
   const handleComplete = async () => {
+    if (!validateStep(9)) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Build data object with only DTO fields - no extra properties
@@ -477,6 +756,8 @@ export default function AIOnboardingWizard() {
           ? preferences.specialInterests 
           : [],
         consent: true,
+        lastStepCompleted: 9,
+        isDraft: false,
       };
 
       // Only add optional fields if they have valid values
@@ -496,8 +777,15 @@ export default function AIOnboardingWizard() {
         dataToSend.notificationPreference = preferences.notificationPreference;
       }
 
-      console.log('Sending onboarding data:', dataToSend);
       await aiOnboardingApi.updatePreferences(dataToSend);
+      
+      // Clear localStorage draft
+      try {
+        localStorage.removeItem('ai-onboarding-draft');
+      } catch (e) {
+        console.error('Failed to clear localStorage:', e);
+      }
+
       toast.success('Shopping preferences saved!');
       router.push('/buyer');
     } catch (error: any) {
@@ -575,9 +863,21 @@ export default function AIOnboardingWizard() {
             <span className="text-sm font-semibold text-gray-700">
               Step {currentStep} of {totalSteps}
             </span>
-            <span className="text-sm text-gray-500">
-              {Math.round((currentStep / totalSteps) * 100)}% Complete
-            </span>
+            <div className="flex items-center gap-3">
+              {isOffline && (
+                <span className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                  Offline
+                </span>
+              )}
+              {saveError && (
+                <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                  Save failed - saved locally
+                </span>
+              )}
+              <span className="text-sm text-gray-500">
+                {Math.round((currentStep / totalSteps) * 100)}% Complete
+              </span>
+            </div>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
@@ -589,12 +889,22 @@ export default function AIOnboardingWizard() {
 
         {/* Step Content */}
         <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12 mb-8">
+          {validationErrors[currentStep] && (
+            <div className="mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-lg text-red-700">
+              {validationErrors[currentStep]}
+            </div>
+          )}
           {renderStep()}
+          {isSaving && (
+            <div className="mt-4 text-center text-sm text-gray-500">
+              Saving progress...
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
         {currentStep < totalSteps && (
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <button
               onClick={handlePrevious}
               disabled={currentStep === 1}
@@ -603,13 +913,24 @@ export default function AIOnboardingWizard() {
               <ArrowLeft className="w-5 h-5" />
               Previous
             </button>
-            <button
-              onClick={handleNext}
-              className="px-6 py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary-dark transition flex items-center gap-2"
-            >
-              Next
-              <ArrowRight className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-3">
+              {(currentStep === 7 || currentStep === 8) && (
+                <button
+                  onClick={handleSkip}
+                  className="px-6 py-3 rounded-full border-2 border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"
+                >
+                  Skip
+                </button>
+              )}
+              <button
+                onClick={handleNext}
+                disabled={isSaving}
+                className="px-6 py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary-dark transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                Next
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         )}
       </div>

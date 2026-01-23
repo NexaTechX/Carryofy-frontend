@@ -20,6 +20,7 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
+  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -439,6 +440,17 @@ export default function BuyerProfilePage() {
 
             {/* Quick Stats */}
             <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <Link
+                href="/buyer/preferences"
+                className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-5 hover:border-[#ff6600]/50 transition cursor-pointer"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-5 h-5 text-[#ff6600]" />
+                  <p className="text-[#ffcc99]/70 text-sm">AI Preferences</p>
+                </div>
+                <p className="text-white text-xl font-bold mt-2">Personalize</p>
+                <p className="text-[#ffcc99]/60 text-xs mt-1">Manage shopping preferences</p>
+              </Link>
               <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-5">
                 <p className="text-[#ffcc99]/70 text-sm">Total Addresses</p>
                 <p className="text-white text-3xl font-bold mt-2">{addresses.length}</p>

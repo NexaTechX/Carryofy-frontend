@@ -13,6 +13,8 @@ export interface AIOnboardingPreferences {
   specialInterests: string[];
   consent: boolean;
   completedAt?: Date;
+  lastStepCompleted?: number;
+  isDraft: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,6 +29,8 @@ export interface UpdateAIOnboardingDto {
   preferredBrands?: string[];
   specialInterests?: string[];
   consent?: boolean;
+  lastStepCompleted?: number;
+  isDraft?: boolean;
 }
 
 export const aiOnboardingApi = {
@@ -63,6 +67,38 @@ export const aiOnboardingApi = {
         requestData: data,
       });
       throw error;
+    }
+  },
+
+  async saveDraft(data: UpdateAIOnboardingDto): Promise<AIOnboardingPreferences> {
+    try {
+      const response = await apiClient.put('/ai/onboarding', {
+        ...data,
+        isDraft: true,
+      });
+      return response.data?.data || response.data;
+    } catch (error: any) {
+      console.error('Save draft error:', {
+        status: error?.response?.status,
+        data: error?.response?.data,
+        requestData: data,
+      });
+      throw error;
+    }
+  },
+
+  async getBrandSuggestions(category?: string, search?: string): Promise<string[]> {
+    try {
+      const params = new URLSearchParams();
+      if (category) params.append('category', category);
+      if (search) params.append('search', search);
+      const queryString = params.toString();
+      const url = `/ai/onboarding/brands${queryString ? `?${queryString}` : ''}`;
+      const response = await apiClient.get(url);
+      return response.data?.data || response.data || [];
+    } catch (error: any) {
+      console.error('Get brand suggestions error:', error);
+      return [];
     }
   },
 };

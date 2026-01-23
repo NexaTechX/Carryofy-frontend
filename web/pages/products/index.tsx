@@ -424,7 +424,7 @@ export default function PublicProductsPage({
                           className={`block px-4 py-3 sm:py-2 rounded-lg transition touch-target ${
                             !selectedCategory
                               ? 'bg-[#ff6600] text-black font-bold'
-                              : 'text-[#ffcc99] hover:bg-[#ff6600]/10 hover:text-white'
+                              : 'text-white hover:bg-[#ff6600]/10 hover:text-white'
                           }`}
                         >
                           All Products
@@ -440,7 +440,7 @@ export default function PublicProductsPage({
                               className={`block px-4 py-3 sm:py-2 rounded-lg transition touch-target ${
                                 selectedCategory === cat.slug
                                   ? 'bg-[#ff6600] text-black font-bold'
-                                  : 'text-[#ffcc99] hover:bg-[#ff6600]/10 hover:text-white'
+                                  : 'text-white hover:bg-[#ff6600]/10 hover:text-white'
                               }`}
                             >
                               {cat.name}
@@ -452,7 +452,7 @@ export default function PublicProductsPage({
 
                   {/* Price Range Filter */}
                   <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-[#ff6600]/30">
-                    <h3 className="text-white font-bold text-sm mb-3">Price Range</h3>
+                    <h3 className="text-white font-bold text-sm mb-3">Price Range (₦)</h3>
                     <div className="space-y-3">
                       <div>
                         <label className="text-[#ffcc99] text-xs mb-1 block">Min Price (₦)</label>
@@ -501,37 +501,20 @@ export default function PublicProductsPage({
                       )}
                     </div>
                   </div>
-
-                  {/* Why Shop Here */}
-                  <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-[#ff6600]/30">
-                    <h3 className="text-white font-bold text-sm mb-3">Why Shop on Carryofy?</h3>
-                    <ul className="text-[#ffcc99] text-sm space-y-2">
-                      <li>✓ Verified Nigerian Sellers</li>
-                      <li>✓ Same-Day Delivery in Lagos</li>
-                      <li>✓ Secure Payments</li>
-                      <li>✓ 7-Day Return Policy</li>
-                      <li>✓ 24/7 Customer Support</li>
-                    </ul>
-                  </div>
                 </div>
               </aside>
 
               {/* Products Grid */}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 bg-black/50 rounded-xl p-4 sm:p-6">
                 {/* Results Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
-                  <p className="text-[#ffcc99] text-sm sm:text-base">
-                    Showing <span className="text-white font-bold">{products.length}</span> of{' '}
-                    <span className="text-white font-bold">{total.toLocaleString()}</span> products
-                    {selectedCategory && (
-                      <>
-                        {' '}in <span className="text-[#ff6600] font-semibold">{getCategoryName(selectedCategory)}</span>
-                      </>
-                    )}
+                  <p className="text-white text-sm sm:text-base">
+                    Showing <span className="font-bold">{products.length}</span> of{' '}
+                    <span className="font-bold">{total.toLocaleString()}</span> products
                   </p>
                   {/* Sort Options */}
                   <div className="flex items-center gap-2">
-                    <label className="text-[#ffcc99] text-sm">Sort by:</label>
+                    <label className="text-white text-sm">Sort by:</label>
                     <select 
                       value={sortBy}
                       onChange={(e) => handleSortChange(e.target.value)}

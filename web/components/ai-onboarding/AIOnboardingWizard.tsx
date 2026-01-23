@@ -729,6 +729,13 @@ export default function AIOnboardingWizard() {
     }
   };
 
+  const handleSkip = () => {
+    // Skip optional steps (7 and 8) by moving to next step
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
   const handlePrevious = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
@@ -836,9 +843,11 @@ export default function AIOnboardingWizard() {
       case 6:
         return <Step6Notifications {...stepProps} />;
       case 7:
-        return <Step7Interests {...stepProps} />;
+        return <Step7Brands {...stepProps} />;
       case 8:
-        return <Step8Consent {...stepProps} />;
+        return <Step8Interests {...stepProps} />;
+      case 9:
+        return <Step9Consent {...stepProps} />;
       default:
         return null;
     }

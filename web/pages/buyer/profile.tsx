@@ -139,6 +139,23 @@ export default function BuyerProfilePage() {
   };
 
   const fetchAddresses = async () => {
+    // Only fetch addresses if user is authenticated
+    if (!tokenManager.isAuthenticated()) {
+      setAddresses([]);
+      setAddressError(null);
+      setLoadingAddresses(false);
+      return;
+    }
+
+    // Check if token exists
+    const token = tokenManager.getAccessToken();
+    if (!token) {
+      setAddresses([]);
+      setAddressError(null);
+      setLoadingAddresses(false);
+      return;
+    }
+
     try {
       setLoadingAddresses(true);
       const response = await apiClient.get<Address[] | { data: Address[] }>('/users/me/addresses');
@@ -146,13 +163,23 @@ export default function BuyerProfilePage() {
       setAddresses(Array.isArray(addressesData) ? addressesData : []);
       setAddressError(null); // Clear any previous errors
     } catch (err: any) {
-      console.error('Error fetching addresses:', err);
-      // Handle network errors with a more user-friendly message
+      // Handle specific error cases
       if (err?.code === 'ERR_NETWORK' || err?.code === 'ECONNREFUSED' || err?.message === 'Network Error') {
         setAddressError('Unable to connect to the server. Please check your internet connection and ensure the API server is running.');
+      } else if (err.response?.status === 400) {
+        // Bad request - user info might be missing, but this is not critical
+        console.warn('Could not fetch saved addresses:', err.response?.data?.message || 'User information missing');
+        setAddressError('Unable to load saved addresses. You can still add a new address below.');
+      } else if (err.response?.status === 401) {
+        // Unauthorized - token might be expired
+        console.warn('Authentication issue when fetching addresses');
+        setAddressError('Please refresh the page and try again.');
       } else {
+        console.error('Error fetching addresses:', err);
         setAddressError(err.response?.data?.message || 'Failed to load addresses');
       }
+      // Set empty array on error so user can still add addresses
+      setAddresses([]);
     } finally {
       setLoadingAddresses(false);
     }
@@ -196,19 +223,31 @@ export default function BuyerProfilePage() {
       return;
     }
 
+    // Check authentication before submitting
+    if (!tokenManager.isAuthenticated()) {
+      setAddressError('Please log in to save addresses');
+      return;
+    }
+
+    const token = tokenManager.getAccessToken();
+    if (!token) {
+      setAddressError('Authentication token is missing. Please refresh the page and try again.');
+      return;
+    }
+
     try {
       setAddressSaving(true);
       setAddressMessage(null);
       setAddressError(null);
 
       const payload = {
-        label: addressForm.label,
-        line1: addressForm.line1,
-        line2: addressForm.line2 || undefined,
-        city: addressForm.city,
-        state: addressForm.state,
-        country: addressForm.country,
-        postalCode: addressForm.postalCode || undefined,
+        label: addressForm.label || 'Home',
+        line1: addressForm.line1.trim(),
+        line2: addressForm.line2?.trim() || undefined,
+        city: addressForm.city.trim(),
+        state: addressForm.state.trim(),
+        country: addressForm.country || 'Nigeria',
+        postalCode: addressForm.postalCode?.trim() || undefined,
       };
 
       if (editingAddressId) {
@@ -232,7 +271,24 @@ export default function BuyerProfilePage() {
       fetchAddresses();
     } catch (err: any) {
       console.error('Error saving address:', err);
-      setAddressError(err.response?.data?.message || 'Failed to save address');
+      
+      // Handle specific error cases
+      if (err.response?.status === 400) {
+        const errorMessage = err.response?.data?.message || 'Invalid address data';
+        if (errorMessage.includes('User information is missing') || errorMessage.includes('User ID is required')) {
+          setAddressError('Authentication error. Please refresh the page and try again.');
+        } else if (errorMessage.includes('required')) {
+          setAddressError(errorMessage);
+        } else {
+          setAddressError(`Failed to save address: ${errorMessage}`);
+        }
+      } else if (err.response?.status === 401) {
+        setAddressError('Your session has expired. Please refresh the page and try again.');
+      } else if (err?.code === 'ERR_NETWORK' || err?.code === 'ECONNREFUSED') {
+        setAddressError('Unable to connect to the server. Please check your internet connection.');
+      } else {
+        setAddressError(err.response?.data?.message || 'Failed to save address. Please try again.');
+      }
     } finally {
       setAddressSaving(false);
       setTimeout(() => setAddressMessage(null), 3000);

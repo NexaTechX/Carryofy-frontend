@@ -61,6 +61,7 @@ export default function HeroSection() {
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
+              className="order-2 lg:order-1"
             >
               {/* Badge */}
               <motion.div
@@ -134,13 +135,30 @@ export default function HeroSection() {
               </motion.div>
             </motion.div>
 
-            {/* Right Column - Visual Feature Cards */}
+            {/* Right Column - Hero Image */}
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative"
+              className="relative order-1 lg:order-2"
             >
+              {/* Hero Image */}
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl mb-6">
+                <img
+                  src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=600&fit=crop"
+                  alt="Fresh groceries and products from verified Nigerian sellers"
+                  className="w-full h-[400px] sm:h-[500px] object-cover"
+                  loading="eager"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                <div className="absolute bottom-6 left-6 right-6">
+                  <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+                    <p className="text-gray-900 font-bold text-lg mb-1">Same-Day Delivery Available</p>
+                    <p className="text-gray-600 text-sm">Order before 12pm, receive today in Lagos</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Stats Cards */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 {stats.map((stat, index) => (

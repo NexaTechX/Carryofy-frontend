@@ -8,6 +8,7 @@ import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
 import AIEfficiency from '../components/landing/AIEfficiency';
 import TrustCredibility from '../components/landing/TrustCredibility';
 import CallToAction from '../components/landing/CallToAction';
+import ProductCategories from '../components/landing/ProductCategories';
 import SEO, { generateKeywords } from '../components/seo/SEO';
 import { CombinedSchema } from '../components/seo/JsonLd';
 
@@ -102,6 +103,7 @@ export default function Home() {
         <Header />
         <main className="grow">
           <HeroSection />
+          <ProductCategories />
           <ProblemSection />
           <HowItWorks />
           <BuyerSellerSection />

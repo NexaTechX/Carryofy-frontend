@@ -166,6 +166,46 @@ export default function BuyerOrderDetailPage() {
     checkRefundStatus(id);
   }, [router.isReady, id]);
 
+  // Handle payment redirect status
+  useEffect(() => {
+    if (!router.isReady || typeof id !== 'string') return;
+
+    const paymentStatus = router.query.payment as string;
+    const message = router.query.message as string;
+
+    if (paymentStatus === 'success') {
+      showSuccessToast('Payment successful! Your order is being processed.');
+      // Remove query params from URL first
+      router.replace(`/buyer/orders/${id}`, undefined, { shallow: true });
+      
+      // Wait a moment for webhook to process, then refresh order data
+      // This ensures we get the updated status (PAID instead of PENDING_PAYMENT)
+      setTimeout(() => {
+        fetchOrder(id);
+        checkRefundStatus(id);
+      }, 1000);
+      
+      // Also refresh again after a longer delay to ensure status is updated
+      setTimeout(() => {
+        fetchOrder(id);
+      }, 3000);
+    } else if (paymentStatus === 'failed') {
+      showErrorToast('Payment failed. Please try again or contact support.');
+      router.replace(`/buyer/orders/${id}`, undefined, { shallow: true });
+      // Refresh order data
+      setTimeout(() => {
+        fetchOrder(id);
+      }, 500);
+    } else if (paymentStatus === 'error') {
+      showErrorToast(message || 'Payment verification failed. Please contact support.');
+      router.replace(`/buyer/orders/${id}`, undefined, { shallow: true });
+      // Refresh order data
+      setTimeout(() => {
+        fetchOrder(id);
+      }, 500);
+    }
+  }, [router.isReady, router.query.payment, router.query.message, id]);
+
   const checkRefundStatus = async (orderId: string) => {
     try {
       const response = await apiClient.get(`/refunds/my-refunds`);

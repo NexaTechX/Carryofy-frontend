@@ -22,6 +22,7 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
+import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
 
 interface OrderItem {
   id: string;
@@ -90,6 +91,26 @@ export default function OrdersPage() {
     // Fetch orders
     fetchOrders();
   }, [router]);
+
+  // Handle payment redirect status
+  useEffect(() => {
+    if (!mounted || !router.isReady) return;
+
+    const paymentStatus = router.query.payment as string;
+    const message = router.query.message as string;
+
+    if (paymentStatus === 'success') {
+      showSuccessToast('Payment successful! Your order is being processed.');
+      // Remove query params from URL
+      router.replace('/buyer/orders', undefined, { shallow: true });
+    } else if (paymentStatus === 'failed') {
+      showErrorToast('Payment failed. Please try again or contact support.');
+      router.replace('/buyer/orders', undefined, { shallow: true });
+    } else if (paymentStatus === 'error') {
+      showErrorToast(message || 'Payment verification failed. Please contact support.');
+      router.replace('/buyer/orders', undefined, { shallow: true });
+    }
+  }, [mounted, router.isReady, router.query.payment, router.query.message]);
 
   const fetchOrders = async () => {
     try {

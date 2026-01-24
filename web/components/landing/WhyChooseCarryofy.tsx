@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { Target, Gauge, Shield, CreditCard } from 'lucide-react';
 
 export default function WhyChooseCarryofy() {
@@ -57,7 +58,7 @@ export default function WhyChooseCarryofy() {
             </motion.p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
@@ -79,6 +80,49 @@ export default function WhyChooseCarryofy() {
               </motion.div>
             ))}
           </div>
+
+          {/* Statistics Section with Image */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="bg-gradient-to-br from-primary/10 to-cyan-500/10 rounded-3xl overflow-hidden shadow-xl"
+          >
+            <div className="grid md:grid-cols-2 gap-0">
+              <div className="relative h-64 md:h-auto min-h-[400px]">
+                <img
+                  src="https://images.unsplash.com/photo-1556740758-90de374c12ad?w=800&h=600&fit=crop"
+                  alt="Carryofy marketplace - Nigeria's trusted e-commerce platform"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent"></div>
+              </div>
+              <div className="p-8 md:p-12 flex flex-col justify-center bg-white">
+                <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">
+                  Nigeria's Trusted Marketplace
+                </h3>
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <div className="text-3xl md:text-4xl font-bold text-primary mb-2">100%</div>
+                    <div className="text-sm text-gray-600">Verified Sellers</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl md:text-4xl font-bold text-primary mb-2">24/7</div>
+                    <div className="text-sm text-gray-600">Customer Support</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl md:text-4xl font-bold text-primary mb-2">Same-Day</div>
+                    <div className="text-sm text-gray-600">Delivery Lagos</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl md:text-4xl font-bold text-primary mb-2">100%</div>
+                    <div className="text-sm text-gray-600">Buyer Protection</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>

@@ -5,35 +5,30 @@ export default function HowItWorks() {
   const steps = [
     {
       id: 1,
-      title: 'Verify',
-      description: 'Sellers pass our multi-stage vetting.',
+      title: 'Choose what you want',
+      description: 'Browse products from verified Nigerian sellers. Select items from our curated marketplace.',
       icon: UserCheck,
       iconColor: 'text-white',
       bgColor: 'bg-primary',
+      image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop',
     },
     {
       id: 2,
-      title: 'Store',
-      description: 'Products are stored in Carryofy hubs.',
+      title: 'See real-time updates',
+      description: 'Track your order from warehouse to your door. Get notifications every step of the way.',
       icon: Store,
       iconColor: 'text-white',
       bgColor: 'bg-primary',
+      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=400&fit=crop',
     },
     {
       id: 3,
-      title: 'Deliver',
-      description: 'Orders ship fulfilled in record time.',
+      title: 'Get your items same-day',
+      description: 'Fast, reliable delivery in Lagos. Same-day service available for orders before 12pm.',
       icon: Truck,
       iconColor: 'text-white',
       bgColor: 'bg-primary',
-    },
-    {
-      id: 4,
-      title: 'Support',
-      description: 'Get support for every single order.',
-      icon: Headphones,
-      iconColor: 'text-white',
-      bgColor: 'bg-primary',
+      image: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?w=600&h=400&fit=crop',
     },
   ];
 
@@ -52,7 +47,7 @@ export default function HowItWorks() {
             </motion.h2>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+          <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
             {steps.map((step, index) => (
               <motion.div
                 key={step.id}
@@ -60,15 +55,28 @@ export default function HowItWorks() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="text-center"
+                className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
               >
-                <div className={`w-16 h-16 ${step.bgColor} rounded-full flex items-center justify-center mb-6 mx-auto`}>
-                  <step.icon className={`w-8 h-8 ${step.iconColor}`} />
+                <div className="relative h-64 overflow-hidden">
+                  <img
+                    src={step.image}
+                    alt={step.title}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                  <div className="absolute top-4 left-4">
+                    <div className={`w-12 h-12 ${step.bgColor} rounded-full flex items-center justify-center shadow-lg`}>
+                      <step.icon className={`w-6 h-6 ${step.iconColor}`} />
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm text-primary font-bold mb-2">{step.id}. {step.title}</div>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  {step.description}
-                </p>
+                <div className="p-6">
+                  <div className="text-sm text-primary font-bold mb-2">{step.id}. {step.title}</div>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    {step.description}
+                  </p>
+                </div>
               </motion.div>
             ))}
           </div>

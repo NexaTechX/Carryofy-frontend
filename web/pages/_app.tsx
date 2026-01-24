@@ -1,7 +1,8 @@
 import type { AppProps } from 'next/app';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, ToastBar, toast } from 'react-hot-toast';
+import { X } from 'lucide-react';
 import '../styles/globals.css';
 import { AdminGuard } from '../components/auth/AdminGuard';
 import { AuthProvider } from '../lib/auth';
@@ -43,16 +44,18 @@ export default function App({ Component, pageProps }: AppProps) {
       <Toaster
         position="top-right"
         toastOptions={{
-          duration: 4000,
+          duration: 2500,
           style: {
             background: '#1a1a1a',
             color: '#ffcc99',
             border: '1px solid rgba(255, 102, 0, 0.3)',
             borderRadius: '12px',
             padding: '16px',
+            paddingRight: '40px',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
           },
           success: {
+            duration: 2500,
             iconTheme: {
               primary: '#ff6600',
               secondary: '#1a1a1a',
@@ -62,6 +65,7 @@ export default function App({ Component, pageProps }: AppProps) {
             },
           },
           error: {
+            duration: 3500,
             iconTheme: {
               primary: '#ef4444',
               secondary: '#1a1a1a',
@@ -71,7 +75,27 @@ export default function App({ Component, pageProps }: AppProps) {
             },
           },
         }}
-      />
+      >
+        {(t) => (
+          <ToastBar toast={t} style={{ position: 'relative' }}>
+            {({ icon, message }) => (
+              <div className="flex items-center gap-3 pr-6">
+                {icon}
+                <span className="flex-1">{message}</span>
+                {t.type !== 'loading' && (
+                  <button
+                    onClick={() => toast.dismiss(t.id)}
+                    className="absolute top-2 right-2 p-1 rounded-full hover:bg-[#ff6600]/20 transition-colors group flex-shrink-0"
+                    aria-label="Close notification"
+                  >
+                    <X className="w-4 h-4 text-[#ffcc99] group-hover:text-white transition-colors" />
+                  </button>
+                )}
+              </div>
+            )}
+          </ToastBar>
+        )}
+      </Toaster>
     </QueryClientProvider>
   );
 }

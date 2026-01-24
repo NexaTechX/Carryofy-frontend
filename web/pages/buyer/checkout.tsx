@@ -75,6 +75,8 @@ export default function CheckoutPage() {
 
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [showNewAddressForm, setShowNewAddressForm] = useState(false);
+  const [saveNewAddress, setSaveNewAddress] = useState(true);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
 
   const [cardDetails, setCardDetails] = useState({
@@ -119,14 +121,29 @@ export default function CheckoutPage() {
   }, [mounted]);
 
   const fetchAddresses = async () => {
+    // Only fetch addresses if user is authenticated
+    if (!tokenManager.isAuthenticated()) {
+      setSavedAddresses([]);
+      setLoadingAddresses(false);
+      return;
+    }
+
+    // Check if token exists
+    const token = tokenManager.getAccessToken();
+    if (!token) {
+      setSavedAddresses([]);
+      setLoadingAddresses(false);
+      return;
+    }
+
     try {
       setLoadingAddresses(true);
       const response = await apiClient.get('/users/me/addresses');
       const addressesData = response.data.data || response.data;
       setSavedAddresses(Array.isArray(addressesData) ? addressesData : []);
       
-      // Auto-select first address if available
-      if (addressesData && Array.isArray(addressesData) && addressesData.length > 0 && !selectedAddressId) {
+      // Auto-select first address if available and not showing new address form
+      if (addressesData && Array.isArray(addressesData) && addressesData.length > 0 && !selectedAddressId && !showNewAddressForm) {
         const firstAddress = addressesData[0];
         setSelectedAddressId(firstAddress.id);
         // Pre-fill delivery info from selected address
@@ -138,9 +155,21 @@ export default function CheckoutPage() {
         });
       }
     } catch (err: any) {
-      console.error('Error fetching addresses:', err);
+      // Silently handle errors - addresses are optional for checkout
+      // The user can still enter a new address manually
+      if (err.response?.status === 400) {
+        // Bad request - user info might be missing, but this is not critical
+        // User can still proceed with manual address entry
+        console.warn('Could not fetch saved addresses:', err.response?.data?.message || 'User information missing');
+      } else if (err.response?.status === 401) {
+        // Unauthorized - token might be expired, but user is already on checkout page
+        console.warn('Authentication issue when fetching addresses');
+      } else {
+        console.error('Error fetching addresses:', err);
+      }
+      
       // Don't show error to user - addresses are optional
-      // Just log it and continue with empty addresses array
+      // Just continue with empty addresses array
       setSavedAddresses([]);
     } finally {
       setLoadingAddresses(false);
@@ -162,12 +191,19 @@ export default function CheckoutPage() {
 
   const handleCreateNewAddress = () => {
     setSelectedAddressId(null);
+    setShowNewAddressForm(true);
     setDeliveryInfo({
       address: '',
       city: '',
       state: '',
       landmark: '',
     });
+  };
+
+  const handleSelectSavedAddress = (addressId: string) => {
+    setSelectedAddressId(addressId);
+    setShowNewAddressForm(false);
+    handleAddressSelect(addressId);
   };
 
   const fetchCart = async () => {
@@ -345,9 +381,13 @@ export default function CheckoutPage() {
     }
 
     if (shippingMethod !== 'pickup') {
-      if (!deliveryInfo.address || !deliveryInfo.city || !deliveryInfo.state) {
-        setOrderMessage({ type: 'error', text: 'Please provide your delivery address.' });
-        return false;
+      // If a saved address is selected, it's valid
+      if (!selectedAddressId) {
+        // Otherwise, validate the form fields
+        if (!deliveryInfo.address || !deliveryInfo.city || !deliveryInfo.state) {
+          setOrderMessage({ type: 'error', text: 'Please provide your delivery address or select a saved address.' });
+          return false;
+        }
       }
     }
 
@@ -397,18 +437,28 @@ export default function CheckoutPage() {
 
           try {
             // Create address from delivery info
-            const addressResponse = await apiClient.post('/users/me/addresses', {
+            const addressData = {
               label: deliveryInfo.city ? `${deliveryInfo.city} Address` : 'Delivery Address',
               line1: deliveryInfo.address.trim(),
               line2: deliveryInfo.landmark?.trim() || undefined,
               city: deliveryInfo.city.trim(),
               state: deliveryInfo.state.trim(),
               country: 'Nigeria',
-            });
+            };
+            
+            const addressResponse = await apiClient.post('/users/me/addresses', addressData);
             addressId = addressResponse.data.id || addressResponse.data.data?.id;
             
             if (!addressId) {
               throw new Error('Failed to create address: No address ID returned');
+            }
+
+            // If user wants to save the address, it's already saved above
+            // If not, we still need the addressId for the order, but we could delete it after
+            // For now, we'll always save it since it's useful for the user
+            if (saveNewAddress) {
+              // Refresh addresses list
+              await fetchAddresses();
             }
           } catch (err: any) {
             console.error('Error creating address:', err);
@@ -696,51 +746,85 @@ export default function CheckoutPage() {
                   {shippingMethod !== 'pickup' && (
                     <>
                       {/* Saved Addresses Selection */}
-                      {savedAddresses.length > 0 && (
-                        <div className="mb-6">
-                          <label className="block text-white text-sm font-medium mb-2">
-                            Select Saved Address
-                          </label>
-                          {loadingAddresses ? (
-                            <div className="flex items-center gap-2 text-[#ffcc99]/70 py-3">
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              <span className="text-sm">Loading addresses...</span>
-                            </div>
-                          ) : (
-                            <select
-                              value={selectedAddressId || ''}
-                              onChange={(e) => handleAddressSelect(e.target.value)}
-                              className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white focus:outline-none focus:border-[#ff6600] mb-3"
-                            >
-                              <option value="">-- Select a saved address --</option>
-                              {savedAddresses.map((address) => (
-                                <option key={address.id} value={address.id}>
-                                  {address.label} - {address.line1}, {address.city}, {address.state}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                          <button
-                            type="button"
-                            onClick={handleCreateNewAddress}
-                            className="text-[#ff6600] text-sm font-medium hover:text-[#cc5200] transition flex items-center gap-2"
-                          >
-                            <MapPin className="w-4 h-4" />
-                            Use a different address
-                          </button>
+                      {loadingAddresses ? (
+                        <div className="flex items-center gap-2 text-[#ffcc99]/70 py-3 mb-6">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-sm">Loading addresses...</span>
                         </div>
-                      )}
+                      ) : savedAddresses.length > 0 && !showNewAddressForm ? (
+                        <div className="mb-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <label className="block text-white text-sm font-medium">
+                              Select Delivery Address
+                            </label>
+                            <button
+                              type="button"
+                              onClick={handleCreateNewAddress}
+                              className="text-[#ff6600] text-sm font-medium hover:text-[#cc5200] transition flex items-center gap-2"
+                            >
+                              <MapPin className="w-4 h-4" />
+                              Add New Address
+                            </button>
+                          </div>
+                          
+                          {/* Address Cards */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            {savedAddresses.map((address) => (
+                              <button
+                                key={address.id}
+                                type="button"
+                                onClick={() => handleSelectSavedAddress(address.id)}
+                                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                                  selectedAddressId === address.id
+                                    ? 'border-[#ff6600] bg-[#ff6600]/10'
+                                    : 'border-[#ff6600]/30 bg-[#0d0d0d] hover:border-[#ff6600]/50'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className={`w-4 h-4 ${selectedAddressId === address.id ? 'text-[#ff6600]' : 'text-[#ffcc99]'}`} />
+                                    <p className="text-white font-semibold text-sm">
+                                      {address.label || 'Delivery Address'}
+                                    </p>
+                                  </div>
+                                  {selectedAddressId === address.id && (
+                                    <CheckCircle2 className="w-5 h-5 text-[#ff6600]" />
+                                  )}
+                                </div>
+                                <p className="text-[#ffcc99] text-xs mb-1">
+                                  {address.line1}
+                                  {address.line2 && `, ${address.line2}`}
+                                </p>
+                                <p className="text-[#ffcc99] text-xs">
+                                  {address.city}, {address.state}
+                                </p>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
 
-                      {/* Address Form - Show when no address selected or creating new */}
-                      {(!selectedAddressId || savedAddresses.length === 0) && (
-                        <div className="space-y-4">
-                          {savedAddresses.length > 0 && (
-                            <div className="bg-[#ff6600]/10 border border-[#ff6600]/30 rounded-lg p-3 mb-4">
-                              <p className="text-[#ffcc99] text-sm">
-                                <strong className="text-white">New Address:</strong> Fill in the details below. This address will be saved for future orders.
-                              </p>
-                            </div>
-                          )}
+                      {/* New Address Form */}
+                      {showNewAddressForm && (
+                        <div className="space-y-4 mb-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-white font-semibold">New Delivery Address</h3>
+                            {savedAddresses.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowNewAddressForm(false);
+                                  if (savedAddresses.length > 0 && selectedAddressId) {
+                                    handleSelectSavedAddress(selectedAddressId);
+                                  }
+                                }}
+                                className="text-[#ffcc99] text-sm hover:text-white transition"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                          
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="md:col-span-2">
                               <label className="block text-white text-sm font-medium mb-2">
@@ -796,34 +880,94 @@ export default function CheckoutPage() {
                               />
                             </div>
                           </div>
+
+                          {/* Save Address Checkbox */}
+                          <div className="flex items-center gap-2 p-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl">
+                            <input
+                              type="checkbox"
+                              id="saveAddress"
+                              checked={saveNewAddress}
+                              onChange={(e) => setSaveNewAddress(e.target.checked)}
+                              className="w-4 h-4 text-[#ff6600] bg-[#0d0d0d] border-[#ff6600]/30 rounded focus:ring-[#ff6600] focus:ring-2"
+                            />
+                            <label htmlFor="saveAddress" className="text-[#ffcc99] text-sm cursor-pointer">
+                              Save this address for future orders
+                            </label>
+                          </div>
                         </div>
                       )}
 
-                      {/* Display Selected Address */}
-                      {selectedAddressId && savedAddresses.length > 0 && (
-                        <div className="bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <p className="text-white font-semibold text-sm mb-1">
-                                {savedAddresses.find(addr => addr.id === selectedAddressId)?.label || 'Selected Address'}
-                              </p>
-                              <p className="text-[#ffcc99] text-sm">
-                                {savedAddresses.find(addr => addr.id === selectedAddressId)?.line1}
-                                {savedAddresses.find(addr => addr.id === selectedAddressId)?.line2 && 
-                                  `, ${savedAddresses.find(addr => addr.id === selectedAddressId)?.line2}`}
-                              </p>
-                              <p className="text-[#ffcc99] text-sm">
-                                {savedAddresses.find(addr => addr.id === selectedAddressId)?.city}, {' '}
-                                {savedAddresses.find(addr => addr.id === selectedAddressId)?.state}
-                              </p>
+                      {/* Show form if no saved addresses */}
+                      {savedAddresses.length === 0 && !showNewAddressForm && (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="md:col-span-2">
+                              <label className="block text-white text-sm font-medium mb-2">
+                                Delivery Address *
+                              </label>
+                              <input
+                                type="text"
+                                name="address"
+                                value={deliveryInfo.address}
+                                onChange={handleDeliveryChange}
+                                placeholder="Street address"
+                                className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
+                                required
+                              />
                             </div>
-                            <button
-                              type="button"
-                              onClick={handleCreateNewAddress}
-                              className="text-[#ff6600] text-xs font-medium hover:text-[#cc5200] transition"
-                            >
-                              Change
-                            </button>
+                            <div>
+                              <label className="block text-white text-sm font-medium mb-2">
+                                City *
+                              </label>
+                              <input
+                                type="text"
+                                name="city"
+                                value={deliveryInfo.city}
+                                onChange={handleDeliveryChange}
+                                placeholder="City"
+                                className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-white text-sm font-medium mb-2">
+                                State *
+                              </label>
+                              <input
+                                type="text"
+                                name="state"
+                                value={deliveryInfo.state}
+                                onChange={handleDeliveryChange}
+                                placeholder="State"
+                                className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-white text-sm font-medium mb-2">Nearby Landmark</label>
+                              <input
+                                type="text"
+                                name="landmark"
+                                value={deliveryInfo.landmark}
+                                onChange={handleDeliveryChange}
+                                placeholder="Optional landmark for delivery"
+                                className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
+                              />
+                            </div>
+                          </div>
+                          
+                          {/* Save Address Checkbox */}
+                          <div className="flex items-center gap-2 p-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl">
+                            <input
+                              type="checkbox"
+                              id="saveAddressFirst"
+                              checked={saveNewAddress}
+                              onChange={(e) => setSaveNewAddress(e.target.checked)}
+                              className="w-4 h-4 text-[#ff6600] bg-[#0d0d0d] border-[#ff6600]/30 rounded focus:ring-[#ff6600] focus:ring-2"
+                            />
+                            <label htmlFor="saveAddressFirst" className="text-[#ffcc99] text-sm cursor-pointer">
+                              Save this address for future orders
+                            </label>
                           </div>
                         </div>
                       )}

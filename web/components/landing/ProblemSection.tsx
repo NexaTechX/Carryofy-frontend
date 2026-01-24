@@ -47,15 +47,34 @@ export default function ProblemSection() {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: index * 0.1 }}
-                                className="bg-white p-8 rounded-2xl border border-gray-100 hover:shadow-lg transition-shadow"
+                                className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow"
                             >
-                                <div className={`w-12 h-12 ${problem.bgColor} rounded-lg flex items-center justify-center mb-6`}>
-                                    <problem.icon className={`w-6 h-6 ${problem.iconColor}`} />
+                                <div className="relative h-48 overflow-hidden">
+                                    <img
+                                        src={
+                                            index === 0 
+                                                ? 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop'
+                                                : index === 1
+                                                ? 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&h=400&fit=crop'
+                                                : 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&h=400&fit=crop'
+                                        }
+                                        alt={problem.title}
+                                        className="w-full h-full object-cover"
+                                        loading="lazy"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                                    <div className="absolute top-4 left-4">
+                                        <div className={`w-12 h-12 ${problem.bgColor} rounded-lg flex items-center justify-center shadow-lg`}>
+                                            <problem.icon className={`w-6 h-6 ${problem.iconColor}`} />
+                                        </div>
+                                    </div>
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-900 mb-3">{problem.title}</h3>
-                                <p className="text-sm text-gray-600 leading-relaxed">
-                                    {problem.description}
-                                </p>
+                                <div className="p-6">
+                                    <h3 className="text-xl font-bold text-gray-900 mb-3">{problem.title}</h3>
+                                    <p className="text-sm text-gray-600 leading-relaxed">
+                                        {problem.description}
+                                    </p>
+                                </div>
                             </motion.div>
                         ))}
                     </div>

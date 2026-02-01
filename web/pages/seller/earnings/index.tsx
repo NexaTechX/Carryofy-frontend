@@ -382,6 +382,9 @@ export default function EarningsPage() {
               <p className="text-[#ffcc99] text-sm font-normal leading-normal mt-1">
                 Track your sales revenue and payouts
               </p>
+              <p className="text-[#ffcc99]/90 text-sm mt-1">
+                Earnings released after successful delivery.
+              </p>
             </div>
           </div>
 

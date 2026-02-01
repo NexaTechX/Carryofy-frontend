@@ -386,6 +386,9 @@ export interface PlatformSettings {
   smsEnabled: boolean;
   emailEnabled: boolean;
   pushEnabled: boolean;
+  riderBaseFeeKobo: number;
+  riderPerKmFeeKobo: number;
+  allowBankTransfer: boolean;
 }
 
 export interface PaymentGatewaySettings {

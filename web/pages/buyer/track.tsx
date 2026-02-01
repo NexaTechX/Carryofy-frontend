@@ -57,6 +57,8 @@ interface Order {
   items: OrderItem[];
 }
 
+const DEFAULT_WAREHOUSE = { lat: 6.5244, lng: 3.3792 };
+
 interface Delivery {
   id: string;
   orderId: string;
@@ -66,6 +68,9 @@ interface Delivery {
     id: string;
     name: string;
     phone?: string;
+    currentLat?: number | null;
+    currentLng?: number | null;
+    lastLocationUpdate?: string | null;
   } | null;
   eta?: string;
   deliveryAddress?: string;
@@ -77,12 +82,19 @@ interface Delivery {
     country: string;
     postalCode?: string | null;
     fullAddress: string;
+    latitude?: number;
+    longitude?: number;
   } | null;
   assignedAt?: string;
   pickedUpAt?: string;
   deliveredAt?: string;
   createdAt: string;
   updatedAt: string;
+  mapData?: {
+    riderLocation?: { lat: number; lng: number; lastUpdate?: string | null } | null;
+    deliveryLocation?: { lat?: number; lng?: number; address?: string; city?: string; state?: string } | null;
+    pickupLocation?: { address?: string } | null;
+  } | null;
 }
 
 const ORDER_STEPS = [
@@ -136,7 +148,6 @@ export default function TrackOrderPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderCode, setOrderCode] = useState('');
-  const [vehicleIndex, setVehicleIndex] = useState(0);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [buyerOrders, setBuyerOrders] = useState<BuyerOrder[]>([]);
@@ -340,17 +351,18 @@ export default function TrackOrderPage() {
     return `Arriving in ${parts.join(' ')}`;
   }, [etaDiffMs]);
 
-  // Auto-refresh tracking every 30s while order is active and tab is visible
+  // Real-time map: refresh more often when out for delivery so rider location updates
   useEffect(() => {
     if (!order?.id) return;
 
     const terminalStatuses = new Set(['DELIVERED', 'CANCELED', 'CANCELLED', 'REFUNDED']);
     if (terminalStatuses.has(order.status)) return;
 
+    const intervalMs = order.status === 'OUT_FOR_DELIVERY' ? 15_000 : 30_000;
     const interval = window.setInterval(() => {
       if (document.visibilityState !== 'visible') return;
       fetchTracking(order.id, { silent: true });
-    }, 30000);
+    }, intervalMs);
 
     return () => window.clearInterval(interval);
   }, [order?.id, order?.status]);
@@ -365,57 +377,32 @@ export default function TrackOrderPage() {
     return () => window.clearInterval(interval);
   }, [etaTarget, order?.status]);
 
+  // Real-time route: warehouse (or rider) → delivery address. Uses live rider location when available.
   const routeCoords = useMemo(() => {
-    if (!order) {
+    const destLat = delivery?.deliveryAddressInfo?.latitude ?? delivery?.mapData?.deliveryLocation?.lat;
+    const destLng = delivery?.deliveryAddressInfo?.longitude ?? delivery?.mapData?.deliveryLocation?.lng;
+    if (destLat == null || destLng == null) {
       return [] as { lat: number; lng: number }[];
     }
+    const destination = { lat: destLat, lng: destLng };
+    const riderLat = delivery?.mapData?.riderLocation?.lat ?? delivery?.rider?.currentLat;
+    const riderLng = delivery?.mapData?.riderLocation?.lng ?? delivery?.rider?.currentLng;
+    const start =
+      riderLat != null && riderLng != null
+        ? { lat: riderLat, lng: riderLng }
+        : DEFAULT_WAREHOUSE;
+    return [start, destination];
+  }, [delivery?.deliveryAddressInfo?.latitude, delivery?.deliveryAddressInfo?.longitude, delivery?.mapData?.riderLocation, delivery?.mapData?.deliveryLocation, delivery?.rider?.currentLat, delivery?.rider?.currentLng]);
 
-    const warehouse = { lat: 6.5244, lng: 3.3792 };
-    const hash = order.id
-      .split('')
-      .reduce((acc, char, index) => acc + char.charCodeAt(0) * (index + 1), 0);
-
-    const latOffset = ((hash % 50) - 25) / 1000; // ~±0.025
-    const lngOffset = ((((hash / 3) | 0) % 50) - 25) / 1000;
-    const destination = {
-      lat: warehouse.lat + latOffset,
-      lng: warehouse.lng + lngOffset,
-    };
-
-    return [
-      warehouse,
-      {
-        lat: warehouse.lat + (destination.lat - warehouse.lat) * 0.3,
-        lng: warehouse.lng + (destination.lng - warehouse.lng) * 0.3,
-      },
-      {
-        lat: warehouse.lat + (destination.lat - warehouse.lat) * 0.6,
-        lng: warehouse.lng + (destination.lng - warehouse.lng) * 0.6,
-      },
-      destination,
-    ];
-  }, [order]);
-
-  useEffect(() => {
-    if (!routeCoords.length) {
-      return;
-    }
-
-    if (order?.status === 'DELIVERED') {
-      setVehicleIndex(routeCoords.length - 1);
-      return;
-    }
-
-    setVehicleIndex((prev) => prev % routeCoords.length);
-
-    const interval = window.setInterval(() => {
-      setVehicleIndex((prev) => ((prev + 1) % routeCoords.length));
-    }, 4000);
-
-    return () => window.clearInterval(interval);
-  }, [routeCoords, order?.status]);
-
-  const currentCoord = routeCoords.length ? routeCoords[Math.min(vehicleIndex, routeCoords.length - 1)] : null;
+  // Live rider position, or delivery address when delivered, or start of route
+  const currentCoord = useMemo(() => {
+    if (!routeCoords.length) return null;
+    if (order?.status === 'DELIVERED') return routeCoords[routeCoords.length - 1];
+    const riderLat = delivery?.mapData?.riderLocation?.lat ?? delivery?.rider?.currentLat;
+    const riderLng = delivery?.mapData?.riderLocation?.lng ?? delivery?.rider?.currentLng;
+    if (riderLat != null && riderLng != null) return { lat: riderLat, lng: riderLng };
+    return routeCoords[0];
+  }, [routeCoords, order?.status, delivery?.mapData?.riderLocation, delivery?.rider?.currentLat, delivery?.rider?.currentLng]);
 
   const getDeliveryStatusText = (status?: string) => {
     if (!status) return 'Awaiting assignment';
@@ -693,9 +680,18 @@ export default function TrackOrderPage() {
                       <Share2 className="w-4 h-4" />
                       Share
                     </button>
+                    {order.status === 'OUT_FOR_DELIVERY' && (
+                      <Link
+                        href={`/buyer/orders/${order.id}`}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#ff6600] text-black rounded-lg hover:bg-[#cc5200] transition text-sm font-bold"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        Confirm delivery
+                      </Link>
+                    )}
                     <Link
                       href="/buyer/orders"
-                      className="flex items-center gap-2 px-4 py-2 bg-[#ff6600]/10 border border-[#ff6600]/30 text-[#ff6600] rounded-lg hover:bg-[#ff6600]/20 hover:border-[#ff6600] transition text-sm font-medium"
+                      className="flex items-center gap-2 px-4 py-2 bg-[#ff6600]/10 border border-[#ff6600]/30 text-[#ffcc99] rounded-lg hover:bg-[#ff6600]/20 hover:border-[#ff6600] transition text-sm font-medium"
                     >
                       <ArrowLeft className="w-4 h-4" />
                       Back to Orders
@@ -829,11 +825,11 @@ export default function TrackOrderPage() {
                 )}
               </div>
 
-              {/* Live Map */}
-              {routeCoords.length > 0 && (
+              {/* Real-time map: rider → your address (or warehouse → your address before rider sets off) */}
+              {routeCoords.length > 0 ? (
                 <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-white text-xl font-bold">Live Location</h3>
+                    <h3 className="text-white text-xl font-bold">Real-time map</h3>
                     {delivery?.status && (
                       <span className="text-[#ffcc99] text-sm">
                         {getDeliveryStatusText(delivery.status)}
@@ -842,7 +838,15 @@ export default function TrackOrderPage() {
                   </div>
                   <TrackMap routeCoords={routeCoords} currentCoord={currentCoord} />
                   <p className="text-[#ffcc99]/70 text-xs mt-3">
-                    Location updates refresh automatically every few seconds.
+                    {delivery?.mapData?.riderLocation ?? delivery?.rider?.currentLat != null
+                      ? 'Rider location updates every 15s while out for delivery.'
+                      : 'Route from warehouse to your address. Rider position will appear once they start.'}
+                  </p>
+                </div>
+              ) : (delivery || order?.delivery) && (
+                <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
+                  <p className="text-[#ffcc99]/80 text-sm">
+                    Map will appear when your delivery address has location data. You can still track status above.
                   </p>
                 </div>
               )}
@@ -909,10 +913,15 @@ export default function TrackOrderPage() {
                           Updated: <span className="text-white">{formatDate(delivery.updatedAt)}</span>
                         </p>
                         {delivery.eta && (
-                          <p className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-[#ff6600]" />
-                            Estimated Arrival: <span className="text-white">{formatDate(delivery.eta)}</span>
-                          </p>
+                          <>
+                            <p className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-[#ff6600]" />
+                              Estimated Arrival: <span className="text-white">{formatDate(delivery.eta)}</span>
+                            </p>
+                            <p className="text-[#ffcc99]/70 text-xs mt-1">
+                              Based on distance from rider (or warehouse) to your address; updates as the rider moves.
+                            </p>
+                          </>
                         )}
                         {etaText ? (
                           <p className="text-[#ff6600] text-sm font-semibold">

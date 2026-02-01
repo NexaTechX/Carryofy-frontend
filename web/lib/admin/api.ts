@@ -1043,6 +1043,9 @@ export async function fetchPlatformSettings(): Promise<PlatformSettings> {
         smsEnabled: true,
         emailEnabled: true,
         pushEnabled: false,
+        riderBaseFeeKobo: 50000,
+        riderPerKmFeeKobo: 5000,
+        allowBankTransfer: false,
       };
     }
     throw error;

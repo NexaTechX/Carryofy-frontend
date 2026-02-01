@@ -192,8 +192,8 @@ export default function AdminCustomers() {
                     <tr>
                       <th className="px-6 py-4 text-left text-white">Customer</th>
                       <th className="px-6 py-4 text-left text-white">Role</th>
-                      <th className="px-6 py-4 text-left text-white">Orders</th>
-                      <th className="px-6 py-4 text-left text-white">Total Spent</th>
+                      <th className="px-6 py-4 text-left text-white">Activity</th>
+                      <th className="px-6 py-4 text-left text-white">Total</th>
                       <th className="px-6 py-4 text-left text-white">Status</th>
                       <th className="px-6 py-4 text-right text-gray-500">Actions</th>
                     </tr>
@@ -217,11 +217,34 @@ export default function AdminCustomers() {
                           <span className="text-sm text-gray-300">{ROLE_LABEL[customer.role]}</span>
                         </DataTableCell>
                         <DataTableCell>
-                          <span className="text-sm text-gray-300">{customer.orderCount}</span>
+                          <span className="text-xs text-gray-500">
+                            {customer.role === 'BUYER' && 'Orders'}
+                            {customer.role === 'SELLER' && 'Products'}
+                            {customer.role === 'RIDER' && 'Deliveries'}
+                            {customer.role === 'ADMIN' && '—'}
+                          </span>
+                          <span className="ml-1 text-sm text-gray-300">
+                            {customer.role === 'BUYER' && customer.orderCount}
+                            {customer.role === 'SELLER' && (customer.productCount ?? 0)}
+                            {customer.role === 'RIDER' && (customer.deliveryCount ?? customer.orderCount)}
+                            {customer.role === 'ADMIN' && '—'}
+                          </span>
                         </DataTableCell>
                         <DataTableCell>
-                          <span className="text-sm font-semibold text-primary">
-                            {NGN_FORMATTER.format(customer.totalSpent / 100)}
+                          <span className="text-xs text-gray-500">
+                            {customer.role === 'BUYER' && 'Spent'}
+                            {customer.role === 'SELLER' && 'Sales'}
+                            {customer.role === 'RIDER' && 'Earnings'}
+                            {customer.role === 'ADMIN' && (customer.lastLoginAt ? 'Last login' : '—')}
+                          </span>
+                          <span className="ml-1 text-sm font-semibold text-primary">
+                            {customer.role === 'ADMIN' ? (
+                              customer.lastLoginAt
+                                ? new Date(customer.lastLoginAt).toLocaleDateString()
+                                : '—'
+                            ) : (
+                              NGN_FORMATTER.format(customer.totalSpent / 100)
+                            )}
                           </span>
                         </DataTableCell>
                         <DataTableCell>
@@ -358,22 +381,66 @@ export default function AdminCustomers() {
               </div>
             </div>
 
-            {/* Order Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Total Orders</p>
-                <p className="mt-2 text-2xl font-bold text-white">{customerDetail.orderCount}</p>
+            {/* Role-specific stats */}
+            {customerDetail.role === 'BUYER' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Total Orders</p>
+                  <p className="mt-2 text-2xl font-bold text-white">{customerDetail.orderCount}</p>
+                </div>
+                <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Total Spent</p>
+                  <p className="mt-2 text-2xl font-bold text-primary">
+                    {NGN_FORMATTER.format(customerDetail.totalSpent / 100)}
+                  </p>
+                </div>
               </div>
+            )}
+            {customerDetail.role === 'SELLER' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Products</p>
+                  <p className="mt-2 text-2xl font-bold text-white">{customerDetail.productCount ?? 0}</p>
+                </div>
+                <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Orders (with their products)</p>
+                  <p className="mt-2 text-2xl font-bold text-white">{customerDetail.orderCount}</p>
+                </div>
+                <div className="col-span-2 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Total Sales</p>
+                  <p className="mt-2 text-2xl font-bold text-primary">
+                    {NGN_FORMATTER.format(customerDetail.totalSpent / 100)}
+                  </p>
+                </div>
+              </div>
+            )}
+            {customerDetail.role === 'RIDER' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Deliveries Completed</p>
+                  <p className="mt-2 text-2xl font-bold text-white">{customerDetail.deliveryCount ?? customerDetail.orderCount}</p>
+                </div>
+                <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Total Earnings</p>
+                  <p className="mt-2 text-2xl font-bold text-primary">
+                    {NGN_FORMATTER.format(customerDetail.totalSpent / 100)}
+                  </p>
+                </div>
+              </div>
+            )}
+            {customerDetail.role === 'ADMIN' && (
               <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Total Spent</p>
-                <p className="mt-2 text-2xl font-bold text-primary">
-                  {NGN_FORMATTER.format(customerDetail.totalSpent / 100)}
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Last Login</p>
+                <p className="mt-2 text-lg font-semibold text-white">
+                  {customerDetail.lastLoginAt
+                    ? new Date(customerDetail.lastLoginAt).toLocaleString()
+                    : 'Never'}
                 </p>
               </div>
-            </div>
+            )}
 
-            {/* Addresses */}
-            {customerDetail.addresses && customerDetail.addresses.length > 0 && (
+            {/* Addresses (buyers) */}
+            {customerDetail.role === 'BUYER' && customerDetail.addresses && customerDetail.addresses.length > 0 && (
               <div>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
                   Delivery Addresses
@@ -398,8 +465,8 @@ export default function AdminCustomers() {
               </div>
             )}
 
-            {/* Recent Orders */}
-            {customerDetail.orders && customerDetail.orders.length > 0 && (
+            {/* Recent Orders (buyers only) */}
+            {customerDetail.role === 'BUYER' && customerDetail.orders && customerDetail.orders.length > 0 && (
               <div>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
                   Recent Orders
@@ -418,6 +485,67 @@ export default function AdminCustomers() {
                       </div>
                       <p className="text-sm font-semibold text-primary">
                         {NGN_FORMATTER.format(order.amount / 100)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recent earnings (sellers only) — gross = real sales */}
+            {customerDetail.role === 'SELLER' && customerDetail.sellerEarnings && customerDetail.sellerEarnings.length > 0 && (
+              <div>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                  Recent Sales (Gross)
+                </p>
+                <div className="space-y-2">
+                  {customerDetail.sellerEarnings.map((e) => (
+                    <div
+                      key={e.orderId}
+                      className="flex items-center justify-between rounded-xl border border-[#1f1f1f] bg-[#10151d] p-3"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-white">Order #{e.orderId.slice(0, 8)}</p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(e.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-primary">
+                          {NGN_FORMATTER.format((e.gross ?? e.net) / 100)}
+                        </p>
+                        {e.net != null && e.gross !== e.net && (
+                          <p className="text-xs text-gray-500">Net: {NGN_FORMATTER.format(e.net / 100)}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recent deliveries (riders only) */}
+            {customerDetail.role === 'RIDER' && customerDetail.riderDeliveries && customerDetail.riderDeliveries.length > 0 && (
+              <div>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                  Recent Deliveries
+                </p>
+                <div className="space-y-2">
+                  {customerDetail.riderDeliveries.map((d) => (
+                    <div
+                      key={d.id}
+                      className="flex items-center justify-between rounded-xl border border-[#1f1f1f] bg-[#10151d] p-3"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-white">Order #{d.orderId.slice(0, 8)}</p>
+                        <p className="text-xs text-gray-500">
+                          {d.deliveredAt
+                            ? new Date(d.deliveredAt).toLocaleDateString()
+                            : d.status}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold text-primary">
+                        {NGN_FORMATTER.format(d.amount / 100)}
                       </p>
                     </div>
                   ))}

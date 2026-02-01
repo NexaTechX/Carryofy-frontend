@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
   AdminCard,
@@ -24,7 +25,6 @@ import {
 import {
   useAssignDeliveryMutation,
   useDeliveryByOrder,
-  useDeliveryStatusMutation,
   useAvailableRiders,
 } from '../../lib/admin/hooks/useAdminDeliveries';
 import { AdminDeliveryStatus, AdminOrder, AdminOrderStatus } from '../../lib/admin/types';
@@ -47,11 +47,6 @@ const DELIVERY_STATUS_OPTIONS: { value: AdminDeliveryStatus; label: string }[] =
   { value: 'ISSUE', label: 'Issue' },
 ];
 
-// Admins cannot set delivery status to Delivered — only the buyer confirms receipt
-const DELIVERY_STATUS_OPTIONS_ADMIN_EDIT = DELIVERY_STATUS_OPTIONS.filter(
-  (o) => o.value !== 'DELIVERED',
-);
-
 const ORDER_STATUS_TONE: Record<AdminOrderStatus, 'neutral' | 'warning' | 'success' | 'danger'> = {
   PENDING_PAYMENT: 'warning',
   PAID: 'neutral',
@@ -71,13 +66,21 @@ const ORDER_FILTERS = ['ALL', ...ORDER_STATUS_OPTIONS.map((item) => item.value)]
 type OrderFilter = (typeof ORDER_FILTERS)[number];
 
 export default function AdminOrders() {
+  const router = useRouter();
   const [filter, setFilter] = useState<OrderFilter>('ALL');
   const [focusedOrder, setFocusedOrder] = useState<AdminOrder | null>(null);
 
   const { data: orders, isLoading, isError, error, refetch } = useAdminOrders();
+
+  // Open order drawer when navigating from notification (e.g. ?orderId=xxx)
+  useEffect(() => {
+    const orderId = router.query.orderId;
+    if (typeof orderId !== 'string') return;
+    const order = orders?.find((o) => o.id === orderId);
+    setFocusedOrder(order ?? ({ id: orderId } as AdminOrder));
+  }, [router.query.orderId, orders]);
   const updateOrderStatus = useOrderStatusMutation();
   const assignDelivery = useAssignDeliveryMutation();
-  const updateDeliveryStatus = useDeliveryStatusMutation();
   const { data: availableRiders, isLoading: loadingRiders } = useAvailableRiders();
 
   const filteredOrders = useMemo(() => {
@@ -124,7 +127,8 @@ export default function AdminOrders() {
 
   const handleAssignDelivery = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const riderId = String(formData.get('riderId') || '');
     const eta = formData.get('eta') ? new Date(String(formData.get('eta'))).toISOString() : undefined;
 
@@ -137,15 +141,7 @@ export default function AdminOrders() {
     });
 
     toast.success('Delivery assigned.');
-    event.currentTarget.reset();
-  };
-
-  const handleDeliveryStatusUpdate = async (
-    deliveryId: string,
-    status: AdminDeliveryStatus,
-    updates?: { rider?: string; eta?: string }
-  ) => {
-    await updateDeliveryStatus.mutateAsync({ deliveryId, status, updates });
+    form.reset();
   };
 
   return (
@@ -416,7 +412,7 @@ export default function AdminOrders() {
                 Delivery
               </p>
               <p className="text-xs text-amber-200/90">
-                Only the buyer can confirm delivery. Admins can update status up to In Transit for monitoring and disputes.
+                Admin assigns a rider only. The rider sees the task and updates status (Picked up, In transit, etc.). You monitor location and status here.
               </p>
               {deliveryDetail ? (
                 <div className="space-y-3">
@@ -428,23 +424,7 @@ export default function AdminOrders() {
                           ?.label ?? deliveryDetail.status
                       }
                     />
-                    <select
-                      className="rounded-full border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 focus:border-primary focus:outline-none"
-                      value={deliveryDetail.status}
-                      onChange={(event) =>
-                        handleDeliveryStatusUpdate(deliveryDetail.id, event.target.value as AdminDeliveryStatus)
-                      }
-                      disabled={deliveryDetail.status === 'DELIVERED'}
-                    >
-                      {DELIVERY_STATUS_OPTIONS_ADMIN_EDIT.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                      {deliveryDetail.status === 'DELIVERED' && (
-                        <option value="DELIVERED">Delivered</option>
-                      )}
-                    </select>
+                    <span className="text-xs text-gray-500 uppercase tracking-[0.16em]">Status (from rider)</span>
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
                     <div>
@@ -621,8 +601,7 @@ export default function AdminOrders() {
             </section>
 
             <p className="text-xs text-gray-500">
-              Keep admins informed: updating order and delivery statuses here will sync across buyer
-              and seller dashboards.
+              Assign riders here; riders update delivery status. Order status and delivery status are visible for monitoring across buyer and seller dashboards.
             </p>
           </div>
         ) : (

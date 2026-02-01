@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import apiClient from '../api/client';
-import { tokenManager } from '../auth';
+import { tokenManager, useAuth } from '../auth';
 import { showSuccessToast, showErrorToast } from '../ui/toast';
 
 export interface CartItem {
@@ -47,6 +47,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,10 +155,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setIsDrawerOpen(prev => !prev);
   }, []);
 
-  // Initialize cart on mount
+  // Fetch cart when auth state changes (e.g. after login or on initial load when user is restored)
   useEffect(() => {
     fetchCart();
-  }, [fetchCart]);
+  }, [user, fetchCart]);
 
   // Listen for cart update events (e.g., when items are added)
   useEffect(() => {

@@ -18,11 +18,10 @@ import {
 import {
   useActiveDeliveries,
   useAssignDeliveryMutation,
-  useDeliveryStatusMutation,
   useAvailableRiders,
 } from '../../lib/admin/hooks/useAdminDeliveries';
 import { useAdminOrderDetail } from '../../lib/admin/hooks/useAdminOrders';
-import { AdminDelivery, AdminDeliveryStatus } from '../../lib/admin/types';
+import { AdminDelivery } from '../../lib/admin/types';
 import { toast } from 'react-hot-toast';
 
 const DELIVERY_FILTERS = ['ALL', 'PREPARING', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'ISSUE'] as const;
@@ -58,7 +57,6 @@ export default function AdminDeliveries() {
 
   const { data: deliveries, isLoading, isError, error, refetch } = useActiveDeliveries();
   const assignDelivery = useAssignDeliveryMutation();
-  const updateDeliveryStatus = useDeliveryStatusMutation();
   const { data: availableRiders, isLoading: loadingRiders } = useAvailableRiders();
 
   const filteredDeliveries = useMemo(() => {
@@ -91,14 +89,6 @@ export default function AdminDeliveries() {
     setAssignOrderId('');
     setAssignRider('');
     setAssignEta('');
-  };
-
-  const handleStatusChange = async (
-    deliveryId: string,
-    status: AdminDeliveryStatus,
-    updates?: { rider?: string; eta?: string }
-  ) => {
-    await updateDeliveryStatus.mutateAsync({ deliveryId, status, updates });
   };
 
   return (
@@ -277,38 +267,10 @@ export default function AdminDeliveries() {
                   tone={DELIVERY_TONE[selectedDelivery.status] ?? 'info'}
                   label={DELIVERY_LABEL[selectedDelivery.status] ?? selectedDelivery.status}
                 />
-                <select
-                  className="rounded-full border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 focus:border-primary focus:outline-none"
-                  value={selectedDelivery.status}
-                  onChange={(event) =>
-                    handleStatusChange(
-                      selectedDelivery.id,
-                      event.target.value as AdminDeliveryStatus,
-                      {
-                        rider: typeof selectedDelivery.rider === 'string' 
-                          ? selectedDelivery.rider 
-                          : selectedDelivery.rider?.id ?? undefined,
-                        eta: selectedDelivery.eta ?? undefined,
-                      }
-                    )
-                  }
-                  disabled={selectedDelivery.status === 'DELIVERED'}
-                >
-                  {DELIVERY_STATUS_OPTIONS_ADMIN_EDIT.map((status) => (
-                    <option key={status} value={status}>
-                      {DELIVERY_LABEL[status] ?? status}
-                    </option>
-                  ))}
-                  {selectedDelivery.status === 'DELIVERED' && (
-                    <option value="DELIVERED">{DELIVERY_LABEL.DELIVERED}</option>
-                  )}
-                </select>
+                <span className="text-xs text-gray-500 uppercase tracking-[0.16em]">Status (from rider)</span>
               </div>
               <p className="text-xs text-amber-200/90">
-                Only the buyer who placed the order can confirm delivery. Admins have visibility for monitoring and dispute resolution only.
-              </p>
-              <p className="text-xs text-gray-500 italic">
-                Status updates here are for monitoring and disputes (e.g. In Transit, Issue). Delivered is set when the buyer marks the order as received.
+                Admin assigns a rider only. The rider sees the task and updates status (Picked up, In transit, etc.). You monitor location and status here.
               </p>
             </div>
 

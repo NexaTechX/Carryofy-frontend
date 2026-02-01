@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
+import { geocodeAddress } from '../../lib/api/geocode';
 import {
   User,
   Phone,
@@ -244,7 +245,16 @@ export default function BuyerProfilePage() {
       setAddressMessage(null);
       setAddressError(null);
 
-      const payload = {
+      // Geocode address to real coordinates for delivery distance/shipping fee calculation
+      const coords = await geocodeAddress({
+        line1: addressForm.line1.trim(),
+        line2: addressForm.line2?.trim(),
+        city: addressForm.city.trim(),
+        state: addressForm.state.trim(),
+        country: addressForm.country || 'Nigeria',
+      });
+
+      const payload: Record<string, unknown> = {
         label: addressForm.label || 'Home',
         line1: addressForm.line1.trim(),
         line2: addressForm.line2?.trim() || undefined,
@@ -253,6 +263,10 @@ export default function BuyerProfilePage() {
         country: addressForm.country || 'Nigeria',
         postalCode: addressForm.postalCode?.trim() || undefined,
       };
+      if (coords) {
+        payload.latitude = coords.latitude;
+        payload.longitude = coords.longitude;
+      }
 
       if (editingAddressId) {
         await apiClient.put(`/users/me/addresses/${editingAddressId}`, payload);

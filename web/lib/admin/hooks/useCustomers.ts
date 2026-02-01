@@ -13,8 +13,12 @@ export interface AdminCustomer {
   role: UserRole;
   status: UserStatus;
   verified: boolean;
+  /** BUYER: orders placed; SELLER: orders with their products; RIDER: deliveries; ADMIN: 0 */
   orderCount: number;
+  /** BUYER: total spent (kobo); SELLER: total sales (kobo); RIDER: total earnings (kobo); ADMIN: 0 */
   totalSpent: number;
+  productCount?: number;
+  deliveryCount?: number;
   lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -38,6 +42,14 @@ export interface AdminCustomerDetail extends AdminCustomer {
     amount: number;
     status: string;
     createdAt: string;
+  }>;
+  sellerEarnings?: Array<{ orderId: string; gross: number; net: number; createdAt: string }>;
+  riderDeliveries?: Array<{
+    id: string;
+    orderId: string;
+    amount: number;
+    status: string;
+    deliveredAt?: string;
   }>;
 }
 

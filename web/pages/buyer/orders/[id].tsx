@@ -22,6 +22,7 @@ import {
 import { showErrorToast, showSuccessToast } from '../../../lib/ui/toast';
 import { userManager, tokenManager } from '../../../lib/auth';
 import SubmitReviewModal from '../../../components/buyer/SubmitReviewModal';
+import RiderRatingModal from '../../../components/buyer/RiderRatingModal';
 import RefundRequestModal from '../../../components/buyer/RefundRequestModal';
 import { useConfirmation } from '../../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
@@ -47,6 +48,8 @@ interface Delivery {
   trackingNumber?: string;
   eta?: string;
   updatedAt: string;
+  riderId?: string;
+  rider?: { id: string; name: string };
 }
 
 interface OrderDetail {
@@ -136,6 +139,7 @@ export default function BuyerOrderDetailPage() {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewItem, setReviewItem] = useState<OrderItem | null>(null);
   const [reviewedProducts, setReviewedProducts] = useState<Record<string, boolean>>({});
+  const [riderRatingModalOpen, setRiderRatingModalOpen] = useState(false);
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [hasRefund, setHasRefund] = useState(false);
   const [refundInfo, setRefundInfo] = useState<{ id: string; status: string; createdAt: string; updatedAt: string } | null>(null);
@@ -382,9 +386,9 @@ export default function BuyerOrderDetailPage() {
     return idx >= 0 ? idx : 0;
   }, [order]);
 
-  // Check if order can be confirmed (marked as received)
+  // Buyer can confirm delivery when order is out for delivery (package arrived)
   const canConfirm = useMemo(() => {
-    return order?.status === 'DELIVERED';
+    return order?.status === 'OUT_FOR_DELIVERY';
   }, [order]);
 
   // Check if order can be canceled
@@ -392,27 +396,33 @@ export default function BuyerOrderDetailPage() {
     return order && ['PENDING_PAYMENT', 'PAID', 'PROCESSING'].includes(order.status);
   }, [order]);
 
-  // Check if order can be refunded
+  // Check if order can be refunded (not if they already requested refund or left a product review)
   const canRefund = useMemo(() => {
     if (!order || hasRefund) return false;
-    // Can refund if order is paid, processing, out for delivery, or delivered
+    const hasReviewedAny = order.items.some((item) => reviewedProducts[item.productId]);
+    if (hasReviewedAny) return false;
     return ['PAID', 'PROCESSING', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status);
-  }, [order, hasRefund]);
+  }, [order, hasRefund, reviewedProducts]);
 
-  // Handle marking order as received
+  // Handle marking order as received → then rider rating → then product reviews
   const handleMarkAsReceived = async () => {
     if (!order) return;
 
     try {
       setMarking(true);
       const response = await apiClient.put(`/orders/${order.id}/confirm`);
-      // Update local state with response
       const updatedOrder = response.data.data || response.data;
       setOrder(updatedOrder);
       showSuccessToast('Order marked as received!');
-      // Optionally trigger review modal for products
-      if (updatedOrder.items && updatedOrder.items.length > 0) {
-        // Could trigger review modal here if desired
+      // Open rider rating modal if delivery had a rider; after submit we open product review
+      if (updatedOrder.delivery?.id && updatedOrder.delivery?.riderId) {
+        setRiderRatingModalOpen(true);
+      } else if (updatedOrder.items?.length > 0) {
+        const first = updatedOrder.items.find((item: OrderItem) => !reviewedProducts[item.productId]);
+        if (first) {
+          setReviewItem(first);
+          setReviewModalOpen(true);
+        }
       }
     } catch (err: unknown) {
       console.error('Error marking order as received:', err);
@@ -812,15 +822,33 @@ export default function BuyerOrderDetailPage() {
                       Download your invoice for this order. The invoice will open in a new window where you can print or save as PDF.
                     </p>
                     <button
-                      onClick={() => {
-                        const token = tokenManager.getAccessToken();
-                        if (!token) {
+                      onClick={async () => {
+                        if (!tokenManager.getAccessToken()) {
                           showErrorToast('Please log in to download invoice');
                           return;
                         }
-                        const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-                        const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-                        window.open(`${apiUrl}/orders/${order.id}/invoice`, '_blank');
+                        try {
+                          const response = await apiClient.get(`/orders/${order.id}/invoice`, {
+                            responseType: 'text',
+                          });
+                          const html = typeof response.data === 'string' ? response.data : (response.data as any)?.data ?? '';
+                          if (!html) {
+                            showErrorToast('Invoice could not be loaded.');
+                            return;
+                          }
+                          const win = window.open('', '_blank');
+                          if (win) {
+                            win.document.write(html);
+                            win.document.close();
+                          } else {
+                            showErrorToast('Please allow pop-ups to view the invoice.');
+                          }
+                        } catch (err: unknown) {
+                          const msg = err && typeof err === 'object' && err !== null && 'response' in err
+                            ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+                            : null;
+                          showErrorToast(msg || 'Failed to load invoice.');
+                        }
                       }}
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
                     >
@@ -849,6 +877,24 @@ export default function BuyerOrderDetailPage() {
         </div>
       </BuyerLayout>
 
+      {order?.delivery?.id && (
+        <RiderRatingModal
+          open={riderRatingModalOpen}
+          riderName={order.delivery.rider?.name}
+          onClose={() => setRiderRatingModalOpen(false)}
+          onSubmit={async (rating, comment) => {
+            await apiClient.post(`/delivery/${order.delivery!.id}/rate-rider`, { rating, comment });
+            showSuccessToast('Thanks for rating your rider!');
+            setRiderRatingModalOpen(false);
+            const first = order.items?.find((item) => !reviewedProducts[item.productId]);
+            if (first) {
+              setReviewItem(first);
+              setReviewModalOpen(true);
+            }
+          }}
+        />
+      )}
+
       <SubmitReviewModal
         open={reviewModalOpen}
         productTitle={reviewItem?.product.title || ''}
@@ -857,6 +903,13 @@ export default function BuyerOrderDetailPage() {
         onSubmit={async (rating, comment) => {
           await handleSubmitReview(rating, comment);
           setReviewModalOpen(false);
+          if (!order?.items?.length || !reviewItem) return;
+          const currentIdx = order.items.findIndex((i) => i.productId === reviewItem.productId);
+          const nextItem = order.items[currentIdx + 1];
+          if (nextItem) {
+            setReviewItem(nextItem);
+            setReviewModalOpen(true);
+          }
         }}
       />
 

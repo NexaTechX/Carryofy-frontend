@@ -19,9 +19,10 @@ export interface ShippingQuoteResponse {
 export async function fetchShippingQuote(
   request: ShippingQuoteRequest
 ): Promise<ShippingQuoteResponse> {
-  const response = await apiClient.post<ShippingQuoteResponse>(
+  const response = await apiClient.post<ShippingQuoteResponse | { data: ShippingQuoteResponse }>(
     '/shipping/quote',
     request
   );
-  return response.data;
+  const data = (response.data as { data?: ShippingQuoteResponse })?.data ?? response.data;
+  return data as ShippingQuoteResponse;
 }

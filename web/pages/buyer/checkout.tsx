@@ -6,6 +6,7 @@ import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
 import { validateCoupon } from '../../lib/api/coupons';
 import { fetchShippingQuote } from '../../lib/api/shipping';
+import { geocodeAddress } from '../../lib/api/geocode';
 import {
   Truck,
   MapPin,
@@ -40,7 +41,7 @@ interface Cart {
   totalItems: number;
 }
 
-type ShippingMethod = 'standard' | 'express' | 'pickup';
+// Only Express shipping is offered
 
 const STEPS = [
   { id: 1, label: 'Order summary', icon: ClipboardList },
@@ -58,12 +59,9 @@ export default function CheckoutPage() {
   const [orderMessage, setOrderMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
-  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('standard');
-  const [standardShippingFee, setStandardShippingFee] = useState<number>(0);
-  const [expressShippingFee, setExpressShippingFee] = useState<number>(0);
+  const [shippingFee, setShippingFee] = useState<number>(0);
   const [shippingQuoteLoading, setShippingQuoteLoading] = useState(false);
   const [shippingQuoteError, setShippingQuoteError] = useState<string | null>(null);
-  const shippingFee = shippingMethod === 'pickup' ? 0 : shippingMethod === 'express' ? expressShippingFee : standardShippingFee;
   const [couponCode, setCouponCode] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponDiscount, setCouponDiscount] = useState(0);
@@ -123,39 +121,33 @@ export default function CheckoutPage() {
     }
   }, [mounted]);
 
-  // Fetch shipping quotes for STANDARD and EXPRESS when cart and address available
+  // Fetch Express shipping quote when cart and address available
   useEffect(() => {
     if (!cart?.items?.length) {
-      setStandardShippingFee(0);
-      setExpressShippingFee(0);
+      setShippingFee(0);
       setShippingQuoteError(null);
       return;
     }
     const addressId = selectedAddressId;
     if (!addressId) {
       setShippingQuoteError('Select address to see shipping cost');
-      setStandardShippingFee(0);
-      setExpressShippingFee(0);
+      setShippingFee(0);
       return;
     }
     let cancelled = false;
     setShippingQuoteLoading(true);
     setShippingQuoteError(null);
     const items = cart.items.map((i) => ({ productId: i.productId, quantity: i.quantity }));
-    Promise.all([
-      fetchShippingQuote({ addressId, items, shippingMethod: 'STANDARD' }),
-      fetchShippingQuote({ addressId, items, shippingMethod: 'EXPRESS' }),
-    ])
-      .then(([standardRes, expressRes]) => {
+    fetchShippingQuote({ addressId, items, shippingMethod: 'EXPRESS' })
+      .then((res) => {
         if (!cancelled) {
-          setStandardShippingFee(standardRes.shippingFeeKobo);
-          setExpressShippingFee(expressRes.shippingFeeKobo);
+          const fee = Number(res?.shippingFeeKobo);
+          setShippingFee(Number.isFinite(fee) ? fee : 0);
         }
       })
       .catch((err) => {
         if (!cancelled) {
-          setStandardShippingFee(0);
-          setExpressShippingFee(0);
+          setShippingFee(0);
           setShippingQuoteError(err.response?.data?.message || 'Could not get shipping quote');
         }
       })
@@ -313,7 +305,9 @@ export default function CheckoutPage() {
   }, [cart, shippingFee, discount]);
 
   const formatPrice = (priceInKobo: number) => {
-    return `₦${(priceInKobo / 100).toLocaleString('en-NG', {
+    const n = Number(priceInKobo);
+    if (!Number.isFinite(n)) return '₦0.00';
+    return `₦${(n / 100).toLocaleString('en-NG', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
@@ -401,12 +395,10 @@ export default function CheckoutPage() {
       }
     }
 
-    if (shippingMethod !== 'pickup') {
-      if (!selectedAddressId) {
-        if (!deliveryInfo.address || !deliveryInfo.city || !deliveryInfo.state) {
-          setOrderMessage({ type: 'error', text: 'Please provide your delivery address or select a saved address.' });
-          return false;
-        }
+    if (!selectedAddressId) {
+      if (!deliveryInfo.address || !deliveryInfo.city || !deliveryInfo.state) {
+        setOrderMessage({ type: 'error', text: 'Please provide your delivery address or select a saved address.' });
+        return false;
       }
     }
 
@@ -445,85 +437,62 @@ export default function CheckoutPage() {
       // Step 1: Create or get address
       let addressId: string;
       
-      if (shippingMethod !== 'pickup') {
-        // Use selected address if available, otherwise create new one
-        if (selectedAddressId) {
-          addressId = selectedAddressId;
-        } else {
-          // Validate required fields before creating address
-          if (!deliveryInfo.address?.trim() || !deliveryInfo.city?.trim() || !deliveryInfo.state?.trim()) {
-            setOrderMessage({ 
-              type: 'error', 
-              text: 'Please provide complete delivery address (address, city, and state).' 
-            });
-            setSubmitting(false);
-            return;
-          }
-
-          try {
-            // Create address from delivery info
-            const addressData = {
-              label: deliveryInfo.city ? `${deliveryInfo.city} Address` : 'Delivery Address',
-              line1: deliveryInfo.address.trim(),
-              line2: deliveryInfo.landmark?.trim() || undefined,
-              city: deliveryInfo.city.trim(),
-              state: deliveryInfo.state.trim(),
-              country: 'Nigeria',
-            };
-            
-            const addressResponse = await apiClient.post('/users/me/addresses', addressData);
-            addressId = addressResponse.data.id || addressResponse.data.data?.id;
-            
-            if (!addressId) {
-              throw new Error('Failed to create address: No address ID returned');
-            }
-
-            // If user wants to save the address, it's already saved above
-            // If not, we still need the addressId for the order, but we could delete it after
-            // For now, we'll always save it since it's useful for the user
-            if (saveNewAddress) {
-              // Refresh addresses list
-              await fetchAddresses();
-            }
-          } catch (err: any) {
-            console.error('Error creating address:', err);
-            const errorMessage = err.response?.data?.message || err.message || 'Failed to create delivery address. Please try again.';
-            setOrderMessage({ 
-              type: 'error', 
-              text: errorMessage 
-            });
-            setSubmitting(false);
-            return;
-          }
-        }
+      // Use selected address if available, otherwise create new one
+      if (selectedAddressId) {
+        addressId = selectedAddressId;
       } else {
-        // For pickup, use selected address or create a minimal one
-        if (selectedAddressId) {
-          addressId = selectedAddressId;
-        } else {
-          try {
-            const addressResponse = await apiClient.post('/users/me/addresses', {
-              label: 'Pickup Location',
-              line1: 'Store Pickup',
-              city: 'Lagos',
-              state: 'Lagos',
-              country: 'Nigeria',
-            });
-            addressId = addressResponse.data.id || addressResponse.data.data?.id;
-            
-            if (!addressId) {
-              throw new Error('Failed to create address: No address ID returned');
-            }
-          } catch (err: any) {
-            console.error('Error creating pickup address:', err);
-            const errorMessage = err.response?.data?.message || err.message || 'Failed to create pickup address. Please try again.';
-            setOrderMessage({ 
-              type: 'error', 
-              text: errorMessage 
-            });
-            setSubmitting(false);
-            return;
+        // Validate required fields before creating address
+        if (!deliveryInfo.address?.trim() || !deliveryInfo.city?.trim() || !deliveryInfo.state?.trim()) {
+          setOrderMessage({ 
+            type: 'error', 
+            text: 'Please provide complete delivery address (address, city, and state).' 
+          });
+          setSubmitting(false);
+          return;
+        }
+
+        try {
+          // Geocode address to get real coordinates for delivery distance/shipping fee calculation
+          const coords = await geocodeAddress({
+            line1: deliveryInfo.address.trim(),
+            line2: deliveryInfo.landmark?.trim(),
+            city: deliveryInfo.city.trim(),
+            state: deliveryInfo.state.trim(),
+            country: 'Nigeria',
+          });
+
+          const addressData: Record<string, unknown> = {
+            label: deliveryInfo.city ? `${deliveryInfo.city} Address` : 'Delivery Address',
+            line1: deliveryInfo.address.trim(),
+            line2: deliveryInfo.landmark?.trim() || undefined,
+            city: deliveryInfo.city.trim(),
+            state: deliveryInfo.state.trim(),
+            country: 'Nigeria',
+          };
+          if (coords) {
+            addressData.latitude = coords.latitude;
+            addressData.longitude = coords.longitude;
           }
+
+          const addressResponse = await apiClient.post('/users/me/addresses', addressData);
+          addressId = addressResponse.data.id || addressResponse.data.data?.id;
+          
+          if (!addressId) {
+            throw new Error('Failed to create address: No address ID returned');
+          }
+
+          if (saveNewAddress) {
+            await fetchAddresses();
+          }
+        } catch (err: any) {
+          console.error('Error creating address:', err);
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to create delivery address. Please try again.';
+          setOrderMessage({ 
+            type: 'error', 
+            text: errorMessage 
+          });
+          setSubmitting(false);
+          return;
         }
       }
 
@@ -536,7 +505,7 @@ export default function CheckoutPage() {
       const orderResponse = await apiClient.post('/orders', {
         addressId,
         items: orderItems,
-        shippingMethod: shippingMethod === 'express' ? 'EXPRESS' : shippingMethod === 'pickup' ? 'PICKUP' : 'STANDARD',
+        shippingMethod: 'EXPRESS',
         couponCode: couponApplied ? couponCode.trim() || undefined : undefined,
       });
 
@@ -742,39 +711,19 @@ export default function CheckoutPage() {
                       <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                         <div className="flex items-center gap-3 mb-4">
                           <Truck className="w-5 h-5 text-[#ff6600]" />
-                          <h2 className="text-white text-xl font-bold">Shipping method</h2>
+                          <h2 className="text-white text-xl font-bold">Shipping</h2>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {[
-                            { id: 'standard' as const, label: 'Standard', desc: '3–5 business days' },
-                            { id: 'express' as const, label: 'Express', desc: '24–48 hours' },
-                            { id: 'pickup' as const, label: 'Pickup', desc: 'Collect from hub' },
-                          ].map((opt) => {
-                            const price = opt.id === 'pickup' ? 0 : opt.id === 'express' ? expressShippingFee : standardShippingFee;
-                            return (
-                              <button
-                                key={opt.id}
-                                type="button"
-                                onClick={() => setShippingMethod(opt.id)}
-                                className={`px-4 py-4 rounded-xl border transition text-left ${
-                                  shippingMethod === opt.id ? 'border-[#ff6600] bg-[#ff6600]/10 text-white' : 'border-[#ff6600]/30 text-[#ffcc99] hover:border-[#ff6600] hover:bg-[#ff6600]/10'
-                                }`}
-                              >
-                                <h3 className="text-lg font-bold mb-1">{opt.label}</h3>
-                                <p className="text-sm mb-2 text-[#ffcc99]">{opt.desc}</p>
-                                <span className="text-[#ff6600] font-bold">
-                                  {opt.id === 'pickup' ? 'Free' : shippingQuoteLoading ? (
-                                    <span className="flex items-center gap-2">
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                      Calculating...
-                                    </span>
-                                  ) : (
-                                    formatPrice(price)
-                                  )}
-                                </span>
-                              </button>
-                            );
-                          })}
+                        <div className="flex items-center justify-between py-2">
+                          <span className="text-[#ff6600] font-bold">
+                            {shippingQuoteLoading ? (
+                              <span className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Calculating...
+                              </span>
+                            ) : (
+                              shippingFee === 0 ? 'Free' : formatPrice(shippingFee)
+                            )}
+                          </span>
                         </div>
                       </section>
 
@@ -824,7 +773,7 @@ export default function CheckoutPage() {
                               ) : shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}
                             </span>
                           </div>
-                          {shippingQuoteError && shippingMethod !== 'pickup' && (
+                          {shippingQuoteError && (
                             <p className="text-amber-400 text-xs">{shippingQuoteError}</p>
                           )}
                           {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
@@ -832,6 +781,9 @@ export default function CheckoutPage() {
                             <span className="text-white font-bold">Total</span><span className="text-[#ff6600] text-xl font-bold">{formatPrice(totalAmount)}</span>
                           </div>
                         </div>
+                        <p className="text-[#ffcc99]/90 text-sm">
+                          Payment held securely until delivery is confirmed.
+                        </p>
                         <button
                           type="button"
                           onClick={() => goToStep(2)}
@@ -899,8 +851,7 @@ export default function CheckoutPage() {
                           <h2 className="text-white text-xl font-bold">Delivery address</h2>
                         </div>
 
-                        {shippingMethod !== 'pickup' && (
-                    <>
+                        <>
                       {/* Saved Addresses Selection */}
                       {loadingAddresses ? (
                         <div className="flex items-center gap-2 text-[#ffcc99]/70 py-3 mb-6">
@@ -1128,15 +1079,6 @@ export default function CheckoutPage() {
                         </div>
                       )}
                     </>
-                  )}
-
-                  {shippingMethod === 'pickup' && (
-                    <div className="bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl p-4">
-                      <p className="text-[#ffcc99] text-sm">
-                        <strong className="text-white">Pickup Location:</strong> You'll collect your order from our nearest hub. We'll notify you when it's ready for pickup.
-                      </p>
-                    </div>
-                  )}
                         </section>
 
                       <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
@@ -1206,20 +1148,14 @@ export default function CheckoutPage() {
                           <div>
                             <h3 className="text-white font-semibold mb-2 flex items-center gap-2"><MapPin className="w-4 h-4 text-[#ff6600]" /> Delivery</h3>
                             <p className="text-[#ffcc99] text-sm">
-                              {shippingMethod === 'pickup'
-                                ? 'Store pickup'
-                                : selectedAddressId
-                                  ? (() => {
-                                      const addr = savedAddresses.find((a) => a.id === selectedAddressId);
-                                      return addr ? `${addr.line1}, ${addr.city}, ${addr.state}` : `${deliveryInfo.address}, ${deliveryInfo.city}, ${deliveryInfo.state}`;
-                                    })()
-                                  : `${deliveryInfo.address}, ${deliveryInfo.city}, ${deliveryInfo.state}`}
+                              {selectedAddressId
+                                ? (() => {
+                                    const addr = savedAddresses.find((a) => a.id === selectedAddressId);
+                                    return addr ? `${addr.line1}, ${addr.city}, ${addr.state}` : `${deliveryInfo.address}, ${deliveryInfo.city}, ${deliveryInfo.state}`;
+                                  })()
+                                : `${deliveryInfo.address}, ${deliveryInfo.city}, ${deliveryInfo.state}`}
                             </p>
-                            <p className="text-[#ffcc99] text-xs mt-1">
-                              {shippingMethod === 'standard' && 'Standard (3–5 days)'}
-                              {shippingMethod === 'express' && 'Express (24–48 hours)'}
-                              {shippingMethod === 'pickup' && 'Pickup from hub'}
-                            </p>
+                            <p className="text-[#ffcc99] text-xs mt-1">Express (24–48 hours)</p>
                           </div>
                         </div>
 
@@ -1273,7 +1209,7 @@ export default function CheckoutPage() {
                           </button>
                           <button
                             type="submit"
-                            disabled={submitting || (!!shippingQuoteError && shippingMethod !== 'pickup')}
+                            disabled={submitting || !!shippingQuoteError}
                             className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-[#ff6600]/30"
                           >
                             {submitting ? (

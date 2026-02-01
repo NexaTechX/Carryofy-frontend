@@ -1,6 +1,6 @@
 import toast, { ToastOptions } from 'react-hot-toast';
 
-type ToastKind = 'success' | 'error' | 'loading';
+type ToastKind = 'success' | 'error' | 'loading' | 'info';
 
 export const showSuccessToast = (message: string, options?: ToastOptions) =>
   dispatchToast('success', message, options);
@@ -11,6 +11,9 @@ export const showErrorToast = (message: string, options?: ToastOptions) =>
 export const showLoadingToast = (message: string, options?: ToastOptions) =>
   dispatchToast('loading', message, options);
 
+export const showInfoToast = (message: string, options?: ToastOptions) =>
+  dispatchToast('info', message, options);
+
 const dispatchToast = (kind: ToastKind, message: string, options?: ToastOptions) => {
   const id = options?.id ?? undefined;
   switch (kind) {
@@ -20,6 +23,8 @@ const dispatchToast = (kind: ToastKind, message: string, options?: ToastOptions)
       return toast.error(message, { id, duration: 3500, ...options });
     case 'loading':
       return toast.loading(message, { id, ...options });
+    case 'info':
+      return toast(message, { id, duration: 3000, icon: 'ℹ️', ...options });
     default:
       return toast(message, options);
   }

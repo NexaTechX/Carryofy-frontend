@@ -3,6 +3,7 @@ export interface DashboardMetrics {
   totalSellers: number;
   totalProducts: number;
   totalOrders: number;
+  todaysOrders?: number; // orders created today (admin)
   totalRevenue: number; // in kobo
   totalCommissions: number; // in kobo
   pendingOrders: number;
@@ -375,6 +376,13 @@ export interface PlatformSettings {
   deliveryCalculation: 'flat' | 'distance';
   baseFee: number;
   perMileFee: number;
+  shippingCalculationMode: 'FLAT' | 'WEIGHT';
+  baseFeeKobo: number;
+  perKgFeeKobo: number;
+  defaultWeightKg: number;
+  standardMultiplier: number;
+  expressMultiplier: number;
+  shippingVersion: number;
   smsEnabled: boolean;
   emailEnabled: boolean;
   pushEnabled: boolean;

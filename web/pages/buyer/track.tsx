@@ -98,8 +98,8 @@ const ORDER_STEPS = [
   },
   {
     key: 'PROCESSING',
-    label: 'Order Processing',
-    description: 'Your order is being prepared by the seller.',
+    label: 'Packaging',
+    description: 'We are currently packaging your goods for shipment.',
   },
   {
     key: 'OUT_FOR_DELIVERY',

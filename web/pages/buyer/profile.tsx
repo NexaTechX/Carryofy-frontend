@@ -23,6 +23,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useConfirmation } from '../../lib/hooks/useConfirmation';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog';
+import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
 
 interface UserProfile {
   id: string;
@@ -86,6 +89,7 @@ export default function BuyerProfilePage() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const confirmation = useConfirmation();
 
   useEffect(() => {
     setMounted(true);
@@ -309,14 +313,24 @@ export default function BuyerProfilePage() {
   };
 
   const handleDeleteAddress = async (addressId: string) => {
-    if (!confirm('Are you sure you want to delete this address?')) return;
+    const confirmed = await confirmation.confirm({
+      title: 'Delete Address',
+      message: 'Are you sure you want to delete this address?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
 
     try {
       setAddressSaving(true);
+      confirmation.setLoading(true);
       setAddressMessage(null);
       setAddressError(null);
 
       await apiClient.delete(`/users/me/addresses/${addressId}`);
+      showSuccessToast('Address deleted successfully');
       setAddressMessage('Address deleted successfully');
       if (editingAddressId === addressId) {
         setEditingAddressId(null);
@@ -333,9 +347,12 @@ export default function BuyerProfilePage() {
       fetchAddresses();
     } catch (err: any) {
       console.error('Error deleting address:', err);
-      setAddressError(err.response?.data?.message || 'Failed to delete address');
+      const errorMessage = err.response?.data?.message || 'Failed to delete address';
+      setAddressError(errorMessage);
+      showErrorToast(errorMessage);
     } finally {
       setAddressSaving(false);
+      confirmation.setLoading(false);
       setTimeout(() => setAddressMessage(null), 3000);
     }
   };
@@ -563,14 +580,16 @@ export default function BuyerProfilePage() {
                 </div>
 
                 <div>
-                  <label className="block text-[#ffcc99] text-sm font-medium mb-2">Phone Number</label>
+                  <label className="block text-[#ffcc99] text-sm font-medium mb-2">Phone Number *</label>
                   <input
                     type="tel"
                     value={profileForm.phone}
                     onChange={(e) => setProfileForm((prev) => ({ ...prev, phone: e.target.value }))}
                     className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
                     placeholder="+234 916 678 3040"
+                    required
                   />
+                  <p className="text-xs text-[#ffcc99]/70 mt-1">Required for delivery coordination</p>
                 </div>
 
                 <div>
@@ -913,6 +932,17 @@ export default function BuyerProfilePage() {
           </div>
         </div>
       </BuyerLayout>
+      <ConfirmationDialog
+        open={confirmation.open}
+        title={confirmation.title}
+        message={confirmation.message}
+        confirmText={confirmation.confirmText}
+        cancelText={confirmation.cancelText}
+        variant={confirmation.variant}
+        onConfirm={confirmation.handleConfirm}
+        onCancel={confirmation.handleCancel}
+        loading={confirmation.loading}
+      />
     </>
   );
 }

@@ -11,6 +11,8 @@ import {
 import { useFeedbacks, useDeleteFeedbackMutation } from '../../lib/admin/hooks/useFeedback';
 import { Feedback } from '../../lib/admin/types';
 import { Star, MessageSquare, Trash2, User, RefreshCw } from 'lucide-react';
+import { useConfirmation } from '../../lib/hooks/useConfirmation';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 
 const FEEDBACK_FILTERS: Array<{ id: 'all' | string; label: string }> = [
   { id: 'all', label: 'All Feedback' },
@@ -56,6 +58,7 @@ export default function AdminFeedback() {
   const { data: feedbacks, isLoading: feedbacksLoading, isError: feedbacksError, error: feedbacksErrorObj, refetch: refetchFeedbacks } =
     useFeedbacks();
   const deleteFeedback = useDeleteFeedbackMutation();
+  const confirmation = useConfirmation();
 
   const selectedFeedback = useMemo<Feedback | undefined>(() => {
     if (!feedbacks || feedbacks.length === 0) return undefined;
@@ -76,12 +79,20 @@ export default function AdminFeedback() {
     });
   }, [feedbacks, search, activeFilter]);
 
-  const handleDeleteFeedback = (feedbackId: string) => {
-    if (confirm('Are you sure you want to delete this feedback?')) {
-      deleteFeedback.mutate(feedbackId);
-      if (selectedFeedbackId === feedbackId) {
-        setSelectedFeedbackId(null);
-      }
+  const handleDeleteFeedback = async (feedbackId: string) => {
+    const confirmed = await confirmation.confirm({
+      title: 'Delete Feedback',
+      message: 'Are you sure you want to delete this feedback?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
+
+    deleteFeedback.mutate(feedbackId);
+    if (selectedFeedbackId === feedbackId) {
+      setSelectedFeedbackId(null);
     }
   };
 
@@ -101,6 +112,7 @@ export default function AdminFeedback() {
   }, [feedbacks]);
 
   return (
+    <div>
     <AdminLayout>
       <div className="min-h-screen bg-[#090c11]">
         <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
@@ -319,6 +331,18 @@ export default function AdminFeedback() {
         </div>
       </div>
     </AdminLayout>
+    <ConfirmationDialog
+      open={confirmation.open}
+      title={confirmation.title}
+      message={confirmation.message}
+      confirmText={confirmation.confirmText}
+      cancelText={confirmation.cancelText}
+      variant={confirmation.variant}
+      onConfirm={confirmation.handleConfirm}
+      onCancel={confirmation.handleCancel}
+      loading={confirmation.loading}
+    />
+    </div>
   );
 }
 

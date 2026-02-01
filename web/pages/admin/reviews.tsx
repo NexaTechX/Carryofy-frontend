@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
   AdminCard,
@@ -26,6 +26,8 @@ import {
 } from '../../lib/admin/hooks/useAdminReviews';
 import { toast } from 'react-hot-toast';
 import { MessageSquare, Star, X } from 'lucide-react';
+import { useConfirmation } from '../../lib/hooks/useConfirmation';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 
 const RATING_FILTERS = ['ALL', 5, 4, 3, 2, 1] as const;
 
@@ -48,6 +50,7 @@ export default function AdminReviews() {
   const flagReview = useFlagReviewMutation();
   const unflagReview = useUnflagReviewMutation();
   const deleteReview = useDeleteReviewMutation();
+  const confirmation = useConfirmation();
 
   const reviews = data?.reviews || [];
   const pagination = data?.pagination;
@@ -90,13 +93,26 @@ export default function AdminReviews() {
   };
 
   const handleDelete = async (review: AdminReview) => {
-    if (!confirm(`Are you sure you want to delete this review from ${review.userName}?`)) {
-      return;
-    }
+    const confirmed = await confirmation.confirm({
+      title: 'Delete Review',
+      message: `Are you sure you want to delete this review from ${review.userName}?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
 
-    await deleteReview.mutateAsync(review.id);
-    setSelectedReview(null);
-    refetch();
+    if (!confirmed) return;
+
+    confirmation.setLoading(true);
+    try {
+      await deleteReview.mutateAsync(review.id);
+      setSelectedReview(null);
+      refetch();
+    } catch (error) {
+      // Error is handled by the mutation
+    } finally {
+      confirmation.setLoading(false);
+    }
   };
 
   const renderStars = (rating: number) => {
@@ -113,6 +129,7 @@ export default function AdminReviews() {
   };
 
   return (
+    <Fragment>
     <AdminLayout>
       <div className="min-h-screen bg-[#090c11]">
         <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
@@ -384,6 +401,18 @@ export default function AdminReviews() {
         </div>
       )}
     </AdminLayout>
+    <ConfirmationDialog
+      open={confirmation.open}
+      title={confirmation.title}
+      message={confirmation.message}
+      confirmText={confirmation.confirmText}
+      cancelText={confirmation.cancelText}
+      variant={confirmation.variant}
+      onConfirm={confirmation.handleConfirm}
+      onCancel={confirmation.handleCancel}
+      loading={confirmation.loading}
+    />
+    </Fragment>
   );
 }
 

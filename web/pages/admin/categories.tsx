@@ -26,6 +26,8 @@ import {
 } from '../../lib/admin/hooks/useCategories';
 import { toast } from 'react-hot-toast';
 import { Package, Plus, X } from 'lucide-react';
+import { useConfirmation } from '../../lib/hooks/useConfirmation';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 
 const DEFAULT_COLORS = [
   '#3b82f6', // blue
@@ -43,6 +45,7 @@ export default function AdminCategories() {
   const updateCategory = useUpdateCategoryMutation();
   const toggleCategory = useToggleCategoryMutation();
   const deleteCategory = useDeleteCategoryMutation();
+  const confirmation = useConfirmation();
 
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -132,12 +135,25 @@ export default function AdminCategories() {
   };
 
   const handleDelete = async (category: Category) => {
-    if (!confirm(`Are you sure you want to delete "${category.name}"?`)) {
-      return;
-    }
+    const confirmed = await confirmation.confirm({
+      title: 'Delete Category',
+      message: `Are you sure you want to delete "${category.name}"?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
 
-    await deleteCategory.mutateAsync(category.id);
-    refetch();
+    if (!confirmed) return;
+
+    confirmation.setLoading(true);
+    try {
+      await deleteCategory.mutateAsync(category.id);
+      refetch();
+    } catch (error) {
+      // Error is handled by the mutation
+    } finally {
+      confirmation.setLoading(false);
+    }
   };
 
   const generateSlug = (name: string) => {
@@ -154,6 +170,7 @@ export default function AdminCategories() {
   };
 
   return (
+    <>
     <AdminLayout>
       <div className="min-h-screen bg-[#090c11]">
         <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
@@ -474,6 +491,18 @@ export default function AdminCategories() {
         </div>
       )}
     </AdminLayout>
+    <ConfirmationDialog
+      open={confirmation.open}
+      title={confirmation.title}
+      message={confirmation.message}
+      confirmText={confirmation.confirmText}
+      cancelText={confirmation.cancelText}
+      variant={confirmation.variant}
+      onConfirm={confirmation.handleConfirm}
+      onCancel={confirmation.handleCancel}
+      loading={confirmation.loading}
+    />
+    </>
   );
 }
 

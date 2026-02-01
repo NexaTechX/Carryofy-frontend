@@ -35,10 +35,11 @@ interface CustomerInsights {
 interface OrderAnalytics {
   totalOrders: number;
   totalRevenue: number;
-  averageOrderValue: number;
+  averageOrderValue?: number;
   topProducts: Array<{
-    productId: string;
-    productTitle: string;
+    productId?: string;
+    productTitle?: string;
+    title?: string;
     sales: number;
     revenue: number;
   }>;
@@ -202,16 +203,23 @@ export default function AnalyticsPage() {
 
   const exportOrderAnalytics = () => {
     if (!orderAnalytics) return;
+    const avgOrderValue = Number.isFinite(orderAnalytics.averageOrderValue)
+      ? orderAnalytics.averageOrderValue
+      : orderAnalytics.totalOrders > 0
+        ? orderAnalytics.totalRevenue / orderAnalytics.totalOrders
+        : 0;
+    const productName = (p: { productTitle?: string; title?: string }) =>
+      p.productTitle ?? p.title ?? 'Unknown Product';
     downloadCsv('order-analytics.csv', [
       ['Metric', 'Value'],
       ['Total Orders', String(orderAnalytics.totalOrders)],
       ['Total Revenue', formatPrice(orderAnalytics.totalRevenue)],
-      ['Average Order Value', formatPrice(orderAnalytics.averageOrderValue)],
+      ['Average Order Value', formatPrice(avgOrderValue ?? 0)],
       ['', ''],
       ['Top Products', ''],
       ['Product', 'Sales', 'Revenue'],
       ...orderAnalytics.topProducts.map((product) => [
-        product.productTitle,
+        productName(product),
         String(product.sales),
         formatPrice(product.revenue),
       ]),
@@ -344,7 +352,15 @@ export default function AnalyticsPage() {
                       </div>
                       <div className="bg-[#0d0d0d] rounded-xl p-4">
                         <p className="text-[#ffcc99] text-sm mb-2">Average Order Value</p>
-                        <p className="text-white text-2xl font-bold">{formatPrice(orderAnalytics.averageOrderValue)}</p>
+                        <p className="text-white text-2xl font-bold">
+                          {formatPrice(
+                            (Number.isFinite(orderAnalytics.averageOrderValue)
+                              ? orderAnalytics.averageOrderValue
+                              : orderAnalytics.totalOrders > 0
+                                ? orderAnalytics.totalRevenue / orderAnalytics.totalOrders
+                                : 0) ?? 0
+                          )}
+                        </p>
                       </div>
                     </div>
                     {orderAnalytics.topProducts.length > 0 && (
@@ -353,12 +369,14 @@ export default function AnalyticsPage() {
                         <div className="space-y-2">
                           {orderAnalytics.topProducts.slice(0, 5).map((product, index) => (
                             <div
-                              key={product.productId}
+                              key={product.productId ?? `top-${index}`}
                               className="flex items-center justify-between p-3 bg-[#0d0d0d] rounded-xl"
                             >
                               <div className="flex items-center gap-3">
                                 <span className="text-[#ff6600] font-bold w-6">{index + 1}.</span>
-                                <span className="text-[#ffcc99]">{product.productTitle}</span>
+                                <span className="text-[#ffcc99]">
+                                  {product.productTitle ?? product.title ?? 'Unknown Product'}
+                                </span>
                               </div>
                               <div className="flex items-center gap-4">
                                 <span className="text-white text-sm">{product.sales} sales</span>

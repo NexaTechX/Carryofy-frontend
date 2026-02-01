@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
 import { DollarSign, TrendingUp, TrendingDown, Wallet, Download, X } from 'lucide-react';
+import { useConfirmation } from '../../../lib/hooks/useConfirmation';
+import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 
 interface EarningsReport {
   totalGross: number;
@@ -59,6 +61,7 @@ export default function EarningsPage() {
   const [payoutAmount, setPayoutAmount] = useState('');
   const [requesting, setRequesting] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const confirmation = useConfirmation();
 
   useEffect(() => {
     setMounted(true);
@@ -194,11 +197,18 @@ export default function EarningsPage() {
   };
 
   const handleCancelPayoutRequest = async (requestId: string) => {
-    if (!confirm('Are you sure you want to cancel this payout request?')) {
-      return;
-    }
+    const confirmed = await confirmation.confirm({
+      title: 'Cancel Payout Request',
+      message: 'Are you sure you want to cancel this payout request?',
+      confirmText: 'Cancel Request',
+      cancelText: 'Keep Request',
+      variant: 'warning',
+    });
+
+    if (!confirmed) return;
 
     setCancelling(requestId);
+    confirmation.setLoading(true);
     try {
       const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
@@ -225,6 +235,7 @@ export default function EarningsPage() {
       toast.error('Failed to cancel payout request');
     } finally {
       setCancelling(null);
+      confirmation.setLoading(false);
     }
   };
 
@@ -726,6 +737,17 @@ export default function EarningsPage() {
           )}
         </div>
       </SellerLayout>
+      <ConfirmationDialog
+        open={confirmation.open}
+        title={confirmation.title}
+        message={confirmation.message}
+        confirmText={confirmation.confirmText}
+        cancelText={confirmation.cancelText}
+        variant={confirmation.variant}
+        onConfirm={confirmation.handleConfirm}
+        onCancel={confirmation.handleCancel}
+        loading={confirmation.loading}
+      />
     </>
   );
 }

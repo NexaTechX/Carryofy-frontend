@@ -32,7 +32,7 @@ export function RealtimeProvider({
 
   const refetchOrders = () => {
     queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
-    queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
   };
 
   const refetchDeliveries = () => {

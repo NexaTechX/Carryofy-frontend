@@ -23,6 +23,8 @@ import { showErrorToast, showSuccessToast } from '../../../lib/ui/toast';
 import { userManager, tokenManager } from '../../../lib/auth';
 import SubmitReviewModal from '../../../components/buyer/SubmitReviewModal';
 import RefundRequestModal from '../../../components/buyer/RefundRequestModal';
+import { useConfirmation } from '../../../lib/hooks/useConfirmation';
+import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 
 interface OrderItem {
   id: string;
@@ -63,7 +65,7 @@ interface OrderDetail {
 const ORDER_STEPS = [
   { key: 'PENDING_PAYMENT', label: 'Pending Payment', description: 'We are waiting for payment confirmation.' },
   { key: 'PAID', label: 'Payment Confirmed', description: 'Your payment has been recorded successfully.' },
-  { key: 'PROCESSING', label: 'Processing', description: 'Seller is preparing your items for shipment.' },
+  { key: 'PROCESSING', label: 'Packaging', description: 'We are currently packaging your goods for shipment.' },
   { key: 'OUT_FOR_DELIVERY', label: 'Out for Delivery', description: 'The rider has picked up your package and is en route.' },
   { key: 'DELIVERED', label: 'Delivered', description: 'Order delivered successfully.' },
 ];
@@ -76,12 +78,12 @@ const statusBadge = (status: string) => {
       icon: <Clock className="w-3 h-3" />,
     },
     PAID: {
-      label: 'Paid',
+      label: 'Payment Confirmed',
       className: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
       icon: <ShieldCheck className="w-3 h-3" />,
     },
     PROCESSING: {
-      label: 'Processing',
+      label: 'Packaging',
       className: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
       icon: <Package className="w-3 h-3" />,
     },
@@ -137,6 +139,8 @@ export default function BuyerOrderDetailPage() {
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [hasRefund, setHasRefund] = useState(false);
   const [refundInfo, setRefundInfo] = useState<{ id: string; status: string; createdAt: string; updatedAt: string } | null>(null);
+  const [paymentVerifying, setPaymentVerifying] = useState(false);
+  const confirmation = useConfirmation();
 
   // Fetch order details
   const fetchOrder = async (orderId: string) => {
@@ -175,36 +179,84 @@ export default function BuyerOrderDetailPage() {
 
     if (paymentStatus === 'success') {
       showSuccessToast('Payment successful! Your order is being processed.');
-      // Remove query params from URL first
       router.replace(`/buyer/orders/${id}`, undefined, { shallow: true });
-      
-      // Wait a moment for webhook to process, then refresh order data
-      // This ensures we get the updated status (PAID instead of PENDING_PAYMENT)
       setTimeout(() => {
         fetchOrder(id);
         checkRefundStatus(id);
-      }, 1000);
-      
-      // Also refresh again after a longer delay to ensure status is updated
+      }, 500);
       setTimeout(() => {
         fetchOrder(id);
-      }, 3000);
+      }, 2500);
+    } else if (paymentStatus === 'verifying') {
+      showSuccessToast('Confirming your payment… Please wait a moment.');
+      router.replace(`/buyer/orders/${id}`, undefined, { shallow: true });
+      setPaymentVerifying(true);
     } else if (paymentStatus === 'failed') {
       showErrorToast('Payment failed. Please try again or contact support.');
       router.replace(`/buyer/orders/${id}`, undefined, { shallow: true });
-      // Refresh order data
-      setTimeout(() => {
-        fetchOrder(id);
-      }, 500);
+      setTimeout(() => fetchOrder(id), 500);
     } else if (paymentStatus === 'error') {
-      showErrorToast(message || 'Payment verification failed. Please contact support.');
       router.replace(`/buyer/orders/${id}`, undefined, { shallow: true });
-      // Refresh order data
-      setTimeout(() => {
+      // Backend may redirect with error due to race with webhook; if order is PAID, show success
+      apiClient.get(`/orders/${id}`).then((res) => {
+        const data = res.data?.data ?? res.data;
+        if (data?.status === 'PAID') {
+          showSuccessToast('Payment successful! Your order is being processed.');
+        } else {
+          showErrorToast(message || 'Payment verification failed. Please contact support.');
+        }
         fetchOrder(id);
-      }, 500);
+        checkRefundStatus(id);
+      }).catch(() => {
+        showErrorToast(message || 'Payment verification failed. Please contact support.');
+        fetchOrder(id);
+      });
     }
   }, [router.isReady, router.query.payment, router.query.message, id]);
+
+  // Poll order when payment is verifying (Paystack pending/ongoing); stop when PAID or timeout
+  useEffect(() => {
+    if (!paymentVerifying || typeof id !== 'string') return;
+
+    const maxAttempts = 24;
+    const intervalMs = 5000;
+    let attempts = 0;
+    let stopped = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const poll = async () => {
+      if (stopped || attempts >= maxAttempts) {
+        setPaymentVerifying(false);
+        return;
+      }
+      attempts += 1;
+      try {
+        const res = await apiClient.get(`/orders/${id}`);
+        const data = res.data?.data ?? res.data;
+        if (data?.status === 'PAID') {
+          stopped = true;
+          setPaymentVerifying(false);
+          showSuccessToast('Payment confirmed! Your order is being processed.');
+          fetchOrder(id);
+          checkRefundStatus(id);
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+      if (!stopped && attempts < maxAttempts) {
+        timeoutId = setTimeout(poll, intervalMs);
+      } else {
+        setPaymentVerifying(false);
+      }
+    };
+
+    timeoutId = setTimeout(poll, intervalMs);
+    return () => {
+      stopped = true;
+      clearTimeout(timeoutId);
+    };
+  }, [paymentVerifying, id]);
 
   const checkRefundStatus = async (orderId: string) => {
     try {
@@ -377,12 +429,19 @@ export default function BuyerOrderDetailPage() {
   const handleCancelOrder = async () => {
     if (!order) return;
 
-    if (!confirm('Are you sure you want to cancel this order?')) {
-      return;
-    }
+    const confirmed = await confirmation.confirm({
+      title: 'Cancel Order',
+      message: 'Are you sure you want to cancel this order?',
+      confirmText: 'Cancel Order',
+      cancelText: 'Keep Order',
+      variant: 'warning',
+    });
+
+    if (!confirmed) return;
 
     try {
       setCanceling(true);
+      confirmation.setLoading(true);
       await apiClient.put(`/orders/${order.id}/cancel`);
       showSuccessToast('Order canceled successfully');
       // Refresh order details
@@ -395,6 +454,7 @@ export default function BuyerOrderDetailPage() {
       showErrorToast(errorMessage);
     } finally {
       setCanceling(false);
+      confirmation.setLoading(false);
     }
   };
 
@@ -425,6 +485,12 @@ export default function BuyerOrderDetailPage() {
             {order && (
               <div className="flex flex-wrap items-center gap-3">
                 {statusBadge(order.status)}
+                {paymentVerifying && (
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Confirming payment…
+                  </span>
+                )}
                 <span className="text-[#ffcc99]/70 text-sm">Order ID: {order.id}</span>
               </div>
             )}
@@ -806,6 +872,17 @@ export default function BuyerOrderDetailPage() {
           }}
         />
       )}
+      <ConfirmationDialog
+        open={confirmation.open}
+        title={confirmation.title}
+        message={confirmation.message}
+        confirmText={confirmation.confirmText}
+        cancelText={confirmation.cancelText}
+        variant={confirmation.variant}
+        onConfirm={confirmation.handleConfirm}
+        onCancel={confirmation.handleCancel}
+        loading={confirmation.loading}
+      />
     </>
   );
 }

@@ -90,7 +90,7 @@ export default function ProductCard({
     e.stopPropagation();
 
     if (!isAuthenticated) {
-      router.push(`/auth/login?redirect=${encodeURIComponent(router.asPath)}`);
+      router.push(`/auth/signup?redirect=${encodeURIComponent(router.asPath)}`);
       return;
     }
 
@@ -215,9 +215,9 @@ export default function ProductCard({
             {product.quantity > 0 && (
               <button
                 onClick={handleAddToCart}
-                disabled={isAddingToCart || !isAuthenticated}
+                disabled={isAddingToCart}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#ff6600] text-white rounded-lg font-semibold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm"
-                title={!isAuthenticated ? 'Login to add to cart' : 'Add to cart'}
+                title={!isAuthenticated ? 'Sign up to add to cart' : 'Add to cart'}
               >
                 <ShoppingCart className={`w-4 h-4 ${isAddingToCart ? 'animate-pulse' : ''}`} />
                 <span>{isAddingToCart ? 'Adding...' : 'Add to Cart'}</span>

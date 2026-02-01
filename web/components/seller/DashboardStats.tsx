@@ -52,7 +52,15 @@ export default function DashboardStats() {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
-      const [dashboardResponse, payoutsResponse, payoutRequestsResponse] = await Promise.all([
+      // Fetch dashboard KPIs, payouts, reports, and seller product count (same auth as charts)
+      const [
+        dashboardResponse,
+        payoutsResponse,
+        payoutRequestsResponse,
+        salesTrendResponse,
+        orderDistributionResponse,
+        productCountResponse,
+      ] = await Promise.all([
         fetch(`${apiUrl}/reports/dashboard`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
@@ -62,13 +70,41 @@ export default function DashboardStats() {
         fetch(`${apiUrl}/payouts/requests`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
+        fetch(`${apiUrl}/reports/sales-trend`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${apiUrl}/reports/order-distribution`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${apiUrl}/reports/seller-product-count`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
 
-      const dashboardJson = dashboardResponse.ok ? await dashboardResponse.json() : null;
+      const dashboardJson =
+        dashboardResponse.ok ? await dashboardResponse.json().catch(() => null) : null;
       const payoutsJson = payoutsResponse.ok ? await payoutsResponse.json() : null;
       const payoutRequestsJson = payoutRequestsResponse.ok ? await payoutRequestsResponse.json() : null;
+      const salesTrendJson = salesTrendResponse.ok ? await salesTrendResponse.json().catch(() => null) : null;
+      const orderDistributionJson = orderDistributionResponse.ok
+        ? await orderDistributionResponse.json().catch(() => null)
+        : null;
+      const productCountJson = productCountResponse.ok
+        ? await productCountResponse.json().catch(() => null)
+        : null;
 
-      const dashboardData = dashboardJson?.data || dashboardJson || {};
+      if (!dashboardResponse.ok) {
+        console.warn(
+          '[DashboardStats] Dashboard KPIs request failed:',
+          dashboardResponse.status,
+          dashboardResponse.statusText,
+        );
+      }
+
+      // API wraps response in { data: DTO }; support both wrapped and raw
+      const dashboardData = dashboardJson?.data ?? dashboardJson ?? {};
+      const salesTrendData = salesTrendJson?.data ?? salesTrendJson ?? {};
+      const orderDistributionData = orderDistributionJson?.data ?? orderDistributionJson ?? {};
       const payoutsList = Array.isArray(payoutsJson?.data || payoutsJson) ? (payoutsJson?.data || payoutsJson) : [];
       const payoutRequestsList = Array.isArray(payoutRequestsJson?.data || payoutRequestsJson)
         ? (payoutRequestsJson?.data || payoutRequestsJson)
@@ -87,10 +123,28 @@ export default function DashboardStats() {
         0,
       );
 
+      // Total products: from seller-product-count (same auth as sales-trend/order-distribution)
+      const productCountData = productCountJson?.data ?? productCountJson ?? {};
+      const totalProducts =
+        Number(productCountData?.count) ??
+        Number(dashboardData.totalProducts) ??
+        0;
+
+      // Prefer sales-trend and order-distribution (same data as the charts) so cards
+      // show correct numbers
+      const totalOrders =
+        Number(orderDistributionData.total) ??
+        Number(dashboardData.totalOrders) ??
+        0;
+      const totalRevenue =
+        Number(salesTrendData.totalSales) ??
+        Number(dashboardData.totalRevenue) ??
+        0;
+
       setStats({
-        totalProducts: dashboardData.totalProducts || 0,
-        totalOrders: dashboardData.totalOrders || 0,
-        totalRevenue: dashboardData.totalRevenue || 0,
+        totalProducts,
+        totalOrders,
+        totalRevenue,
         availableBalance,
         pendingPayoutRequestsCount,
         pendingPayoutRequestsTotal,

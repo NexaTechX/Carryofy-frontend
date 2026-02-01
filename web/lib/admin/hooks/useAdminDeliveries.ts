@@ -23,7 +23,7 @@ export function useActiveDeliveries() {
 }
 
 export function useDeliveryByOrder(orderId: string | null) {
-  return useQuery<AdminDelivery>({
+  return useQuery<AdminDelivery | null>({
     queryKey: orderId ? deliveryKeys.order(orderId) : deliveryKeys.order('placeholder'),
     queryFn: () => {
       if (!orderId) {
@@ -50,7 +50,8 @@ export function useAssignDeliveryMutation() {
     },
     onError: (error: unknown) => {
       console.error(error);
-      toast.error('Failed to assign delivery.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to assign delivery.';
+      toast.error(errorMessage);
     },
   });
 }

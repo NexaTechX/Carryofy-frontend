@@ -17,37 +17,28 @@ export default function CallToAction() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="font-heading text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-6 sm:mb-8 leading-tight"
+            className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 sm:mb-8 leading-tight"
           >
             Buy or sell online with confidence.
           </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-base sm:text-lg lg:text-xl text-white/90 mb-10 sm:mb-12 max-w-2xl mx-auto leading-relaxed"
-          >
-            Join thousands of Nigerians building the future of commerce on a platform that actually works.
-          </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.1 }}
             className="flex flex-col sm:flex-row justify-center gap-4"
           >
             <Link
               href="/products"
               className="px-8 py-4 bg-white text-gray-900 rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl transition-all duration-300"
             >
-              Get Started Today
+              Start Shopping
             </Link>
             <Link
-              href="/contact"
+              href="/merchant-onboarding"
               className="px-8 py-4 bg-gray-900 text-white rounded-xl font-bold text-base sm:text-lg hover:bg-gray-800 transition-all duration-300"
             >
-              Contact Sales
+              Sell on Carryofy
             </Link>
           </motion.div>
         </div>

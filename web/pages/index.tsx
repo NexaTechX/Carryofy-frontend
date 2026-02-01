@@ -1,14 +1,13 @@
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
-import ProblemSection from '../components/landing/ProblemSection';
-import HowItWorks from '../components/landing/HowItWorks';
-import BuyerSellerSection from '../components/landing/BuyerSellerSection';
-import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
-import AIEfficiency from '../components/landing/AIEfficiency';
-import TrustCredibility from '../components/landing/TrustCredibility';
-import CallToAction from '../components/landing/CallToAction';
+import TrustSection from '../components/landing/TrustSection';
 import ProductCategories from '../components/landing/ProductCategories';
+import HowItWorks from '../components/landing/HowItWorks';
+import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
+import SellerCTASection from '../components/landing/BuyerSellerSection';
+import Testimonials from '../components/landing/Testimonials';
+import CallToAction from '../components/landing/CallToAction';
 import SEO, { generateKeywords } from '../components/seo/SEO';
 import { CombinedSchema } from '../components/seo/JsonLd';
 
@@ -103,13 +102,12 @@ export default function Home() {
         <Header />
         <main className="grow">
           <HeroSection />
+          <TrustSection />
           <ProductCategories />
-          <ProblemSection />
           <HowItWorks />
-          <BuyerSellerSection />
           <WhyChooseCarryofy />
-          <AIEfficiency />
-          <TrustCredibility />
+          <SellerCTASection />
+          <Testimonials />
           <CallToAction />
         </main>
         <Footer />

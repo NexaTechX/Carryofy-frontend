@@ -141,9 +141,9 @@ export default function OrdersPage() {
       case 'PENDING_PAYMENT':
         return 'Pending';
       case 'PAID':
-        return 'Paid';
+        return 'Payment Confirmed';
       case 'PROCESSING':
-        return 'Processing';
+        return 'Packaging';
       case 'OUT_FOR_DELIVERY':
         return 'Out for Delivery';
       case 'DELIVERED':

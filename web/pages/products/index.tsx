@@ -10,6 +10,7 @@ import { BreadcrumbSchema, FAQSchema } from '../../components/seo/JsonLd';
 import ProductComparison from '../../components/products/ProductComparison';
 import ProductCard from '../../components/common/ProductCard';
 import { ChevronLeft, ChevronRight, Star, Truck, Shield, Package, Filter, X, ChevronDown, GitCompare } from 'lucide-react';
+import { showInfoToast } from '../../lib/ui/toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
 
@@ -168,7 +169,7 @@ export default function PublicProductsPage({
 
   const handleAddToComparison = (product: Product) => {
     if (comparisonProducts.length >= 4) {
-      alert('You can compare up to 4 products at a time');
+      showInfoToast('You can compare up to 4 products at a time');
       return;
     }
     if (comparisonProducts.some(p => p.id === product.id)) {

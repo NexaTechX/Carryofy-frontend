@@ -102,7 +102,7 @@ export default function CartPage() {
       setCart(cartData);
     } catch (err: any) {
       console.error('Error updating quantity:', err);
-      alert(err.response?.data?.message || 'Failed to update quantity');
+      showErrorToast(err.response?.data?.message || 'Failed to update quantity');
     } finally {
       setUpdatingItems(prev => ({ ...prev, [itemId]: false }));
     }

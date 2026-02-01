@@ -23,6 +23,8 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
+import { useConfirmation } from '../../lib/hooks/useConfirmation';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 
 interface OrderItem {
   id: string;
@@ -68,6 +70,7 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
+  const confirmation = useConfirmation();
 
   useEffect(() => {
     setMounted(true);
@@ -137,19 +140,30 @@ export default function OrdersPage() {
   };
 
   const handleCancelOrder = async (orderId: string) => {
-    if (!confirm('Are you sure you want to cancel this order?')) return;
+    const confirmed = await confirmation.confirm({
+      title: 'Cancel Order',
+      message: 'Are you sure you want to cancel this order?',
+      confirmText: 'Cancel Order',
+      cancelText: 'Keep Order',
+      variant: 'warning',
+    });
+
+    if (!confirmed) return;
 
     try {
       setCancellingOrder(orderId);
+      confirmation.setLoading(true);
       await apiClient.put(`/orders/${orderId}/cancel`);
       
+      showSuccessToast('Order cancelled successfully');
       // Refresh orders
       fetchOrders();
     } catch (err: any) {
       console.error('Error cancelling order:', err);
-      alert(err.response?.data?.message || 'Failed to cancel order');
+      showErrorToast(err.response?.data?.message || 'Failed to cancel order');
     } finally {
       setCancellingOrder(null);
+      confirmation.setLoading(false);
     }
   };
 
@@ -179,12 +193,12 @@ export default function OrdersPage() {
         icon: Clock,
       },
       PAID: {
-        label: 'Paid',
+        label: 'Payment Confirmed',
         color: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
         icon: CreditCard,
       },
       PROCESSING: {
-        label: 'Processing',
+        label: 'Packaging',
         color: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
         icon: Package,
       },
@@ -289,8 +303,8 @@ export default function OrdersPage() {
               >
                 <option value="all">All Status</option>
                 <option value="PENDING_PAYMENT">Pending Payment</option>
-                <option value="PAID">Paid</option>
-                <option value="PROCESSING">Processing</option>
+                <option value="PAID">Payment Confirmed</option>
+                <option value="PROCESSING">Packaging</option>
                 <option value="SHIPPED">Shipped</option>
                 <option value="DELIVERED">Delivered</option>
                 <option value="CANCELLED">Cancelled</option>
@@ -469,6 +483,17 @@ export default function OrdersPage() {
           )}
         </div>
       </BuyerLayout>
+      <ConfirmationDialog
+        open={confirmation.open}
+        title={confirmation.title}
+        message={confirmation.message}
+        confirmText={confirmation.confirmText}
+        cancelText={confirmation.cancelText}
+        variant={confirmation.variant}
+        onConfirm={confirmation.handleConfirm}
+        onCancel={confirmation.handleCancel}
+        loading={confirmation.loading}
+      />
     </>
   );
 }

@@ -96,7 +96,7 @@ export default function AdminDashboard() {
   const metricsCards = [
     {
       label: "Today's Orders",
-      value: formatNumber(metrics.totalOrders),
+      value: formatNumber(metrics.todaysOrders ?? metrics.totalOrders ?? 0),
     },
     {
       label: 'Pending Deliveries',
@@ -104,15 +104,15 @@ export default function AdminDashboard() {
     },
     {
       label: 'Gross Order Volume',
-      value: formatCurrency(metrics.totalRevenue / 100),
+      value: formatCurrency((metrics.totalRevenue ?? 0) / 100),
     },
     {
-      label: 'Active Sellers',
-      value: formatNumber(metrics.totalSellers),
+      label: 'Total Sellers',
+      value: formatNumber(metrics.totalSellers ?? 0),
     },
     {
-      label: 'Total Customers',
-      value: formatNumber(metrics.totalCustomers || 0),
+      label: 'Total Signups',
+      value: formatNumber(metrics.totalUsers ?? 0),
     },
   ];
 
@@ -129,7 +129,7 @@ export default function AdminDashboard() {
     },
     {
       label: 'Active This Month',
-      value: formatNumber(metrics.activeCustomersThisMonth || 0),
+      value: formatNumber(metrics.activeCustomersThisMonth ?? 0),
       description: 'Customers who placed orders',
     },
     {
@@ -206,7 +206,7 @@ export default function AdminDashboard() {
                   {formatCurrency((commissionRevenue?.totalRevenue || metrics.totalCommissions) / 100)}
                 </p>
                 <p className="mt-2 text-sm text-gray-400">
-                  {commissionRevenue?.growth >= 0 ? '+' : ''}{commissionRevenue?.growth.toFixed(1) || '0'}% growth this period
+                  {((commissionRevenue?.growth ?? 0) >= 0 ? '+' : '')}{(commissionRevenue?.growth ?? 0).toFixed(1)}% growth this period
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
                   Total commissions earned across all orders
@@ -221,7 +221,7 @@ export default function AdminDashboard() {
                       return (
                         <div key={index} className="flex flex-1 flex-col items-center gap-1.5">
                           <div 
-                            className="w-full rounded-t bg-gradient-to-t from-primary via-[#ff8740] to-primary transition-all hover:opacity-90 hover:from-[#ff8740] hover:via-primary"
+                            className="w-full rounded-t bg-linear-to-t from-primary via-[#ff8740] to-primary transition-all hover:opacity-90 hover:from-[#ff8740] hover:via-primary"
                             style={{ height: `${Math.max(height, 8)}%`, minHeight: '8px' }}
                             title={`${period.period}: ${formatCurrency((period.amount || 0) / 100)}`}
                           />
@@ -290,15 +290,15 @@ export default function AdminDashboard() {
                 <div>
                   <p className="text-base font-medium text-white">Commission Revenue</p>
                   <p className="mt-1 text-[32px] font-bold text-primary">
-                    {commissionRevenue?.growth >= 0 ? '+' : ''}{commissionRevenue?.growth.toFixed(1) || '0'}%
+                    {((commissionRevenue?.growth ?? 0) >= 0 ? '+' : '')}{(commissionRevenue?.growth ?? 0).toFixed(1)}%
                   </p>
                   <div className="flex gap-2 text-sm">
                     <span className="text-gray-400">Total: {formatCurrency((commissionRevenue?.totalRevenue || 0) / 100)}</span>
                   </div>
                 </div>
                 <div className="mt-4 space-y-5">
-                  {commissionRevenue?.periods.length > 0 ? (
-                    commissionRevenue.periods.map(({ period, percentage }) => (
+                  {(commissionRevenue?.periods?.length ?? 0) > 0 ? (
+                    (commissionRevenue.periods ?? []).map(({ period, percentage }) => (
                       <div key={period}>
                         <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
                           <span>{period}</span>

@@ -8,7 +8,10 @@ export default function HeroSection() {
   const stats = [
     { value: '100%', label: 'Verified Sellers' },
     { value: '24/7', label: 'Support' },
-    { value: '1-3 Days', label: 'Delivery' },
+    { value: '24hr Delivery', label: 'Delivery' },
+    { value: '100%', label: 'Verified Sellers' },
+    { value: 'Fast Delivery', label: 'Delivery' },
+    { value: 'Secure Payments', label: 'Payments' },
   ];
 
   const floatingIcons = [
@@ -19,7 +22,7 @@ export default function HeroSection() {
   ];
   
   return (
-    <section className="relative min-h-[95vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-cyan-50/30 via-orange-50/20 to-white pt-20 sm:pt-24">
+    <section className="relative min-h-[95vh] flex items-center justify-center overflow-hidden bg-linear-to-br from-white via-cyan-50/30 to-white pt-20 sm:pt-24">
       {/* Enhanced Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Gradient Orbs */}
@@ -68,42 +71,38 @@ export default function HeroSection() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500/10 to-primary/10 border border-cyan-500/20 rounded-full text-sm font-semibold text-gray-700 mb-6 backdrop-blur-sm"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-cyan-500/10 to-primary/10 border border-cyan-500/20 rounded-full text-sm font-semibold text-gray-700 mb-6 backdrop-blur-sm"
               >
                 <Sparkles className="w-4 h-4 text-cyan-500" />
                 <span>Nigeria's Smart Marketplace • Est. {currentYear}</span>
               </motion.div>
 
               <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 leading-tight">
-                <span className="text-gray-900">Shop from </span>
-                <span className="text-gradient bg-gradient-to-r from-primary via-cyan-500 to-primary-light bg-clip-text text-transparent">
-                  verified Nigerian sellers
-                </span>
-                <span className="text-gray-900"> with confidence</span>
+                <span className="text-gray-900">Shop from verified Nigerian sellers</span>
+                <span className="text-gray-900 block mt-2"> without the stress.</span>
               </h1>
 
               <p className="text-lg sm:text-xl lg:text-2xl mb-8 text-gray-600 leading-relaxed">
-                We store inventory, handle delivery, and provide support — so you can shop worry-free from trusted vendors.
+                We verify sellers, store products, and deliver fast across Nigeria.
               </p>
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 mb-10">
                 <Link
                   href="/products"
-                  className="group relative px-8 py-4 bg-gradient-to-r from-primary to-primary-light text-white rounded-2xl hover:shadow-2xl hover:shadow-primary/40 transition-all duration-300 font-semibold text-base sm:text-lg flex items-center justify-center gap-2 overflow-hidden transform hover:-translate-y-1"
+                  className="group relative px-8 py-4 bg-linear-to-r from-primary to-primary-light text-white rounded-2xl hover:shadow-2xl hover:shadow-primary/40 transition-all duration-300 font-semibold text-base sm:text-lg flex items-center justify-center gap-2 overflow-hidden transform hover:-translate-y-1"
                 >
                   <span className="relative z-10 flex items-center gap-2">
                     Start Shopping
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary-dark to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-linear-to-r from-primary-dark to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Link>
                 <Link
                   href="/merchant-onboarding"
-                  className="group px-8 py-4 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-2xl hover:shadow-2xl hover:shadow-cyan-500/40 transition-all duration-300 font-semibold text-base sm:text-lg flex items-center justify-center gap-2 transform hover:-translate-y-1"
+                  className="group px-6 py-3 text-gray-700 rounded-2xl hover:bg-gray-100 transition-all duration-300 font-medium text-sm sm:text-base flex items-center justify-center gap-2"
                 >
-                  <span>Become a Seller</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <span>Sell on Carryofy</span>
                 </Link>
               </div>
 
@@ -150,7 +149,7 @@ export default function HeroSection() {
                   className="w-full h-[400px] sm:h-[500px] object-cover"
                   loading="eager"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent"></div>
                 <div className="absolute bottom-6 left-6 right-6">
                   <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
                     <p className="text-gray-900 font-bold text-lg mb-1">Same-Day Delivery Available</p>
@@ -169,7 +168,7 @@ export default function HeroSection() {
                     transition={{ delay: 0.4 + index * 0.1 }}
                     className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 text-center"
                   >
-                    <div className="text-2xl sm:text-3xl font-bold text-gradient bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent mb-1">
+                    <div className="text-2xl sm:text-3xl font-bold text-gradient bg-linear-to-r from-primary to-cyan-500 bg-clip-text text-transparent mb-1">
                       {stat.value}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600 font-medium">
@@ -188,7 +187,7 @@ export default function HeroSection() {
                   className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-cyan-100 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-cyan-500 to-cyan-600 flex items-center justify-center shrink-0">
                       <Shield className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -205,7 +204,7 @@ export default function HeroSection() {
                   className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-primary/20 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-primary to-primary-light flex items-center justify-center shrink-0">
                       <Package className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -215,22 +214,6 @@ export default function HeroSection() {
                   </div>
                 </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.8 }}
-                  className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-cyan-100 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center flex-shrink-0">
-                      <Zap className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 mb-1 text-lg">AI-Powered Support</h3>
-                      <p className="text-gray-600 text-sm">Smart customer service that resolves issues quickly.</p>
-                    </div>
-                  </div>
-                </motion.div>
               </div>
             </motion.div>
           </div>
@@ -238,7 +221,7 @@ export default function HeroSection() {
       </div>
 
       {/* Decorative Bottom Wave */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-linear-to-t from-white to-transparent pointer-events-none"></div>
     </section>
   );
 }

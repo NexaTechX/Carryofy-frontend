@@ -1024,7 +1024,7 @@ export default function SettingsPage() {
 
                       <div>
                         <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                          Phone Number
+                          Phone Number *
                         </label>
                         <input
                           type="tel"
@@ -1032,7 +1032,9 @@ export default function SettingsPage() {
                           onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
                           className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
                           placeholder="+234 801 234 5678"
+                          required
                         />
+                        <p className="text-xs text-[#ffcc99]/70 mt-1">Required for seller accounts</p>
                       </div>
 
                       <button

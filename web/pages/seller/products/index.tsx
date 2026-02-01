@@ -8,6 +8,8 @@ import { useAuth } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useConfirmation } from '../../../lib/hooks/useConfirmation';
+import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 
 interface Product {
   id: string;
@@ -60,6 +62,7 @@ export default function ProductsPage() {
   const [bulkAction, setBulkAction] = useState<string | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [defaultCommission, setDefaultCommission] = useState<number>(15);
+  const confirmation = useConfirmation();
 
   useEffect(() => {
     if (authLoading) return;
@@ -203,11 +206,18 @@ export default function ProductsPage() {
   const handleBulkDelete = async () => {
     if (selectedProducts.size === 0) return;
 
-    if (!confirm(`Are you sure you want to delete ${selectedProducts.size} product(s)? This action cannot be undone.`)) {
-      return;
-    }
+    const confirmed = await confirmation.confirm({
+      title: 'Delete Products',
+      message: `Are you sure you want to delete ${selectedProducts.size} product(s)? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
 
     setBulkProcessing(true);
+    confirmation.setLoading(true);
     try {
       const response = await apiClient.post('/products/bulk/delete', {
         productIds: Array.from(selectedProducts),
@@ -220,6 +230,7 @@ export default function ProductsPage() {
       toast.error(error?.response?.data?.message || 'Failed to delete products');
     } finally {
       setBulkProcessing(false);
+      confirmation.setLoading(false);
     }
   };
 
@@ -591,6 +602,17 @@ export default function ProductsPage() {
           )}
         </div>
       </SellerLayout>
+      <ConfirmationDialog
+        open={confirmation.open}
+        title={confirmation.title}
+        message={confirmation.message}
+        confirmText={confirmation.confirmText}
+        cancelText={confirmation.cancelText}
+        variant={confirmation.variant}
+        onConfirm={confirmation.handleConfirm}
+        onCancel={confirmation.handleCancel}
+        loading={confirmation.loading}
+      />
     </>
   );
 }

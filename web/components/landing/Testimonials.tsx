@@ -32,45 +32,43 @@ export default function Testimonials() {
     },
   ];
 
+  // Show only one strong testimonial
+  const featuredTestimonial = testimonials[0];
+
   return (
     <section className="py-12 sm:py-16 bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8 sm:mb-12 text-black">
-          What Our Customers Say
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
-          {testimonials.map((testimonial, index) => (
-            <div key={index} className="bg-gray-50 p-5 sm:p-6 rounded-lg hover:shadow-md transition-shadow">
-              <div className="flex items-center mb-4">
-                <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-gray-300 mr-3 sm:mr-4 flex-shrink-0">
-                  <Image
-                    src={testimonial.avatar}
-                    alt={testimonial.name}
-                    fill
-                    className="object-cover"
-                    sizes="48px"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-sm sm:text-base font-semibold text-black truncate">{testimonial.name}</h3>
-                  <p className="text-xs sm:text-sm text-gray-500">{testimonial.location}</p>
-                  <p className="text-xs text-gray-400">{testimonial.time}</p>
-                </div>
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-8 sm:p-10 border border-gray-100 shadow-lg">
+            <div className="flex items-center mb-6">
+              <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gray-300 mr-4 flex-shrink-0">
+                <Image
+                  src={featuredTestimonial.avatar}
+                  alt={featuredTestimonial.name}
+                  fill
+                  className="object-cover"
+                  sizes="64px"
+                />
               </div>
-              <div className="flex items-center gap-2 mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${
-                      i < testimonial.rating ? 'fill-primary text-primary' : 'text-gray-300'
-                    }`}
-                  />
-                ))}
-                <span className="text-xs text-gray-500 ml-1">{testimonial.productCategory}</span>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">{featuredTestimonial.name}</h3>
+                <p className="text-sm text-gray-600">{featuredTestimonial.location}</p>
               </div>
-              <p className="text-sm sm:text-base text-gray-600 italic leading-relaxed">"{testimonial.quote}"</p>
             </div>
-          ))}
+            <div className="flex items-center gap-2 mb-4">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`w-5 h-5 ${
+                    i < featuredTestimonial.rating ? 'fill-primary text-primary' : 'text-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+            <blockquote className="text-lg sm:text-xl text-gray-700 italic leading-relaxed">
+              "{featuredTestimonial.quote}"
+            </blockquote>
+          </div>
         </div>
       </div>
     </section>

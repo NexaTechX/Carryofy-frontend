@@ -19,6 +19,7 @@ import {
   useAdminOrders,
   useAdminOrderDetail,
   useOrderStatusMutation,
+  useOrderValidTransitions,
 } from '../../lib/admin/hooks/useAdminOrders';
 import {
   useAssignDeliveryMutation,
@@ -31,8 +32,8 @@ import { toast } from 'react-hot-toast';
 
 const ORDER_STATUS_OPTIONS: { value: AdminOrderStatus; label: string }[] = [
   { value: 'PENDING_PAYMENT', label: 'Pending Payment' },
-  { value: 'PAID', label: 'Paid' },
-  { value: 'PROCESSING', label: 'Processing' },
+  { value: 'PAID', label: 'Payment Confirmed' },
+  { value: 'PROCESSING', label: 'Packaging' },
   { value: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
   { value: 'DELIVERED', label: 'Delivered' },
   { value: 'CANCELED', label: 'Canceled' },
@@ -45,6 +46,11 @@ const DELIVERY_STATUS_OPTIONS: { value: AdminDeliveryStatus; label: string }[] =
   { value: 'DELIVERED', label: 'Delivered' },
   { value: 'ISSUE', label: 'Issue' },
 ];
+
+// Admins cannot set delivery status to Delivered — only the buyer confirms receipt
+const DELIVERY_STATUS_OPTIONS_ADMIN_EDIT = DELIVERY_STATUS_OPTIONS.filter(
+  (o) => o.value !== 'DELIVERED',
+);
 
 const ORDER_STATUS_TONE: Record<AdminOrderStatus, 'neutral' | 'warning' | 'success' | 'danger'> = {
   PENDING_PAYMENT: 'warning',
@@ -87,10 +93,32 @@ export default function AdminOrders() {
   const focusedOrderId = focusedOrder?.id ?? null;
   const { data: orderDetail } = useAdminOrderDetail(focusedOrderId);
   const { data: deliveryDetail } = useDeliveryByOrder(focusedOrderId);
+  const { data: validTransitions = [] } = useOrderValidTransitions(focusedOrderId);
 
   const detailOrder = orderDetail ?? focusedOrder;
 
+  // Admins cannot set order status to Delivered — only the buyer can confirm receipt (show Delivered when already set)
+  const statusOptions = useMemo(() => {
+    const current = detailOrder?.status;
+    const allowed = new Set<AdminOrderStatus>(validTransitions as AdminOrderStatus[]);
+    if (current) allowed.add(current);
+    if (current === 'PAID') allowed.add('PROCESSING');
+    const options = ORDER_STATUS_OPTIONS.filter(
+      (opt) => allowed.has(opt.value) && opt.value !== 'DELIVERED',
+    );
+    if (current === 'DELIVERED') {
+      options.push(ORDER_STATUS_OPTIONS.find((o) => o.value === 'DELIVERED')!);
+    }
+    return options;
+  }, [detailOrder?.status, validTransitions]);
+
+  const canAssignDelivery =
+    detailOrder?.status === 'PAID' ||
+    detailOrder?.status === 'PROCESSING' ||
+    detailOrder?.status === 'OUT_FOR_DELIVERY';
+
   const handleStatusUpdate = (orderId: string, status: AdminOrderStatus) => {
+    if (detailOrder && status === detailOrder.status) return;
     updateOrderStatus.mutate({ orderId, status }, { onSuccess: () => setFocusedOrder(null) });
   };
 
@@ -273,6 +301,9 @@ export default function AdminOrders() {
         {detailOrder ? (
           <div className="space-y-6 text-sm text-gray-300">
             <section className="space-y-3 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+              <p className="text-xs text-amber-200/90">
+                Only the buyer who placed the order can mark an order as Delivered. Admins have visibility for monitoring and dispute resolution only.
+              </p>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
@@ -293,8 +324,9 @@ export default function AdminOrders() {
                   onChange={(event) =>
                     detailOrder.id && handleStatusUpdate(detailOrder.id, event.target.value as AdminOrderStatus)
                   }
+                  disabled={statusOptions.length <= 1}
                 >
-                  {ORDER_STATUS_OPTIONS.map((option) => (
+                  {statusOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -383,6 +415,9 @@ export default function AdminOrders() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
                 Delivery
               </p>
+              <p className="text-xs text-amber-200/90">
+                Only the buyer can confirm delivery. Admins can update status up to In Transit for monitoring and disputes.
+              </p>
               {deliveryDetail ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -399,12 +434,16 @@ export default function AdminOrders() {
                       onChange={(event) =>
                         handleDeliveryStatusUpdate(deliveryDetail.id, event.target.value as AdminDeliveryStatus)
                       }
+                      disabled={deliveryDetail.status === 'DELIVERED'}
                     >
-                      {DELIVERY_STATUS_OPTIONS.map((option) => (
+                      {DELIVERY_STATUS_OPTIONS_ADMIN_EDIT.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
                       ))}
+                      {deliveryDetail.status === 'DELIVERED' && (
+                        <option value="DELIVERED">Delivered</option>
+                      )}
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
@@ -466,6 +505,11 @@ export default function AdminOrders() {
                   )}
                   
                   {/* Reassign Rider Form */}
+                  {!canAssignDelivery ? (
+                    <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+                      Update order status to <strong>Payment Confirmed</strong> or <strong>Packaging</strong> to assign or reassign a rider. Current status: {ORDER_STATUS_OPTIONS.find((o) => o.value === detailOrder?.status)?.label ?? detailOrder?.status}.
+                    </p>
+                  ) : (
                   <form className="mt-4 space-y-3 rounded-lg border border-[#1f1f1f] bg-[#131924] p-3" onSubmit={handleAssignDelivery}>
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
                       Reassign Rider
@@ -515,20 +559,29 @@ export default function AdminOrders() {
                       Update Assignment
                     </button>
                   </form>
+                  )}
                 </div>
               ) : (
-                <form className="space-y-3" onSubmit={handleAssignDelivery}>
-                  <div className="flex flex-col gap-2 text-xs text-gray-500">
-                    <label htmlFor="riderId" className="font-semibold uppercase tracking-[0.16em]">
-                      Select Rider
-                    </label>
-                    <select
-                      id="riderId"
-                      name="riderId"
-                      className="rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-                      disabled={loadingRiders}
-                    >
-                      <option value="">Select a rider</option>
+                <div className="space-y-3">
+                  {!canAssignDelivery ? (
+                    <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+                      Update order status to <strong>Payment Confirmed</strong> or <strong>Packaging</strong> before assigning delivery. Current status: {ORDER_STATUS_OPTIONS.find((o) => o.value === detailOrder?.status)?.label ?? detailOrder?.status}.
+                    </p>
+                  ) : (
+                  <>
+                  <p className="text-sm text-gray-400">No delivery assigned yet. Assign a rider below.</p>
+                  <form className="space-y-3" onSubmit={handleAssignDelivery}>
+                    <div className="flex flex-col gap-2 text-xs text-gray-500">
+                      <label htmlFor="riderId" className="font-semibold uppercase tracking-[0.16em]">
+                        Select Rider
+                      </label>
+                      <select
+                        id="riderId"
+                        name="riderId"
+                        className="rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                        disabled={loadingRiders}
+                      >
+                        <option value="">Select a rider</option>
                       {availableRiders?.map((rider) => (
                         <option key={rider.id} value={rider.id}>
                           {rider.name} {rider.riderProfile?.vehicleNumber ? `(${rider.riderProfile.vehicleNumber})` : ''}
@@ -561,6 +614,9 @@ export default function AdminOrders() {
                     Assign delivery
                   </button>
                 </form>
+                </>
+                  )}
+                </div>
               )}
             </section>
 

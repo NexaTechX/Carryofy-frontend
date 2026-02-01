@@ -44,6 +44,11 @@ const DELIVERY_LABEL: Record<string, string> = {
   ISSUE: 'Issue',
 };
 
+// Admins cannot set delivery status to Delivered — only the buyer confirms receipt
+const DELIVERY_STATUS_OPTIONS_ADMIN_EDIT = DELIVERY_FILTERS.filter(
+  (s) => s !== 'ALL' && s !== 'DELIVERED',
+);
+
 export default function AdminDeliveries() {
   const [filter, setFilter] = useState<DeliveryFilter>('ALL');
   const [selectedDelivery, setSelectedDelivery] = useState<AdminDelivery | null>(null);
@@ -287,17 +292,23 @@ export default function AdminDeliveries() {
                       }
                     )
                   }
+                  disabled={selectedDelivery.status === 'DELIVERED'}
                 >
-                  {DELIVERY_FILTERS.filter((status) => status !== 'ALL').map((status) => (
+                  {DELIVERY_STATUS_OPTIONS_ADMIN_EDIT.map((status) => (
                     <option key={status} value={status}>
                       {DELIVERY_LABEL[status] ?? status}
                     </option>
                   ))}
+                  {selectedDelivery.status === 'DELIVERED' && (
+                    <option value="DELIVERED">{DELIVERY_LABEL.DELIVERED}</option>
+                  )}
                 </select>
               </div>
+              <p className="text-xs text-amber-200/90">
+                Only the buyer who placed the order can confirm delivery. Admins have visibility for monitoring and dispute resolution only.
+              </p>
               <p className="text-xs text-gray-500 italic">
-                Note: Status typically updates automatically when riders interact with the delivery (pick up, deliver, etc.). 
-                Manual updates here are for admin override only.
+                Status updates here are for monitoring and disputes (e.g. In Transit, Issue). Delivered is set when the buyer marks the order as received.
               </p>
             </div>
 

@@ -23,6 +23,27 @@ const signupSchema = z
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ['confirmPassword'],
+  })
+  .refine((data) => {
+    // Phone is required for SELLER role
+    if (data.role === 'SELLER') {
+      return data.phone && data.phone.trim().length > 0;
+    }
+    return true;
+  }, {
+    message: 'Phone number is required for seller accounts',
+    path: ['phone'],
+  })
+  .refine((data) => {
+    // Validate phone format if provided
+    if (data.phone && data.phone.trim().length > 0) {
+      const cleaned = data.phone.replace(/[\s-]/g, '');
+      return /^\+[1-9]\d{9,14}$/.test(cleaned);
+    }
+    return true;
+  }, {
+    message: 'Phone number must be in international format (e.g., +2348012345678)',
+    path: ['phone'],
   });
 
 type SignupFormData = z.infer<typeof signupSchema>;
@@ -239,7 +260,8 @@ export default function Signup() {
                 {/* Phone Field */}
                 <div>
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number (Optional)
+                    Phone Number {selectedRole === 'SELLER' && '*'}
+                    {selectedRole !== 'SELLER' && <span className="text-gray-500 text-xs">(Optional)</span>}
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -247,6 +269,7 @@ export default function Signup() {
                       type="tel"
                       id="phone"
                       {...register('phone')}
+                      required={selectedRole === 'SELLER'}
                       className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${errors.phone ? 'border-red-300' : 'border-gray-300'
                         }`}
                       placeholder="+234 800 000 0000"
@@ -254,6 +277,9 @@ export default function Signup() {
                   </div>
                   {errors.phone && (
                     <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+                  )}
+                  {selectedRole === 'SELLER' && (
+                    <p className="mt-1 text-xs text-gray-500">Required for seller accounts</p>
                   )}
                 </div>
 

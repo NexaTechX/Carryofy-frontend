@@ -4,8 +4,6 @@ import { AlertCircle, Check, X } from 'lucide-react';
 import {
   usePlatformSettings,
   useUpdatePlatformSettings,
-  usePaymentGatewaySettings,
-  useUpdatePaymentGatewaySettings,
   useTeamMembers,
   useCreateTeamMember,
   useUpdateTeamMember,
@@ -13,6 +11,8 @@ import {
 } from '../../lib/admin/hooks/useSettings';
 import { TeamMember } from '../../lib/admin/types';
 import { LoadingState } from '../../components/admin/ui';
+import { useConfirmation } from '../../lib/hooks/useConfirmation';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 
 type TeamMemberForm = {
   id?: string;
@@ -27,12 +27,10 @@ const inputClass =
 export default function AdminSettings() {
   // Data fetching
   const { data: platformSettings, isLoading: platformLoading } = usePlatformSettings();
-  const { data: paymentSettings, isLoading: paymentLoading } = usePaymentGatewaySettings();
   const { data: teamMembers, isLoading: teamLoading } = useTeamMembers();
 
   // Mutations
   const updatePlatform = useUpdatePlatformSettings();
-  const updatePayment = useUpdatePaymentGatewaySettings();
   const createTeam = useCreateTeamMember();
   const updateTeam = useUpdateTeamMember();
   const deleteTeam = useDeleteTeamMember();
@@ -42,14 +40,21 @@ export default function AdminSettings() {
   const [deliveryCalculation, setDeliveryCalculation] = useState<'flat' | 'distance'>('distance');
   const [baseFee, setBaseFee] = useState(1500);
   const [perMileFee, setPerMileFee] = useState(350);
-  const [paystackSecretKey, setPaystackSecretKey] = useState('');
-  const [flutterwaveSecretKey, setFlutterwaveSecretKey] = useState('');
+  const [shippingCalculationMode, setShippingCalculationMode] = useState<'FLAT' | 'WEIGHT'>('WEIGHT');
+  const [baseFeeNaira, setBaseFeeNaira] = useState(15);
+  const [perKgFeeNaira, setPerKgFeeNaira] = useState(2);
+  const [defaultWeightKg, setDefaultWeightKg] = useState(1);
+  const [standardMultiplier, setStandardMultiplier] = useState(1);
+  const [expressMultiplier, setExpressMultiplier] = useState(1.5);
   const [smsEnabled, setSmsEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(false);
 
   // Team member modal state
   const [memberModal, setMemberModal] = useState<TeamMemberForm | null>(null);
+
+  // Confirmation dialog
+  const confirmation = useConfirmation();
 
   // Toast state
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -64,18 +69,17 @@ export default function AdminSettings() {
       setDeliveryCalculation(platformSettings.deliveryCalculation);
       setBaseFee(platformSettings.baseFee);
       setPerMileFee(platformSettings.perMileFee);
+      setShippingCalculationMode(platformSettings.shippingCalculationMode ?? 'WEIGHT');
+      setBaseFeeNaira((platformSettings.baseFeeKobo ?? 1500) / 100);
+      setPerKgFeeNaira((platformSettings.perKgFeeKobo ?? 200) / 100);
+      setDefaultWeightKg(platformSettings.defaultWeightKg ?? 1);
+      setStandardMultiplier(platformSettings.standardMultiplier ?? 1);
+      setExpressMultiplier(platformSettings.expressMultiplier ?? 1.5);
       setSmsEnabled(platformSettings.smsEnabled);
       setEmailEnabled(platformSettings.emailEnabled);
       setPushEnabled(platformSettings.pushEnabled);
     }
   }, [platformSettings]);
-
-  useEffect(() => {
-    if (paymentSettings) {
-      setPaystackSecretKey(paymentSettings.paystackSecretKey);
-      setFlutterwaveSecretKey(paymentSettings.flutterwaveSecretKey);
-    }
-  }, [paymentSettings]);
 
   const commissionBreakdown = useMemo(() => {
     const orderAmount = 100000;
@@ -104,6 +108,26 @@ export default function AdminSettings() {
       newErrors.perMileFee = 'Per mile fee cannot be negative';
     }
 
+    if (baseFeeNaira < 0) {
+      newErrors.baseFeeNaira = 'Base fee cannot be negative';
+    }
+
+    if (perKgFeeNaira < 0) {
+      newErrors.perKgFeeNaira = 'Per kg fee cannot be negative';
+    }
+
+    if (defaultWeightKg < 0) {
+      newErrors.defaultWeightKg = 'Default weight cannot be negative';
+    }
+
+    if (standardMultiplier < 0) {
+      newErrors.standardMultiplier = 'Standard multiplier cannot be negative';
+    }
+
+    if (expressMultiplier < 0) {
+      newErrors.expressMultiplier = 'Express multiplier cannot be negative';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -120,21 +144,21 @@ export default function AdminSettings() {
     }
 
     try {
-      await Promise.all([
-        updatePlatform.mutateAsync({
-          commissionPercentage,
-          deliveryCalculation,
-          baseFee,
-          perMileFee,
-          smsEnabled,
-          emailEnabled,
-          pushEnabled,
-        }),
-        updatePayment.mutateAsync({
-          paystackSecretKey,
-          flutterwaveSecretKey,
-        }),
-      ]);
+      await updatePlatform.mutateAsync({
+        commissionPercentage,
+        deliveryCalculation,
+        baseFee,
+        perMileFee,
+        shippingCalculationMode,
+        baseFeeKobo: Math.round(baseFeeNaira * 100),
+        perKgFeeKobo: Math.round(perKgFeeNaira * 100),
+        defaultWeightKg,
+        standardMultiplier,
+        expressMultiplier,
+        smsEnabled,
+        emailEnabled,
+        pushEnabled,
+      });
       showToast('success', 'Settings saved successfully');
     } catch (error) {
       showToast('error', 'Failed to save settings');
@@ -194,18 +218,29 @@ export default function AdminSettings() {
   };
 
   const handleDeleteTeamMember = async (memberId: string) => {
-    if (!confirm('Are you sure you want to remove this team member?')) return;
+    const confirmed = await confirmation.confirm({
+      title: 'Remove Team Member',
+      message: 'Are you sure you want to remove this team member?',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
 
+    if (!confirmed) return;
+
+    confirmation.setLoading(true);
     try {
       await deleteTeam.mutateAsync(memberId);
       showToast('success', 'Team member removed');
     } catch (error) {
       showToast('error', 'Failed to remove team member');
       console.error('Team member delete error:', error);
+    } finally {
+      confirmation.setLoading(false);
     }
   };
 
-  if (platformLoading || paymentLoading || teamLoading) {
+  if (platformLoading || teamLoading) {
     return (
       <AdminLayout>
         <LoadingState />
@@ -214,6 +249,7 @@ export default function AdminSettings() {
   }
 
   return (
+    <>
     <AdminLayout>
       <div className="space-y-8 px-6 py-8 lg:px-10">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -223,10 +259,10 @@ export default function AdminSettings() {
           </div>
           <button
             onClick={handleSave}
-            disabled={updatePlatform.isPending || updatePayment.isPending}
+            disabled={updatePlatform.isPending}
             className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#ff9140] disabled:opacity-50"
           >
-            {updatePlatform.isPending || updatePayment.isPending ? 'Saving...' : 'Save Changes'}
+            {updatePlatform.isPending ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
 
@@ -288,21 +324,22 @@ export default function AdminSettings() {
 
           <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] p-6 shadow-lg">
             <header className="mb-5">
-              <h2 className="text-lg font-semibold text-white">Delivery Fee Rules</h2>
-              <p className="text-sm text-gray-400">Control how delivery fees are calculated for customers.</p>
+              <h2 className="text-lg font-semibold text-white">Shipping Fee Rules (In-House Logistics)</h2>
+              <p className="text-sm text-gray-400">Control how shipping fees are calculated. All fees are global — no seller overrides.</p>
             </header>
 
             <div className="space-y-4">
               <label className="block text-sm font-medium text-gray-300">
-                Delivery Fee Calculation
+                Calculation Mode
                 <select
-                  value={deliveryCalculation}
-                  onChange={(event) => setDeliveryCalculation(event.target.value as 'flat' | 'distance')}
+                  value={shippingCalculationMode}
+                  onChange={(e) => setShippingCalculationMode(e.target.value as 'FLAT' | 'WEIGHT')}
                   className={`${inputClass} mt-2 appearance-none`}
                 >
-                  <option value="distance">Distance-based</option>
-                  <option value="flat">Flat Rate</option>
+                  <option value="WEIGHT">Weight-based</option>
+                  <option value="FLAT">Flat rate</option>
                 </select>
+                <span className="mt-1 block text-xs text-gray-500">FLAT: fixed fee. WEIGHT: base + per kg.</span>
               </label>
 
               <label className="block text-sm font-medium text-gray-300">
@@ -310,56 +347,76 @@ export default function AdminSettings() {
                 <input
                   type="number"
                   min={0}
-                  value={baseFee}
-                  onChange={(event) => setBaseFee(Number(event.target.value))}
-                  className={`${inputClass} mt-2 ${errors.baseFee ? 'border-red-500' : ''}`}
+                  step={0.01}
+                  value={baseFeeNaira}
+                  onChange={(e) => setBaseFeeNaira(Number(e.target.value))}
+                  className={`${inputClass} mt-2 ${errors.baseFeeNaira ? 'border-red-500' : ''}`}
+                  placeholder="15"
                 />
-                {errors.baseFee && <span className="mt-1 text-xs text-red-500">{errors.baseFee}</span>}
+                {errors.baseFeeNaira && <span className="mt-1 text-xs text-red-500">{errors.baseFeeNaira}</span>}
+                <span className="mt-1 block text-xs text-gray-500">Fixed base amount in Naira (used in WEIGHT mode)</span>
               </label>
 
               <label className="block text-sm font-medium text-gray-300">
-                Per Mile Fee (₦)
+                Per Kg Fee (₦)
                 <input
                   type="number"
                   min={0}
-                  value={perMileFee}
-                  onChange={(event) => setPerMileFee(Number(event.target.value))}
-                  className={`${inputClass} mt-2 ${errors.perMileFee ? 'border-red-500' : ''}`}
+                  step={0.01}
+                  value={perKgFeeNaira}
+                  onChange={(e) => setPerKgFeeNaira(Number(e.target.value))}
+                  className={`${inputClass} mt-2 ${errors.perKgFeeNaira ? 'border-red-500' : ''}`}
+                  placeholder="2"
                 />
-                {errors.perMileFee && <span className="mt-1 text-xs text-red-500">{errors.perMileFee}</span>}
+                {errors.perKgFeeNaira && <span className="mt-1 text-xs text-red-500">{errors.perKgFeeNaira}</span>}
+                <span className="mt-1 block text-xs text-gray-500">Amount in Naira per kg (used in WEIGHT mode)</span>
               </label>
+
+              <label className="block text-sm font-medium text-gray-300">
+                Default Product Weight (kg)
+                <input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  value={defaultWeightKg}
+                  onChange={(e) => setDefaultWeightKg(Number(e.target.value))}
+                  className={`${inputClass} mt-2 ${errors.defaultWeightKg ? 'border-red-500' : ''}`}
+                  placeholder="1"
+                />
+                {errors.defaultWeightKg && <span className="mt-1 text-xs text-red-500">{errors.defaultWeightKg}</span>}
+                <span className="mt-1 block text-xs text-gray-500">Used when product has no weight set</span>
+              </label>
+
+              <div className="grid grid-cols-2 gap-4">
+                <label className="block text-sm font-medium text-gray-300">
+                  Standard Multiplier
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={standardMultiplier}
+                    onChange={(e) => setStandardMultiplier(Number(e.target.value))}
+                    className={`${inputClass} mt-2 ${errors.standardMultiplier ? 'border-red-500' : ''}`}
+                  />
+                  {errors.standardMultiplier && <span className="mt-1 text-xs text-red-500">{errors.standardMultiplier}</span>}
+                </label>
+                <label className="block text-sm font-medium text-gray-300">
+                  Express Multiplier
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={expressMultiplier}
+                    onChange={(e) => setExpressMultiplier(Number(e.target.value))}
+                    className={`${inputClass} mt-2 ${errors.expressMultiplier ? 'border-red-500' : ''}`}
+                  />
+                  {errors.expressMultiplier && <span className="mt-1 text-xs text-red-500">{errors.expressMultiplier}</span>}
+                </label>
+              </div>
+              <p className="text-xs text-gray-500">Shipping fee = base fee × multiplier. Pickup = ₦0.</p>
             </div>
           </section>
         </div>
-
-        <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] p-6 shadow-lg">
-          <header className="mb-5">
-            <h2 className="text-lg font-semibold text-white">Payment Gateway Keys</h2>
-            <p className="text-sm text-gray-400">Manage live credentials for available payment gateways.</p>
-          </header>
-          <div className="grid gap-5 md:grid-cols-2">
-            <label className="block text-sm font-medium text-gray-300">
-              Paystack Secret Key
-              <input
-                type="password"
-                value={paystackSecretKey}
-                onChange={(event) => setPaystackSecretKey(event.target.value)}
-                placeholder="sk_live_***"
-                className={`${inputClass} mt-2`}
-              />
-            </label>
-            <label className="block text-sm font-medium text-gray-300">
-              Flutterwave Secret Key
-              <input
-                type="password"
-                value={flutterwaveSecretKey}
-                onChange={(event) => setFlutterwaveSecretKey(event.target.value)}
-                placeholder="flw_live_***"
-                className={`${inputClass} mt-2`}
-              />
-            </label>
-          </div>
-        </section>
 
         <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] p-6 shadow-lg">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -452,7 +509,7 @@ export default function AdminSettings() {
               className="flex w-full items-center gap-4 rounded-2xl border border-[#2a2a2a] bg-[#151515] p-4 text-left transition hover:border-primary/60 hover:bg-[#181818]"
             >
               <span
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border border-[#2f2f2f] transition-colors duration-200 ${
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-[#2f2f2f] transition-colors duration-200 ${
                   smsEnabled ? 'bg-primary' : 'bg-[#1e1e1e]'
                 }`}
               >
@@ -476,7 +533,7 @@ export default function AdminSettings() {
               className="flex w-full items-center gap-4 rounded-2xl border border-[#2a2a2a] bg-[#151515] p-4 text-left transition hover:border-primary/60 hover:bg-[#181818]"
             >
               <span
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border border-[#2f2f2f] transition-colors duration-200 ${
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-[#2f2f2f] transition-colors duration-200 ${
                   emailEnabled ? 'bg-primary' : 'bg-[#1e1e1e]'
                 }`}
               >
@@ -500,7 +557,7 @@ export default function AdminSettings() {
               className="flex w-full items-center gap-4 rounded-2xl border border-[#2a2a2a] bg-[#151515] p-4 text-left transition hover:border-primary/60 hover:bg-[#181818]"
             >
               <span
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border border-[#2f2f2f] transition-colors duration-200 ${
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-[#2f2f2f] transition-colors duration-200 ${
                   pushEnabled ? 'bg-primary' : 'bg-[#1e1e1e]'
                 }`}
               >
@@ -580,5 +637,17 @@ export default function AdminSettings() {
         )}
       </div>
     </AdminLayout>
+    <ConfirmationDialog
+      open={confirmation.open}
+      title={confirmation.title}
+      message={confirmation.message}
+      confirmText={confirmation.confirmText}
+      cancelText={confirmation.cancelText}
+      variant={confirmation.variant}
+      onConfirm={confirmation.handleConfirm}
+      onCancel={confirmation.handleCancel}
+      loading={confirmation.loading}
+    />
+    </>
   );
 }

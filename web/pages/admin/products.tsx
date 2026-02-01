@@ -29,6 +29,8 @@ import { usePlatformSettings } from '../../lib/admin/hooks/useSettings';
 import { PendingProduct } from '../../lib/admin/types';
 import { toast } from 'react-hot-toast';
 import { Check, X, Trash2, MoreVertical } from 'lucide-react';
+import { useConfirmation } from '../../lib/hooks/useConfirmation';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 
 const NGN_FORMATTER = new Intl.NumberFormat('en-NG', {
   style: 'currency',
@@ -73,6 +75,7 @@ export default function AdminProducts() {
   const [productToApprove, setProductToApprove] = useState<PendingProduct | null>(null);
   const [commissionPercentage, setCommissionPercentage] = useState<number>(15);
   const [singleApprovalCommission, setSingleApprovalCommission] = useState<number>(15);
+  const confirmation = useConfirmation();
 
   // Fetch platform settings for default commission
   const { data: platformSettings } = usePlatformSettings();
@@ -217,13 +220,28 @@ export default function AdminProducts() {
 
   const handleBulkDelete = async () => {
     if (selectedProductIds.size === 0) return;
-    if (!confirm(`Are you sure you want to delete ${selectedProductIds.size} product(s)? This action cannot be undone.`)) {
-      return;
-    }
+    
+    const confirmed = await confirmation.confirm({
+      title: 'Delete Products',
+      message: `Are you sure you want to delete ${selectedProductIds.size} product(s)? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
+
     const productIds = Array.from(selectedProductIds);
-    await bulkDelete.mutateAsync(productIds);
-    setSelectedProductIds(new Set());
-    refetch();
+    confirmation.setLoading(true);
+    try {
+      await bulkDelete.mutateAsync(productIds);
+      setSelectedProductIds(new Set());
+      refetch();
+    } catch (error) {
+      // Error is handled by the mutation
+    } finally {
+      confirmation.setLoading(false);
+    }
   };
 
   const handleBulkStatusChange = async (status: string) => {
@@ -241,6 +259,7 @@ export default function AdminProducts() {
   }, [selectedProductIds]);
 
   return (
+    <>
     <AdminLayout>
       <div className="min-h-screen bg-[#090c11]">
         <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
@@ -794,5 +813,17 @@ export default function AdminProducts() {
         </div>
       )}
     </AdminLayout>
+    <ConfirmationDialog
+      open={confirmation.open}
+      title={confirmation.title}
+      message={confirmation.message}
+      confirmText={confirmation.confirmText}
+      cancelText={confirmation.cancelText}
+      variant={confirmation.variant}
+      onConfirm={confirmation.handleConfirm}
+      onCancel={confirmation.handleCancel}
+      loading={confirmation.loading}
+    />
+    </>
   );
 }

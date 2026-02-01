@@ -1,34 +1,31 @@
 import { motion } from 'framer-motion';
-import { UserCheck, Store, Truck, Headphones } from 'lucide-react';
+import { UserCheck, Store, Truck } from 'lucide-react';
 
 export default function HowItWorks() {
   const steps = [
     {
       id: 1,
-      title: 'Choose what you want',
-      description: 'Browse products from verified Nigerian sellers. Select items from our curated marketplace.',
+      title: 'Shop verified sellers',
+      description: 'Browse products from verified Nigerian sellers.',
       icon: UserCheck,
       iconColor: 'text-white',
       bgColor: 'bg-primary',
-      image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop',
     },
     {
       id: 2,
-      title: 'See real-time updates',
-      description: 'Track your order from warehouse to your door. Get notifications every step of the way.',
+      title: 'We store & handle delivery',
+      description: 'Products stored in our warehouse, ready to ship.',
       icon: Store,
       iconColor: 'text-white',
       bgColor: 'bg-primary',
-      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=400&fit=crop',
     },
     {
       id: 3,
-      title: 'Get your items same-day',
-      description: 'Fast, reliable delivery in Lagos. Same-day service available for orders before 12pm.',
+      title: 'Receive fast, track easily',
+      description: 'Same-day delivery in Lagos, 1–3 days nationwide.',
       icon: Truck,
       iconColor: 'text-white',
       bgColor: 'bg-primary',
-      image: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?w=600&h=400&fit=crop',
     },
   ];
 
@@ -47,7 +44,7 @@ export default function HowItWorks() {
             </motion.h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-4xl mx-auto">
             {steps.map((step, index) => (
               <motion.div
                 key={step.id}
@@ -55,28 +52,15 @@ export default function HowItWorks() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
+                className="text-center"
               >
-                <div className="relative h-64 overflow-hidden">
-                  <img
-                    src={step.image}
-                    alt={step.title}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                  <div className="absolute top-4 left-4">
-                    <div className={`w-12 h-12 ${step.bgColor} rounded-full flex items-center justify-center shadow-lg`}>
-                      <step.icon className={`w-6 h-6 ${step.iconColor}`} />
-                    </div>
-                  </div>
+                <div className={`w-16 h-16 ${step.bgColor} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                  <step.icon className={`w-8 h-8 ${step.iconColor}`} />
                 </div>
-                <div className="p-6">
-                  <div className="text-sm text-primary font-bold mb-2">{step.id}. {step.title}</div>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    {step.description}
-                  </p>
-                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{step.title}</h3>
+                <p className="text-sm text-gray-600">
+                  {step.description}
+                </p>
               </motion.div>
             ))}
           </div>

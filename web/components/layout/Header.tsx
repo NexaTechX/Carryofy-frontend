@@ -3,8 +3,10 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import FloatingAssistant from '../ai-assistant/FloatingAssistant';
 
 export default function Header() {
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
@@ -56,10 +58,10 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group shrink-0">
             <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex items-center justify-center transition-all duration-300 transform group-hover:scale-105">
-              <Image 
-                src="/logo.png" 
-                alt="Carryofy Logo" 
-                width={40} 
+              <Image
+                src="/logo.png"
+                alt="Carryofy Logo"
+                width={40}
                 height={40}
                 className="w-full h-full object-contain"
                 priority
@@ -156,7 +158,7 @@ export default function Header() {
                 className="fixed inset-0 bg-black/20 backdrop-blur-sm lg:hidden z-40"
                 onClick={() => setMobileMenuOpen(false)}
               />
-              
+
               {/* Menu Panel */}
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -195,7 +197,7 @@ export default function Header() {
                       )}
                     </div>
                   ))}
-                  
+
                   {/* Mobile Auth Buttons */}
                   <div className="pt-4 mt-2 border-t border-gray-100 space-y-2">
                     <Link
@@ -219,7 +221,9 @@ export default function Header() {
           )}
         </AnimatePresence>
       </nav>
+      <FloatingAssistant />
     </header>
   );
 }
+
 

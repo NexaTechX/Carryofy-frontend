@@ -46,10 +46,9 @@ export default function CartDrawer() {
     return cart.items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   };
 
-  const shippingFee = 500; // ₦5.00
   const discount = 0;
   const subtotal = calculateSubtotal();
-  const total = subtotal + shippingFee - discount;
+  const total = subtotal - discount;
 
   const handleCheckout = () => {
     closeDrawer();
@@ -201,6 +200,7 @@ export default function CartDrawer() {
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
                                   <button
+                                    type="button"
                                     onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                     disabled={item.quantity <= 1}
                                     className="w-7 h-7 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-lg text-white hover:bg-[#ff6600] hover:text-black disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center"
@@ -211,6 +211,7 @@ export default function CartDrawer() {
                                     {item.quantity}
                                   </span>
                                   <button
+                                    type="button"
                                     onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                     disabled={item.quantity >= item.product.quantity}
                                     className="w-7 h-7 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-lg text-white hover:bg-[#ff6600] hover:text-black disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center"
@@ -219,6 +220,7 @@ export default function CartDrawer() {
                                   </button>
                                 </div>
                                 <button
+                                  type="button"
                                   onClick={() => removeItem(item.id)}
                                   className="p-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 hover:border-red-500 transition flex items-center justify-center"
                                   aria-label="Remove item"
@@ -253,10 +255,6 @@ export default function CartDrawer() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-[#ffcc99]">Subtotal</span>
                       <span className="text-white font-bold">{formatPrice(subtotal)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-[#ffcc99]">Shipping</span>
-                      <span className="text-white font-bold">{formatPrice(shippingFee)}</span>
                     </div>
                     {discount > 0 && (
                       <div className="flex items-center justify-between text-sm">

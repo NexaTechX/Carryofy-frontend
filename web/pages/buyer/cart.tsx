@@ -91,20 +91,31 @@ export default function CartPage() {
   };
 
   const updateQuantity = async (itemId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
+    if (newQuantity < 1 || !cart) return;
+
+    // Optimistic update: show new quantity immediately for better UX
+    const previousCart = cart;
+    setCart((prev) => {
+      if (!prev) return prev;
+      const items = prev.items.map((item) =>
+        item.id === itemId ? { ...item, quantity: newQuantity } : item
+      );
+      const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
+      const totalAmount = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+      return { ...prev, items, totalItems, totalAmount };
+    });
 
     try {
-      setUpdatingItems(prev => ({ ...prev, [itemId]: true }));
+      setUpdatingItems((prev) => ({ ...prev, [itemId]: true }));
       const response = await apiClient.put(`/cart/items/${itemId}`, { quantity: newQuantity });
-      
-      // Handle API response wrapping
       const cartData = response.data.data || response.data;
       setCart(cartData);
     } catch (err: any) {
       console.error('Error updating quantity:', err);
+      setCart(previousCart); // Revert on failure
       showErrorToast(err.response?.data?.message || 'Failed to update quantity');
     } finally {
-      setUpdatingItems(prev => ({ ...prev, [itemId]: false }));
+      setUpdatingItems((prev) => ({ ...prev, [itemId]: false }));
     }
   };
 
@@ -295,6 +306,7 @@ export default function CartPage() {
                               <span className="text-[#ffcc99] text-sm">Quantity:</span>
                               <div className="flex items-center gap-2">
                                 <button
+                                  type="button"
                                   onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                   disabled={item.quantity <= 1 || updatingItems[item.id]}
                                   className="w-8 h-8 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-lg text-white hover:bg-[#ff6600] hover:text-black disabled:opacity-50 disabled:cursor-not-allowed transition"
@@ -305,6 +317,7 @@ export default function CartPage() {
                                   {item.quantity}
                                 </span>
                                 <button
+                                  type="button"
                                   onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                   disabled={item.quantity >= item.product.quantity || updatingItems[item.id]}
                                   className="w-8 h-8 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-lg text-white hover:bg-[#ff6600] hover:text-black disabled:opacity-50 disabled:cursor-not-allowed transition"
@@ -323,6 +336,7 @@ export default function CartPage() {
                                 </p>
                               </div>
                               <button
+                                type="button"
                                 onClick={() => removeItem(item.id)}
                                 disabled={updatingItems[item.id]}
                                 className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 hover:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition"

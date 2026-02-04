@@ -43,6 +43,7 @@ export default function EditProductPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
+  const [enhancingImageIndex, setEnhancingImageIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
@@ -54,15 +55,7 @@ export default function EditProductPage() {
     keyFeatures: [],
   });
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
-  const [aiGenerating, setAiGenerating] = useState(false);
-  const [aiGeneratedContent, setAiGeneratedContent] = useState<{
-    description?: string;
-    tags?: string[];
-    keyFeatures?: string[];
-    material?: string;
-    careInfo?: string;
-    keywords?: string[];
-  } | null>(null);
+  const [aiGeneratingField, setAiGeneratingField] = useState<'description' | 'keyFeatures' | 'material' | 'careInfo' | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -254,69 +247,80 @@ export default function EditProductPage() {
     }
   };
 
-  const handleGenerateAIContent = async () => {
+  const handleEnhanceImage = async (index: number) => {
+    const url = uploadedImageUrls[index];
+    if (!url) return;
+    setEnhancingImageIndex(index);
+    try {
+      const response = await apiClient.post<{ enhancedUrl: string }>('/products/ai/enhance-image', {
+        imageUrl: url,
+      });
+      const payload = response.data;
+      const enhancedUrl = payload?.enhancedUrl;
+      if (enhancedUrl) {
+        setUploadedImageUrls(prev =>
+          prev.map((u, i) => (i === index ? enhancedUrl : u))
+        );
+        if (imagePreview === url) setImagePreview(enhancedUrl);
+        toast.success('Image enhanced for better presentation');
+      } else {
+        toast.error('Could not get enhanced image');
+      }
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || 'Failed to enhance image';
+      toast.error(msg);
+    } finally {
+      setEnhancingImageIndex(null);
+    }
+  };
+
+  type AIGenerateField = 'description' | 'keyFeatures' | 'material' | 'careInfo';
+
+  const handleGenerateAIField = async (field: AIGenerateField) => {
     if (!formData.title.trim()) {
       toast.error('Please enter a product title first');
       return;
     }
 
-    setAiGenerating(true);
+    setAiGeneratingField(field);
     try {
-      // Determine if material/careInfo should be generated based on category
       const materialCareCategories = ['clothing', 'home', 'fashion', 'beauty', 'sports'];
       const needsMaterialCare = formData.category && materialCareCategories.includes(formData.category);
 
       const response = await apiClient.post('/products/ai/generate-content', {
         title: formData.title,
         category: formData.category || undefined,
+        categoryName: formData.category || undefined,
         price: formData.price ? Math.round(parseFloat(formData.price) * 100) : undefined,
         existingDescription: formData.description || undefined,
         needsMaterial: needsMaterialCare || false,
         needsCareInfo: needsMaterialCare || false,
       });
 
-      setAiGeneratedContent(response.data);
-      toast.success('AI content generated successfully! Review and accept the fields you want to use.');
+      const payload = response.data?.data ?? response.data;
+
+      if (field === 'description' && payload.description) {
+        setFormData(prev => ({ ...prev, description: payload.description }));
+        toast.success('Description generated');
+      } else if (field === 'keyFeatures' && payload.keyFeatures?.length) {
+        setFormData(prev => ({ ...prev, keyFeatures: payload.keyFeatures }));
+        toast.success('Key features generated');
+      } else if (field === 'material' && payload.material) {
+        setFormData(prev => ({ ...prev, material: payload.material }));
+        toast.success('Material information generated');
+      } else if (field === 'careInfo' && payload.careInfo) {
+        setFormData(prev => ({ ...prev, careInfo: payload.careInfo }));
+        toast.success('Care instructions generated');
+      } else {
+        toast.error(`No ${field} generated. Try again.`);
+      }
     } catch (error: any) {
       console.error('Error generating AI content:', error);
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to generate AI content';
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to generate. Try again.';
       toast.error(errorMessage);
     } finally {
-      setAiGenerating(false);
+      setAiGeneratingField(null);
     }
-  };
-
-  const handleAcceptAIContent = (field: 'description' | 'keyFeatures' | 'material' | 'careInfo') => {
-    if (!aiGeneratedContent) return;
-
-    if (field === 'description' && aiGeneratedContent.description) {
-      setFormData(prev => ({ ...prev, description: aiGeneratedContent.description! }));
-      toast.success('Description applied');
-    } else if (field === 'keyFeatures' && aiGeneratedContent.keyFeatures) {
-      setFormData(prev => ({ ...prev, keyFeatures: aiGeneratedContent.keyFeatures! }));
-      toast.success('Key features applied');
-    } else if (field === 'material' && aiGeneratedContent.material) {
-      setFormData(prev => ({ ...prev, material: aiGeneratedContent.material! }));
-      toast.success('Material information applied');
-    } else if (field === 'careInfo' && aiGeneratedContent.careInfo) {
-      setFormData(prev => ({ ...prev, careInfo: aiGeneratedContent.careInfo! }));
-      toast.success('Care instructions applied');
-    }
-  };
-
-  const handleAcceptAllAIContent = () => {
-    if (!aiGeneratedContent) return;
-
-    setFormData(prev => ({
-      ...prev,
-      description: aiGeneratedContent.description || prev.description,
-      keyFeatures: aiGeneratedContent.keyFeatures || prev.keyFeatures,
-      material: aiGeneratedContent.material || prev.material,
-      careInfo: aiGeneratedContent.careInfo || prev.careInfo,
-    }));
-
-    toast.success('All AI-generated content applied!');
-    setAiGeneratedContent(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -477,19 +481,34 @@ export default function EditProductPage() {
                   {uploadedImageUrls.length > 0 && (
                     <div className="mt-4 flex gap-2 flex-wrap">
                       {uploadedImageUrls.map((url, index) => (
-                        <div key={index} className="relative group">
+                        <div key={`${index}-${url}`} className="relative group">
                           <div
                             className="w-20 h-20 bg-center bg-cover rounded-lg border border-[#ff6600]/30 cursor-pointer"
                             style={{ backgroundImage: `url(${url})` }}
                             onClick={() => setImagePreview(url)}
                           />
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveImage(url)}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
+                          <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleEnhanceImage(index); }}
+                              disabled={enhancingImageIndex !== null}
+                              title="Enhance image for better selling"
+                              className="bg-[#ff6600]/90 text-black rounded-full p-1 hover:bg-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {enhancingImageIndex === index ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Sparkles className="w-3 h-3" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleRemoveImage(url); }}
+                              className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                       <label className="w-20 h-20 border-2 border-dashed border-[#ff6600]/50 rounded-lg flex items-center justify-center cursor-pointer hover:bg-[#1a1a1a] transition">
@@ -531,143 +550,32 @@ export default function EditProductPage() {
                   />
                 </div>
 
-                {/* AI Assistant */}
-                <div className="bg-gradient-to-br from-[#ff6600]/10 to-[#ff6600]/5 border-2 border-[#ff6600]/30 rounded-xl p-4">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="w-10 h-10 bg-[#ff6600]/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Wand2 className="w-5 h-5 text-[#ff6600]" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-white font-semibold mb-1">AI Content Assistant</h3>
-                      <p className="text-[#ffcc99]/70 text-xs">
-                        Let AI generate product descriptions, key features, and other content for you.
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <button
-                    type="button"
-                    onClick={handleGenerateAIContent}
-                    disabled={aiGenerating || !formData.title.trim()}
-                    className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#ff6600] to-[#cc5200] text-white font-semibold hover:from-[#cc5200] hover:to-[#ff6600] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {aiGenerating ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>Generating Content...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Wand2 className="w-5 h-5" />
-                        <span>Generate Content with AI</span>
-                      </>
-                    )}
-                  </button>
-
-                  {aiGeneratedContent && (
-                    <div className="mt-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[#ff6600] text-sm font-medium">Generated Content Preview</p>
-                        <button
-                          type="button"
-                          onClick={handleAcceptAllAIContent}
-                          className="px-3 py-1.5 bg-[#ff6600] text-black text-xs font-semibold rounded-lg hover:bg-[#cc5200] transition"
-                        >
-                          Accept All
-                        </button>
-                      </div>
-
-                      {aiGeneratedContent.description && (
-                        <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-lg p-3">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <p className="text-white text-xs font-medium">Description</p>
-                            <button
-                              type="button"
-                              onClick={() => handleAcceptAIContent('description')}
-                              className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] text-xs rounded hover:bg-[#ff6600]/30 transition"
-                            >
-                              Accept
-                            </button>
-                          </div>
-                          <p className="text-[#ffcc99] text-xs line-clamp-3">{aiGeneratedContent.description}</p>
-                        </div>
-                      )}
-
-                      {aiGeneratedContent.keyFeatures && aiGeneratedContent.keyFeatures.length > 0 && (
-                        <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-lg p-3">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <p className="text-white text-xs font-medium">Key Features</p>
-                            <button
-                              type="button"
-                              onClick={() => handleAcceptAIContent('keyFeatures')}
-                              className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] text-xs rounded hover:bg-[#ff6600]/30 transition"
-                            >
-                              Accept
-                            </button>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {aiGeneratedContent.keyFeatures.map((feature, index) => (
-                              <span
-                                key={index}
-                                className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] rounded text-xs"
-                              >
-                                {feature}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Material Preview */}
-                      {aiGeneratedContent.material && (
-                        <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-lg p-3">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <p className="text-white text-xs font-medium">Material Information</p>
-                            <button
-                              type="button"
-                              onClick={() => handleAcceptAIContent('material')}
-                              className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] text-xs rounded hover:bg-[#ff6600]/30 transition"
-                            >
-                              Accept
-                            </button>
-                          </div>
-                          <p className="text-[#ffcc99] text-xs line-clamp-2">{aiGeneratedContent.material}</p>
-                        </div>
-                      )}
-
-                      {/* Care Info Preview */}
-                      {aiGeneratedContent.careInfo && (
-                        <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-lg p-3">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <p className="text-white text-xs font-medium">Care Instructions</p>
-                            <button
-                              type="button"
-                              onClick={() => handleAcceptAIContent('careInfo')}
-                              className="px-2 py-1 bg-[#ff6600]/20 text-[#ff6600] text-xs rounded hover:bg-[#ff6600]/30 transition"
-                            >
-                              Accept
-                            </button>
-                          </div>
-                          <p className="text-[#ffcc99] text-xs line-clamp-2">{aiGeneratedContent.careInfo}</p>
-                        </div>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => setAiGeneratedContent(null)}
-                        className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] text-xs rounded-lg hover:bg-[#ff6600]/10 transition"
-                      >
-                        Dismiss Preview
-                      </button>
-                    </div>
-                  )}
+                {/* AI hint: per-field buttons are next to each section below */}
+                <div className="flex items-center gap-2 text-[#ffcc99]/70 text-xs">
+                  <Wand2 className="w-4 h-4 text-[#ff6600] shrink-0" />
+                  <span>Use &quot;Generate with AI&quot; next to each field below to fill it. Enter a product title first.</span>
                 </div>
 
                 {/* Key Features */}
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">
-                    Key Features
-                  </label>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <label className="block text-white text-sm font-medium">
+                      Key Features
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateAIField('keyFeatures')}
+                      disabled={!!aiGeneratingField || !formData.title.trim()}
+                      className="px-3 py-1.5 rounded-lg bg-[#ff6600]/20 border border-[#ff6600]/40 text-[#ff6600] text-xs font-medium hover:bg-[#ff6600]/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
+                    >
+                      {aiGeneratingField === 'keyFeatures' ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-3.5 h-3.5" />
+                      )}
+                      <span>Generate with AI</span>
+                    </button>
+                  </div>
                   <p className="text-[#ffcc99]/60 text-xs mb-3">
                     Highlight 1-3 key features that appear in the product headline
                   </p>
@@ -739,9 +647,24 @@ export default function EditProductPage() {
 
                 {/* Product Description */}
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">
-                    Product Description
-                  </label>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <label className="block text-white text-sm font-medium">
+                      Product Description
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateAIField('description')}
+                      disabled={!!aiGeneratingField || !formData.title.trim()}
+                      className="px-3 py-1.5 rounded-lg bg-[#ff6600]/20 border border-[#ff6600]/40 text-[#ff6600] text-xs font-medium hover:bg-[#ff6600]/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
+                    >
+                      {aiGeneratingField === 'description' ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-3.5 h-3.5" />
+                      )}
+                      <span>Generate with AI</span>
+                    </button>
+                  </div>
                   <textarea
                     name="description"
                     value={formData.description}

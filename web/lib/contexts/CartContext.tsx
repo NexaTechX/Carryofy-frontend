@@ -80,21 +80,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const updateQuantity = useCallback(async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
 
+    // Optimistic update: show new quantity immediately for better UX
+    let previousCart: Cart | null = null;
+    setCart((prev) => {
+      if (!prev) return prev;
+      previousCart = prev;
+      const items = prev.items.map((item) =>
+        item.id === itemId ? { ...item, quantity: newQuantity } : item
+      );
+      const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
+      const totalAmount = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+      return { ...prev, items, totalItems, totalAmount };
+    });
+
     try {
-      setUpdatingItems(prev => ({ ...prev, [itemId]: true }));
+      setUpdatingItems((prev) => ({ ...prev, [itemId]: true }));
       const response = await apiClient.put(`/cart/items/${itemId}`, { quantity: newQuantity });
-      
-      // Handle API response wrapping
       const cartData = response.data.data || response.data;
       setCart(cartData);
-      
-      // Dispatch cart update event for other components
       window.dispatchEvent(new Event('cartUpdated'));
     } catch (err: any) {
       console.error('Error updating quantity:', err);
+      if (previousCart) setCart(previousCart); // Revert on failure
       showErrorToast(err.response?.data?.message || 'Failed to update quantity');
     } finally {
-      setUpdatingItems(prev => ({ ...prev, [itemId]: false }));
+      setUpdatingItems((prev) => ({ ...prev, [itemId]: false }));
     }
   }, []);
 

@@ -242,6 +242,7 @@ export interface WarehouseStockItem {
 export interface StockMovement {
   id: string;
   productId: string;
+  orderId?: string | null;
   type: StockMovementType;
   quantity: number;
   previousQuantity: number;

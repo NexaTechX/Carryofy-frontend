@@ -214,9 +214,18 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-black scroll-smooth">
+        <main
+          className="flex-1 overflow-y-auto scroll-smooth relative"
+          style={{
+            backgroundImage: 'url(https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=1200&q=80)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundAttachment: 'fixed',
+          }}
+        >
+          <div className="absolute inset-0 bg-black/70" aria-hidden="true" />
           <ErrorBoundary>
-            <div className="p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom">{children}</div>
+            <div className="relative p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom">{children}</div>
           </ErrorBoundary>
         </main>
       </div>

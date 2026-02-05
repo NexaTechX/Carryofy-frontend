@@ -6,12 +6,12 @@ export default function HeroSection() {
   const currentYear = new Date().getFullYear();
   
   const stats = [
-    { value: '100%', label: 'Verified Sellers' },
+    { value: 'Verified', label: 'Sellers' },
     { value: '24/7', label: 'Support' },
-    { value: '24hr Delivery', label: 'Delivery' },
-    { value: '100%', label: 'Verified Sellers' },
-    { value: 'Fast Delivery', label: 'Delivery' },
-    { value: 'Secure Payments', label: 'Payments' },
+    { value: 'Same-day', label: 'Lagos' },
+    { value: '1–3 days', label: 'Nationwide' },
+    { value: 'Fast', label: 'Payouts' },
+    { value: 'Paystack', label: 'Payments' },
   ];
 
   const floatingIcons = [
@@ -78,31 +78,31 @@ export default function HeroSection() {
               </motion.div>
 
               <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 leading-tight">
-                <span className="text-gray-900">Shop from verified Nigerian sellers</span>
-                <span className="text-gray-900 block mt-2"> without the stress.</span>
+                <span className="text-gray-900">Sell and shop trusted products</span>
+                <span className="text-gray-900 block mt-2">— without logistics stress.</span>
               </h1>
 
               <p className="text-lg sm:text-xl lg:text-2xl mb-8 text-gray-600 leading-relaxed">
-                We verify sellers, store products, and deliver fast across Nigeria.
+                Carryofy helps Nigerian businesses sell online while we handle delivery, storage, and customer protection.
               </p>
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 mb-10">
                 <Link
-                  href="/products"
+                  href="/merchant-onboarding"
                   className="group relative px-8 py-4 bg-linear-to-r from-primary to-primary-light text-white rounded-2xl hover:shadow-2xl hover:shadow-primary/40 transition-all duration-300 font-semibold text-base sm:text-lg flex items-center justify-center gap-2 overflow-hidden transform hover:-translate-y-1"
                 >
                   <span className="relative z-10 flex items-center gap-2">
-                    Start Shopping
+                    Sell on Carryofy
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
                   <div className="absolute inset-0 bg-linear-to-r from-primary-dark to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Link>
                 <Link
-                  href="/merchant-onboarding"
-                  className="group px-6 py-3 text-gray-700 rounded-2xl hover:bg-gray-100 transition-all duration-300 font-medium text-sm sm:text-base flex items-center justify-center gap-2"
+                  href="/products"
+                  className="group px-6 py-3 text-gray-700 rounded-2xl border border-gray-300 hover:bg-gray-100 transition-all duration-300 font-medium text-sm sm:text-base flex items-center justify-center gap-2"
                 >
-                  <span>Sell on Carryofy</span>
+                  <span>Start Shopping</span>
                 </Link>
               </div>
 
@@ -129,7 +129,7 @@ export default function HeroSection() {
                   <div className="w-5 h-5 rounded-full bg-cyan-100 flex items-center justify-center">
                     <Check className="w-3.5 h-3.5 text-cyan-600" />
                   </div>
-                  <span className="font-medium text-gray-700">Secure Payments</span>
+                  <span className="font-medium text-gray-700">Secure payments (Paystack)</span>
                 </div>
               </motion.div>
             </motion.div>

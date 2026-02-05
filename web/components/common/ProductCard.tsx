@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Heart, Package, GitCompare, ShoppingCart } from 'lucide-react';
+import { Heart, Package, GitCompare, ShoppingCart, ShieldCheck, Truck } from 'lucide-react';
 import { useWishlist } from '../../lib/hooks/useWishlist';
 import { useCart } from '../../lib/contexts/CartContext';
 import { tokenManager } from '../../lib/auth';
@@ -145,6 +145,14 @@ export default function ProductCard({
             </div>
           )}
 
+          {/* Fulfillment label */}
+          <div className="absolute bottom-2 left-2 right-2 z-10">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium rounded-md">
+              <Package className="w-3 h-3" />
+              Fulfilled by Carryofy
+            </span>
+          </div>
+
           {/* Action Buttons */}
           <div className="absolute top-2 left-2 right-2 flex justify-between items-start z-10">
             {/* Comparison Button */}
@@ -196,8 +204,26 @@ export default function ProductCard({
             </ul>
           )}
           
-          <p className="text-white text-xs mb-3 truncate">
-            by {product.seller.businessName}
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                router.push(`/products?seller=${product.seller.id}`);
+              }}
+              className="text-[#ffcc99] hover:text-[#ff6600] text-xs font-medium truncate transition-colors text-left"
+            >
+              {product.seller.businessName}
+            </button>
+            <span className="inline-flex items-center gap-0.5 text-[10px] text-green-400" title="Verified seller">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Verified
+            </span>
+          </div>
+          <p className="text-[#ffcc99]/80 text-[10px] flex items-center gap-1 mb-3">
+            <Truck className="w-3 h-3 shrink-0" />
+            Same-day Lagos · 1–3 days nationwide
           </p>
           
           <div className="mt-auto">

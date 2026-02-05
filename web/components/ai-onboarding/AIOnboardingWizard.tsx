@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
-import { 
-  Sparkles, 
-  ShoppingBag, 
-  Wallet, 
-  Truck, 
+import {
+  Sparkles,
+  ShoppingBag,
+  Wallet,
+  Truck,
   Calendar,
   DollarSign,
   Bell,
@@ -14,7 +14,8 @@ import {
   ArrowRight,
   ArrowLeft,
   Loader2,
-  Heart
+  Heart,
+  Store
 } from 'lucide-react';
 import { aiOnboardingApi, AIOnboardingPreferences, UpdateAIOnboardingDto } from '../../lib/api/ai-onboarding';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
@@ -66,6 +67,12 @@ const NOTIFICATION_OPTIONS = [
   { id: 'none', label: 'No Notifications', description: 'I\'ll check manually' },
 ];
 
+const ROLE_OPTIONS = [
+  { id: 'buyer', label: 'I am a Buyer', description: 'I want to shop for products', icon: '🛍️' },
+  { id: 'seller', label: 'I am a Seller', description: 'I want to sell my products', icon: '🏪' },
+  { id: 'both', label: 'I am Both', description: 'I want to shop and sell', icon: '✨' },
+];
+
 const SPECIAL_INTERESTS = [
   { id: 'organic', label: 'Organic Products', icon: '🌱' },
   { id: 'eco-friendly', label: 'Eco-Friendly', icon: '♻️' },
@@ -73,6 +80,205 @@ const SPECIAL_INTERESTS = [
   { id: 'premium', label: 'Premium Quality', icon: '⭐' },
   { id: 'budget', label: 'Budget Options', icon: '💰' },
   { id: 'trending', label: 'Trending Items', icon: '🔥' },
+];
+
+function Step0Role({ preferences, updatePreferences }: StepProps) {
+  const [selectedRole, setSelectedRole] = useState<string | undefined>(preferences.userRole);
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Sparkles className="w-8 h-8 text-primary" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">How do you want to use Carryofy?</h2>
+        <p className="text-gray-600">Tell us your primary role to customize your AI assistant</p>
+      </div>
+      <div className="grid md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+        {ROLE_OPTIONS.map((role) => (
+          <button
+            key={role.id}
+            onClick={() => {
+              setSelectedRole(role.id);
+              updatePreferences({ userRole: role.id });
+            }}
+            className={`p-6 rounded-xl border-2 text-center transition-all ${selectedRole === role.id
+              ? 'border-primary bg-primary/5'
+              : 'border-gray-200 hover:border-primary/50'
+              }`}
+          >
+            <div className="text-3xl mb-3">{role.icon}</div>
+            <div className="font-semibold text-lg mb-2">{role.label}</div>
+            <div className="text-sm text-gray-600">{role.description}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Step1Goal({ preferences, updatePreferences }: StepProps) {
+  const [selectedGoal, setSelectedGoal] = useState<string | undefined>(preferences.primaryGoal);
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle2 className="w-8 h-8 text-primary" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">What's your primary goal?</h2>
+        <p className="text-gray-600">Tell us what you want to achieve on Carryofy</p>
+      </div>
+      <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+        {GOAL_OPTIONS.map((goal) => (
+          <button
+            key={goal.id}
+            onClick={() => {
+              setSelectedGoal(goal.id);
+              updatePreferences({ primaryGoal: goal.id });
+            }}
+            className={`p-6 rounded-xl border-2 text-left transition-all ${selectedGoal === goal.id
+              ? 'border-primary bg-primary/5'
+              : 'border-gray-200 hover:border-primary/50'
+              }`}
+          >
+            <div className="font-semibold text-lg mb-2">{goal.label}</div>
+            <div className="text-sm text-gray-600">{goal.description}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StepScaling({ preferences, updatePreferences }: StepProps) {
+  const [selectedExperience, setSelectedExperience] = useState<string | undefined>(preferences.experienceLevel);
+  const [selectedCommunication, setSelectedCommunication] = useState<string | undefined>(preferences.communicationStyle);
+
+  return (
+    <div className="space-y-8">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2">Help us personalize your experience</h2>
+        <p className="text-gray-600">These settings help us scale with your needs</p>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-center">Experience Level</h3>
+        <div className="grid md:grid-cols-3 gap-4">
+          {EXPERIENCE_OPTIONS.map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => {
+                setSelectedExperience(opt.id);
+                updatePreferences({ experienceLevel: opt.id });
+              }}
+              className={`p-4 rounded-xl border-2 text-center transition-all ${selectedExperience === opt.id
+                ? 'border-primary bg-primary/5'
+                : 'border-gray-200 hover:border-primary/50'
+                }`}
+            >
+              <div className="font-bold mb-1">{opt.label}</div>
+              <div className="text-xs text-gray-500">{opt.description}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-center">Communication Style</h3>
+        <div className="grid md:grid-cols-3 gap-4">
+          {COMMUNICATION_OPTIONS.map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => {
+                setSelectedCommunication(opt.id);
+                updatePreferences({ communicationStyle: opt.id });
+              }}
+              className={`p-4 rounded-xl border-2 text-center transition-all ${selectedCommunication === opt.id
+                ? 'border-primary bg-primary/5'
+                : 'border-gray-200 hover:border-primary/50'
+                }`}
+            >
+              <div className="font-bold mb-1">{opt.label}</div>
+              <div className="text-xs text-gray-500">{opt.description}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StepBusinessContext({ preferences, updatePreferences }: StepProps) {
+  const [selectedContext, setSelectedContext] = useState<string | undefined>(preferences.businessContext);
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Store className="w-8 h-8 text-primary" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Tell us about your business</h2>
+        <p className="text-gray-600">This helps us provide relevant seller tools (optional for buyers)</p>
+      </div>
+      <div className="grid md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+        {BUSINESS_CONTEXT_OPTIONS.map((opt) => (
+          <button
+            key={opt.id}
+            onClick={() => {
+              setSelectedContext(opt.id);
+              updatePreferences({ businessContext: opt.id });
+            }}
+            className={`p-6 rounded-xl border-2 text-center transition-all ${selectedContext === opt.id
+              ? 'border-primary bg-primary/5'
+              : 'border-gray-200 hover:border-primary/50'
+              }`}
+          >
+            <div className="font-bold mb-2">{opt.label}</div>
+            <div className="text-xs text-gray-600">{opt.description}</div>
+          </button>
+        ))}
+        <button
+          onClick={() => {
+            setSelectedContext('none');
+            updatePreferences({ businessContext: 'none' });
+          }}
+          className={`p-6 rounded-xl border-2 text-center transition-all ${selectedContext === 'none'
+            ? 'border-primary bg-primary/5'
+            : 'border-gray-200 hover:border-primary/50'
+            }`}
+        >
+          <div className="font-bold mb-2">Not a Seller</div>
+          <div className="text-xs text-gray-600">I am only here to shop</div>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const GOAL_OPTIONS = [
+  { id: 'save-money', label: 'Save Money', description: 'Find the best deals and discounts' },
+  { id: 'high-quality', label: 'High Quality', description: 'Focus on premium and durable products' },
+  { id: 'grow-business', label: 'Grow Business', description: 'Sell more and reach more customers' },
+  { id: 'efficiency', label: 'Efficiency', description: 'Fast delivery and easy shopping' },
+];
+
+const EXPERIENCE_OPTIONS = [
+  { id: 'beginner', label: 'Beginner', description: 'New to online shopping/selling' },
+  { id: 'intermediate', label: 'Intermediate', description: 'Comfortable with e-commerce' },
+  { id: 'pro', label: 'Pro', description: 'Expert user looking for advanced features' },
+];
+
+const COMMUNICATION_OPTIONS = [
+  { id: 'formal', label: 'Formal', description: 'Professional and structured updates' },
+  { id: 'casual', label: 'Casual', description: 'Friendly and relaxed tone' },
+  { id: 'direct', label: 'Direct', description: 'Short and to-the-point messages' },
+];
+
+const BUSINESS_CONTEXT_OPTIONS = [
+  { id: 'retailer', label: 'Retailer', description: 'Selling products to individuals' },
+  { id: 'wholesaler', label: 'Wholesaler', description: 'Selling in bulk' },
+  { id: 'manufacturer', label: 'Manufacturer', description: 'Producing and selling your own items' },
 ];
 
 function Step1Categories({ preferences, updatePreferences }: StepProps) {
@@ -106,11 +312,10 @@ function Step1Categories({ preferences, updatePreferences }: StepProps) {
             <button
               key={category.id}
               onClick={() => toggleCategory(category.slug)}
-              className={`p-4 rounded-xl border-2 transition-all text-left ${
-                selectedCategories.includes(category.slug)
-                  ? 'border-primary bg-primary/5'
-                  : 'border-gray-200 hover:border-primary/50'
-              }`}
+              className={`p-4 rounded-xl border-2 transition-all text-left ${selectedCategories.includes(category.slug)
+                ? 'border-primary bg-primary/5'
+                : 'border-gray-200 hover:border-primary/50'
+                }`}
             >
               <div className="font-semibold mb-1">{category.name}</div>
               {category.description && (
@@ -146,11 +351,10 @@ function Step2Budget({ preferences, updatePreferences }: StepProps) {
               setSelectedBudget(budget.id);
               updatePreferences({ budgetRange: budget.id });
             }}
-            className={`p-6 rounded-xl border-2 text-left transition-all ${
-              selectedBudget === budget.id
-                ? 'border-primary bg-primary/5'
-                : 'border-gray-200 hover:border-primary/50'
-            }`}
+            className={`p-6 rounded-xl border-2 text-left transition-all ${selectedBudget === budget.id
+              ? 'border-primary bg-primary/5'
+              : 'border-gray-200 hover:border-primary/50'
+              }`}
           >
             <div className="font-semibold text-lg mb-2">{budget.label}</div>
             <div className="text-sm text-gray-600">{budget.description}</div>
@@ -181,11 +385,10 @@ function Step3Delivery({ preferences, updatePreferences }: StepProps) {
               setSelectedDelivery(delivery.id);
               updatePreferences({ deliveryPreference: delivery.id });
             }}
-            className={`p-6 rounded-xl border-2 text-left transition-all ${
-              selectedDelivery === delivery.id
-                ? 'border-primary bg-primary/5'
-                : 'border-gray-200 hover:border-primary/50'
-            }`}
+            className={`p-6 rounded-xl border-2 text-left transition-all ${selectedDelivery === delivery.id
+              ? 'border-primary bg-primary/5'
+              : 'border-gray-200 hover:border-primary/50'
+              }`}
           >
             <div className="font-semibold text-lg mb-2">{delivery.label}</div>
             <div className="text-sm text-gray-600">{delivery.description}</div>
@@ -216,11 +419,10 @@ function Step4Frequency({ preferences, updatePreferences }: StepProps) {
               setSelectedFrequency(frequency.id);
               updatePreferences({ shoppingFrequency: frequency.id });
             }}
-            className={`p-6 rounded-xl border-2 text-left transition-all ${
-              selectedFrequency === frequency.id
-                ? 'border-primary bg-primary/5'
-                : 'border-gray-200 hover:border-primary/50'
-            }`}
+            className={`p-6 rounded-xl border-2 text-left transition-all ${selectedFrequency === frequency.id
+              ? 'border-primary bg-primary/5'
+              : 'border-gray-200 hover:border-primary/50'
+              }`}
           >
             <div className="font-semibold text-lg mb-2">{frequency.label}</div>
             <div className="text-sm text-gray-600">{frequency.description}</div>
@@ -251,11 +453,10 @@ function Step5PriceSensitivity({ preferences, updatePreferences }: StepProps) {
               setSelectedSensitivity(option.id);
               updatePreferences({ priceSensitivity: option.id });
             }}
-            className={`p-6 rounded-xl border-2 text-left transition-all ${
-              selectedSensitivity === option.id
-                ? 'border-primary bg-primary/5'
-                : 'border-gray-200 hover:border-primary/50'
-            }`}
+            className={`p-6 rounded-xl border-2 text-left transition-all ${selectedSensitivity === option.id
+              ? 'border-primary bg-primary/5'
+              : 'border-gray-200 hover:border-primary/50'
+              }`}
           >
             <div className="font-semibold text-lg mb-2">{option.label}</div>
             <div className="text-sm text-gray-600">{option.description}</div>
@@ -286,11 +487,10 @@ function Step6Notifications({ preferences, updatePreferences }: StepProps) {
               setSelectedNotification(option.id);
               updatePreferences({ notificationPreference: option.id });
             }}
-            className={`p-6 rounded-xl border-2 text-left transition-all ${
-              selectedNotification === option.id
-                ? 'border-primary bg-primary/5'
-                : 'border-gray-200 hover:border-primary/50'
-            }`}
+            className={`p-6 rounded-xl border-2 text-left transition-all ${selectedNotification === option.id
+              ? 'border-primary bg-primary/5'
+              : 'border-gray-200 hover:border-primary/50'
+              }`}
           >
             <div className="font-semibold text-lg mb-2">{option.label}</div>
             <div className="text-sm text-gray-600">{option.description}</div>
@@ -352,11 +552,10 @@ function Step8Interests({ preferences, updatePreferences }: StepProps) {
           <button
             key={interest.id}
             onClick={() => toggleInterest(interest.id)}
-            className={`p-4 rounded-xl border-2 transition-all ${
-              selectedInterests.includes(interest.id)
-                ? 'border-primary bg-primary/5'
-                : 'border-gray-200 hover:border-primary/50'
-            }`}
+            className={`p-4 rounded-xl border-2 transition-all ${selectedInterests.includes(interest.id)
+              ? 'border-primary bg-primary/5'
+              : 'border-gray-200 hover:border-primary/50'
+              }`}
           >
             <div className="text-2xl mb-2">{interest.icon}</div>
             <div className="text-sm font-semibold">{interest.label}</div>
@@ -422,6 +621,27 @@ function Step9Consent({ preferences, updatePreferences, onComplete, isLoading }:
               <span>{NOTIFICATION_OPTIONS.find(n => n.id === preferences.notificationPreference)?.label}</span>
             </div>
           )}
+          {preferences.primaryGoal && (
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <span className="font-semibold">Goal:</span>
+              <span>{GOAL_OPTIONS.find(g => g.id === preferences.primaryGoal)?.label}</span>
+            </div>
+          )}
+          {preferences.experienceLevel && (
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <span className="font-semibold">Experience:</span>
+              <span className="capitalize">{preferences.experienceLevel}</span>
+            </div>
+          )}
+          {preferences.businessContext && preferences.businessContext !== 'none' && (
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <span className="font-semibold">Business:</span>
+              <span className="capitalize">{preferences.businessContext}</span>
+            </div>
+          )}
           {preferences.preferredBrands && preferences.preferredBrands.length > 0 && (
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
@@ -458,7 +678,7 @@ function Step9Consent({ preferences, updatePreferences, onComplete, isLoading }:
         </div>
         <div className="mt-4 p-4 bg-blue-50 rounded-lg">
           <p className="text-sm text-gray-700">
-            <strong>How this helps you:</strong> We'll use these preferences to personalize product recommendations, 
+            <strong>How this helps you:</strong> We'll use these preferences to personalize product recommendations,
             show you relevant deals, and tailor your shopping experience to match your style and budget.
           </p>
         </div>
@@ -511,7 +731,7 @@ export default function AIOnboardingWizard() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isOffline, setIsOffline] = useState(false);
-  const totalSteps = 9;
+  const totalSteps = 12;
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const isEditMode = router.query.edit === 'true';
 
@@ -525,7 +745,7 @@ export default function AIOnboardingWizard() {
         if (saved) {
           try {
             const draft = JSON.parse(saved);
-            debouncedAutoSave(draft, draft.lastStepCompleted || currentStep);
+            syncToApi(draft, draft.lastStepCompleted || currentStep);
           } catch (e) {
             console.error('Failed to sync on reconnect:', e);
           }
@@ -582,23 +802,21 @@ export default function AIOnboardingWizard() {
   };
 
   const updatePreferences = (data: Partial<UpdateAIOnboardingDto>) => {
-    setPreferences((prev) => {
-      const updated = { ...prev, ...data };
-      // Auto-save draft after a delay
-      debouncedAutoSave(updated, currentStep);
-      return updated;
-    });
+    setPreferences((prev) => ({ ...prev, ...data }));
   };
 
-  const debouncedAutoSave = async (prefs: Partial<AIOnboardingPreferences>, step: number, retry = 0): Promise<void> => {
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
+  const syncToApi = async (prefs: Partial<AIOnboardingPreferences>, step: number) => {
+    try {
+      setIsSaving(true);
+      setSaveError(null);
 
-    autoSaveTimeoutRef.current = setTimeout(async () => {
-      try {
-        setIsSaving(true);
-        setSaveError(null);
+      // Save to localStorage as backup
+      localStorage.setItem('ai-onboarding-draft', JSON.stringify({
+        ...prefs,
+        lastStepCompleted: step,
+      }));
+
+      if (!isOffline) {
         const dataToSave: UpdateAIOnboardingDto = {
           favoriteCategories: Array.isArray(prefs.favoriteCategories) ? prefs.favoriteCategories : [],
           preferredBrands: Array.isArray(prefs.preferredBrands) ? prefs.preferredBrands : [],
@@ -608,111 +826,96 @@ export default function AIOnboardingWizard() {
           shoppingFrequency: prefs.shoppingFrequency,
           priceSensitivity: prefs.priceSensitivity,
           notificationPreference: prefs.notificationPreference,
+          primaryGoal: prefs.primaryGoal,
+          experienceLevel: prefs.experienceLevel,
+          communicationStyle: prefs.communicationStyle,
+          businessContext: prefs.businessContext,
           lastStepCompleted: step,
           isDraft: true,
         };
-
-        // Always save to localStorage first as backup
-        try {
-          localStorage.setItem('ai-onboarding-draft', JSON.stringify({
-            ...prefs,
-            lastStepCompleted: step,
-          }));
-        } catch (e) {
-          console.error('Failed to save to localStorage:', e);
-        }
-
-        // Try to save to API
-        if (!isOffline) {
-          try {
-            await aiOnboardingApi.saveDraft(dataToSave);
-            setRetryCount(0);
-          } catch (error: any) {
-            // If network error and retries left, retry
-            if (
-              (error?.code === 'ERR_NETWORK' || 
-               error?.code === 'ECONNREFUSED' || 
-               error?.message === 'Network Error') &&
-              retry < 3
-            ) {
-              console.warn(`Auto-save failed, retrying (${retry + 1}/3)...`);
-              setRetryCount(retry + 1);
-              // Retry after exponential backoff
-              setTimeout(() => {
-                debouncedAutoSave(prefs, step, retry + 1);
-              }, Math.pow(2, retry) * 1000);
-              return;
-            } else {
-              throw error;
-            }
-          }
-        }
-      } catch (error: any) {
-        console.error('Auto-save failed:', error);
-        const errorMessage = error?.response?.data?.message || 
-                            error?.message || 
-                            'Failed to save. Your progress is saved locally.';
-        setSaveError(errorMessage);
-        setRetryCount(retry);
-      } finally {
-        setIsSaving(false);
+        await aiOnboardingApi.saveDraft(dataToSave);
       }
-    }, 1000); // 1 second debounce
+    } catch (error: any) {
+      console.error('Sync failed:', error);
+      setSaveError('Progress saved locally (network error)');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const validateStep = (step: number): boolean => {
     const errors: Record<number, string> = {};
-    
+
     switch (step) {
       case 1:
-        if (!preferences.favoriteCategories || preferences.favoriteCategories.length === 0) {
-          errors[1] = 'Please select at least one category';
+        if (!preferences.userRole) {
+          errors[1] = 'Please select your role';
           setValidationErrors(errors);
           return false;
         }
         break;
       case 2:
-        if (!preferences.budgetRange) {
-          errors[2] = 'Please select a budget range';
+        if (!preferences.primaryGoal) {
+          errors[2] = 'Please select your primary goal';
           setValidationErrors(errors);
           return false;
         }
         break;
       case 3:
-        if (!preferences.deliveryPreference) {
-          errors[3] = 'Please select a delivery preference';
+        if (!preferences.experienceLevel || !preferences.communicationStyle) {
+          errors[3] = 'Please select all personalization options';
           setValidationErrors(errors);
           return false;
         }
         break;
       case 4:
-        if (!preferences.shoppingFrequency) {
-          errors[4] = 'Please select shopping frequency';
+        if (!preferences.favoriteCategories || preferences.favoriteCategories.length === 0) {
+          errors[4] = 'Please select at least one category';
           setValidationErrors(errors);
           return false;
         }
         break;
       case 5:
-        if (!preferences.priceSensitivity) {
-          errors[5] = 'Please select price sensitivity';
+        if (!preferences.budgetRange) {
+          errors[5] = 'Please select a budget range';
           setValidationErrors(errors);
           return false;
         }
         break;
       case 6:
-        if (!preferences.notificationPreference) {
-          errors[6] = 'Please select notification preference';
+        if (!preferences.deliveryPreference) {
+          errors[6] = 'Please select a delivery preference';
           setValidationErrors(errors);
           return false;
         }
         break;
       case 7:
+        // Optional
+        break;
       case 8:
-        // Optional steps - no validation needed
+        if (!preferences.shoppingFrequency) {
+          errors[8] = 'Please select shopping frequency';
+          setValidationErrors(errors);
+          return false;
+        }
         break;
       case 9:
+        if (!preferences.priceSensitivity) {
+          errors[9] = 'Please select price sensitivity';
+          setValidationErrors(errors);
+          return false;
+        }
+        break;
+      case 10:
+        if (!preferences.notificationPreference) {
+          errors[10] = 'Please select notification preference';
+          setValidationErrors(errors);
+          return false;
+        }
+        break;
+      case 12:
         if (!preferences.consent) {
-          errors[9] = 'Please provide consent to continue';
+          errors[12] = 'Please provide consent to continue';
           setValidationErrors(errors);
           return false;
         }
@@ -724,13 +927,16 @@ export default function AIOnboardingWizard() {
   };
 
   const handleNext = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+    if (validateStep(currentStep)) {
+      syncToApi(preferences, currentStep);
+      if (currentStep < totalSteps) {
+        setCurrentStep(currentStep + 1);
+      }
     }
   };
 
   const handleSkip = () => {
-    // Skip optional steps (7 and 8) by moving to next step
+    syncToApi(preferences, currentStep);
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -745,7 +951,7 @@ export default function AIOnboardingWizard() {
   };
 
   const handleComplete = async () => {
-    if (!validateStep(9)) {
+    if (!validateStep(11)) {
       return;
     }
 
@@ -753,39 +959,34 @@ export default function AIOnboardingWizard() {
     try {
       // Build data object with only DTO fields - no extra properties
       const dataToSend: UpdateAIOnboardingDto = {
-        favoriteCategories: Array.isArray(preferences.favoriteCategories) 
-          ? preferences.favoriteCategories 
+        favoriteCategories: Array.isArray(preferences.favoriteCategories)
+          ? preferences.favoriteCategories
           : [],
-        preferredBrands: Array.isArray(preferences.preferredBrands) 
-          ? preferences.preferredBrands 
+        preferredBrands: Array.isArray(preferences.preferredBrands)
+          ? preferences.preferredBrands
           : [],
-        specialInterests: Array.isArray(preferences.specialInterests) 
-          ? preferences.specialInterests 
+        specialInterests: Array.isArray(preferences.specialInterests)
+          ? preferences.specialInterests
           : [],
         consent: true,
-        lastStepCompleted: 9,
+        lastStepCompleted: 12,
         isDraft: false,
       };
 
-      // Only add optional fields if they have valid values
-      if (preferences.budgetRange && typeof preferences.budgetRange === 'string') {
-        dataToSend.budgetRange = preferences.budgetRange;
-      }
-      if (preferences.deliveryPreference && typeof preferences.deliveryPreference === 'string') {
-        dataToSend.deliveryPreference = preferences.deliveryPreference;
-      }
-      if (preferences.shoppingFrequency && typeof preferences.shoppingFrequency === 'string') {
-        dataToSend.shoppingFrequency = preferences.shoppingFrequency;
-      }
-      if (preferences.priceSensitivity && typeof preferences.priceSensitivity === 'string') {
-        dataToSend.priceSensitivity = preferences.priceSensitivity;
-      }
-      if (preferences.notificationPreference && typeof preferences.notificationPreference === 'string') {
-        dataToSend.notificationPreference = preferences.notificationPreference;
-      }
+      // Add all preference fields
+      if (preferences.userRole) dataToSend.userRole = preferences.userRole;
+      if (preferences.primaryGoal) dataToSend.primaryGoal = preferences.primaryGoal;
+      if (preferences.experienceLevel) dataToSend.experienceLevel = preferences.experienceLevel;
+      if (preferences.communicationStyle) dataToSend.communicationStyle = preferences.communicationStyle;
+      if (preferences.businessContext) dataToSend.businessContext = preferences.businessContext;
+      if (preferences.budgetRange) dataToSend.budgetRange = preferences.budgetRange;
+      if (preferences.deliveryPreference) dataToSend.deliveryPreference = preferences.deliveryPreference;
+      if (preferences.shoppingFrequency) dataToSend.shoppingFrequency = preferences.shoppingFrequency;
+      if (preferences.priceSensitivity) dataToSend.priceSensitivity = preferences.priceSensitivity;
+      if (preferences.notificationPreference) dataToSend.notificationPreference = preferences.notificationPreference;
 
       await aiOnboardingApi.updatePreferences(dataToSend);
-      
+
       // Clear localStorage draft
       try {
         localStorage.removeItem('ai-onboarding-draft');
@@ -798,7 +999,7 @@ export default function AIOnboardingWizard() {
     } catch (error: any) {
       console.error('Failed to save preferences:', error);
       console.error('Error response:', error?.response?.data);
-      
+
       // Extract error message from validation response
       let errorMessage = 'Failed to save preferences';
       if (error?.response?.data) {
@@ -810,7 +1011,7 @@ export default function AIOnboardingWizard() {
           errorMessage = error.response.data.error;
         }
       }
-      
+
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -831,22 +1032,28 @@ export default function AIOnboardingWizard() {
 
     switch (currentStep) {
       case 1:
-        return <Step1Categories {...stepProps} />;
+        return <Step0Role {...stepProps} />;
       case 2:
-        return <Step2Budget {...stepProps} />;
+        return <Step1Goal {...stepProps} />;
       case 3:
-        return <Step3Delivery {...stepProps} />;
+        return <StepScaling {...stepProps} />;
       case 4:
-        return <Step4Frequency {...stepProps} />;
+        return <Step1Categories {...stepProps} />;
       case 5:
-        return <Step5PriceSensitivity {...stepProps} />;
+        return <Step2Budget {...stepProps} />;
       case 6:
-        return <Step6Notifications {...stepProps} />;
+        return <Step3Delivery {...stepProps} />;
       case 7:
-        return <Step7Brands {...stepProps} />;
+        return <StepBusinessContext {...stepProps} />;
       case 8:
-        return <Step8Interests {...stepProps} />;
+        return <Step4Frequency {...stepProps} />;
       case 9:
+        return <Step5PriceSensitivity {...stepProps} />;
+      case 10:
+        return <Step6Notifications {...stepProps} />;
+      case 11:
+        return <Step7Brands {...stepProps} />;
+      case 12:
         return <Step9Consent {...stepProps} />;
       default:
         return null;
@@ -923,7 +1130,7 @@ export default function AIOnboardingWizard() {
               Previous
             </button>
             <div className="flex items-center gap-3">
-              {(currentStep === 7 || currentStep === 8) && (
+              {(currentStep === 6 || currentStep === 10) && (
                 <button
                   onClick={handleSkip}
                   className="px-6 py-3 rounded-full border-2 border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"

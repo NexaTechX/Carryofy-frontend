@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import FloatingAssistant from '../ai-assistant/FloatingAssistant';
+// import FloatingAssistant from '../ai-assistant/FloatingAssistant';
 
 export default function Header() {
 
@@ -34,7 +34,7 @@ export default function Header() {
   const navLinks = [
     { name: 'Home', href: '/' },
     { name: 'Products', href: '/products' },
-    { name: 'Merchants', href: '/merchant-onboarding' },
+    { name: 'Sell', href: '/merchant-onboarding' },
     {
       name: 'Resources',
       href: '#',
@@ -128,10 +128,16 @@ export default function Header() {
               Sign In
             </Link>
             <Link
-              href="/auth/signup"
+              href="/products"
+              className="px-6 py-2.5 text-gray-700 font-semibold rounded-full border border-gray-300 hover:border-primary hover:text-primary transition-colors"
+            >
+              Start Shopping
+            </Link>
+            <Link
+              href="/merchant-onboarding"
               className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-light text-white rounded-full hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 transform hover:-translate-y-0.5 font-semibold"
             >
-              Get Started
+              Sell on Carryofy
             </Link>
           </div>
 
@@ -198,7 +204,7 @@ export default function Header() {
                     </div>
                   ))}
 
-                  {/* Mobile Auth Buttons */}
+                  {/* Mobile CTAs */}
                   <div className="pt-4 mt-2 border-t border-gray-100 space-y-2">
                     <Link
                       href="/auth/login"
@@ -208,11 +214,18 @@ export default function Header() {
                       Sign In
                     </Link>
                     <Link
-                      href="/auth/signup"
+                      href="/products"
+                      className="block w-full py-3 text-center text-gray-700 font-semibold rounded-xl border border-gray-200 hover:border-primary hover:text-primary transition-colors touch-target btn-mobile"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Start Shopping
+                    </Link>
+                    <Link
+                      href="/merchant-onboarding"
                       className="block w-full py-3 text-center bg-gradient-to-r from-primary to-primary-light text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all touch-target btn-mobile"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Get Started
+                      Sell on Carryofy
                     </Link>
                   </div>
                 </div>
@@ -221,7 +234,7 @@ export default function Header() {
           )}
         </AnimatePresence>
       </nav>
-      <FloatingAssistant />
+      {/* <FloatingAssistant /> */}
     </header>
   );
 }

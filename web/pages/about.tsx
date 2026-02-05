@@ -27,7 +27,7 @@ export default function About() {
     // Trust keywords
     'trusted ecommerce Nigeria',
     'reliable delivery company Lagos',
-    'best logistics Nigeria',
+    'reliable logistics Nigeria',
     'top ecommerce Africa',
     
     // Location keywords

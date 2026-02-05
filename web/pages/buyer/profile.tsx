@@ -289,7 +289,7 @@ export default function BuyerProfilePage() {
       fetchAddresses();
     } catch (err: any) {
       console.error('Error saving address:', err);
-      
+
       // Handle specific error cases
       if (err.response?.status === 400) {
         const errorMessage = err.response?.data?.message || 'Invalid address data';

@@ -38,7 +38,7 @@ export default function SameDayDelivery() {
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-gray-900">
               Same-Day Delivery -{' '}
-              <span className="text-primary">Revolutionizing Logistics</span>
+              <span className="text-primary">Fast, reliable logistics</span>
             </h2>
             <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
               For the first time in Nigeria's e-commerce and logistics history, Carryofy brings

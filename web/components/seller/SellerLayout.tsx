@@ -21,6 +21,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { useAuth, tokenManager } from '../../lib/auth';
+import OnboardingBanner from '../ai-onboarding/OnboardingBanner';
 
 interface Notification {
   id: string;
@@ -238,6 +239,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
+      <OnboardingBanner />
       {/* Top Header */}
       <header className="bg-black border-b border-primary/30 sticky top-0 z-50 safe-top">
         <div className="flex items-center justify-between px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
@@ -245,10 +247,10 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
           <div className="flex lg:hidden items-center gap-2">
             <Link href="/seller" className="flex items-center gap-2">
               <div className="w-7 h-7 sm:w-8 sm:h-8 relative">
-                <Image 
-                  src="/logo.png" 
-                  alt="Carryofy" 
-                  width={32} 
+                <Image
+                  src="/logo.png"
+                  alt="Carryofy"
+                  width={32}
                   height={32}
                   className="w-full h-full object-contain"
                   priority
@@ -413,10 +415,10 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             {/* Logo */}
             <div className="flex items-center space-x-2 px-4 sm:px-6 py-3 sm:py-4 border-b border-primary/30">
               <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex items-center justify-center">
-                <Image 
-                  src="/logo.png" 
-                  alt="Carryofy" 
-                  width={40} 
+                <Image
+                  src="/logo.png"
+                  alt="Carryofy"
+                  width={40}
                   height={40}
                   className="w-full h-full object-contain"
                 />

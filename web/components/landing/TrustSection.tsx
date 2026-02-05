@@ -11,13 +11,13 @@ export default function TrustSection() {
     },
     {
       icon: Shield,
-      value: '100%',
-      label: 'Verified sellers',
+      value: 'Verified',
+      label: 'sellers',
     },
     {
       icon: CheckCircle,
-      value: 'Secure',
-      label: 'Payments',
+      value: 'Paystack',
+      label: 'Payments — secure checkout',
     },
   ];
 

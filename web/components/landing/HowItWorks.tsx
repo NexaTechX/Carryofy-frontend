@@ -1,39 +1,31 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { UserCheck, Store, Truck } from 'lucide-react';
+import { UserCheck, Package, Truck, CircleDollarSign, ShoppingBag, CreditCard, Shield } from 'lucide-react';
+
+const sellerSteps = [
+  { id: 1, title: 'Apply & get verified', description: 'Submit your business details. We verify and onboard you.', icon: UserCheck },
+  { id: 2, title: 'List products', description: 'Add your products. We help if needed.', icon: Package },
+  { id: 3, title: 'We handle orders & delivery', description: 'We store, pack, and deliver. You focus on selling.', icon: Truck },
+  { id: 4, title: 'Get paid', description: 'Receive payouts after delivery confirmation.', icon: CircleDollarSign },
+];
+
+const buyerSteps = [
+  { id: 1, title: 'Shop verified sellers', description: 'Browse products from verified Nigerian sellers.', icon: ShoppingBag },
+  { id: 2, title: 'Pay securely', description: 'Pay with Paystack. Your payment is protected.', icon: CreditCard },
+  { id: 3, title: 'Receive fast delivery', description: 'Same-day in Lagos, 1–3 days nationwide.', icon: Truck },
+  { id: 4, title: 'Enjoy buyer protection', description: 'Refunds and support if delivery fails or item is not as described.', icon: Shield },
+];
 
 export default function HowItWorks() {
-  const steps = [
-    {
-      id: 1,
-      title: 'Shop verified sellers',
-      description: 'Browse products from verified Nigerian sellers.',
-      icon: UserCheck,
-      iconColor: 'text-white',
-      bgColor: 'bg-primary',
-    },
-    {
-      id: 2,
-      title: 'We store & handle delivery',
-      description: 'Products stored in our warehouse, ready to ship.',
-      icon: Store,
-      iconColor: 'text-white',
-      bgColor: 'bg-primary',
-    },
-    {
-      id: 3,
-      title: 'Receive fast, track easily',
-      description: 'Same-day delivery in Lagos, 1–3 days nationwide.',
-      icon: Truck,
-      iconColor: 'text-white',
-      bgColor: 'bg-primary',
-    },
-  ];
+  const [activeTab, setActiveTab] = useState<'sellers' | 'buyers'>('sellers');
+
+  const steps = activeTab === 'sellers' ? sellerSteps : buyerSteps;
 
   return (
     <section className="py-16 sm:py-20 lg:py-24 bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
+          <div className="text-center mb-10 sm:mb-12">
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -42,22 +34,46 @@ export default function HowItWorks() {
             >
               How it Works
             </motion.h2>
+            {/* Tabs */}
+            <div className="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1 mt-4">
+              <button
+                type="button"
+                onClick={() => setActiveTab('sellers')}
+                className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                  activeTab === 'sellers'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                For Sellers
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('buyers')}
+                className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                  activeTab === 'buyers'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                For Buyers
+              </button>
+            </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 max-w-5xl mx-auto">
             {steps.map((step, index) => (
               <motion.div
                 key={step.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
                 className="text-center"
               >
-                <div className={`w-16 h-16 ${step.bgColor} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                  <step.icon className={`w-8 h-8 ${step.iconColor}`} />
+                <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                  <step.icon className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{step.title}</h3>
+                <h3 className="text-base font-bold text-gray-900 mb-2">{step.title}</h3>
                 <p className="text-sm text-gray-600">
                   {step.description}
                 </p>

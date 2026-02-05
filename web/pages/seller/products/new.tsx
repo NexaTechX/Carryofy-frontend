@@ -6,16 +6,16 @@ import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
 import { useCategories, Category } from '../../../lib/buyer/hooks/useCategories';
-import { 
-  Package, 
-  Upload, 
-  X, 
-  Image as ImageIcon, 
-  DollarSign, 
-  Tag, 
-  Layers, 
-  FileText, 
-  ArrowLeft, 
+import {
+  Package,
+  Upload,
+  X,
+  Image as ImageIcon,
+  DollarSign,
+  Tag,
+  Layers,
+  FileText,
+  ArrowLeft,
   Check,
   AlertCircle,
   Sparkles,
@@ -184,7 +184,7 @@ export default function AddProductPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    
+
     // Clear error when user types
     const error = validateField(name, value);
     setErrors((prev) => ({ ...prev, [name]: error }));
@@ -220,7 +220,7 @@ export default function AddProductPage() {
       ...prev,
       keyFeatures: updatedFeatures,
     }));
-    
+
     // Validate on change
     const error = validateKeyFeatures(updatedFeatures);
     setErrors((prev) => ({
@@ -243,7 +243,7 @@ export default function AddProductPage() {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       await handleFiles(Array.from(files));
@@ -403,12 +403,12 @@ export default function AddProductPage() {
 
     // Validate all fields
     const newErrors: Partial<Record<keyof FormData, string>> = {};
-    
+
     // Validate categoryId first
     if (!formData.categoryId) {
       newErrors.categoryId = 'Category is required';
     }
-    
+
     Object.entries(formData).forEach(([key, value]) => {
       if (key !== 'keyFeatures') {
         const error = validateField(key, value as string);
@@ -454,14 +454,14 @@ export default function AddProductPage() {
         categoryId: formData.categoryId,
         material: formData.material || undefined,
         careInfo: formData.careInfo || undefined,
-        keyFeatures: formData.keyFeatures && formData.keyFeatures.length > 0 
+        keyFeatures: formData.keyFeatures && formData.keyFeatures.length > 0
           ? formData.keyFeatures.filter(f => f.trim()).map(f => f.trim())
           : undefined,
       };
 
       // Use apiClient which handles token refresh automatically
       await apiClient.post('/products', productData);
-      
+
       toast.success('Product created successfully!');
       router.push('/seller/products');
     } catch (error: any) {
@@ -551,8 +551,8 @@ export default function AddProductPage() {
                     onClick={() => fileInputRef.current?.click()}
                     className={`
                       relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200
-                      ${dragActive 
-                        ? 'border-[#ff6600] bg-[#ff6600]/10' 
+                      ${dragActive
+                        ? 'border-[#ff6600] bg-[#ff6600]/10'
                         : 'border-[#ff6600]/30 hover:border-[#ff6600]/60 hover:bg-[#ff6600]/5'
                       }
                       ${uploadingImage ? 'pointer-events-none opacity-60' : ''}
@@ -567,7 +567,7 @@ export default function AddProductPage() {
                       className="hidden"
                       disabled={uploadingImage}
                     />
-                    
+
                     {uploadingImage ? (
                       <div className="py-4">
                         <div className="w-10 h-10 border-3 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-3"></div>
@@ -592,8 +592,8 @@ export default function AddProductPage() {
                   {uploadedImages.length > 0 && (
                     <div className="mt-4 grid grid-cols-3 gap-2">
                       {uploadedImages.map((image, index) => (
-                        <div 
-                          key={index} 
+                        <div
+                          key={index}
                           className="relative aspect-square rounded-lg overflow-hidden group border border-[#ff6600]/20"
                         >
                           <img
@@ -634,7 +634,7 @@ export default function AddProductPage() {
                           </p>
                         </div>
                       ))}
-                      
+
                       {/* Add More Button */}
                       {uploadedImages.length < 5 && (
                         <button
@@ -685,9 +685,8 @@ export default function AddProductPage() {
                         placeholder="e.g., Premium Wireless Bluetooth Headphones"
                         value={formData.title}
                         onChange={handleInputChange}
-                        className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${
-                          errors.title ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
-                        }`}
+                        className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${errors.title ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
+                          }`}
                       />
                       {errors.title && (
                         <p className="mt-1 text-red-400 text-xs flex items-center gap-1">
@@ -729,7 +728,7 @@ export default function AddProductPage() {
                       <p className="text-[#ffcc99]/60 text-xs mb-3">
                         Highlight 1-3 key features that appear in the product headline
                       </p>
-                      
+
                       <div className="space-y-2">
                         {(formData.keyFeatures || []).map((feature, index) => (
                           <div key={index} className="flex items-center gap-2">
@@ -739,9 +738,8 @@ export default function AddProductPage() {
                               value={feature}
                               onChange={(e) => handleKeyFeatureChange(index, e.target.value)}
                               maxLength={30}
-                              className={`flex-1 px-4 py-2 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${
-                                errors.keyFeatures ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
-                              }`}
+                              className={`flex-1 px-4 py-2 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${errors.keyFeatures ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
+                                }`}
                             />
                             <button
                               type="button"
@@ -755,7 +753,7 @@ export default function AddProductPage() {
                             </span>
                           </div>
                         ))}
-                        
+
                         {(formData.keyFeatures || []).length < 3 && (
                           <button
                             type="button"
@@ -767,14 +765,14 @@ export default function AddProductPage() {
                           </button>
                         )}
                       </div>
-                      
+
                       {errors.keyFeatures && (
                         <p className="mt-2 text-red-400 text-xs flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
                           {errors.keyFeatures}
                         </p>
                       )}
-                      
+
                       {(formData.keyFeatures || []).length > 0 && !errors.keyFeatures && (
                         <div className="mt-3 p-3 bg-[#ff6600]/5 rounded-lg border border-[#ff6600]/10">
                           <p className="text-[#ff6600] text-xs font-medium mb-2 flex items-center gap-1">
@@ -835,7 +833,7 @@ export default function AddProductPage() {
                       const examples = categorySlug ? getCategoryExamples(categorySlug) : null;
                       const selectedCategory = getSelectedCategory();
                       const needsMaterial = categoryInfo.required || categoryInfo.recommended;
-                      
+
                       return (
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
@@ -876,13 +874,12 @@ export default function AddProductPage() {
                             value={formData.material || ''}
                             onChange={handleInputChange}
                             rows={4}
-                            className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all resize-none ${
-                              categoryInfo.required && !formData.material
-                                ? 'border-yellow-400/50'
-                                : errors.material
+                            className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all resize-none ${categoryInfo.required && !formData.material
+                              ? 'border-yellow-400/50'
+                              : errors.material
                                 ? 'border-red-500'
                                 : 'border-[#ff6600]/30'
-                            }`}
+                              }`}
                           />
                           {categoryInfo.required && !formData.material && selectedCategory && (
                             <div className="mt-2 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
@@ -919,7 +916,7 @@ export default function AddProductPage() {
                       const examples = categorySlug ? getCategoryExamples(categorySlug) : null;
                       const selectedCategory = getSelectedCategory();
                       const needsCareInfo = categoryInfo.required || categoryInfo.recommended;
-                      
+
                       return (
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
@@ -960,13 +957,12 @@ export default function AddProductPage() {
                             value={formData.careInfo || ''}
                             onChange={handleInputChange}
                             rows={4}
-                            className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all resize-none ${
-                              categoryInfo.required && !formData.careInfo
-                                ? 'border-yellow-400/50'
-                                : errors.careInfo
+                            className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all resize-none ${categoryInfo.required && !formData.careInfo
+                              ? 'border-yellow-400/50'
+                              : errors.careInfo
                                 ? 'border-red-500'
                                 : 'border-[#ff6600]/30'
-                            }`}
+                              }`}
                           />
                           {categoryInfo.required && !formData.careInfo && selectedCategory && (
                             <div className="mt-2 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
@@ -1022,11 +1018,10 @@ export default function AddProductPage() {
                                   // Clear category error when selecting
                                   setErrors(prev => ({ ...prev, categoryId: undefined }));
                                 }}
-                                className={`p-4 rounded-xl border text-center transition-all ${
-                                  formData.categoryId === cat.id
-                                    ? 'bg-[#ff6600] border-[#ff6600] text-black shadow-lg shadow-[#ff6600]/30'
-                                    : 'bg-black border-[#ff6600]/30 text-[#ffcc99] hover:border-[#ff6600]/60 hover:bg-[#1a1a1a]'
-                                } ${errors.categoryId ? 'border-red-500' : ''}`}
+                                className={`p-4 rounded-xl border text-center transition-all ${formData.categoryId === cat.id
+                                  ? 'bg-[#ff6600] border-[#ff6600] text-black shadow-lg shadow-[#ff6600]/30'
+                                  : 'bg-black border-[#ff6600]/30 text-[#ffcc99] hover:border-[#ff6600]/60 hover:bg-[#1a1a1a]'
+                                  } ${errors.categoryId ? 'border-red-500' : ''}`}
                               >
                                 {cat.icon && (
                                   <span className="text-2xl block mb-2">{cat.icon}</span>
@@ -1070,9 +1065,8 @@ export default function AddProductPage() {
                           placeholder="0.00"
                           value={formData.price}
                           onChange={handleInputChange}
-                          className={`w-full pl-10 pr-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${
-                            errors.price ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
-                          }`}
+                          className={`w-full pl-10 pr-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${errors.price ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
+                            }`}
                         />
                       </div>
                       {errors.price && (
@@ -1099,9 +1093,8 @@ export default function AddProductPage() {
                           placeholder="0"
                           value={formData.quantity}
                           onChange={handleInputChange}
-                          className={`w-full pl-10 pr-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${
-                            errors.quantity ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
-                          }`}
+                          className={`w-full pl-10 pr-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${errors.quantity ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
+                            }`}
                         />
                       </div>
                       {errors.quantity && (

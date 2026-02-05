@@ -33,7 +33,7 @@ export default function Careers() {
         },
         {
             icon: Shield,
-            title: 'Work with the best',
+            title: 'Work with a trusted team',
             desc: 'Collaborate with talented engineers, designers, and operators from top companies.',
         },
     ];
@@ -69,7 +69,7 @@ export default function Careers() {
         'operations jobs Nigeria',
         
         // Company culture keywords
-        'best tech companies Nigeria',
+        'trusted tech companies Nigeria',
         'top startups Lagos',
         'tech companies hiring Lagos',
         'remote jobs Lagos',

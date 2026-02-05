@@ -51,23 +51,23 @@ export default function MerchantOnboarding() {
     const steps = [
         {
             number: '1',
-            title: 'Create Your Account',
-            description: 'Sign up with your email or phone number. It takes less than 2 minutes.',
+            title: 'Apply & get verified',
+            description: 'Submit your business details. We verify and onboard you.',
         },
         {
             number: '2',
-            title: 'Add Your Products',
-            description: 'Upload product photos, descriptions, and prices. Our AI helps optimize listings.',
+            title: 'List products',
+            description: 'Add your products. We help if needed.',
         },
         {
             number: '3',
-            title: 'Ship to Our Warehouse',
-            description: 'Send your inventory to our Lagos warehouse. We\'ll handle storage and packaging.',
+            title: 'We handle orders & delivery',
+            description: 'We store, pack, and deliver. You focus on selling.',
         },
         {
             number: '4',
-            title: 'Start Selling',
-            description: 'Go live and start receiving orders. We handle delivery and you get paid fast.',
+            title: 'Get paid',
+            description: 'Receive payouts after delivery confirmation.',
         },
     ];
 
@@ -89,7 +89,7 @@ export default function MerchantOnboarding() {
         'start selling online Lagos',
         
         // Platform comparison keywords
-        'best marketplace Nigeria',
+        'trusted marketplace Nigeria',
         'where to sell online Nigeria',
         'ecommerce platform Nigeria',
         'jumia alternative sellers',
@@ -173,18 +173,21 @@ export default function MerchantOnboarding() {
                     <section className="bg-gradient-to-r from-primary/10 to-primary/5 py-20">
                         <div className="container mx-auto px-4 text-center">
                             <span className="inline-block px-4 py-2 bg-primary/20 text-primary rounded-full text-sm font-semibold mb-6">
-                                Join 1,000+ Nigerian Merchants
+                                Early access — limited slots
                             </span>
-                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">Sell Smarter with Carryofy</h1>
+                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">Grow your business. We handle delivery.</h1>
                             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-                                Start selling to buyers in Lagos. Zero upfront costs, same-day delivery, and fast payouts.
+                                Carryofy helps SMEs sell online with built-in logistics, payments, and customer trust.
+                            </p>
+                            <p className="text-gray-600 mb-8 max-w-xl mx-auto text-sm">
+                                Commission-based — no upfront fees. Manual support during onboarding. Early seller incentives.
                             </p>
                             <div className="flex flex-col sm:flex-row justify-center gap-4">
                                 <a
                                     href="/auth/signup"
                                     className="px-8 py-4 bg-primary text-white rounded-full font-bold text-lg hover:bg-primary-dark transition shadow-lg shadow-primary/30"
                                 >
-                                    Start Selling Free
+                                    Apply as a Seller
                                 </a>
                                 <a
                                     href="#how-it-works"
@@ -198,37 +201,36 @@ export default function MerchantOnboarding() {
                             <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm text-gray-500">
                                 <span className="flex items-center gap-2">
                                     <CheckCircle className="w-4 h-4 text-green-500" />
-                                    Free to Join
+                                    Commission-based
                                 </span>
                                 <span className="flex items-center gap-2">
                                     <CheckCircle className="w-4 h-4 text-green-500" />
-                                    No Monthly Fees
+                                    No upfront fees
                                 </span>
                                 <span className="flex items-center gap-2">
                                     <CheckCircle className="w-4 h-4 text-green-500" />
-                                    24-48hr Payouts
+                                    Payouts after delivery
                                 </span>
                                 <span className="flex items-center gap-2">
                                     <CheckCircle className="w-4 h-4 text-green-500" />
-                                    Same-Day Delivery
+                                    Same-day delivery
                                 </span>
                             </div>
                         </div>
                     </section>
 
-                    {/* Stats Section */}
-                    <section className="py-12 bg-gray-900 text-white">
+                    {/* Trust strip */}
+                    <section className="py-8 bg-gray-900 text-white">
                         <div className="container mx-auto px-4">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto text-center">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto text-center">
                                 {[
-                                    { value: '1,000+', label: 'Active Sellers' },
-                                    { value: '₦50M+', label: 'Monthly Sales' },
-                                    { value: '99%', label: 'On-Time Delivery' },
-                                    { value: '4.8★', label: 'Seller Rating' },
-                                ].map((stat, index) => (
+                                    { label: 'Verified sellers' },
+                                    { label: 'Fast payouts' },
+                                    { label: 'Same-day delivery' },
+                                    { label: 'Paystack payments' },
+                                ].map((item, index) => (
                                     <div key={index}>
-                                        <p className="text-3xl md:text-4xl font-bold text-primary mb-2">{stat.value}</p>
-                                        <p className="text-gray-400 text-sm">{stat.label}</p>
+                                        <p className="text-gray-300 font-medium text-sm">{item.label}</p>
                                     </div>
                                 ))}
                             </div>
@@ -322,13 +324,13 @@ export default function MerchantOnboarding() {
                         <div className="container mx-auto px-4 text-center">
                             <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Grow Your Business?</h2>
                             <p className="text-xl text-white/80 mb-8 max-w-xl mx-auto">
-                                Join Carryofy today and start reaching millions of Nigerian buyers. No upfront costs.
+                                Join Carryofy. We handle delivery, storage, and payments. You focus on selling.
                             </p>
                             <a
                                 href="/auth/signup"
                                 className="inline-block px-10 py-4 bg-white text-primary rounded-full font-bold text-lg hover:bg-gray-100 transition shadow-lg"
                             >
-                                Become a Merchant Now
+                                Apply as a Seller
                             </a>
                             <p className="mt-6 text-white/60 text-sm">
                                 Already have an account?{' '}

@@ -4,9 +4,9 @@ import Link from 'next/link';
 
 export default function SellerCTASection() {
   const sellerFeatures = [
-    'Bulk fulfillment: We store and deliver for you.',
-    'Analytics: Real-time data on your sales',
-    'Fast Payouts: Get paid the same or next-day delivered',
+    'We store, pack, and deliver your products',
+    'We handle customer communication',
+    'You focus on selling and growing your business',
   ];
 
   return (
@@ -52,6 +52,9 @@ export default function SellerCTASection() {
             >
               Apply as a Seller
             </Link>
+            <p className="mt-4 text-gray-400 text-sm">
+              Early access — limited seller slots.
+            </p>
           </motion.div>
         </div>
       </div>

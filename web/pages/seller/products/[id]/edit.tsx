@@ -97,7 +97,7 @@ export default function EditProductPage() {
       if (response.ok) {
         const result = await response.json();
         const product: Product = result.data || result;
-        
+
         // Populate form with product data
         setFormData({
           title: product.title,
@@ -109,7 +109,7 @@ export default function EditProductPage() {
           careInfo: product.careInfo || '',
           keyFeatures: product.keyFeatures || [],
         });
-        
+
         setUploadedImageUrls(product.images || []);
         if (product.images && product.images.length > 0) {
           setImagePreview(product.images[0]);
@@ -181,7 +181,7 @@ export default function EditProductPage() {
       ...prev,
       keyFeatures: updatedFeatures,
     }));
-    
+
     // Validate on change
     const error = validateKeyFeatures(updatedFeatures);
     setErrors((prev) => ({
@@ -210,7 +210,7 @@ export default function EditProductPage() {
 
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-      
+
       const response = await fetch(
         `${apiUrl}/products/upload`,
         {
@@ -339,7 +339,7 @@ export default function EditProductPage() {
     setLoading(true);
     try {
       const token = tokenManager.getAccessToken();
-      
+
       // Convert price from naira to kobo (multiply by 100)
       const priceInKobo = Math.round(parseFloat(formData.price) * 100);
 
@@ -362,14 +362,14 @@ export default function EditProductPage() {
         quantity: parseInt(formData.quantity),
         material: formData.material || undefined,
         careInfo: formData.careInfo || undefined,
-        keyFeatures: formData.keyFeatures && formData.keyFeatures.length > 0 
+        keyFeatures: formData.keyFeatures && formData.keyFeatures.length > 0
           ? formData.keyFeatures.filter(f => f.trim()).map(f => f.trim())
           : undefined,
       };
 
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-      
+
       const response = await fetch(
         `${apiUrl}/products/${id}`,
         {
@@ -523,7 +523,7 @@ export default function EditProductPage() {
                       </label>
                     </div>
                   )}
-                  
+
                   {uploadingImage && (
                     <p className="text-[#ffcc99] text-sm mt-2">Uploading image...</p>
                   )}
@@ -579,7 +579,7 @@ export default function EditProductPage() {
                   <p className="text-[#ffcc99]/60 text-xs mb-3">
                     Highlight 1-3 key features that appear in the product headline
                   </p>
-                  
+
                   <div className="space-y-2">
                     {(formData.keyFeatures || []).map((feature, index) => (
                       <div key={index} className="flex items-center gap-2">
@@ -589,9 +589,8 @@ export default function EditProductPage() {
                           value={feature}
                           onChange={(e) => handleKeyFeatureChange(index, e.target.value)}
                           maxLength={30}
-                          className={`flex-1 px-4 py-2 rounded-xl bg-[#1a1a1a] border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${
-                            errors.keyFeatures ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
-                          }`}
+                          className={`flex-1 px-4 py-2 rounded-xl bg-[#1a1a1a] border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${errors.keyFeatures ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
+                            }`}
                         />
                         <button
                           type="button"
@@ -605,7 +604,7 @@ export default function EditProductPage() {
                         </span>
                       </div>
                     ))}
-                    
+
                     {(formData.keyFeatures || []).length < 3 && (
                       <button
                         type="button"
@@ -617,14 +616,14 @@ export default function EditProductPage() {
                       </button>
                     )}
                   </div>
-                  
+
                   {errors.keyFeatures && (
                     <p className="mt-2 text-red-400 text-xs flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" />
                       {errors.keyFeatures}
                     </p>
                   )}
-                  
+
                   {(formData.keyFeatures || []).length > 0 && !errors.keyFeatures && (
                     <div className="mt-3 p-3 bg-[#ff6600]/5 rounded-lg border border-[#ff6600]/10">
                       <p className="text-[#ff6600] text-xs font-medium mb-2 flex items-center gap-1">
@@ -651,7 +650,7 @@ export default function EditProductPage() {
                     <label className="block text-white text-sm font-medium">
                       Product Description
                     </label>
-                    <button
+                    {/* <button
                       type="button"
                       onClick={() => handleGenerateAIField('description')}
                       disabled={!!aiGeneratingField || !formData.title.trim()}
@@ -663,7 +662,7 @@ export default function EditProductPage() {
                         <Wand2 className="w-3.5 h-3.5" />
                       )}
                       <span>Generate with AI</span>
-                    </button>
+                    </button> */}
                   </div>
                   <textarea
                     name="description"

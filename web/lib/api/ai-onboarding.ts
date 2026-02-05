@@ -15,6 +15,11 @@ export interface AIOnboardingPreferences {
   completedAt?: Date;
   lastStepCompleted?: number;
   isDraft: boolean;
+  primaryGoal?: string;
+  experienceLevel?: string;
+  communicationStyle?: string;
+  businessContext?: string;
+  userRole?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +36,11 @@ export interface UpdateAIOnboardingDto {
   consent?: boolean;
   lastStepCompleted?: number;
   isDraft?: boolean;
+  primaryGoal?: string;
+  experienceLevel?: string;
+  communicationStyle?: string;
+  businessContext?: string;
+  userRole?: string;
 }
 
 export const aiOnboardingApi = {

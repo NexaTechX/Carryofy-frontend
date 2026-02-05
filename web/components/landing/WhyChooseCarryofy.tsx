@@ -20,7 +20,7 @@ export default function WhyChooseCarryofy() {
     {
       icon: CreditCard,
       title: 'Local support & buyer protection',
-      description: 'Nigerian support team and 100% buyer protection guarantee.',
+      description: 'Nigerian support team. Refunds and support if delivery fails or item is not as described.',
       iconBg: 'bg-primary/10',
       iconColor: 'text-primary',
     },

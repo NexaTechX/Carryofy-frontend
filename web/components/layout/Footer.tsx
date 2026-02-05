@@ -29,7 +29,7 @@ export default function Footer() {
               <span className="text-xl sm:text-2xl font-bold">Carryofy</span>
             </div>
             <p className="text-gray-400 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base">
-              Revolutionizing e-commerce logistics in Nigeria. We bridge the gap between sellers and buyers with speed and trust.
+              Reliable local commerce with verified sellers. We connect sellers and buyers with delivery, storage, and trust.
             </p>
             <div className="flex space-x-3">
               {socialLinks.map(({ Icon, href, label }) => (

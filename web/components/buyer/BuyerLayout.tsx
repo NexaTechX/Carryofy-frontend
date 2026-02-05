@@ -13,7 +13,6 @@ import {
   X,
   LogOut,
   HelpCircle,
-  MessageSquare,
   Heart,
 } from 'lucide-react';
 import NotificationsDropdown from './NotificationsDropdown';
@@ -21,7 +20,7 @@ import CartDrawer from './CartDrawer';
 import { useAuth, tokenManager } from '../../lib/auth';
 import { useCart } from '../../lib/contexts/CartContext';
 import ErrorBoundary from '../common/ErrorBoundary';
-import OnboardingBanner from '../ai-onboarding/OnboardingBanner';
+// import OnboardingBanner from '../ai-onboarding/OnboardingBanner';
 
 interface BuyerLayoutProps {
   children: ReactNode;
@@ -48,8 +47,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
   ];
 
   const helpNavigation = [
-    { name: 'Help & Support', href: '/buyer/help', icon: HelpCircle },
-    { name: 'Feedback', href: '/buyer/feedback', icon: MessageSquare },
+    { name: 'Help', href: '/buyer/help', icon: HelpCircle },
   ];
 
   const handleLogout = async () => {
@@ -65,8 +63,6 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
-      {/* AI Onboarding Banner */}
-      <OnboardingBanner />
       {/* Top Header */}
       <header className="bg-black border-b border-[#ff6600]/30 sticky top-0 z-50 safe-top">
         <div className="flex items-center justify-between px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
@@ -81,10 +77,10 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
             </button>
             <Link href="/buyer" className="flex items-center gap-2">
               <div className="w-7 h-7 sm:w-8 sm:h-8 relative">
-                <Image 
-                  src="/logo.png" 
-                  alt="Carryofy" 
-                  width={32} 
+                <Image
+                  src="/logo.png"
+                  alt="Carryofy"
+                  width={32}
                   height={32}
                   className="w-full h-full object-contain"
                   priority
@@ -144,10 +140,10 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
             <div className="lg:hidden flex justify-between items-center p-4 border-b border-[#ff6600]/30">
               <Link href="/buyer" className="flex items-center gap-2">
                 <div className="w-7 h-7 relative">
-                  <Image 
-                    src="/logo.png" 
-                    alt="Carryofy" 
-                    width={28} 
+                  <Image
+                    src="/logo.png"
+                    alt="Carryofy"
+                    width={28}
                     height={28}
                     className="w-full h-full object-contain"
                   />
@@ -173,8 +169,8 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
                     className={`flex items-center space-x-3 px-4 py-3 sm:py-3 rounded-xl transition touch-target btn-mobile ${isActive(item.href)
-                        ? 'bg-[#ff6600] text-black font-semibold'
-                        : 'text-[#ffcc99] hover:bg-[#1a1a1a] hover:text-white'
+                      ? 'bg-[#ff6600] text-black font-semibold'
+                      : 'text-[#ffcc99] hover:bg-[#1a1a1a] hover:text-white'
                       }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -195,8 +191,8 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
                       href={item.href}
                       onClick={() => setSidebarOpen(false)}
                       className={`flex items-center space-x-3 px-4 py-3 sm:py-3 rounded-xl transition touch-target btn-mobile ${isActive(item.href)
-                          ? 'bg-[#ff6600] text-black font-semibold'
-                          : 'text-[#ffcc99] hover:bg-[#1a1a1a] hover:text-white'
+                        ? 'bg-[#ff6600] text-black font-semibold'
+                        : 'text-[#ffcc99] hover:bg-[#1a1a1a] hover:text-white'
                         }`}
                     >
                       <Icon className="w-5 h-5" />

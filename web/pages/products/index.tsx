@@ -252,14 +252,14 @@ export default function PublicProductsPage({
 
   // SEO content
   const pageTitle = selectedCategory
-    ? `Buy ${getCategoryName(selectedCategory)} Online in Nigeria - Best Prices | Carryofy`
+    ? `Buy ${getCategoryName(selectedCategory)} Online in Nigeria | Carryofy`
     : searchQuery
       ? `Search "${searchQuery}" - ${total} Products Found | Carryofy Nigeria`
       : 'Shop Online in Nigeria - Same Day Delivery Lagos | Carryofy';
 
   const pageDescription = selectedCategory
-    ? `Shop ${getCategoryName(selectedCategory)} online at Carryofy Nigeria. Browse ${total}+ products from verified sellers with same-day delivery in Lagos. Best prices, secure payments, and buyer protection guaranteed.`
-    : `Discover ${total}+ quality products from verified Nigerian sellers on Carryofy. Electronics, fashion, groceries, home goods and more. Same-day delivery in Lagos, secure payments, 100% buyer protection.`;
+    ? `Shop ${getCategoryName(selectedCategory)} online at Carryofy Nigeria. Browse ${total}+ products from verified sellers with same-day delivery in Lagos. Secure payments and buyer protection.`
+    : `Discover ${total}+ quality products from verified Nigerian sellers on Carryofy. Same-day delivery in Lagos, secure payments, and buyer protection.`;
 
   const keywords = generateKeywords(['primary', 'problemAware', 'locations']) + 
     (selectedCategory ? `, ${getCategoryName(selectedCategory)} Nigeria, buy ${getCategoryName(selectedCategory)} online Lagos` : '');
@@ -433,21 +433,31 @@ export default function PublicProductsPage({
                       </li>
                       {categories
                         .sort((a, b) => a.displayOrder - b.displayOrder)
-                        .map((cat) => (
-                          <li key={cat.id}>
-                            <Link
-                              href={`/products?category=${cat.slug}`}
-                              onClick={() => setMobileFiltersOpen(false)}
-                              className={`block px-4 py-3 sm:py-2 rounded-lg transition touch-target ${
-                                selectedCategory === cat.slug
-                                  ? 'bg-[#ff6600] text-black font-bold'
-                                  : 'text-white hover:bg-[#ff6600]/10 hover:text-white'
-                              }`}
-                            >
-                              {cat.name}
-                            </Link>
-                          </li>
-                        ))}
+                        .map((cat, idx) => {
+                          const isActiveCategory = idx < 2;
+                          return isActiveCategory ? (
+                            <li key={cat.id}>
+                              <Link
+                                href={`/products?category=${cat.slug}`}
+                                onClick={() => setMobileFiltersOpen(false)}
+                                className={`block px-4 py-3 sm:py-2 rounded-lg transition touch-target ${
+                                  selectedCategory === cat.slug
+                                    ? 'bg-[#ff6600] text-black font-bold'
+                                    : 'text-white hover:bg-[#ff6600]/10 hover:text-white'
+                                }`}
+                              >
+                                {cat.name}
+                              </Link>
+                            </li>
+                          ) : (
+                            <li key={cat.id}>
+                              <span className="block px-4 py-3 sm:py-2 rounded-lg text-[#ffcc99]/50 cursor-default text-sm">
+                                {cat.name}
+                                <span className="ml-2 text-[10px] bg-[#1a1a1a] px-1.5 py-0.5 rounded">Coming Soon</span>
+                              </span>
+                            </li>
+                          );
+                        })}
                     </ul>
                   </nav>
 
@@ -540,7 +550,7 @@ export default function PublicProductsPage({
                 {/* Products Grid */}
                 {products.length > 0 ? (
                   <section
-                    className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5"
+                    className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6"
                     aria-label="Products"
                     itemScope
                     itemType="https://schema.org/ItemList"
@@ -639,7 +649,7 @@ export default function PublicProductsPage({
                     {selectedCategory ? (
                       <>
                         <p>
-                          Looking for the best {getCategoryName(selectedCategory).toLowerCase()} in Nigeria? Carryofy is your trusted
+                          Looking for {getCategoryName(selectedCategory).toLowerCase()} in Nigeria? Carryofy is your trusted
                           online marketplace for quality {getCategoryName(selectedCategory).toLowerCase()} from verified Nigerian
                           sellers. Browse our collection of {total}+ products and enjoy same-day delivery in Lagos.
                         </p>

@@ -19,6 +19,7 @@ import {
   Star,
   BarChart3,
   MessageSquare,
+  FileText,
 } from 'lucide-react';
 import { useAuth, tokenManager } from '../../lib/auth';
 import OnboardingBanner from '../ai-onboarding/OnboardingBanner';
@@ -219,6 +220,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
     { name: 'Dashboard', href: '/seller', icon: LayoutDashboard },
     { name: 'Products', href: '/seller/products', icon: Package },
     { name: 'Orders', href: '/seller/orders', icon: Files },
+    { name: 'Quotes', href: '/seller/quotes', icon: FileText },
     { name: 'Reviews', href: '/seller/reviews', icon: Star },
     { name: 'Analytics', href: '/seller/analytics', icon: BarChart3 },
     { name: 'Earnings', href: '/seller/earnings', icon: DollarSign },
@@ -240,9 +242,9 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       <OnboardingBanner />
-      {/* Top Header */}
-      <header className="bg-black border-b border-primary/30 sticky top-0 z-50 safe-top">
-        <div className="flex items-center justify-between px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
+      {/* Top Header - fixed height so fixed sidebar aligns below it */}
+      <header className="bg-black border-b border-primary/30 sticky top-0 z-50 safe-top h-14 sm:h-16 shrink-0 flex items-center">
+        <div className="flex items-center justify-between w-full px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
           {/* Mobile Logo - Only visible on mobile when sidebar is hidden */}
           <div className="flex lg:hidden items-center gap-2">
             <Link href="/seller" className="flex items-center gap-2">
@@ -405,11 +407,12 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
+      <div className="flex flex-1 min-h-0">
+        {/* Sidebar - fixed on desktop so only content scrolls; overlay on mobile */}
         <aside
           className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-40 w-[280px] sm:w-64 bg-black border-r border-primary/30 transition-transform duration-300 ease-in-out lg:flex lg:flex-col`}
+            } fixed inset-y-0 left-0 z-40 w-[280px] sm:w-64 bg-black border-r border-primary/30 transition-transform duration-300 ease-in-out
+            lg:translate-x-0 lg:top-16 lg:bottom-0 lg:h-[calc(100vh-4rem)] lg:flex lg:flex-col`}
         >
           <div className="flex flex-col h-full">
             {/* Logo */}
@@ -486,10 +489,12 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
           />
         )}
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-black scroll-smooth">
-          <div className="p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom">{children}</div>
-        </main>
+        {/* Main content wrapper: reserved space for fixed sidebar on desktop, scrollable */}
+        <div className="flex-1 flex flex-col min-h-0 min-w-0 w-full lg:ml-64">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden bg-black scroll-smooth">
+            <div className="p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom">{children}</div>
+          </main>
+        </div>
       </div>
     </div>
   );

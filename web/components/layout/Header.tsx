@@ -33,7 +33,6 @@ export default function Header() {
 
   const navLinks = [
     { name: 'Home', href: '/' },
-    { name: 'Products', href: '/products' },
     { name: 'Sell', href: '/merchant-onboarding' },
     {
       name: 'Resources',
@@ -135,7 +134,7 @@ export default function Header() {
             </Link>
             <Link
               href="/merchant-onboarding"
-              className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-light text-white rounded-full hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 transform hover:-translate-y-0.5 font-semibold"
+              className="px-6 py-2.5 bg-linear-to-r from-primary to-primary-light text-white rounded-full hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 transform hover:-translate-y-0.5 font-semibold"
             >
               Sell on Carryofy
             </Link>
@@ -222,7 +221,7 @@ export default function Header() {
                     </Link>
                     <Link
                       href="/merchant-onboarding"
-                      className="block w-full py-3 text-center bg-gradient-to-r from-primary to-primary-light text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all touch-target btn-mobile"
+                      className="block w-full py-3 text-center bg-linear-to-r from-primary to-primary-light text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all touch-target btn-mobile"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Sell on Carryofy

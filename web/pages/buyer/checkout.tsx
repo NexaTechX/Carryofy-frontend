@@ -49,11 +49,30 @@ const STEPS = [
   { id: 3, label: 'Confirmation', icon: ShieldCheck },
 ] as const;
 
+interface QuoteItem {
+  id: string;
+  productId: string;
+  requestedQuantity: number;
+  sellerQuotedPriceKobo?: number;
+  requestedPriceKobo?: number;
+  product?: { id: string; title: string; images?: string[] };
+}
+
+interface QuoteRequest {
+  id: string;
+  status: string;
+  items: QuoteItem[];
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
+  const quoteId = typeof router.query.quoteId === 'string' ? router.query.quoteId : undefined;
   const [mounted, setMounted] = useState(false);
   const [cart, setCart] = useState<Cart | null>(null);
-  const [loadingCart, setLoadingCart] = useState(true);
+  const [quote, setQuote] = useState<QuoteRequest | null>(null);
+  const [loadingQuote, setLoadingQuote] = useState(!!quoteId);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [loadingCart, setLoadingCart] = useState(!quoteId);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [orderMessage, setOrderMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -116,14 +135,39 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (mounted) {
-      fetchCart();
+      if (quoteId) {
+        (async () => {
+          try {
+            setLoadingQuote(true);
+            setQuoteError(null);
+            const res = await apiClient.get(`/quote-requests/${quoteId}`);
+            const q = res.data?.data ?? res.data;
+            if (!q || q.status !== 'APPROVED') {
+              setQuoteError(q?.status ? 'This quote is not approved.' : 'Quote not found.');
+              setQuote(null);
+              return;
+            }
+            setQuote({ id: q.id, status: q.status, items: q.items ?? [] });
+          } catch (err: any) {
+            setQuoteError(err.response?.data?.message || err.message || 'Failed to load quote.');
+            setQuote(null);
+          } finally {
+            setLoadingQuote(false);
+          }
+        })();
+      } else {
+        fetchCart();
+      }
       fetchAddresses();
     }
-  }, [mounted]);
+  }, [mounted, quoteId]);
 
-  // Fetch Express shipping quote when cart and address available
+  // Fetch Express shipping quote when cart or quote and address available
   useEffect(() => {
-    if (!cart?.items?.length) {
+    const items = quote
+      ? quote.items.map((i) => ({ productId: i.productId, quantity: i.requestedQuantity }))
+      : cart?.items?.map((i) => ({ productId: i.productId, quantity: i.quantity })) ?? [];
+    if (!items.length) {
       setShippingFee(0);
       setShippingQuoteError(null);
       return;
@@ -137,7 +181,6 @@ export default function CheckoutPage() {
     let cancelled = false;
     setShippingQuoteLoading(true);
     setShippingQuoteError(null);
-    const items = cart.items.map((i) => ({ productId: i.productId, quantity: i.quantity }));
     fetchShippingQuote({ addressId, items, shippingMethod: 'EXPRESS' })
       .then((res) => {
         if (!cancelled) {
@@ -155,7 +198,7 @@ export default function CheckoutPage() {
         if (!cancelled) setShippingQuoteLoading(false);
       });
     return () => { cancelled = true; };
-  }, [cart?.items, selectedAddressId]);
+  }, [cart?.items, quote, selectedAddressId]);
 
   const fetchAddresses = async () => {
     // Only fetch addresses if user is authenticated
@@ -299,10 +342,19 @@ export default function CheckoutPage() {
 
   const discount = couponDiscount;
 
+  const quoteSubtotal = useMemo(() => {
+    if (!quote?.items?.length) return 0;
+    return quote.items.reduce(
+      (sum, i) => sum + (i.requestedQuantity * (i.sellerQuotedPriceKobo ?? i.requestedPriceKobo ?? 0)),
+      0,
+    );
+  }, [quote?.items]);
+
   const totalAmount = useMemo(() => {
+    if (quote) return quoteSubtotal + shippingFee - discount;
     if (!cart) return 0;
     return cart.totalAmount + shippingFee - discount;
-  }, [cart, shippingFee, discount]);
+  }, [cart, quote, quoteSubtotal, shippingFee, discount]);
 
   const formatPrice = (priceInKobo: number) => {
     const n = Number(priceInKobo);
@@ -330,7 +382,8 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!cart || cart.items.length === 0) {
+    const subtotalForCoupon = quote ? quoteSubtotal : (cart?.items?.reduce((sum, item) => sum + (item.product.price * item.quantity), 0) ?? 0);
+    if (!quote && (!cart || cart.items.length === 0)) {
       setOrderMessage({ type: 'error', text: 'Cart is empty.' });
       setTimeout(() => setOrderMessage(null), 2500);
       return;
@@ -340,10 +393,9 @@ export default function CheckoutPage() {
       setCouponValidating(true);
       setOrderMessage(null);
       
-      const subtotal = cart.items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
       const result = await validateCoupon({
         code: couponCode.trim(),
-        orderAmount: subtotal,
+        orderAmount: subtotalForCoupon,
       });
 
       if (result.valid) {
@@ -421,7 +473,8 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!cart || cart.items.length === 0) {
+    const isQuoteCheckout = !!(quote && quoteId);
+    if (!isQuoteCheckout && (!cart || cart.items.length === 0)) {
       setOrderMessage({ type: 'error', text: 'Your cart is empty. Add products before checking out.' });
       return;
     }
@@ -496,18 +549,23 @@ export default function CheckoutPage() {
         }
       }
 
-      // Step 2: Create order with cart items
-      const orderItems = cart.items.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-      }));
-
-      const orderResponse = await apiClient.post('/orders', {
+      // Step 2: Create order (from quote or cart)
+      const orderPayload: Record<string, unknown> = {
         addressId,
-        items: orderItems,
         shippingMethod: 'EXPRESS',
         couponCode: couponApplied ? couponCode.trim() || undefined : undefined,
-      });
+      };
+      if (isQuoteCheckout) {
+        orderPayload.quoteId = quoteId;
+        orderPayload.orderType = 'B2B';
+      } else {
+        orderPayload.items = cart!.items.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        }));
+      }
+
+      const orderResponse = await apiClient.post('/orders', orderPayload);
 
       const orderId = orderResponse.data.id || orderResponse.data.data?.id;
 
@@ -621,7 +679,22 @@ export default function CheckoutPage() {
                 </button>
               </div>
             </div>
-          ) : !cart || cart.items.length === 0 ? (
+          ) : quoteId && loadingQuote ? (
+            <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-2xl p-12 text-center">
+              <Loader2 className="w-12 h-12 text-[#ff6600] mx-auto mb-4 animate-spin" />
+              <p className="text-[#ffcc99]">Loading quote...</p>
+            </div>
+          ) : quoteId && quoteError ? (
+            <div className="bg-[#1a1a1a] border border-red-500/30 rounded-2xl p-12 text-center">
+              <p className="text-red-400 mb-4">{quoteError}</p>
+              <button
+                onClick={() => router.push('/buyer/quotes')}
+                className="px-8 py-4 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
+              >
+                My quote requests
+              </button>
+            </div>
+          ) : !quote && (!cart || cart.items.length === 0) ? (
             <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-2xl p-12 text-center">
               <Package className="w-16 h-16 text-[#ffcc99] mx-auto mb-4" />
               <h2 className="text-white text-2xl font-bold mb-2">Your cart is empty</h2>
@@ -689,22 +762,45 @@ export default function CheckoutPage() {
                           <h2 className="text-white text-xl font-bold">Your order</h2>
                         </div>
                         <div className="space-y-4 max-h-72 overflow-y-auto pr-2">
-                          {cart?.items.map((item) => (
-                            <div key={item.id} className="flex gap-4 items-center py-3 border-b border-[#ff6600]/20 last:border-0">
-                              <div className="w-14 h-14 rounded-lg overflow-hidden bg-black shrink-0">
-                                {item.product.images?.[0] ? (
-                                  <img src={item.product.images[0]} alt={item.product.title} className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-[#ffcc99]"><Package className="w-6 h-6" /></div>
-                                )}
+                          {quote ? (
+                            quote.items.map((item) => {
+                              const unitKobo = item.sellerQuotedPriceKobo ?? item.requestedPriceKobo ?? 0;
+                              const lineTotal = item.requestedQuantity * unitKobo;
+                              return (
+                                <div key={item.id} className="flex gap-4 items-center py-3 border-b border-[#ff6600]/20 last:border-0">
+                                  <div className="w-14 h-14 rounded-lg overflow-hidden bg-black shrink-0">
+                                    {item.product?.images?.[0] ? (
+                                      <img src={item.product.images[0]} alt={item.product.title} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-[#ffcc99]"><Package className="w-6 h-6" /></div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-white font-medium text-sm truncate">{item.product?.title ?? 'Product'}</p>
+                                    <p className="text-[#ffcc99] text-xs">Qty: {item.requestedQuantity}</p>
+                                  </div>
+                                  <p className="text-[#ff6600] font-bold">{formatPrice(lineTotal)}</p>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            cart?.items.map((item) => (
+                              <div key={item.id} className="flex gap-4 items-center py-3 border-b border-[#ff6600]/20 last:border-0">
+                                <div className="w-14 h-14 rounded-lg overflow-hidden bg-black shrink-0">
+                                  {item.product.images?.[0] ? (
+                                    <img src={item.product.images[0]} alt={item.product.title} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-[#ffcc99]"><Package className="w-6 h-6" /></div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-white font-medium text-sm truncate">{item.product.title}</p>
+                                  <p className="text-[#ffcc99] text-xs">Qty: {item.quantity}</p>
+                                </div>
+                                <p className="text-[#ff6600] font-bold">{formatPrice(item.product.price * item.quantity)}</p>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-white font-medium text-sm truncate">{item.product.title}</p>
-                                <p className="text-[#ffcc99] text-xs">Qty: {item.quantity}</p>
-                              </div>
-                              <p className="text-[#ff6600] font-bold">{formatPrice(item.product.price * item.quantity)}</p>
-                            </div>
-                          ))}
+                            ))
+                          )}
                         </div>
                       </section>
 
@@ -761,7 +857,7 @@ export default function CheckoutPage() {
                       <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 sticky top-6 space-y-6">
                         <h2 className="text-white text-xl font-bold">Order summary</h2>
                         <div className="space-y-3 border-t border-[#ff6600]/30 pt-4">
-                          <div className="flex justify-between"><span className="text-[#ffcc99]">Subtotal</span><span className="text-white font-semibold">{formatPrice(cart?.totalAmount ?? 0)}</span></div>
+                          <div className="flex justify-between"><span className="text-[#ffcc99]">Subtotal</span><span className="text-white font-semibold">{formatPrice(quote ? quoteSubtotal : (cart?.totalAmount ?? 0))}</span></div>
                           <div className="flex justify-between">
                             <span className="text-[#ffcc99]">Shipping</span>
                             <span className="text-white font-semibold">
@@ -1099,7 +1195,7 @@ export default function CheckoutPage() {
                       <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 sticky top-6 space-y-6">
                         <h2 className="text-white text-xl font-bold">Summary</h2>
                         <div className="space-y-3 border-t border-[#ff6600]/30 pt-4">
-                          <div className="flex justify-between"><span className="text-[#ffcc99]">Subtotal</span><span className="text-white font-semibold">{formatPrice(cart?.totalAmount ?? 0)}</span></div>
+                          <div className="flex justify-between"><span className="text-[#ffcc99]">Subtotal</span><span className="text-white font-semibold">{formatPrice(quote ? quoteSubtotal : (cart?.totalAmount ?? 0))}</span></div>
                           <div className="flex justify-between"><span className="text-[#ffcc99]">Shipping</span><span className="text-white font-semibold">{shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}</span></div>
                           {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
                           <div className="border-t border-[#ff6600]/30 pt-3 flex justify-between">
@@ -1185,7 +1281,7 @@ export default function CheckoutPage() {
                       <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 sticky top-6 space-y-6">
                         <h2 className="text-white text-xl font-bold">Total</h2>
                         <div className="space-y-3 border-t border-[#ff6600]/30 pt-4">
-                          <div className="flex justify-between"><span className="text-[#ffcc99]">Subtotal</span><span className="text-white font-semibold">{formatPrice(cart?.totalAmount ?? 0)}</span></div>
+                          <div className="flex justify-between"><span className="text-[#ffcc99]">Subtotal</span><span className="text-white font-semibold">{formatPrice(quote ? quoteSubtotal : (cart?.totalAmount ?? 0))}</span></div>
                           <div className="flex justify-between"><span className="text-[#ffcc99]">Shipping</span><span className="text-white font-semibold">{shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}</span></div>
                           {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
                           <div className="border-t border-[#ff6600]/30 pt-3 flex justify-between">

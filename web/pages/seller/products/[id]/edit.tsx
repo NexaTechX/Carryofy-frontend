@@ -6,17 +6,34 @@ import Link from 'next/link';
 import SellerLayout from '../../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../../lib/auth';
 import { apiClient } from '../../../../lib/api/client';
-import { X, Plus, AlertCircle, Sparkles, Wand2, Loader2 } from 'lucide-react';
+import { useCategories } from '../../../../lib/buyer/hooks/useCategories';
+import { X, Plus, AlertCircle, Sparkles, Wand2, Loader2, Layers } from 'lucide-react';
+
+type SellingMode = 'B2C_ONLY' | 'B2B_ONLY' | 'B2C_AND_B2B';
+type B2bProductType = 'WHOLESALE' | 'DISTRIBUTOR' | 'MANUFACTURER_DIRECT';
+
+interface PriceTier {
+  minQuantity: number;
+  maxQuantity: number;
+  priceKobo: number;
+}
 
 interface FormData {
   title: string;
   description: string;
   price: string;
   category: string;
+  categoryId: string;
   quantity: string;
   material?: string;
   careInfo?: string;
   keyFeatures?: string[];
+  sellingMode?: SellingMode;
+  moq?: string;
+  leadTimeDays?: string;
+  b2bProductType?: B2bProductType;
+  requestQuoteOnly?: boolean;
+  priceTiers?: { minQuantity: string; maxQuantity: string; priceKobo: string }[];
 }
 
 interface Product {
@@ -28,14 +45,23 @@ interface Product {
   images: string[];
   status: string;
   category?: string;
+  categoryId?: string;
   material?: string;
   careInfo?: string;
   keyFeatures?: string[];
+  sellingMode?: SellingMode;
+  moq?: number;
+  leadTimeDays?: number;
+  b2bProductType?: B2bProductType;
+  requestQuoteOnly?: boolean;
+  priceTiers?: PriceTier[];
 }
 
 export default function EditProductPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { data: categoriesData } = useCategories();
+  const categories = categoriesData?.categories || [];
   const { id } = router.query;
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,13 +75,27 @@ export default function EditProductPage() {
     description: '',
     price: '',
     category: '',
+    categoryId: '',
     quantity: '',
     material: '',
     careInfo: '',
     keyFeatures: [],
+    sellingMode: 'B2C_ONLY',
+    moq: '',
+    leadTimeDays: '',
+    b2bProductType: undefined,
+    requestQuoteOnly: false,
+    priceTiers: [],
   });
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [aiGeneratingField, setAiGeneratingField] = useState<'description' | 'keyFeatures' | 'material' | 'careInfo' | null>(null);
+
+  // Resolve category for commission display (by categoryId first, then slug or name)
+  const selectedCategory = formData.categoryId
+    ? categories.find((c) => c.id === formData.categoryId)
+    : formData.category
+      ? categories.find((c) => c.slug === formData.category || c.name === formData.category)
+      : null;
 
   useEffect(() => {
     setMounted(true);
@@ -104,10 +144,21 @@ export default function EditProductPage() {
           description: product.description || '',
           price: (product.price / 100).toFixed(2),
           category: product.category || '',
+          categoryId: product.categoryId || '',
           quantity: product.quantity.toString(),
           material: product.material || '',
           careInfo: product.careInfo || '',
           keyFeatures: product.keyFeatures || [],
+          sellingMode: product.sellingMode || 'B2C_ONLY',
+          moq: product.moq != null ? String(product.moq) : '',
+          leadTimeDays: product.leadTimeDays != null ? String(product.leadTimeDays) : '',
+          b2bProductType: product.b2bProductType,
+          requestQuoteOnly: product.requestQuoteOnly ?? false,
+          priceTiers: (product.priceTiers || []).map(t => ({
+            minQuantity: String(t.minQuantity),
+            maxQuantity: String(t.maxQuantity),
+            priceKobo: (t.priceKobo / 100).toFixed(2),
+          })),
         });
 
         setUploadedImageUrls(product.images || []);
@@ -354,7 +405,10 @@ export default function EditProductPage() {
         }
       }
 
-      const productData = {
+      const sellingMode = formData.sellingMode || 'B2C_ONLY';
+      const isB2bEnabled = sellingMode === 'B2B_ONLY' || sellingMode === 'B2C_AND_B2B';
+
+      const productData: Record<string, unknown> = {
         title: formData.title,
         description: formData.description || undefined,
         price: priceInKobo,
@@ -362,10 +416,27 @@ export default function EditProductPage() {
         quantity: parseInt(formData.quantity),
         material: formData.material || undefined,
         careInfo: formData.careInfo || undefined,
+        sellingMode,
         keyFeatures: formData.keyFeatures && formData.keyFeatures.length > 0
           ? formData.keyFeatures.filter(f => f.trim()).map(f => f.trim())
           : undefined,
       };
+
+      if (isB2bEnabled) {
+        if (formData.moq) productData.moq = parseInt(formData.moq, 10);
+        if (formData.leadTimeDays) productData.leadTimeDays = parseInt(formData.leadTimeDays, 10);
+        if (formData.b2bProductType) productData.b2bProductType = formData.b2bProductType;
+        productData.requestQuoteOnly = formData.requestQuoteOnly ?? false;
+        if (formData.priceTiers && formData.priceTiers.length > 0 && !formData.requestQuoteOnly) {
+          productData.priceTiers = formData.priceTiers
+            .filter(t => t.minQuantity && t.maxQuantity && t.priceKobo)
+            .map(t => ({
+              minQuantity: parseInt(t.minQuantity, 10),
+              maxQuantity: parseInt(t.maxQuantity, 10),
+              priceKobo: Math.round(parseFloat(t.priceKobo) * 100),
+            }));
+        }
+      }
 
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
@@ -674,6 +745,24 @@ export default function EditProductPage() {
                   />
                 </div>
 
+                {/* Commission for this category (read-only) */}
+                {selectedCategory && (
+                  <div className="p-4 rounded-xl border border-[#ff6600]/30 bg-[#ff6600]/5">
+                    <p className="text-[#ffcc99] text-sm font-medium mb-2">Commission for this category</p>
+                    <p className="text-white text-lg font-semibold">
+                      B2C: {selectedCategory.commissionB2C ?? 15}%
+                      {selectedCategory.commissionB2B != null && (
+                        <span className="ml-2 text-gray-300">
+                          | B2B: {selectedCategory.commissionB2B}%
+                        </span>
+                      )}
+                    </p>
+                    <p className="mt-2 text-gray-400 text-xs">
+                      Platform commission is deducted from each sale. You receive (100 − commission)% after each order.
+                    </p>
+                  </div>
+                )}
+
                 {/* Price and Quantity */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -707,6 +796,150 @@ export default function EditProductPage() {
                       required
                       className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-[#1a1a1a] focus:border-[#ff6600] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
                     />
+                  </div>
+                </div>
+
+                {/* Selling mode & B2B */}
+                <div className="bg-[#1a1a1a] rounded-2xl border border-[#ff6600]/20 p-5">
+                  <div className="flex items-center gap-2 mb-5">
+                    <Layers className="w-5 h-5 text-[#ff6600]" />
+                    <h2 className="text-white font-semibold">Selling Mode & B2B</h2>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[#ffcc99] text-sm font-medium mb-2">Selling mode</label>
+                      <select
+                        name="sellingMode"
+                        value={formData.sellingMode || 'B2C_ONLY'}
+                        onChange={(e) => setFormData(prev => ({ ...prev, sellingMode: e.target.value as SellingMode }))}
+                        className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+                      >
+                        <option value="B2C_ONLY">B2C only (consumers)</option>
+                        <option value="B2B_ONLY">B2B only (business buyers)</option>
+                        <option value="B2C_AND_B2B">B2C + B2B</option>
+                      </select>
+                    </div>
+                    {(formData.sellingMode === 'B2B_ONLY' || formData.sellingMode === 'B2C_AND_B2B') && (
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-[#ffcc99] text-sm font-medium mb-2">Minimum order quantity (MOQ)</label>
+                            <input
+                              type="number"
+                              min="1"
+                              placeholder="e.g. 10"
+                              value={formData.moq || ''}
+                              onChange={(e) => setFormData(prev => ({ ...prev, moq: e.target.value }))}
+                              className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[#ffcc99] text-sm font-medium mb-2">Lead time (days)</label>
+                            <input
+                              type="number"
+                              min="1"
+                              placeholder="e.g. 5"
+                              value={formData.leadTimeDays || ''}
+                              onChange={(e) => setFormData(prev => ({ ...prev, leadTimeDays: e.target.value }))}
+                              className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-[#ffcc99] text-sm font-medium mb-2">B2B product type</label>
+                          <select
+                            value={formData.b2bProductType || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, b2bProductType: (e.target.value || undefined) as B2bProductType | undefined }))}
+                            className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+                          >
+                            <option value="">Select type</option>
+                            <option value="WHOLESALE">Wholesale</option>
+                            <option value="DISTRIBUTOR">Distributor</option>
+                            <option value="MANUFACTURER_DIRECT">Manufacturer-direct</option>
+                          </select>
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.requestQuoteOnly ?? false}
+                            onChange={(e) => setFormData(prev => ({ ...prev, requestQuoteOnly: e.target.checked }))}
+                            className="rounded border-[#ff6600]/50 text-[#ff6600] focus:ring-[#ff6600]"
+                          />
+                          <span className="text-[#ffcc99] text-sm">Request a quote only (no fixed B2B price)</span>
+                        </label>
+                        {!(formData.requestQuoteOnly ?? false) && (
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="block text-[#ffcc99] text-sm font-medium">Tiered pricing (B2B)</label>
+                              <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({
+                                  ...prev,
+                                  priceTiers: [...(prev.priceTiers || []), { minQuantity: '', maxQuantity: '999999', priceKobo: '' }],
+                                }))}
+                                className="px-3 py-1.5 rounded-lg bg-[#ff6600]/20 text-[#ff6600] text-xs font-medium hover:bg-[#ff6600]/30"
+                              >
+                                <Plus className="w-3 h-3 inline mr-1" /> Add tier
+                              </button>
+                            </div>
+                            <p className="text-[#ffcc99]/60 text-xs mb-2">Min qty – Max qty → Price (₦). Use 999999 for open-ended.</p>
+                            {(formData.priceTiers || []).map((tier, idx) => (
+                              <div key={idx} className="flex items-center gap-2 mb-2">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  placeholder="Min"
+                                  value={tier.minQuantity}
+                                  onChange={(e) => {
+                                    const next = [...(formData.priceTiers || [])];
+                                    next[idx] = { ...next[idx], minQuantity: e.target.value };
+                                    setFormData(prev => ({ ...prev, priceTiers: next }));
+                                  }}
+                                  className="w-20 px-2 py-2 rounded-lg bg-black border border-[#ff6600]/30 text-white text-sm"
+                                />
+                                <span className="text-[#ffcc99]">–</span>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  placeholder="Max"
+                                  value={tier.maxQuantity}
+                                  onChange={(e) => {
+                                    const next = [...(formData.priceTiers || [])];
+                                    next[idx] = { ...next[idx], maxQuantity: e.target.value };
+                                    setFormData(prev => ({ ...prev, priceTiers: next }));
+                                  }}
+                                  className="w-24 px-2 py-2 rounded-lg bg-black border border-[#ff6600]/30 text-white text-sm"
+                                />
+                                <span className="text-[#ffcc99]">→ ₦</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="0.00"
+                                  value={tier.priceKobo}
+                                  onChange={(e) => {
+                                    const next = [...(formData.priceTiers || [])];
+                                    next[idx] = { ...next[idx], priceKobo: e.target.value };
+                                    setFormData(prev => ({ ...prev, priceTiers: next }));
+                                  }}
+                                  className="flex-1 px-2 py-2 rounded-lg bg-black border border-[#ff6600]/30 text-white text-sm"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setFormData(prev => ({
+                                    ...prev,
+                                    priceTiers: (prev.priceTiers || []).filter((_, i) => i !== idx),
+                                  }))}
+                                  className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
 

@@ -211,6 +211,12 @@ export default function AdminDashboard() {
                 <p className="mt-1 text-xs text-gray-500">
                   Total commissions earned across all orders
                 </p>
+                {(commissionRevenue?.totalB2B != null || commissionRevenue?.totalB2C != null) && (
+                  <div className="mt-2 flex gap-4 text-xs text-gray-400">
+                    <span>B2C: {formatCurrency((commissionRevenue?.totalB2C ?? 0) / 100)}</span>
+                    <span>B2B: {formatCurrency((commissionRevenue?.totalB2B ?? 0) / 100)}</span>
+                  </div>
+                )}
               </div>
               <div className="h-32 w-full rounded-xl border border-primary/30 bg-[#0b1322] p-3 sm:max-w-xs">
                 {commissionRevenue?.periods && commissionRevenue.periods.length > 0 ? (

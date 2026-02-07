@@ -20,6 +20,9 @@ export interface ProductCardProps {
     };
     keyFeatures?: string[];
     category?: string;
+    sellingMode?: string;
+    moq?: number;
+    b2bProductType?: string;
   };
   onAddToComparison?: (product: any) => void;
   href?: string;
@@ -114,9 +117,9 @@ export default function ProductCard({
     <article
       className={`group bg-[#1a1a1a] border border-[#ff6600]/20 rounded-xl overflow-hidden hover:border-[#ff6600] hover:shadow-lg hover:shadow-[#ff6600]/20 transition-all duration-300 ${className}`}
     >
-      <Link href={productHref} className="block h-full flex flex-col">
+      <Link href={productHref} className="h-full flex flex-col">
         {/* Product Image */}
-        <div className="aspect-square bg-gradient-to-br from-black to-[#1a1a1a] relative overflow-hidden">
+        <div className="aspect-square bg-linear-to-br from-black to-[#1a1a1a] relative overflow-hidden">
           {product.images && product.images.length > 0 ? (
             <img
               src={product.images[0]}
@@ -142,6 +145,15 @@ export default function ProductCard({
           {product.quantity > 0 && product.quantity <= 5 && (
             <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded-full z-10">
               Only {product.quantity} left
+            </div>
+          )}
+
+          {(product.sellingMode === 'B2B_ONLY' || product.sellingMode === 'B2C_AND_B2B') && (
+            <div className="absolute bottom-10 left-2 z-10 flex flex-wrap gap-1">
+              <span className="px-2 py-1 bg-[#ff6600]/90 text-black text-[10px] font-bold rounded-md">B2B</span>
+              {product.moq != null && product.moq > 0 && (
+                <span className="px-2 py-1 bg-black/70 text-white text-[10px] font-medium rounded-md">MOQ: {product.moq}</span>
+              )}
             </div>
           )}
 
@@ -188,7 +200,7 @@ export default function ProductCard({
 
         {/* Product Info */}
         <div className="p-4 flex-1 flex flex-col">
-          <h3 className="text-white font-bold text-base mb-2 line-clamp-2 group-hover:text-[#ff6600] transition-colors leading-snug min-h-[2.5rem]">
+          <h3 className="text-white font-bold text-base mb-2 line-clamp-2 group-hover:text-[#ff6600] transition-colors leading-snug min-h-10">
             {product.title}
           </h3>
           
@@ -221,11 +233,7 @@ export default function ProductCard({
               Verified
             </span>
           </div>
-          <p className="text-[#ffcc99]/80 text-[10px] flex items-center gap-1 mb-3">
-            <Truck className="w-3 h-3 shrink-0" />
-            Same-day Lagos · 1–3 days nationwide
-          </p>
-          
+
           <div className="mt-auto">
             <p className="text-[#ff6600] font-bold text-lg mb-2">
               {formatPrice(product.price)}
@@ -237,17 +245,29 @@ export default function ProductCard({
               </span>
             )}
             
-            {/* Add to Cart Button */}
+            {/* Add to Cart Button — links to signup for non-authenticated users */}
             {product.quantity > 0 && (
-              <button
-                onClick={handleAddToCart}
-                disabled={isAddingToCart}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#ff6600] text-white rounded-lg font-semibold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm"
-                title={!isAuthenticated ? 'Sign up to add to cart' : 'Add to cart'}
-              >
-                <ShoppingCart className={`w-4 h-4 ${isAddingToCart ? 'animate-pulse' : ''}`} />
-                <span>{isAddingToCart ? 'Adding...' : 'Add to Cart'}</span>
-              </button>
+              !isAuthenticated ? (
+                <Link
+                  href={`/auth/signup?redirect=${encodeURIComponent(router.asPath || '/')}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#ff6600] text-white rounded-lg font-semibold hover:bg-[#cc5200] transition-all duration-200 text-sm"
+                  title="Sign up to add to cart"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Add to Cart</span>
+                </Link>
+              ) : (
+                <button
+                  onClick={handleAddToCart}
+                  disabled={isAddingToCart}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#ff6600] text-white rounded-lg font-semibold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm"
+                  title="Add to cart"
+                >
+                  <ShoppingCart className={`w-4 h-4 ${isAddingToCart ? 'animate-pulse' : ''}`} />
+                  <span>{isAddingToCart ? 'Adding...' : 'Add to Cart'}</span>
+                </button>
+              )
             )}
             {product.quantity === 0 && (
               <div className="w-full px-4 py-2.5 bg-gray-700/50 text-gray-400 rounded-lg text-center text-sm font-medium cursor-not-allowed">

@@ -16,12 +16,19 @@ import {
   Info,
   Droplets,
   Heart,
+  FileText,
 } from 'lucide-react';
 import { tokenManager, userManager } from '../../../lib/auth';
 import SEO from '../../../components/seo/SEO';
 import { ProductSchema, BreadcrumbSchema } from '../../../components/seo/JsonLd';
 import { addToWishlist, removeFromWishlist, checkWishlist } from '../../../lib/api/wishlist';
 import { showSuccessToast, showErrorToast } from '../../../lib/ui/toast';
+
+interface PriceTier {
+  minQuantity: number;
+  maxQuantity: number;
+  priceKobo: number;
+}
 
 interface Product {
   id: string;
@@ -40,6 +47,12 @@ interface Product {
   };
   createdAt: string;
   updatedAt: string;
+  sellingMode?: string;
+  moq?: number;
+  leadTimeDays?: number;
+  b2bProductType?: string;
+  requestQuoteOnly?: boolean;
+  priceTiers?: PriceTier[];
 }
 
 interface Review {
@@ -153,6 +166,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [hasBusinessProfile, setHasBusinessProfile] = useState<boolean | null>(null);
   const [inWishlist, setInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
 
@@ -163,13 +177,23 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
     setIsAuthenticated(authenticated);
 
     if (!authenticated) {
-      // Allow viewing product without auth, but disable cart actions
+      setHasBusinessProfile(false);
       return;
     }
 
     const user = userManager.getUser();
     if (user && user.role && user.role !== 'BUYER' && user.role !== 'ADMIN') {
       router.push('/');
+      return;
+    }
+    // Fetch full profile to check business buyer status
+    if (authenticated) {
+      apiClient.get('/users/me')
+        .then((res) => {
+          const data = (res.data as any)?.data ?? res.data;
+          setHasBusinessProfile(!!data?.businessBuyerProfile);
+        })
+        .catch(() => setHasBusinessProfile(false));
     }
   }, [router]);
 
@@ -183,6 +207,13 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
       }
     }
   }, [mounted, id, initialProduct, isAuthenticated]);
+
+  useEffect(() => {
+    const b2b = product?.sellingMode === 'B2B_ONLY' || product?.sellingMode === 'B2C_AND_B2B';
+    if (product && b2b && (product.moq ?? 0) > 0 && quantity < product.moq!) {
+      setQuantity(product.moq!);
+    }
+  }, [product?.id, product?.moq, product?.sellingMode, quantity]);
 
   const checkWishlistStatus = async (productId: string) => {
     try {
@@ -277,7 +308,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
 
       await apiClient.post('/cart/items', {
         productId: product.id,
-        quantity: quantity,
+        quantity: effectiveQuantity,
       });
 
       setCartMessage({ type: 'success', text: 'Product added to cart successfully!' });
@@ -327,6 +358,31 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
       maximumFractionDigits: 2,
     })}`;
   };
+
+  const isB2bEnabled = product?.sellingMode === 'B2B_ONLY' || product?.sellingMode === 'B2C_AND_B2B';
+  const isB2bOnly = product?.sellingMode === 'B2B_ONLY';
+  const showB2bFull = isB2bEnabled && (hasBusinessProfile === true);
+  const showB2bCta = isB2bEnabled && hasBusinessProfile === false && isAuthenticated;
+  // Consumers can add to cart only for B2C_AND_B2B (B2C path). B2B_ONLY has no consumer purchase path.
+  const canAddToCart = isB2bOnly
+    ? showB2bFull && !product?.requestQuoteOnly  // B2B_ONLY: only business buyers, and only if not quote-only
+    : !(showB2bFull && product?.requestQuoteOnly);  // B2C_AND_B2B: show unless business + quote-only
+  const minQuantity = product && isB2bEnabled && (product.moq ?? 0) > 0 ? product.moq! : 1;
+  const effectiveQuantity = product ? Math.max(minQuantity, Math.min(product.quantity, quantity)) : quantity;
+
+  const resolveUnitPriceKobo = (p: Product, qty: number): number => {
+    const tiers = p.priceTiers;
+    if (tiers?.length) {
+      const tier = tiers
+        .slice()
+        .sort((a, b) => a.minQuantity - b.minQuantity)
+        .find((t) => qty >= t.minQuantity && qty <= t.maxQuantity);
+      if (tier) return tier.priceKobo;
+    }
+    return p.price;
+  };
+  const unitPriceKobo = product ? resolveUnitPriceKobo(product, effectiveQuantity) : 0;
+  const totalPriceKobo = product ? unitPriceKobo * effectiveQuantity : 0;
 
   const getCategoryName = (categoryId?: string) => {
     const categoryMap: { [key: string]: string } = {
@@ -571,7 +627,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                     {product.material && (
                       <div className="p-4 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 bg-[#ff6600]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 bg-[#ff6600]/20 rounded-lg flex items-center justify-center shrink-0">
                             <Droplets className="w-5 h-5 text-[#ff6600]" />
                           </div>
                           <div className="flex-1">
@@ -588,7 +644,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                     {product.careInfo && (
                       <div className="p-4 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 bg-[#ff6600]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 bg-[#ff6600]/20 rounded-lg flex items-center justify-center shrink-0">
                             <Info className="w-5 h-5 text-[#ff6600]" />
                           </div>
                           <div className="flex-1">
@@ -627,9 +683,18 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                 {/* Price */}
                 <div className="mb-6 p-6 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl" itemProp="offers" itemScope itemType="https://schema.org/Offer">
                   <p className="text-[#ffcc99] text-sm mb-2">Price</p>
-                  <p className="text-[#ff6600] text-4xl font-bold" itemProp="price" content={String(product.price / 100)}>
-                    {formatPrice(product.price)}
-                  </p>
+                  {showB2bFull && product.requestQuoteOnly ? (
+                    <p className="text-[#ff6600] text-xl font-bold">Price on quote</p>
+                  ) : showB2bFull && product.priceTiers?.length ? (
+                    <>
+                      <p className="text-[#ff6600] text-2xl font-bold">Unit: {formatPrice(unitPriceKobo)}</p>
+                      <p className="text-[#ffcc99] text-lg mt-1">Total ({effectiveQuantity}): {formatPrice(totalPriceKobo)}</p>
+                    </>
+                  ) : (
+                    <p className="text-[#ff6600] text-4xl font-bold" itemProp="price" content={String(product.price / 100)}>
+                      {formatPrice(product.price)}
+                    </p>
+                  )}
                   <meta itemProp="priceCurrency" content="NGN" />
                   <link itemProp="availability" href={product.quantity > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'} />
                   {product.quantity > 0 ? (
@@ -642,19 +707,76 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                   )}
                 </div>
 
+                {/* B2B info (MOQ, lead time, type, tier table) - full view for business buyers */}
+                {showB2bFull && (
+                  <div className="mb-6 p-6 bg-[#1a1a1a] border border-[#ff6600]/20 rounded-xl">
+                    <p className="text-[#ffcc99] text-sm font-bold mb-3">B2B / Bulk</p>
+                    <div className="flex flex-wrap gap-4 text-sm">
+                      {(product.moq ?? 0) > 0 && (
+                        <span className="text-white">MOQ: <strong>{product.moq}</strong></span>
+                      )}
+                      {(product.leadTimeDays ?? 0) > 0 && (
+                        <span className="text-white">Lead time: <strong>{product.leadTimeDays} days</strong></span>
+                      )}
+                      {product.b2bProductType && (
+                        <span className="px-2 py-0.5 bg-[#ff6600]/20 text-[#ffcc99] rounded">{product.b2bProductType.replace(/_/g, ' ')}</span>
+                      )}
+                    </div>
+                    {product.priceTiers && product.priceTiers.length > 0 && !product.requestQuoteOnly && (
+                      <div className="mt-4">
+                        <p className="text-[#ffcc99] text-xs mb-2">Tiered pricing</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm text-left text-white">
+                            <thead>
+                              <tr className="border-b border-[#ff6600]/30">
+                                <th className="py-2 pr-4">Quantity</th>
+                                <th className="py-2">Unit price</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[...(product.priceTiers || [])]
+                                .sort((a, b) => a.minQuantity - b.minQuantity)
+                                .map((t, i) => (
+                                  <tr key={i} className="border-b border-white/10">
+                                    <td className="py-2 pr-4">{t.minQuantity} – {t.maxQuantity >= 999999 ? '∞' : t.maxQuantity}</td>
+                                    <td className="py-2">{formatPrice(t.priceKobo)}</td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* CTA for consumers when product has B2B - register as business to see bulk pricing */}
+                {showB2bCta && (
+                  <div className="mb-6 p-6 bg-[#1a1a1a] border border-[#ff6600]/20 rounded-xl">
+                    <p className="text-[#ffcc99] text-sm font-bold mb-2">Bulk pricing available</p>
+                    <p className="text-white text-sm mb-4">Register as a business buyer to see MOQ, tiered pricing, and request custom quotes.</p>
+                    <Link
+                      href="/buyer/profile#business"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#ff6600]/20 border border-[#ff6600] text-[#ff6600] rounded-xl font-medium hover:bg-[#ff6600]/30 transition"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Register as business buyer
+                    </Link>
+                  </div>
+                )}
+
                 {/* Quantity Selector */}
                 {product.quantity > 0 && (
                   <div className="mb-6">
-                    <label className="block text-white text-sm font-medium mb-2">Quantity</label>
+                    <label className="block text-white text-sm font-medium mb-2">Quantity{minQuantity > 1 ? ` (min ${minQuantity})` : ''}</label>
                     <div className="flex items-center gap-4">
                       <button
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        onClick={() => setQuantity(Math.max(minQuantity, quantity - 1))}
                         className="w-10 h-10 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] transition"
                         aria-label="Decrease quantity"
                       >
                         -
                       </button>
-                      <span className="text-white text-xl font-bold w-12 text-center">{quantity}</span>
+                      <span className="text-white text-xl font-bold w-12 text-center">{effectiveQuantity}</span>
                       <button
                         onClick={() => setQuantity(Math.min(product.quantity, quantity + 1))}
                         className="w-10 h-10 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white hover:border-[#ff6600] transition"
@@ -682,44 +804,55 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
 
                 {/* Action Buttons */}
                 <div className="space-y-3">
-                  {/* Buy Now Button */}
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={product.quantity === 0 || addingToCart}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold text-lg hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-[#ff6600]/30"
-                  >
-                    <TrendingUp className="w-5 h-5" />
-                    <span>
-                      {!isAuthenticated 
-                        ? 'Login to Buy' 
-                        : addingToCart 
-                          ? 'Processing...' 
-                          : product.quantity === 0 
-                            ? 'Out of Stock' 
-                            : 'Buy Now'
-                      }
-                    </span>
-                  </button>
-                  
-                  <div className="flex gap-3">
-                    {/* Add to Cart Button */}
-                    <button
-                      onClick={handleAddToCart}
-                      disabled={product.quantity === 0 || addingToCart}
-                      className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#1a1a1a] text-white border-2 border-[#ff6600]/50 rounded-xl font-bold hover:bg-[#ff6600]/10 hover:border-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  {showB2bFull && (
+                    <a
+                      href={`/buyer/quote-request?productId=${product.id}&sellerId=${product.seller.id}&quantity=${effectiveQuantity}`}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#1a1a1a] text-[#ff6600] border-2 border-[#ff6600] rounded-xl font-bold hover:bg-[#ff6600]/10 transition"
                     >
-                      <ShoppingCart className="w-5 h-5" />
-                      <span>
-                        {!isAuthenticated 
-                          ? 'Login to Add to Cart' 
-                          : addingToCart 
-                            ? 'Adding...' 
-                            : product.quantity === 0 
-                              ? 'Out of Stock' 
-                              : 'Add to Cart'
-                        }
-                      </span>
-                    </button>
+                      <FileText className="w-5 h-5" />
+                      Request a Quote
+                    </a>
+                  )}
+                  {canAddToCart && (
+                    <>
+                      {/* Buy Now Button */}
+                      <button
+                        onClick={handleAddToCart}
+                        disabled={product.quantity === 0 || addingToCart}
+                        className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold text-lg hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-[#ff6600]/30"
+                      >
+                        <TrendingUp className="w-5 h-5" />
+                        <span>
+                          {!isAuthenticated 
+                            ? 'Login to Buy' 
+                            : addingToCart 
+                              ? 'Processing...' 
+                              : product.quantity === 0 
+                                ? 'Out of Stock' 
+                                : 'Buy Now'
+                          }
+                        </span>
+                      </button>
+                      
+                      <div className="flex gap-3">
+                        {/* Add to Cart Button */}
+                        <button
+                          onClick={handleAddToCart}
+                          disabled={product.quantity === 0 || addingToCart}
+                          className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#1a1a1a] text-white border-2 border-[#ff6600]/50 rounded-xl font-bold hover:bg-[#ff6600]/10 hover:border-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        >
+                          <ShoppingCart className="w-5 h-5" />
+                          <span>
+                            {!isAuthenticated 
+                              ? 'Login to Add to Cart' 
+                              : addingToCart 
+                                ? 'Adding...' 
+                                : product.quantity === 0 
+                                  ? 'Out of Stock' 
+                                  : 'Add to Cart'
+                            }
+                          </span>
+                        </button>
                     
                     {/* Wishlist Button */}
                     <button
@@ -735,6 +868,8 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                       <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
                     </button>
                   </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Trust Badges */}
@@ -791,7 +926,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                   {reviews.map((review) => (
                     <article key={review.id} className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6" itemScope itemType="https://schema.org/Review">
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-full bg-[#ff6600]/10 border border-[#ff6600]/40 flex items-center justify-center flex-shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-[#ff6600]/10 border border-[#ff6600]/40 flex items-center justify-center shrink-0">
                           <span className="text-white font-semibold text-lg">
                             {review.authorName.slice(0, 1).toUpperCase()}
                           </span>

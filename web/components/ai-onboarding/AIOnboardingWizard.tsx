@@ -130,22 +130,29 @@ function Step1Goal({ preferences, updatePreferences }: StepProps) {
         <p className="text-gray-600">Tell us what you want to achieve on Carryofy</p>
       </div>
       <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-        {GOAL_OPTIONS.map((goal) => (
-          <button
-            key={goal.id}
-            onClick={() => {
-              setSelectedGoal(goal.id);
-              updatePreferences({ primaryGoal: goal.id });
-            }}
-            className={`p-6 rounded-xl border-2 text-left transition-all ${selectedGoal === goal.id
-              ? 'border-primary bg-primary/5'
-              : 'border-gray-200 hover:border-primary/50'
-              }`}
-          >
-            <div className="font-semibold text-lg mb-2">{goal.label}</div>
-            <div className="text-sm text-gray-600">{goal.description}</div>
-          </button>
-        ))}
+        {GOAL_OPTIONS
+          .filter(goal => {
+            const role = preferences.userRole;
+            if (role === 'buyer') return goal.id !== 'grow-business';
+            if (role === 'seller') return goal.id !== 'save-money';
+            return true;
+          })
+          .map((goal) => (
+            <button
+              key={goal.id}
+              onClick={() => {
+                setSelectedGoal(goal.id);
+                updatePreferences({ primaryGoal: goal.id });
+              }}
+              className={`p-6 rounded-xl border-2 text-left transition-all ${selectedGoal === goal.id
+                ? 'border-primary bg-primary/5'
+                : 'border-gray-200 hover:border-primary/50'
+                }`}
+            >
+              <div className="font-semibold text-lg mb-2">{goal.label}</div>
+              <div className="text-sm text-gray-600">{goal.description}</div>
+            </button>
+          ))}
       </div>
     </div>
   );
@@ -238,19 +245,21 @@ function StepBusinessContext({ preferences, updatePreferences }: StepProps) {
             <div className="text-xs text-gray-600">{opt.description}</div>
           </button>
         ))}
-        <button
-          onClick={() => {
-            setSelectedContext('none');
-            updatePreferences({ businessContext: 'none' });
-          }}
-          className={`p-6 rounded-xl border-2 text-center transition-all ${selectedContext === 'none'
-            ? 'border-primary bg-primary/5'
-            : 'border-gray-200 hover:border-primary/50'
-            }`}
-        >
-          <div className="font-bold mb-2">Not a Seller</div>
-          <div className="text-xs text-gray-600">I am only here to shop</div>
-        </button>
+        {preferences.userRole !== 'seller' && (
+          <button
+            onClick={() => {
+              setSelectedContext('none');
+              updatePreferences({ businessContext: 'none' });
+            }}
+            className={`p-6 rounded-xl border-2 text-center transition-all ${selectedContext === 'none'
+              ? 'border-primary bg-primary/5'
+              : 'border-gray-200 hover:border-primary/50'
+              }`}
+          >
+            <div className="font-bold mb-2">Not a Seller</div>
+            <div className="text-xs text-gray-600">I am only here to shop</div>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -583,9 +592,23 @@ function Step9Consent({ preferences, updatePreferences, onComplete, isLoading }:
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
-            <span className="font-semibold">Categories:</span>
-            <span>{preferences.favoriteCategories?.length || 0} selected</span>
+            <span className="font-semibold">Role:</span>
+            <span className="capitalize">{preferences.userRole}</span>
           </div>
+          {preferences.primaryGoal && (
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <span className="font-semibold">Goal:</span>
+              <span>{GOAL_OPTIONS.find(g => g.id === preferences.primaryGoal)?.label}</span>
+            </div>
+          )}
+          {preferences.favoriteCategories && preferences.favoriteCategories.length > 0 && (
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <span className="font-semibold">Categories:</span>
+              <span>{preferences.favoriteCategories?.length || 0} selected</span>
+            </div>
+          )}
           {preferences.budgetRange && (
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
@@ -612,27 +635,6 @@ function Step9Consent({ preferences, updatePreferences, onComplete, isLoading }:
               <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
               <span className="font-semibold">Price Sensitivity:</span>
               <span>{PRICE_SENSITIVITY_OPTIONS.find(p => p.id === preferences.priceSensitivity)?.label}</span>
-            </div>
-          )}
-          {preferences.notificationPreference && (
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
-              <span className="font-semibold">Notifications:</span>
-              <span>{NOTIFICATION_OPTIONS.find(n => n.id === preferences.notificationPreference)?.label}</span>
-            </div>
-          )}
-          {preferences.primaryGoal && (
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
-              <span className="font-semibold">Goal:</span>
-              <span>{GOAL_OPTIONS.find(g => g.id === preferences.primaryGoal)?.label}</span>
-            </div>
-          )}
-          {preferences.experienceLevel && (
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
-              <span className="font-semibold">Experience:</span>
-              <span className="capitalize">{preferences.experienceLevel}</span>
             </div>
           )}
           {preferences.businessContext && preferences.businessContext !== 'none' && (
@@ -731,9 +733,18 @@ export default function AIOnboardingWizard() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isOffline, setIsOffline] = useState(false);
-  const totalSteps = 12;
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const isEditMode = router.query.edit === 'true';
+  const getStepsToShow = (role?: string) => {
+    const userRole = role || preferences.userRole;
+    if (userRole === 'seller') return [1, 2, 3, 7, 10, 12];
+    if (userRole === 'buyer') return [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
+    // Both or undefined
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  };
+
+  const stepsToShow = getStepsToShow();
+  const currentStepIndex = stepsToShow.indexOf(currentStep) === -1 ? 0 : stepsToShow.indexOf(currentStep);
+  const totalStepsInFlow = stepsToShow.length;
 
   // Monitor online/offline status
   useEffect(() => {
@@ -762,7 +773,7 @@ export default function AIOnboardingWizard() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [retryCount, currentStep]);
+  }, [retryCount, currentStep, preferences.userRole]);
 
   useEffect(() => {
     loadPreferences();
@@ -779,8 +790,17 @@ export default function AIOnboardingWizard() {
           return;
         }
         // Resume from last step if draft exists
-        if (data.isDraft && data.lastStepCompleted) {
-          setCurrentStep(Math.min(data.lastStepCompleted + 1, totalSteps));
+        if (data.isDraft && data.lastStepCompleted !== undefined) {
+          const flow = getStepsToShow(data.userRole);
+          const currentIndex = flow.indexOf(data.lastStepCompleted);
+          if (currentIndex !== -1 && currentIndex < flow.length - 1) {
+            setCurrentStep(flow[currentIndex + 1]);
+          } else if (currentIndex === flow.length - 1) {
+            setCurrentStep(flow[currentIndex]);
+          } else {
+            // If lastStepCompleted is not in current flow or 0, start at beginning of flow
+            setCurrentStep(flow[0]);
+          }
         }
       }
     } catch (error: any) {
@@ -791,8 +811,14 @@ export default function AIOnboardingWizard() {
         if (saved) {
           const draft = JSON.parse(saved);
           setPreferences(draft);
-          if (draft.lastStepCompleted) {
-            setCurrentStep(Math.min(draft.lastStepCompleted + 1, totalSteps));
+          if (draft.lastStepCompleted !== undefined) {
+            const flow = getStepsToShow(draft.userRole);
+            const currentIndex = flow.indexOf(draft.lastStepCompleted);
+            if (currentIndex !== -1 && currentIndex < flow.length - 1) {
+              setCurrentStep(flow[currentIndex + 1]);
+            } else {
+              setCurrentStep(flow[0]);
+            }
           }
         }
       } catch (e) {
@@ -802,7 +828,13 @@ export default function AIOnboardingWizard() {
   };
 
   const updatePreferences = (data: Partial<UpdateAIOnboardingDto>) => {
-    setPreferences((prev) => ({ ...prev, ...data }));
+    const newPrefs = { ...preferences, ...data };
+    setPreferences(newPrefs);
+
+    // Auto-save when role is selected to ensure flow is consistent immediately
+    if (data.userRole) {
+      syncToApi(newPrefs, 0);
+    }
   };
 
   const syncToApi = async (prefs: Partial<AIOnboardingPreferences>, step: number) => {
@@ -830,6 +862,7 @@ export default function AIOnboardingWizard() {
           experienceLevel: prefs.experienceLevel,
           communicationStyle: prefs.communicationStyle,
           businessContext: prefs.businessContext,
+          userRole: prefs.userRole,
           lastStepCompleted: step,
           isDraft: true,
         };
@@ -929,29 +962,32 @@ export default function AIOnboardingWizard() {
   const handleNext = () => {
     if (validateStep(currentStep)) {
       syncToApi(preferences, currentStep);
-      if (currentStep < totalSteps) {
-        setCurrentStep(currentStep + 1);
+      const nextStepIndex = currentStepIndex + 1;
+      if (nextStepIndex < totalStepsInFlow) {
+        setCurrentStep(stepsToShow[nextStepIndex]);
       }
     }
   };
 
   const handleSkip = () => {
     syncToApi(preferences, currentStep);
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+    const nextStepIndex = currentStepIndex + 1;
+    if (nextStepIndex < totalStepsInFlow) {
+      setCurrentStep(stepsToShow[nextStepIndex]);
     }
   };
 
   const handlePrevious = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+    const prevStepIndex = currentStepIndex - 1;
+    if (prevStepIndex >= 0) {
+      setCurrentStep(stepsToShow[prevStepIndex]);
       // Clear validation errors when going back
       setValidationErrors({});
     }
   };
 
   const handleComplete = async () => {
-    if (!validateStep(11)) {
+    if (!validateStep(currentStep)) {
       return;
     }
 
@@ -1021,7 +1057,7 @@ export default function AIOnboardingWizard() {
   const renderStep = () => {
     const stepProps: StepProps = {
       currentStep,
-      totalSteps,
+      totalSteps: totalStepsInFlow,
       onNext: handleNext,
       onPrevious: handlePrevious,
       onComplete: handleComplete,
@@ -1077,7 +1113,7 @@ export default function AIOnboardingWizard() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-gray-700">
-              Step {currentStep} of {totalSteps}
+              Step {currentStepIndex + 1} of {totalStepsInFlow}
             </span>
             <div className="flex items-center gap-3">
               {isOffline && (
@@ -1091,14 +1127,14 @@ export default function AIOnboardingWizard() {
                 </span>
               )}
               <span className="text-sm text-gray-500">
-                {Math.round((currentStep / totalSteps) * 100)}% Complete
+                {Math.round(((currentStepIndex + 1) / totalStepsInFlow) * 100)}% Complete
               </span>
             </div>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+              style={{ width: `${((currentStepIndex + 1) / totalStepsInFlow) * 100}%` }}
             />
           </div>
         </div>
@@ -1119,11 +1155,11 @@ export default function AIOnboardingWizard() {
         </div>
 
         {/* Navigation */}
-        {currentStep < totalSteps && (
+        {currentStepIndex < totalStepsInFlow - 1 && (
           <div className="flex justify-between items-center">
             <button
               onClick={handlePrevious}
-              disabled={currentStep === 1}
+              disabled={currentStepIndex === 0}
               className="px-6 py-3 rounded-full border-2 border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <ArrowLeft className="w-5 h-5" />

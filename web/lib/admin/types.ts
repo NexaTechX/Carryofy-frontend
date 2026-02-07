@@ -42,12 +42,16 @@ export interface TopCategoriesResponse {
 export interface CommissionPeriodEntry {
   period: string;
   amount: number; // in kobo
+  amountB2B?: number;
+  amountB2C?: number;
   percentage: number;
 }
 
 export interface CommissionRevenueResponse {
   periods: CommissionPeriodEntry[];
   totalRevenue: number; // in kobo
+  totalB2B?: number;
+  totalB2C?: number;
   growth: number; // percentage
 }
 

@@ -305,13 +305,8 @@ export async function fetchAllProducts(): Promise<PendingProduct[]> {
   return transformProducts(normalized);
 }
 
-export async function approveProductRequest(
-  productId: string,
-  commissionPercentage: number
-): Promise<void> {
-  await apiClient.put(`/products/${productId}/approve`, {
-    commissionPercentage,
-  });
+export async function approveProductRequest(productId: string): Promise<void> {
+  await apiClient.put(`/products/${productId}/approve`, {});
 }
 
 export async function rejectProductRequest(productId: string): Promise<void> {
@@ -320,14 +315,9 @@ export async function rejectProductRequest(productId: string): Promise<void> {
 
 // Admin bulk product operations
 export async function bulkApproveProductsRequest(
-  productIds: string[],
-  commissionPercentage?: number
+  productIds: string[]
 ): Promise<{ approved: number; failed: number }> {
-  const payload: { productIds: string[]; commissionPercentage?: number } = { productIds };
-  if (commissionPercentage !== undefined) {
-    payload.commissionPercentage = commissionPercentage;
-  }
-  const { data } = await apiClient.post('/products/admin/bulk-approve', payload);
+  const { data } = await apiClient.post('/products/admin/bulk-approve', { productIds });
   return normalizeResponse<{ approved: number; failed: number }>(data);
 }
 

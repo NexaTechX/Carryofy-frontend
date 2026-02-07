@@ -11,6 +11,8 @@ export interface Category {
   color: string | null;
   isActive: boolean;
   displayOrder: number;
+  commissionB2C: number;
+  commissionB2B: number | null;
   createdAt: string;
   updatedAt: string;
   productCount?: number;
@@ -27,6 +29,8 @@ export interface CreateCategoryPayload {
   icon?: string;
   color?: string;
   displayOrder?: number;
+  commissionB2C?: number;
+  commissionB2B?: number | null;
 }
 
 export interface UpdateCategoryPayload {
@@ -37,6 +41,8 @@ export interface UpdateCategoryPayload {
   color?: string;
   isActive?: boolean;
   displayOrder?: number;
+  commissionB2C?: number;
+  commissionB2B?: number | null;
 }
 
 export interface ReorderCategoryPayload {

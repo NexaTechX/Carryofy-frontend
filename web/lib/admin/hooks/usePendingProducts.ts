@@ -22,8 +22,8 @@ export function useApproveProductMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ productId, commissionPercentage }: { productId: string; commissionPercentage: number }) =>
-      approveProductRequest(productId, commissionPercentage),
+    mutationFn: ({ productId }: { productId: string }) =>
+      approveProductRequest(productId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: productKeys.pending });
       await queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });

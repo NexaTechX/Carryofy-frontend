@@ -14,6 +14,7 @@ import {
   LogOut,
   HelpCircle,
   Heart,
+  FileText,
 } from 'lucide-react';
 import NotificationsDropdown from './NotificationsDropdown';
 import CartDrawer from './CartDrawer';
@@ -41,6 +42,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
     { name: 'Home', href: '/buyer', icon: Home },
     { name: 'Shop', href: '/buyer/categories', icon: ShoppingBag },
     { name: 'My Orders', href: '/buyer/orders', icon: Package },
+    { name: 'My Quotes', href: '/buyer/quotes', icon: FileText },
     { name: 'Wishlist', href: '/buyer/wishlist', icon: Heart },
     { name: 'Track Order', href: '/buyer/track', icon: MapPin },
     { name: 'Profile', href: '/buyer/profile', icon: User },
@@ -214,16 +216,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
         )}
 
         {/* Main Content */}
-        <main
-          className="flex-1 overflow-y-auto scroll-smooth relative"
-          style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=1200&q=80)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundAttachment: 'fixed',
-          }}
-        >
-          <div className="absolute inset-0 bg-black/70" aria-hidden="true" />
+        <main className="flex-1 overflow-y-auto scroll-smooth relative bg-black">
           <ErrorBoundary>
             <div className="relative p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom">{children}</div>
           </ErrorBoundary>

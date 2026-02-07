@@ -8,10 +8,7 @@ export default function HeroSection() {
   const stats = [
     { value: 'Verified', label: 'Sellers' },
     { value: '24/7', label: 'Support' },
-    { value: 'Same-day', label: 'Lagos' },
-    { value: '1–3 days', label: 'Nationwide' },
     { value: 'Fast', label: 'Payouts' },
-    { value: 'Paystack', label: 'Payments' },
   ];
 
   const floatingIcons = [
@@ -71,7 +68,7 @@ export default function HeroSection() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-cyan-500/10 to-primary/10 border border-cyan-500/20 rounded-full text-sm font-semibold text-gray-700 mb-6 backdrop-blur-sm"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-cyan-500/10 to-primary/10 border border-cyan-500/20 rounded-full text-sm font-semibold text-gray-700 mb-6 backdrop-blur-sm shadow-sm"
               >
                 <Sparkles className="w-4 h-4 text-cyan-500" />
                 <span>Nigeria's Smart Marketplace • Est. {currentYear}</span>
@@ -79,7 +76,7 @@ export default function HeroSection() {
 
               <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 leading-tight">
                 <span className="text-gray-900">Sell and shop trusted products</span>
-                <span className="text-gray-900 block mt-2">— without logistics stress.</span>
+                <span className="text-gray-900 block mt-2"> without logistics stress.</span>
               </h1>
 
               <p className="text-lg sm:text-xl lg:text-2xl mb-8 text-gray-600 leading-relaxed">
@@ -99,7 +96,7 @@ export default function HeroSection() {
                   <div className="absolute inset-0 bg-linear-to-r from-primary-dark to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Link>
                 <Link
-                  href="/products"
+                  href="/auth/signup"
                   className="group px-6 py-3 text-gray-700 rounded-2xl border border-gray-300 hover:bg-gray-100 transition-all duration-300 font-medium text-sm sm:text-base flex items-center justify-center gap-2"
                 >
                   <span>Start Shopping</span>
@@ -129,7 +126,7 @@ export default function HeroSection() {
                   <div className="w-5 h-5 rounded-full bg-cyan-100 flex items-center justify-center">
                     <Check className="w-3.5 h-3.5 text-cyan-600" />
                   </div>
-                  <span className="font-medium text-gray-700">Secure payments (Paystack)</span>
+                  <span className="font-medium text-gray-700">Secure payments</span>
                 </div>
               </motion.div>
             </motion.div>

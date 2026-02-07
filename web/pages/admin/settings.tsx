@@ -286,8 +286,8 @@ export default function AdminSettings() {
         <div className="grid gap-6 lg:grid-cols-2">
           <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] p-6 shadow-lg">
             <header className="mb-5">
-              <h2 className="text-lg font-semibold text-white">Commission Percentage</h2>
-              <p className="text-sm text-gray-400">Define the default commission charged on every order.</p>
+              <h2 className="text-lg font-semibold text-white">Default Commission (Fallback)</h2>
+              <p className="text-sm text-gray-400">Commission is set per category. This value is used only for uncategorized products or when category commission is missing.</p>
             </header>
             <div className="space-y-4">
               <label className="block text-sm font-medium text-gray-300">

@@ -98,7 +98,9 @@ export async function getFeaturedProducts(limit: number = 8): Promise<Product[]>
             page: 1,
         });
 
-        return response.data || [];
+        // API may return { data: [] } or { products: [] }
+        const products = response.data ?? (response as any).products ?? [];
+        return Array.isArray(products) ? products : [];
     } catch (error: any) {
         console.error('Error fetching featured products:', error);
         // Return empty array on error for graceful degradation

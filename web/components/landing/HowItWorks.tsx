@@ -10,10 +10,10 @@ const sellerSteps = [
 ];
 
 const buyerSteps = [
-  { id: 1, title: 'Shop verified sellers', description: 'Browse products from verified Nigerian sellers.', icon: ShoppingBag },
-  { id: 2, title: 'Pay securely', description: 'Pay with Paystack. Your payment is protected.', icon: CreditCard },
-  { id: 3, title: 'Receive fast delivery', description: 'Same-day in Lagos, 1–3 days nationwide.', icon: Truck },
-  { id: 4, title: 'Enjoy buyer protection', description: 'Refunds and support if delivery fails or item is not as described.', icon: Shield },
+  { id: 1, title: 'Browse & order', description: 'Shop quality products from verified Lagos sellers. Add to cart and checkout.', icon: ShoppingBag },
+  { id: 2, title: 'Pay securely', description: 'Checkout safely. Your payment is protected until delivery.', icon: CreditCard },
+  { id: 3, title: 'Same-day delivery', description: 'Get your order the same day. Track it in real time across Lagos.', icon: Truck },
+  { id: 4, title: 'Buyer protection', description: 'Full refunds and support if delivery fails or the item isn\'t as described.', icon: Shield },
 ];
 
 export default function HowItWorks() {
@@ -22,7 +22,7 @@ export default function HowItWorks() {
   const steps = activeTab === 'sellers' ? sellerSteps : buyerSteps;
 
   return (
-    <section className="py-16 sm:py-20 lg:py-24 bg-white">
+    <section className="py-16 sm:py-20 lg:py-24 bg-white relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10 sm:mb-12">
@@ -61,20 +61,22 @@ export default function HowItWorks() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 max-w-5xl mx-auto relative">
+            {/* Step connector line - hidden on mobile */}
+            <div className="hidden lg:block absolute top-7 left-[12.5%] right-[12.5%] h-0.5 bg-linear-to-r from-primary/30 via-primary/50 to-primary/30" aria-hidden />
             {steps.map((step, index) => (
               <motion.div
                 key={step.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="text-center"
+                className="text-center relative"
               >
-                <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 relative z-10 shadow-lg shadow-primary/25">
                   <step.icon className="w-7 h-7 text-white" />
                 </div>
                 <h3 className="text-base font-bold text-gray-900 mb-2">{step.title}</h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 leading-relaxed">
                   {step.description}
                 </p>
               </motion.div>

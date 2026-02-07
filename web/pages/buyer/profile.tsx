@@ -28,6 +28,18 @@ import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
 
+interface BusinessBuyerProfile {
+  id: string;
+  userId: string;
+  companyName: string;
+  businessCategory: string;
+  taxId?: string;
+  registrationNumber?: string;
+  country: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface UserProfile {
   id: string;
   name: string;
@@ -37,6 +49,7 @@ interface UserProfile {
   verified: boolean;
   createdAt: string;
   updatedAt: string;
+  businessBuyerProfile?: BusinessBuyerProfile;
 }
 
 interface Address {
@@ -90,6 +103,15 @@ export default function BuyerProfilePage() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [businessForm, setBusinessForm] = useState({
+    companyName: '',
+    businessCategory: '',
+    taxId: '',
+    registrationNumber: '',
+    country: 'Nigeria',
+  });
+  const [businessSaving, setBusinessSaving] = useState(false);
+  const [businessMessage, setBusinessMessage] = useState<string | null>(null);
   const confirmation = useConfirmation();
 
   useEffect(() => {
@@ -129,6 +151,15 @@ export default function BuyerProfilePage() {
         name: profileData.name || '',
         phone: profileData.phone || '',
       });
+      if (profileData.businessBuyerProfile) {
+        setBusinessForm({
+          companyName: profileData.businessBuyerProfile.companyName || '',
+          businessCategory: profileData.businessBuyerProfile.businessCategory || '',
+          taxId: profileData.businessBuyerProfile.taxId || '',
+          registrationNumber: profileData.businessBuyerProfile.registrationNumber || '',
+          country: profileData.businessBuyerProfile.country || 'Nigeria',
+        });
+      }
       setProfileError(null); // Clear any previous errors
     } catch (err: any) {
       console.error('Error fetching profile:', err);
@@ -217,6 +248,27 @@ export default function BuyerProfilePage() {
     } finally {
       setProfileSaving(false);
       setTimeout(() => setProfileMessage(null), 3000);
+    }
+  };
+
+  const handleBusinessProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setBusinessSaving(true);
+      setBusinessMessage(null);
+      await apiClient.put('/users/me/business-profile', {
+        companyName: businessForm.companyName.trim(),
+        businessCategory: businessForm.businessCategory.trim(),
+        taxId: businessForm.taxId.trim() || undefined,
+        registrationNumber: businessForm.registrationNumber.trim() || undefined,
+        country: businessForm.country || 'Nigeria',
+      });
+      setBusinessMessage('Business profile saved. You can now access B2B pricing and request quotes.');
+      fetchProfile();
+    } catch (err: any) {
+      setBusinessMessage(err.response?.data?.message || 'Failed to save business profile');
+    } finally {
+      setBusinessSaving(false);
     }
   };
 
@@ -729,6 +781,83 @@ export default function BuyerProfilePage() {
             </div>
           </div>
 
+          {/* Business buyer profile */}
+          <div id="business" className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 mb-8">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <h2 className="text-white text-xl font-bold">Business account (B2B)</h2>
+              {profile?.businessBuyerProfile ? (
+                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-medium rounded">Active</span>
+              ) : (
+                <span className="text-[#ffcc99]/70 text-sm">Register to request quotes and see bulk pricing</span>
+              )}
+            </div>
+            <p className="text-[#ffcc99]/80 text-sm mb-4">Add your company details to access B2B pricing, MOQ, tiered prices, and request quotes from sellers.</p>
+            {businessMessage && (
+              <div className={`mb-4 p-3 rounded-lg text-sm ${businessMessage.startsWith('Business profile saved') ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+                {businessMessage}
+              </div>
+            )}
+            <form onSubmit={handleBusinessProfileSubmit} className="space-y-4 max-w-xl">
+              <div>
+                <label className="block text-[#ffcc99] text-sm font-medium mb-1">Company name *</label>
+                <input
+                  type="text"
+                  value={businessForm.companyName}
+                  onChange={(e) => setBusinessForm((prev) => ({ ...prev, companyName: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+                  placeholder="Acme Retail Ltd"
+                />
+              </div>
+              <div>
+                <label className="block text-[#ffcc99] text-sm font-medium mb-1">Business category *</label>
+                <input
+                  type="text"
+                  value={businessForm.businessCategory}
+                  onChange={(e) => setBusinessForm((prev) => ({ ...prev, businessCategory: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+                  placeholder="e.g. Retail, Manufacturing, Food Service"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[#ffcc99] text-sm font-medium mb-1">Tax ID (optional)</label>
+                  <input
+                    type="text"
+                    value={businessForm.taxId}
+                    onChange={(e) => setBusinessForm((prev) => ({ ...prev, taxId: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#ffcc99] text-sm font-medium mb-1">Registration number (optional)</label>
+                  <input
+                    type="text"
+                    value={businessForm.registrationNumber}
+                    onChange={(e) => setBusinessForm((prev) => ({ ...prev, registrationNumber: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[#ffcc99] text-sm font-medium mb-1">Country</label>
+                <input
+                  type="text"
+                  value={businessForm.country}
+                  onChange={(e) => setBusinessForm((prev) => ({ ...prev, country: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={businessSaving || !businessForm.companyName.trim() || !businessForm.businessCategory.trim()}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {businessSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {profile?.businessBuyerProfile ? 'Update business profile' : 'Register as business buyer'}
+              </button>
+            </form>
+          </div>
+
           {/* Addresses Section */}
           <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -836,7 +965,7 @@ export default function BuyerProfilePage() {
                     type="text"
                     value={addressForm.line1}
                     onChange={(e) => setAddressForm((prev) => ({ ...prev, line1: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg黒 border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                    className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
                     placeholder="Street address"
                     required
                   />

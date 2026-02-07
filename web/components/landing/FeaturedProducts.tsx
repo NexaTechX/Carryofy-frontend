@@ -57,25 +57,25 @@ function ErrorState({ onRetry }: { onRetry?: () => void }) {
   );
 }
 
-// Format price to Nigerian Naira
-function formatPrice(price: number): string {
+// Format price to Nigerian Naira (API returns price in kobo)
+function formatPrice(priceInKobo: number): string {
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency: 'NGN',
     minimumFractionDigits: 0,
-  }).format(price);
+  }).format(priceInKobo / 100);
 }
 
 export default function FeaturedProducts({ products = [], loading = false, error, onRetry }: FeaturedProductsProps) {
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-b from-gray-50 to-white">
+    <section className="py-12 sm:py-16 lg:py-20 bg-linear-to-b from-gray-50 to-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10 sm:mb-12 lg:mb-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-primary/10 to-purple-500/10 px-4 py-2 rounded-full border border-primary/20 mb-4"
+            className="inline-flex items-center gap-2 bg-linear-to-r from-primary/10 to-purple-500/10 px-4 py-2 rounded-full border border-primary/20 mb-4"
           >
             <TrendingUp className="w-4 h-4 text-primary" />
             <span className="text-primary font-semibold tracking-wider uppercase text-xs sm:text-sm">
@@ -113,7 +113,8 @@ export default function FeaturedProducts({ products = [], loading = false, error
 
           {/* Products - Show only 3-5 real products */}
           {!loading && products.length > 0 && products.slice(0, 5).map((product, index) => {
-            const isInStock = product.stockQuantity > 0;
+            const stock = (product as any).quantity ?? product.stockQuantity ?? 0;
+            const isInStock = stock > 0;
 
             return (
               <motion.div
@@ -128,7 +129,7 @@ export default function FeaturedProducts({ products = [], loading = false, error
                 {/* Fulfilled by Carryofy Badge */}
                 {isInStock && (
                   <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-10">
-                    <div className="bg-gradient-to-r from-primary to-orange-600 text-white px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide shadow-lg">
+                    <div className="bg-linear-to-r from-primary to-orange-600 text-white px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide shadow-lg">
                       In stock — Fulfilled by Carryofy
                     </div>
                   </div>
@@ -136,8 +137,8 @@ export default function FeaturedProducts({ products = [], loading = false, error
 
                 <div className="relative h-40 sm:h-52 lg:h-64 bg-gray-100 overflow-hidden">
                   <Image
-                    src={product.images[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80'}
-                    alt={product.name}
+                    src={product.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80'}
+                    alt={(product as any).title || product.name}
                     fill
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 25vw"
                     className="object-cover group-hover:scale-110 transition-transform duration-500"
@@ -152,7 +153,7 @@ export default function FeaturedProducts({ products = [], loading = false, error
                   )}
 
                   {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden sm:flex items-end justify-center pb-6">
+                  <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden sm:flex items-end justify-center pb-6">
                     <Link
                       href={`/products/${product.id}`}
                       className="bg-white text-gray-900 px-6 py-2.5 rounded-full font-bold transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 hover:bg-primary hover:text-white text-sm shadow-xl"
@@ -166,16 +167,16 @@ export default function FeaturedProducts({ products = [], loading = false, error
                   <div className="text-[10px] sm:text-xs text-primary font-bold mb-1 sm:mb-2 uppercase tracking-wider">
                     {product.category}
                   </div>
-                  <h3 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 mb-1 sm:mb-2 group-hover:text-primary transition-colors line-clamp-2 min-h-[2.5rem] sm:min-h-[3rem]">
-                    {product.name}
+                  <h3 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 mb-1 sm:mb-2 group-hover:text-primary transition-colors line-clamp-2 min-h-10 sm:min-h-12">
+                    {(product as any).title || product.name}
                   </h3>
                   <div className="flex items-center justify-between mt-2 sm:mt-4">
-                    <span className="text-base sm:text-lg lg:text-xl font-bold bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent">
+                    <span className="text-base sm:text-lg lg:text-xl font-bold bg-linear-to-r from-primary to-orange-600 bg-clip-text text-transparent">
                       {formatPrice(product.price)}
                     </span>
                     <Link
                       href={`/products/${product.id}`}
-                      className="p-1.5 sm:p-2 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-primary hover:to-orange-600 hover:text-white transition-all duration-300 touch-target btn-mobile shadow-sm hover:shadow-md"
+                      className="p-1.5 sm:p-2 rounded-full bg-linear-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-primary hover:to-orange-600 hover:text-white transition-all duration-300 touch-target btn-mobile shadow-sm hover:shadow-md"
                     >
                       <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
                     </Link>
@@ -216,7 +217,7 @@ export default function FeaturedProducts({ products = [], loading = false, error
           >
             <Link
               href="/products"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-primary to-orange-600 text-white rounded-full font-bold hover:shadow-lg hover:shadow-primary/40 transition-all duration-300 group text-base sm:text-lg touch-target"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-linear-to-r from-primary to-orange-600 text-white rounded-full font-bold hover:shadow-lg hover:shadow-primary/40 transition-all duration-300 group text-base sm:text-lg touch-target"
             >
               View All Products
               <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-2 transition-transform" />

@@ -59,6 +59,8 @@ export default function AdminCategories() {
     icon: '',
     color: DEFAULT_COLORS[0],
     displayOrder: 0,
+    commissionB2C: 15,
+    commissionB2B: null,
   });
 
   const categories = data?.categories || [];
@@ -80,6 +82,8 @@ export default function AdminCategories() {
       icon: '',
       color: DEFAULT_COLORS[0],
       displayOrder: categories.length,
+      commissionB2C: 15,
+      commissionB2B: null,
     });
     setIsCreateModalOpen(true);
   };
@@ -93,6 +97,8 @@ export default function AdminCategories() {
       icon: category.icon || '',
       color: category.color || DEFAULT_COLORS[0],
       displayOrder: category.displayOrder,
+      commissionB2C: category.commissionB2C ?? 15,
+      commissionB2B: category.commissionB2B ?? null,
     });
     setIsEditModalOpen(true);
   };
@@ -118,6 +124,8 @@ export default function AdminCategories() {
       icon: formData.icon,
       color: formData.color,
       displayOrder: formData.displayOrder,
+      commissionB2C: formData.commissionB2C,
+      commissionB2B: formData.commissionB2B,
     };
 
     await updateCategory.mutateAsync({
@@ -239,7 +247,7 @@ export default function AdminCategories() {
             <DataTableContainer>
               <DataTable>
                 <DataTableHead
-                  columns={['Category', 'Slug', 'Products', 'Status', 'Display Order', 'Actions']}
+                  columns={['Category', 'Slug', 'B2C %', 'B2B %', 'Products', 'Status', 'Display Order', 'Actions']}
                 />
                 <DataTableBody>
                   {categories.map((category) => (
@@ -264,6 +272,14 @@ export default function AdminCategories() {
                         <code className="rounded bg-[#1a1a1a] px-2 py-1 text-xs text-gray-300">
                           {category.slug}
                         </code>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <p className="text-gray-300">{(category.commissionB2C ?? 15)}%</p>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <p className="text-gray-300">
+                          {category.commissionB2B != null ? `${category.commissionB2B}%` : '—'}
+                        </p>
                       </DataTableCell>
                       <DataTableCell>
                         <p className="text-gray-300">{category.productCount || 0}</p>
@@ -357,6 +373,36 @@ export default function AdminCategories() {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-300">B2C Commission (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.01}
+                    value={formData.commissionB2C ?? 15}
+                    onChange={(e) => setFormData({ ...formData, commissionB2C: parseFloat(e.target.value) || 15 })}
+                    className="w-full rounded-lg border border-gray-700 bg-[#1a1a1a] px-4 py-2 text-white focus:border-primary focus:outline-none"
+                    placeholder="15"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-300">B2B Commission (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.01}
+                    value={formData.commissionB2B ?? ''}
+                    onChange={(e) => setFormData({ ...formData, commissionB2B: e.target.value ? parseFloat(e.target.value) : null })}
+                    className="w-full rounded-lg border border-gray-700 bg-[#1a1a1a] px-4 py-2 text-white focus:border-primary focus:outline-none"
+                    placeholder="Optional"
+                  />
+                  <p className="mt-0.5 text-xs text-gray-500">Empty = use B2C</p>
+                </div>
+              </div>
+
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-300">Color</label>
                 <div className="flex gap-2">
@@ -439,6 +485,36 @@ export default function AdminCategories() {
                   className="w-full rounded-lg border border-gray-700 bg-[#1a1a1a] px-4 py-2 text-white focus:border-primary focus:outline-none"
                   rows={3}
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-300">B2C Commission (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.01}
+                    value={formData.commissionB2C ?? 15}
+                    onChange={(e) => setFormData({ ...formData, commissionB2C: parseFloat(e.target.value) || 15 })}
+                    className="w-full rounded-lg border border-gray-700 bg-[#1a1a1a] px-4 py-2 text-white focus:border-primary focus:outline-none"
+                    placeholder="15"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-300">B2B Commission (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.01}
+                    value={formData.commissionB2B ?? ''}
+                    onChange={(e) => setFormData({ ...formData, commissionB2B: e.target.value ? parseFloat(e.target.value) : null })}
+                    className="w-full rounded-lg border border-gray-700 bg-[#1a1a1a] px-4 py-2 text-white focus:border-primary focus:outline-none"
+                    placeholder="Optional"
+                  />
+                  <p className="mt-0.5 text-xs text-gray-500">Empty = use B2C</p>
+                </div>
               </div>
 
               <div>

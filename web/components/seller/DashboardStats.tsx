@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { tokenManager } from '../../lib/auth';
+import { FileText } from 'lucide-react';
 
 interface StatCardProps {
   title: string;
@@ -31,6 +33,8 @@ interface DashboardKPIs {
   availableBalance: number;
   pendingPayoutRequestsCount: number;
   pendingPayoutRequestsTotal: number;
+  quoteRequestsCount: number;
+  b2bOrdersCount: number;
 }
 
 export default function DashboardStats() {
@@ -60,25 +64,17 @@ export default function DashboardStats() {
         salesTrendResponse,
         orderDistributionResponse,
         productCountResponse,
+        quoteRequestsResponse,
+        ordersB2BResponse,
       ] = await Promise.all([
-        fetch(`${apiUrl}/reports/dashboard`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${apiUrl}/payouts`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${apiUrl}/payouts/requests`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${apiUrl}/reports/sales-trend`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${apiUrl}/reports/order-distribution`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${apiUrl}/reports/seller-product-count`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        fetch(`${apiUrl}/reports/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${apiUrl}/payouts`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${apiUrl}/payouts/requests`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${apiUrl}/reports/sales-trend`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${apiUrl}/reports/order-distribution`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${apiUrl}/reports/seller-product-count`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${apiUrl}/quote-requests`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${apiUrl}/orders?orderType=B2B`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
       const dashboardJson =
@@ -92,6 +88,21 @@ export default function DashboardStats() {
       const productCountJson = productCountResponse.ok
         ? await productCountResponse.json().catch(() => null)
         : null;
+      let quoteRequestsList: unknown[] = [];
+      if (quoteRequestsResponse.ok) {
+        try {
+          const qrJson = await quoteRequestsResponse.json();
+          quoteRequestsList = Array.isArray(qrJson?.data) ? qrJson.data : Array.isArray(qrJson) ? qrJson : [];
+        } catch {
+          quoteRequestsList = [];
+        }
+      }
+      const ordersB2BData = ordersB2BResponse.ok
+        ? await ordersB2BResponse.json().catch(() => ({ data: {}, orders: [] }))
+        : { orders: [] };
+      const quoteRequestsCount = Array.isArray(quoteRequestsList) ? quoteRequestsList.length : 0;
+      const b2bOrders = ordersB2BData?.orders ?? ordersB2BData?.data?.orders ?? [];
+      const b2bOrdersCount = Array.isArray(b2bOrders) ? b2bOrders.length : 0;
 
       if (!dashboardResponse.ok) {
         console.warn(
@@ -148,6 +159,8 @@ export default function DashboardStats() {
         availableBalance,
         pendingPayoutRequestsCount,
         pendingPayoutRequestsTotal,
+        quoteRequestsCount,
+        b2bOrdersCount,
       });
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
@@ -189,6 +202,27 @@ export default function DashboardStats() {
         description={stats ? `Total pending: ${formatPrice(stats.pendingPayoutRequestsTotal)}` : 'Total pending: ₦0.00'}
         loading={loading}
       />
+      <Link href="/seller/quotes" className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-[#ff6600]/30 hover:border-[#ff6600]/50 transition">
+        <p className="text-white text-base font-medium leading-normal flex items-center gap-2">
+          <FileText className="w-4 h-4 text-[#ff6600]" />
+          Quote requests
+        </p>
+        {loading ? (
+          <div className="h-8 w-24 bg-[#1a1a1a] animate-pulse rounded"></div>
+        ) : (
+          <p className="text-white tracking-light text-2xl font-bold leading-tight">{stats?.quoteRequestsCount ?? 0}</p>
+        )}
+        <p className="text-xs text-gray-400 leading-snug">B2B inquiries</p>
+      </Link>
+      <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-[#ff6600]/30">
+        <p className="text-white text-base font-medium leading-normal">B2B orders</p>
+        {loading ? (
+          <div className="h-8 w-24 bg-[#1a1a1a] animate-pulse rounded"></div>
+        ) : (
+          <p className="text-white tracking-light text-2xl font-bold leading-tight">{stats?.b2bOrdersCount ?? 0}</p>
+        )}
+        <p className="text-xs text-gray-400 leading-snug">Bulk / business orders</p>
+      </div>
     </div>
   );
 }

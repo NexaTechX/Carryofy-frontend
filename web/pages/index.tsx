@@ -2,7 +2,6 @@ import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
 import TrustSection from '../components/landing/TrustSection';
-import ProductCategories from '../components/landing/ProductCategories';
 import HowItWorks from '../components/landing/HowItWorks';
 import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
 import SellerCTASection from '../components/landing/BuyerSellerSection';
@@ -103,7 +102,6 @@ export default function Home() {
         <main className="grow">
           <HeroSection />
           <TrustSection />
-          <ProductCategories />
           <HowItWorks />
           <WhyChooseCarryofy />
           <SellerCTASection />

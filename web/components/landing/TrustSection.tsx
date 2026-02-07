@@ -1,28 +1,24 @@
 import { motion } from 'framer-motion';
-import { Truck, Shield, CheckCircle } from 'lucide-react';
+import { Shield } from 'lucide-react';
+
+type StatItem = {
+  icon: typeof Shield;
+  value: string;
+  label: string;
+  sublabel?: string;
+};
 
 export default function TrustSection() {
-  const stats = [
-    {
-      icon: Truck,
-      value: 'Same-day delivery',
-      label: 'Lagos',
-      sublabel: '1–3 days nationwide',
-    },
+  const stats: StatItem[] = [
     {
       icon: Shield,
       value: 'Verified',
       label: 'sellers',
     },
-    {
-      icon: CheckCircle,
-      value: 'Paystack',
-      label: 'Payments — secure checkout',
-    },
   ];
 
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-white">
+    <section className="py-12 sm:py-16 lg:py-20 bg-white border-y border-gray-100/80">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <motion.div
@@ -36,7 +32,7 @@ export default function TrustSection() {
             </h2>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
+          <div className="flex flex-wrap justify-center gap-6 sm:gap-8">
             {stats.map((stat, index) => (
               <motion.div
                 key={index}
@@ -46,7 +42,7 @@ export default function TrustSection() {
                 transition={{ delay: index * 0.1 }}
                 className="text-center"
               >
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/10 to-cyan-500/10 flex items-center justify-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-linear-to-br from-primary/10 to-cyan-500/10 flex items-center justify-center">
                   <stat.icon className="w-8 h-8 text-primary" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">

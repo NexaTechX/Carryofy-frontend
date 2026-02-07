@@ -10,6 +10,8 @@ export interface Category {
   color: string | null;
   isActive: boolean;
   displayOrder: number;
+  commissionB2C?: number;
+  commissionB2B?: number | null;
   createdAt: string;
   updatedAt: string;
   productCount?: number;

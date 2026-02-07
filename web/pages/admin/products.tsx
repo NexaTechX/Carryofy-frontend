@@ -25,7 +25,6 @@ import {
   useBulkDeleteProducts,
   useBulkStatusChange,
 } from '../../lib/admin/hooks/useBulkProducts';
-import { usePlatformSettings } from '../../lib/admin/hooks/useSettings';
 import { PendingProduct } from '../../lib/admin/types';
 import { toast } from 'react-hot-toast';
 import { Check, X, Trash2, MoreVertical } from 'lucide-react';
@@ -73,27 +72,7 @@ export default function AdminProducts() {
   const [bulkApproveModalOpen, setBulkApproveModalOpen] = useState(false);
   const [singleApproveModalOpen, setSingleApproveModalOpen] = useState(false);
   const [productToApprove, setProductToApprove] = useState<PendingProduct | null>(null);
-  const [commissionPercentage, setCommissionPercentage] = useState<number>(15);
-  const [singleApprovalCommission, setSingleApprovalCommission] = useState<number>(15);
   const confirmation = useConfirmation();
-
-  // Fetch platform settings for default commission
-  const { data: platformSettings } = usePlatformSettings();
-  
-  // Update commission percentage when platform settings load
-  useEffect(() => {
-    if (platformSettings?.commissionPercentage) {
-      setCommissionPercentage(platformSettings.commissionPercentage);
-      setSingleApprovalCommission(platformSettings.commissionPercentage);
-    }
-  }, [platformSettings]);
-
-  // Reset commission when focused product changes
-  useEffect(() => {
-    if (focusedProduct && platformSettings?.commissionPercentage) {
-      setSingleApprovalCommission(platformSettings.commissionPercentage);
-    }
-  }, [focusedProduct?.id, platformSettings?.commissionPercentage]);
 
   // Filter products based on active tab
   const filteredProducts = useMemo(() => {
@@ -138,16 +117,11 @@ export default function AdminProducts() {
 
   const handleApproveSingleClick = (product: PendingProduct) => {
     setProductToApprove(product);
-    setSingleApprovalCommission(platformSettings?.commissionPercentage || 15);
     setSingleApproveModalOpen(true);
   };
 
   const handleApproveSingle = async (product: PendingProduct) => {
-    if (singleApprovalCommission < 0 || singleApprovalCommission > 100) {
-      toast.error('Commission percentage must be between 0 and 100');
-      return;
-    }
-    await approveProduct.mutateAsync({ productId: product.id, commissionPercentage: singleApprovalCommission });
+    await approveProduct.mutateAsync({ productId: product.id });
     toast.success(`${product.title} has been approved.`);
     refetch();
     setFocusedProduct((current) =>
@@ -194,12 +168,8 @@ export default function AdminProducts() {
   };
 
   const confirmBulkApprove = async () => {
-    if (commissionPercentage < 0 || commissionPercentage > 100) {
-      toast.error('Commission percentage must be between 0 and 100');
-      return;
-    }
     const productIds = Array.from(selectedProductIds);
-    await bulkApprove.mutateAsync({ productIds, commissionPercentage });
+    await bulkApprove.mutateAsync({ productIds });
     setSelectedProductIds(new Set());
     setBulkApproveModalOpen(false);
     refetch();
@@ -542,25 +512,9 @@ export default function AdminProducts() {
         footer={
           focusedProduct && focusedProduct.status === 'PENDING_APPROVAL' ? (
             <div className="space-y-4">
-              <div>
-                <label htmlFor="single-commission" className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
-                  Commission Percentage (%)
-                </label>
-                <input
-                  id="single-commission"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={singleApprovalCommission}
-                  onChange={(e) => setSingleApprovalCommission(parseFloat(e.target.value) || 0)}
-                  className="w-full rounded-lg border border-[#1f2534] bg-[#0a0f1a] p-2 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
-                  placeholder="Enter commission percentage (0-100)"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  This percentage will be deducted from the seller for each sale of this product.
-                </p>
-              </div>
+              <p className="text-xs text-gray-500">
+                Commission is resolved from the product category when payment is confirmed.
+              </p>
               <div className="flex justify-between gap-3">
                 <button
                   type="button"
@@ -660,25 +614,9 @@ export default function AdminProducts() {
           <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
             <h3 className="mb-2 text-lg font-bold text-white">Approve Product</h3>
             <p className="mb-4 text-sm text-gray-400">{productToApprove.title}</p>
-            <div className="mb-4">
-              <label htmlFor="single-approve-commission" className="mb-2 block text-sm font-semibold text-gray-300">
-                Commission Percentage (%)
-              </label>
-              <input
-                id="single-approve-commission"
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                value={singleApprovalCommission}
-                onChange={(e) => setSingleApprovalCommission(parseFloat(e.target.value) || 0)}
-                className="w-full rounded-lg border border-[#1f2534] bg-[#0a0f1a] p-3 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
-                placeholder="Enter commission percentage (0-100)"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                This percentage will be deducted from the seller for each sale of this product.
-              </p>
-            </div>
+            <p className="mb-4 text-xs text-gray-500">
+              Commission is resolved from the product category when payment is confirmed.
+            </p>
             <div className="flex gap-3">
               <button
                 onClick={() => productToApprove && handleApproveSingle(productToApprove)}
@@ -708,27 +646,8 @@ export default function AdminProducts() {
           <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
             <h3 className="mb-4 text-lg font-bold text-white">Approve Products</h3>
             <p className="mb-4 text-sm text-gray-400">
-              You are about to approve {selectedProductIds.size} product(s). Please set the commission percentage.
+              You are about to approve {selectedProductIds.size} product(s). Commission is resolved from each product category when payment is confirmed.
             </p>
-            <div className="mb-4">
-              <label htmlFor="bulk-commission" className="mb-2 block text-sm font-semibold text-gray-300">
-                Commission Percentage (%)
-              </label>
-              <input
-                id="bulk-commission"
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                value={commissionPercentage}
-                onChange={(e) => setCommissionPercentage(parseFloat(e.target.value) || 0)}
-                className="w-full rounded-lg border border-[#1f2534] bg-[#0a0f1a] p-3 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
-                placeholder="Enter commission percentage (0-100)"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                This percentage will be deducted from the seller for each sale of these products.
-              </p>
-            </div>
             <div className="flex gap-3">
               <button
                 onClick={confirmBulkApprove}

@@ -30,6 +30,8 @@ interface Delivery {
 interface Order {
   id: string;
   userId: string;
+  orderType?: string;
+  quoteId?: string;
   items: OrderItem[];
   amount: number;
   status: string;
@@ -51,6 +53,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [orderTypeFilter, setOrderTypeFilter] = useState<string>('all');
 
   useEffect(() => {
     // Wait for auth to finish loading
@@ -69,15 +72,21 @@ export default function OrdersPage() {
 
     // Fetch orders
     fetchOrders();
-  }, [router, authLoading, isAuthenticated, user]);
+  }, [router, authLoading, isAuthenticated, user, orderTypeFilter]);
 
   const fetchOrders = async () => {
     try {
       const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+      const params = new URLSearchParams();
+      if (orderTypeFilter === 'B2B' || orderTypeFilter === 'CONSUMER') {
+        params.set('orderType', orderTypeFilter);
+      }
+      const query = params.toString();
+      const url = query ? `${apiUrl}/orders?${query}` : `${apiUrl}/orders`;
 
-      const response = await fetch(`${apiUrl}/orders`, {
+      const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -230,6 +239,28 @@ export default function OrdersPage() {
             </p>
           </div>
 
+          {/* Order type filter */}
+          <div className="px-4 py-2">
+            <span className="text-[#ffcc99] text-sm mr-2">Type:</span>
+            <div className="inline-flex gap-2">
+              {[
+                { value: 'all', label: 'All' },
+                { value: 'CONSUMER', label: 'Consumer' },
+                { value: 'B2B', label: 'B2B / Bulk' },
+              ].map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setOrderTypeFilter(f.value)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
+                    orderTypeFilter === f.value ? 'bg-[#ff6600] text-black' : 'bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] hover:bg-[#ff6600]/10'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Status Filter */}
           <div className="px-4 py-3">
             <div className="flex gap-2 flex-wrap">
@@ -324,12 +355,19 @@ export default function OrdersPage() {
                         className="border-t border-t-[#ff6600]/30"
                       >
                         <td className="h-[72px] px-4 py-2 w-[400px] text-sm font-normal leading-normal">
-                          <Link
-                            href={`/seller/orders/${order.id}`}
-                            className="text-[#ff6600] hover:text-[#cc5200] font-medium transition"
-                          >
-                            #{order.id.slice(0, 8)}
-                          </Link>
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/seller/orders/${order.id}`}
+                              className="text-[#ff6600] hover:text-[#cc5200] font-medium transition"
+                            >
+                              #{order.id.slice(0, 8)}
+                            </Link>
+                            {(order.orderType === 'B2B' || order.quoteId) && (
+                              <span className="px-2 py-0.5 rounded bg-[#ff6600]/20 text-[#ff6600] text-xs font-medium">
+                                {order.quoteId ? 'Quote' : 'B2B'}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="h-[72px] px-4 py-2 w-[400px] text-[#ffcc99] text-sm font-normal leading-normal">
                           {formatDate(order.createdAt)}

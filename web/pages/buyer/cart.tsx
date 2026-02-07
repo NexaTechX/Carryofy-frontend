@@ -76,7 +76,7 @@ export default function CartPage() {
       setLoading(true);
       setError(null);
       const response = await apiClient.get('/cart');
-      
+
       // Handle API response wrapping
       const cartData = response.data.data || response.data;
       setCart(cartData);
@@ -242,112 +242,112 @@ export default function CartPage() {
                     <div className="mb-4 text-[#ffcc99]">
                       Showing all {cart.items.length} item{cart.items.length !== 1 ? 's' : ''}
                     </div>
-                    
+
                     {/* Scrollable container for many items */}
                     <div className={`space-y-4 ${cart.items.length > 10 ? 'max-h-[800px] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
                       {cart.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 hover:border-[#ff6600] transition"
-                      >
-                        <div className="flex flex-col md:flex-row gap-6">
-                          {/* Product Image */}
-                          <div className="flex-shrink-0">
-                            <div className="w-full md:w-32 h-32 bg-black rounded-lg overflow-hidden">
-                              {item.product.images && item.product.images.length > 0 ? (
-                                <img
-                                  src={item.product.images[0]}
-                                  alt={item.product.title}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[#ffcc99]">
-                                  <Package className="w-12 h-12" />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Product Details */}
-                          <div className="flex-1">
-                            {/* Stock Status */}
-                            <div className="mb-2">
-                              {item.product.status === 'ACTIVE' && item.product.quantity > 0 ? (
-                                <span className="inline-flex items-center gap-1 text-green-400 text-sm font-medium">
-                                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                  In Stock
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-red-400 text-sm font-medium">
-                                  <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                                  Out of Stock
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Product Name */}
-                            <Link 
-                              href={`/buyer/products/${item.product.id}`}
-                              className="text-white text-xl font-bold hover:text-[#ff6600] transition block mb-2"
-                            >
-                              {item.product.title}
-                            </Link>
-
-                            {/* Price - server-provided only */}
-                            <p className="text-[#ff6600] text-2xl font-bold mb-4">
-                              {formatPrice(item.resolvedUnitPrice)}
-                              {item.sellingContext === 'B2B' && (
-                                <span className="ml-2 text-xs font-medium px-2 py-0.5 bg-[#ff6600]/20 text-[#ff6600] rounded">B2B</span>
-                              )}
-                            </p>
-
-                            {/* Quantity Controls */}
-                            <div className="flex items-center gap-4 mb-4">
-                              <span className="text-[#ffcc99] text-sm">Quantity:</span>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                  disabled={item.quantity <= 1 || updatingItems[item.id]}
-                                  className="w-8 h-8 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-lg text-white hover:bg-[#ff6600] hover:text-black disabled:opacity-50 disabled:cursor-not-allowed transition"
-                                >
-                                  <Minus className="w-4 h-4 mx-auto" />
-                                </button>
-                                <span className="text-white text-lg font-bold w-12 text-center">
-                                  {item.quantity}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                  disabled={item.quantity >= item.product.quantity || updatingItems[item.id]}
-                                  className="w-8 h-8 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-lg text-white hover:bg-[#ff6600] hover:text-black disabled:opacity-50 disabled:cursor-not-allowed transition"
-                                >
-                                  <Plus className="w-4 h-4 mx-auto" />
-                                </button>
+                        <div
+                          key={item.id}
+                          className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 hover:border-[#ff6600] transition"
+                        >
+                          <div className="flex flex-col md:flex-row gap-6">
+                            {/* Product Image */}
+                            <div className="flex-shrink-0">
+                              <div className="w-full md:w-32 h-32 bg-black rounded-lg overflow-hidden">
+                                {item.product.images && item.product.images.length > 0 ? (
+                                  <img
+                                    src={item.product.images[0]}
+                                    alt={item.product.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-[#ffcc99]">
+                                    <Package className="w-12 h-12" />
+                                  </div>
+                                )}
                               </div>
                             </div>
 
-                            {/* Subtotal & Remove */}
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-[#ffcc99]/70 text-sm">Subtotal</p>
-                                <p className="text-white text-xl font-bold">
-                                  {formatPrice(item.resolvedTotalPrice)}
-                                </p>
+                            {/* Product Details */}
+                            <div className="flex-1">
+                              {/* Stock Status */}
+                              <div className="mb-2">
+                                {item.product.status === 'ACTIVE' && item.product.quantity > 0 ? (
+                                  <span className="inline-flex items-center gap-1 text-green-400 text-sm font-medium">
+                                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                    In Stock
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-red-400 text-sm font-medium">
+                                    <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                                    Out of Stock
+                                  </span>
+                                )}
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => removeItem(item.id)}
-                                disabled={updatingItems[item.id]}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 hover:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+
+                              {/* Product Name */}
+                              <Link
+                                href={`/buyer/products/${item.product.id}`}
+                                className="text-white text-xl font-bold hover:text-[#ff6600] transition block mb-2"
                               >
-                                <Trash2 className="w-4 h-4" />
-                                Remove
-                              </button>
+                                {item.product.title}
+                              </Link>
+
+                              {/* Price - server-provided only */}
+                              <p className="text-[#ff6600] text-2xl font-bold mb-4">
+                                {formatPrice(item.resolvedUnitPrice)}
+                                {item.sellingContext === 'B2B' && (
+                                  <span className="ml-2 text-xs font-medium px-2 py-0.5 bg-[#ff6600]/20 text-[#ff6600] rounded">B2B</span>
+                                )}
+                              </p>
+
+                              {/* Quantity Controls */}
+                              <div className="flex items-center gap-4 mb-4">
+                                <span className="text-[#ffcc99] text-sm">Quantity:</span>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                    disabled={item.quantity <= 1 || updatingItems[item.id]}
+                                    className="w-8 h-8 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-lg text-white hover:bg-[#ff6600] hover:text-black disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                  >
+                                    <Minus className="w-4 h-4 mx-auto" />
+                                  </button>
+                                  <span className="text-white text-lg font-bold w-12 text-center">
+                                    {item.quantity}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                    disabled={item.quantity >= item.product.quantity || updatingItems[item.id]}
+                                    className="w-8 h-8 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-lg text-white hover:bg-[#ff6600] hover:text-black disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                  >
+                                    <Plus className="w-4 h-4 mx-auto" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Subtotal & Remove */}
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-[#ffcc99]/70 text-sm">Subtotal</p>
+                                  <p className="text-white text-xl font-bold">
+                                    {formatPrice(item.resolvedTotalPrice)}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeItem(item.id)}
+                                  disabled={updatingItems[item.id]}
+                                  className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 hover:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Remove
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
                       ))}
                     </div>
                   </div>

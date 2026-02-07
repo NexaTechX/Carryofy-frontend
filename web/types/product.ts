@@ -24,6 +24,8 @@ export interface Product {
         businessName: string;
         email: string;
     };
+    sellingMode?: 'B2C_ONLY' | 'B2B_ONLY' | 'BOTH';
+    moq?: number;
     averageRating?: number;
     reviewCount?: number;
     createdAt: string;

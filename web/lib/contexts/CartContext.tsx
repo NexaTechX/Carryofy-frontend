@@ -69,7 +69,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
       const response = await apiClient.get('/cart');
-      
+
       // Handle API response wrapping
       const cartData = response.data.data || response.data;
       setCart(cartData);
@@ -120,7 +120,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       const cartData = response.data.data || response.data;
       setCart(cartData);
-      
+
       window.dispatchEvent(new Event('cartUpdated'));
       showSuccessToast('Item removed from cart');
     } catch (err: any) {
@@ -153,7 +153,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       // Refresh cart to get updated state
       await fetchCart();
-      
+
       window.dispatchEvent(new Event('cartUpdated'));
       showSuccessToast('Product added to cart successfully!');
     } catch (err: any) {

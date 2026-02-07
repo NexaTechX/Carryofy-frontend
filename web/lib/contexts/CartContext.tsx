@@ -8,6 +8,9 @@ export interface CartItem {
   cartId: string;
   productId: string;
   quantity: number;
+  resolvedUnitPrice: number;
+  resolvedTotalPrice: number;
+  sellingContext: 'B2C' | 'B2B';
   product: {
     id: string;
     title: string;
@@ -15,6 +18,8 @@ export interface CartItem {
     images: string[];
     quantity: number;
     status: string;
+    sellingMode?: string;
+    moq?: number;
   };
 }
 
@@ -89,8 +94,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         item.id === itemId ? { ...item, quantity: newQuantity } : item
       );
       const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-      const totalAmount = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
-      return { ...prev, items, totalItems, totalAmount };
+      const totalAmount = items.reduce((sum, i) => sum + (i.resolvedTotalPrice ?? (i.resolvedUnitPrice ?? i.product.price) * i.quantity), 0);
+      return { ...prev, items, totalItems, totalAmount: prev.totalAmount };
     });
 
     try {
@@ -126,16 +131,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const addToCart = useCallback(async (productId: string, quantity: number = 1) => {
+  /**
+   * Add a product to the cart.
+   * @param productId - Product ID
+   * @param quantity - Quantity to add. For B2B products with MOQ, pass the selected quantity (≥ MOQ). Default 1 for B2C.
+   */
+  const addToCart = useCallback(async (productId: string, quantity?: number) => {
     if (!tokenManager.isAuthenticated()) {
       showErrorToast('Please login to add items to cart');
       return;
     }
 
+    // Safeguard: never send quantity < 1 to API (would fail validation). Default to 1 only when not provided.
+    const qty = typeof quantity === 'number' && quantity >= 1 ? quantity : 1;
+
     try {
       const response = await apiClient.post('/cart/items', {
         productId,
-        quantity,
+        quantity: qty,
       });
 
       // Refresh cart to get updated state

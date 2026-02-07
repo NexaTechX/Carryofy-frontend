@@ -207,7 +207,7 @@ export default function ProductCategories({ categories: initialCategories, produ
                     keyFeatures: (product as any).keyFeatures,
                     category: product.category,
                   }}
-                  href={`/products/${product.id}`}
+                  href={`/buyer/products/${product.id}`}
                   showFeatures={false}
                 />
               </motion.div>
@@ -221,7 +221,7 @@ export default function ProductCategories({ categories: initialCategories, produ
             className="mt-10 sm:mt-12 text-center"
           >
             <Link
-              href="/products"
+              href="/buyer/products"
               className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-primary to-orange-600 text-white rounded-full font-bold hover:shadow-lg hover:shadow-primary/40 transition-all duration-300 text-sm sm:text-base"
             >
               View All Products
@@ -289,7 +289,7 @@ export default function ProductCategories({ categories: initialCategories, produ
               >
                 {isActive ? (
                   <Link
-                    href={`/products?category=${category.slug}`}
+                    href={`/buyer/products?category=${category.slug}`}
                     className="block bg-white rounded-xl p-4 sm:p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 group"
                   >
                     <div className="flex flex-col items-center text-center">
@@ -355,7 +355,7 @@ export default function ProductCategories({ categories: initialCategories, produ
               >
                 {isActive ? (
                   <Link
-                    href={`/products?category=${category.slug}`}
+                    href={`/buyer/products?category=${category.slug}`}
                     className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm hover:shadow-md transition-all border border-gray-100 group"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -430,7 +430,7 @@ export default function ProductCategories({ categories: initialCategories, produ
           className="mt-8 sm:mt-10 text-center"
         >
           <Link
-            href="/products"
+            href="/buyer/products"
             className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-primary to-orange-600 text-white rounded-full font-bold hover:shadow-lg hover:shadow-primary/40 transition-all duration-300 text-sm sm:text-base"
           >
             View All Products

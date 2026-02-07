@@ -20,7 +20,7 @@ interface Category {
 // Static pages with their priorities and change frequencies
 const staticPages = [
   { path: '/', priority: 1.0, changefreq: 'daily' },
-  { path: '/products', priority: 1.0, changefreq: 'hourly' },
+  { path: '/buyer/products', priority: 1.0, changefreq: 'hourly' },
   { path: '/about', priority: 0.8, changefreq: 'monthly' },
   { path: '/contact', priority: 0.8, changefreq: 'monthly' },
   { path: '/blog', priority: 0.7, changefreq: 'weekly' },
@@ -92,7 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .filter(cat => cat.isActive)
           .forEach(category => {
             urls.push({
-              loc: `${SITE_URL}/products?category=${category.slug}`,
+              loc: `${SITE_URL}/buyer/products?category=${category.slug}`,
               lastmod: today,
               changefreq: 'daily',
               priority: 0.85,
@@ -112,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         products.forEach((product) => {
           urls.push({
-            loc: `${SITE_URL}/products/${product.id}`,
+            loc: `${SITE_URL}/buyer/products/${product.id}`,
             lastmod: product.updatedAt?.split('T')[0] || today,
             changefreq: 'weekly',
             priority: 0.7,

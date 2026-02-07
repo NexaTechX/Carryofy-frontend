@@ -18,7 +18,8 @@ import {
   Heart,
   FileText,
 } from 'lucide-react';
-import { tokenManager, userManager } from '../../../lib/auth';
+import { useAuth, tokenManager, userManager } from '../../../lib/auth';
+import { useCart } from '../../../lib/contexts/CartContext';
 import SEO from '../../../components/seo/SEO';
 import { ProductSchema, BreadcrumbSchema } from '../../../components/seo/JsonLd';
 import { addToWishlist, removeFromWishlist, checkWishlist } from '../../../lib/api/wishlist';
@@ -169,33 +170,44 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
   const [hasBusinessProfile, setHasBusinessProfile] = useState<boolean | null>(null);
   const [inWishlist, setInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const { addToCart } = useCart();
+  const { user: authUser, isAuthenticated: authAuthenticated, isLoading: authLoading } = useAuth();
 
+  // Sync auth from context (so we only show authenticated state after AuthProvider has validated token)
   useEffect(() => {
     setMounted(true);
-    // Check authentication
-    const authenticated = tokenManager.isAuthenticated();
-    setIsAuthenticated(authenticated);
+  }, []);
+
+  useEffect(() => {
+    const authenticated = !authLoading && authAuthenticated;
+    setIsAuthenticated(!!authenticated);
 
     if (!authenticated) {
-      setHasBusinessProfile(false);
+      setHasBusinessProfile(authLoading ? null : false);
       return;
     }
 
-    const user = userManager.getUser();
+    const user = authUser || userManager.getUser();
     if (user && user.role && user.role !== 'BUYER' && user.role !== 'ADMIN') {
       router.push('/');
       return;
     }
-    // Fetch full profile to check business buyer status
-    if (authenticated) {
-      apiClient.get('/users/me')
-        .then((res) => {
-          const data = (res.data as any)?.data ?? res.data;
-          setHasBusinessProfile(!!data?.businessBuyerProfile);
-        })
-        .catch(() => setHasBusinessProfile(false));
-    }
-  }, [router]);
+    // Fetch full profile to check if buyer has optional business details (for B2B context)
+    setHasBusinessProfile(null); // loading until we know
+    apiClient.get('/users/me')
+      .then((res) => {
+        const data = (res.data as any)?.data ?? res.data;
+        setHasBusinessProfile(!!data?.businessBuyerProfile);
+      })
+      .catch((err: any) => {
+        // Only treat as "no business profile" on 401; otherwise leave unknown so we don't show CTA by mistake
+        if (err?.response?.status === 401) {
+          setHasBusinessProfile(false);
+        } else {
+          setHasBusinessProfile(null); // keep unknown on network/5xx so we don't show CTA incorrectly
+        }
+      });
+  }, [router, authLoading, authAuthenticated, authUser]);
 
   useEffect(() => {
     if (mounted && id && !initialProduct) {
@@ -208,12 +220,13 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
     }
   }, [mounted, id, initialProduct, isAuthenticated]);
 
+  // Only enforce MOQ in quantity when we're showing B2B (authenticated + business profile); never for public
+  const mayShowB2bFull = isAuthenticated && (hasBusinessProfile === true) && (product?.sellingMode === 'B2B_ONLY' || product?.sellingMode === 'B2C_AND_B2B');
   useEffect(() => {
-    const b2b = product?.sellingMode === 'B2B_ONLY' || product?.sellingMode === 'B2C_AND_B2B';
-    if (product && b2b && (product.moq ?? 0) > 0 && quantity < product.moq!) {
+    if (mayShowB2bFull && product && (product.moq ?? 0) > 0 && quantity < product.moq!) {
       setQuantity(product.moq!);
     }
-  }, [product?.id, product?.moq, product?.sellingMode, quantity]);
+  }, [mayShowB2bFull, product?.id, product?.moq, product?.sellingMode, quantity]);
 
   const checkWishlistStatus = async (productId: string) => {
     try {
@@ -302,14 +315,15 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
       return;
     }
 
+    // Use selected quantity (effectiveQuantity respects MOQ and stock for B2B)
+    const qty = effectiveQuantity;
+    if (qty < 1) return;
+
     try {
       setAddingToCart(true);
       setCartMessage(null);
 
-      await apiClient.post('/cart/items', {
-        productId: product.id,
-        quantity: effectiveQuantity,
-      });
+      await addToCart(product.id, qty);
 
       setCartMessage({ type: 'success', text: 'Product added to cart successfully!' });
       setTimeout(() => {
@@ -361,13 +375,15 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
 
   const isB2bEnabled = product?.sellingMode === 'B2B_ONLY' || product?.sellingMode === 'B2C_AND_B2B';
   const isB2bOnly = product?.sellingMode === 'B2B_ONLY';
-  const showB2bFull = isB2bEnabled && (hasBusinessProfile === true);
-  const showB2bCta = isB2bEnabled && hasBusinessProfile === false && isAuthenticated;
-  // Consumers can add to cart only for B2C_AND_B2B (B2C path). B2B_ONLY has no consumer purchase path.
+  // B2B details (MOQ, tiers, bulk price) only for authenticated buyers with business details — never for public
+  const showB2bFull = isAuthenticated && isB2bEnabled && (hasBusinessProfile === true);
+  const showB2bCta = isAuthenticated && isB2bEnabled && hasBusinessProfile === false;
+  // B2B_ONLY: add-to-cart only when buyer has business details (and not quote-only). B2C_AND_B2B: cart unless quote-only for B2B context.
   const canAddToCart = isB2bOnly
-    ? showB2bFull && !product?.requestQuoteOnly  // B2B_ONLY: only business buyers, and only if not quote-only
-    : !(showB2bFull && product?.requestQuoteOnly);  // B2C_AND_B2B: show unless business + quote-only
-  const minQuantity = product && isB2bEnabled && (product.moq ?? 0) > 0 ? product.moq! : 1;
+    ? showB2bFull && !product?.requestQuoteOnly  // B2B_ONLY: requires buyer business details; no separate "business buyer" role
+    : !(showB2bFull && product?.requestQuoteOnly);  // B2C_AND_B2B: show unless B2B context + quote-only
+  // Only expose MOQ-based min quantity when showing B2B; otherwise public would see MOQ
+  const minQuantity = showB2bFull && product && isB2bEnabled && (product.moq ?? 0) > 0 ? product.moq! : 1;
   const effectiveQuantity = product ? Math.max(minQuantity, Math.min(product.quantity, quantity)) : quantity;
 
   const resolveUnitPriceKobo = (p: Product, qty: number): number => {
@@ -381,7 +397,10 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
     }
     return p.price;
   };
-  const unitPriceKobo = product ? resolveUnitPriceKobo(product, effectiveQuantity) : 0;
+  // Use tiered price only when B2B full view allowed; otherwise public gets base price only
+  const unitPriceKobo = product
+    ? showB2bFull ? resolveUnitPriceKobo(product, effectiveQuantity) : product.price
+    : 0;
   const totalPriceKobo = product ? unitPriceKobo * effectiveQuantity : 0;
 
   const getCategoryName = (categoryId?: string) => {
@@ -707,7 +726,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                   )}
                 </div>
 
-                {/* B2B info (MOQ, lead time, type, tier table) - full view for business buyers */}
+                {/* B2B info (MOQ, lead time, type, tier table) - shown when buyer has optional business details */}
                 {showB2bFull && (
                   <div className="mb-6 p-6 bg-[#1a1a1a] border border-[#ff6600]/20 rounded-xl">
                     <p className="text-[#ffcc99] text-sm font-bold mb-3">B2B / Bulk</p>
@@ -749,17 +768,17 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                     )}
                   </div>
                 )}
-                {/* CTA for consumers when product has B2B - register as business to see bulk pricing */}
+                {/* CTA when product has B2B and buyer hasn't added optional business details — add details to see bulk pricing */}
                 {showB2bCta && (
                   <div className="mb-6 p-6 bg-[#1a1a1a] border border-[#ff6600]/20 rounded-xl">
                     <p className="text-[#ffcc99] text-sm font-bold mb-2">Bulk pricing available</p>
-                    <p className="text-white text-sm mb-4">Register as a business buyer to see MOQ, tiered pricing, and request custom quotes.</p>
+                    <p className="text-white text-sm mb-4">Add optional business details to your profile to see MOQ, tiered pricing, and request custom quotes.</p>
                     <Link
                       href="/buyer/profile#business"
                       className="inline-flex items-center gap-2 px-4 py-2 bg-[#ff6600]/20 border border-[#ff6600] text-[#ff6600] rounded-xl font-medium hover:bg-[#ff6600]/30 transition"
                     >
                       <FileText className="w-4 h-4" />
-                      Register as business buyer
+                      Add business details
                     </Link>
                   </div>
                 )}

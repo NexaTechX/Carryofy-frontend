@@ -1,5 +1,6 @@
-# Carryofy Robots.txt
-# https://carryofy.com/robots.txt
+# Carryofy - Verified Multi-Vendor Marketplace & Logistics
+# This robots.txt is optimized for Carryofy (https://carryofy.com)
+# Bridging the gap between Nigerian sellers and buyers.
 
 # Allow all crawlers
 User-agent: *

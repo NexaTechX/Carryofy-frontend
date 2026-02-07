@@ -155,7 +155,7 @@ export default function FeaturedProducts({ products = [], loading = false, error
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden sm:flex items-end justify-center pb-6">
                     <Link
-                      href={`/products/${product.id}`}
+                      href={`/buyer/products/${product.id}`}
                       className="bg-white text-gray-900 px-6 py-2.5 rounded-full font-bold transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 hover:bg-primary hover:text-white text-sm shadow-xl"
                     >
                       View Details
@@ -175,7 +175,7 @@ export default function FeaturedProducts({ products = [], loading = false, error
                       {formatPrice(product.price)}
                     </span>
                     <Link
-                      href={`/products/${product.id}`}
+                      href={`/buyer/products/${product.id}`}
                       className="p-1.5 sm:p-2 rounded-full bg-linear-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-primary hover:to-orange-600 hover:text-white transition-all duration-300 touch-target btn-mobile shadow-sm hover:shadow-md"
                     >
                       <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -216,7 +216,7 @@ export default function FeaturedProducts({ products = [], loading = false, error
             className="mt-10 sm:mt-12 lg:mt-16 text-center"
           >
             <Link
-              href="/products"
+              href="/buyer/products"
               className="inline-flex items-center gap-2 px-8 py-4 bg-linear-to-r from-primary to-orange-600 text-white rounded-full font-bold hover:shadow-lg hover:shadow-primary/40 transition-all duration-300 group text-base sm:text-lg touch-target"
             >
               View All Products

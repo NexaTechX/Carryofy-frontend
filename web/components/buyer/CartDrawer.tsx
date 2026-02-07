@@ -43,7 +43,7 @@ export default function CartDrawer() {
 
   const calculateSubtotal = () => {
     if (!cart) return 0;
-    return cart.items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    return cart.items.reduce((sum, item) => sum + (item.resolvedTotalPrice ?? item.resolvedUnitPrice * item.quantity), 0);
   };
 
   const discount = 0;
@@ -191,9 +191,12 @@ export default function CartDrawer() {
                                 {item.product.title}
                               </Link>
 
-                              {/* Price */}
+                              {/* Price - server-provided only */}
                               <p className="text-[#ff6600] text-lg font-bold mb-3">
-                                {formatPrice(item.product.price)}
+                                {formatPrice(item.resolvedUnitPrice ?? item.product.price)}
+                                {item.sellingContext === 'B2B' && (
+                                  <span className="ml-1.5 text-[10px] font-medium px-1.5 py-0.5 bg-[#ff6600]/20 text-[#ff6600] rounded">B2B</span>
+                                )}
                               </p>
 
                               {/* Quantity Controls */}
@@ -229,11 +232,11 @@ export default function CartDrawer() {
                                 </button>
                               </div>
 
-                              {/* Item Subtotal */}
+                              {/* Item Subtotal - server-provided only */}
                               <div className="mt-2 pt-2 border-t border-[#ff6600]/20">
                                 <p className="text-[#ffcc99]/70 text-xs">Subtotal</p>
                                 <p className="text-white text-sm font-bold">
-                                  {formatPrice(item.product.price * item.quantity)}
+                                  {formatPrice(item.resolvedTotalPrice ?? (item.resolvedUnitPrice ?? item.product.price) * item.quantity)}
                                 </p>
                               </div>
                             </div>

@@ -263,10 +263,10 @@ export default function BuyerProfilePage() {
         registrationNumber: businessForm.registrationNumber.trim() || undefined,
         country: businessForm.country || 'Nigeria',
       });
-      setBusinessMessage('Business profile saved. You can now access B2B pricing and request quotes.');
+      setBusinessMessage('Business details saved. You can now see B2B pricing and request quotes.');
       fetchProfile();
     } catch (err: any) {
-      setBusinessMessage(err.response?.data?.message || 'Failed to save business profile');
+      setBusinessMessage(err.response?.data?.message || 'Failed to save business details');
     } finally {
       setBusinessSaving(false);
     }
@@ -781,19 +781,19 @@ export default function BuyerProfilePage() {
             </div>
           </div>
 
-          {/* Business buyer profile */}
+          {/* Optional business details — same buyer role; enables B2B context (bulk, quotes) when filled */}
           <div id="business" className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 mb-8">
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <h2 className="text-white text-xl font-bold">Business account (B2B)</h2>
+              <h2 className="text-white text-xl font-bold">Business details (optional)</h2>
               {profile?.businessBuyerProfile ? (
-                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-medium rounded">Active</span>
+                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-medium rounded">Saved</span>
               ) : (
-                <span className="text-[#ffcc99]/70 text-sm">Register to request quotes and see bulk pricing</span>
+                <span className="text-[#ffcc99]/70 text-sm">Optional — add to see bulk pricing and request quotes</span>
               )}
             </div>
-            <p className="text-[#ffcc99]/80 text-sm mb-4">Add your company details to access B2B pricing, MOQ, tiered prices, and request quotes from sellers.</p>
+            <p className="text-[#ffcc99]/80 text-sm mb-4">Add company details when you need B2B pricing, MOQ, tiered prices, or to request quotes. You can add or update these anytime.</p>
             {businessMessage && (
-              <div className={`mb-4 p-3 rounded-lg text-sm ${businessMessage.startsWith('Business profile saved') ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+              <div className={`mb-4 p-3 rounded-lg text-sm ${businessMessage.startsWith('Business details saved') ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
                 {businessMessage}
               </div>
             )}
@@ -853,7 +853,7 @@ export default function BuyerProfilePage() {
                 className="inline-flex items-center gap-2 px-6 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {businessSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {profile?.businessBuyerProfile ? 'Update business profile' : 'Register as business buyer'}
+                {profile?.businessBuyerProfile ? 'Update business details' : 'Add business details'}
               </button>
             </form>
           </div>

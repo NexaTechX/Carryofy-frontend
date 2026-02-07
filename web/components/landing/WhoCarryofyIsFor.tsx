@@ -122,7 +122,7 @@ export default function WhoCarryofyIsFor() {
                 </ul>
 
                 <Link
-                  href="/products"
+                  href="/buyer/products"
                   className="group/btn inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-primary to-primary-light text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 font-semibold text-base"
                 >
                   Start Shopping

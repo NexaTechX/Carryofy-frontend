@@ -98,7 +98,7 @@ export default function SellerQuotesPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Quote Requests</h1>
-              <p className="text-[#ffcc99] text-sm">B2B inquiries and quote requests from business buyers</p>
+              <p className="text-[#ffcc99] text-sm">B2B inquiries and quote requests from buyers</p>
             </div>
           </div>
 
@@ -110,7 +110,7 @@ export default function SellerQuotesPage() {
             <div className="bg-[#1a1a1a] rounded-2xl border border-[#ff6600]/20 p-12 text-center">
               <FileText className="w-12 h-12 text-[#ff6600]/50 mx-auto mb-4" />
               <p className="text-white font-medium mb-1">No quote requests yet</p>
-              <p className="text-[#ffcc99] text-sm">When business buyers request quotes for your B2B products, they will appear here.</p>
+              <p className="text-[#ffcc99] text-sm">When buyers request quotes for your B2B products, they will appear here.</p>
             </div>
           ) : (
             <div className="space-y-4">

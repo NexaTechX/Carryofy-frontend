@@ -26,6 +26,9 @@ interface CartItem {
   id: string;
   productId: string;
   quantity: number;
+  resolvedUnitPrice?: number;
+  resolvedTotalPrice?: number;
+  sellingContext?: 'B2C' | 'B2B';
   product: {
     id: string;
     title: string;
@@ -106,6 +109,8 @@ export default function CheckoutPage() {
   const [loadingAddresses, setLoadingAddresses] = useState(false);
 
   const [orderNotes, setOrderNotes] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [businessPurpose, setBusinessPurpose] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -304,13 +309,6 @@ export default function CheckoutPage() {
       const cartData = response.data.data || response.data;
       setCart(cartData);
     } catch (err: any) {
-      console.error('Error fetching cart:', err);
-      console.error('Error details:', {
-        code: err.code,
-        message: err.message,
-        response: err.response,
-        config: err.config,
-      });
       
       // Handle network errors specifically
       if (err.code === 'ERR_NETWORK' || err.message === 'Network Error' || err.code === 'ECONNREFUSED') {
@@ -341,6 +339,11 @@ export default function CheckoutPage() {
   };
 
   const discount = couponDiscount;
+
+  const hasB2BOnlyItems = useMemo(() => {
+    if (quote) return true;
+    return cart?.items?.some((i) => i.product?.sellingMode === 'B2B_ONLY') ?? false;
+  }, [cart?.items, quote]);
 
   const quoteSubtotal = useMemo(() => {
     if (!quote?.items?.length) return 0;
@@ -382,7 +385,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    const subtotalForCoupon = quote ? quoteSubtotal : (cart?.items?.reduce((sum, item) => sum + (item.product.price * item.quantity), 0) ?? 0);
+    const subtotalForCoupon = quote ? quoteSubtotal : (cart?.items?.reduce((sum, item) => sum + (item.resolvedTotalPrice ?? (item.resolvedUnitPrice ?? item.product?.price ?? 0) * item.quantity), 0) ?? 0);
     if (!quote && (!cart || cart.items.length === 0)) {
       setOrderMessage({ type: 'error', text: 'Cart is empty.' });
       setTimeout(() => setOrderMessage(null), 2500);
@@ -452,6 +455,11 @@ export default function CheckoutPage() {
         setOrderMessage({ type: 'error', text: 'Please provide your delivery address or select a saved address.' });
         return false;
       }
+    }
+
+    if (hasB2BOnlyItems && (!businessName.trim() || !businessPurpose.trim())) {
+      setOrderMessage({ type: 'error', text: 'Business name and purpose are required for B2B orders.' });
+      return false;
     }
 
     return true;
@@ -564,6 +572,10 @@ export default function CheckoutPage() {
           quantity: item.quantity,
         }));
       }
+      if (hasB2BOnlyItems) {
+        orderPayload.businessName = businessName.trim();
+        orderPayload.businessPurpose = businessPurpose.trim();
+      }
 
       const orderResponse = await apiClient.post('/orders', orderPayload);
 
@@ -584,22 +596,9 @@ export default function CheckoutPage() {
       window.location.href = paymentData.authorization_url;
       return;
     } catch (err: any) {
-      console.error('Error placing order:', err);
-      console.error('Error details:', {
-        response: err.response,
-        data: err.response?.data,
-        message: err.message,
-      });
-
       // Handle validation errors (400 Bad Request)
       if (err.response?.status === 400) {
         const errorData = err.response.data;
-        console.error('Validation error details:', {
-          status: err.response.status,
-          data: errorData,
-          requestData: err.config?.data ? JSON.parse(err.config.data) : null,
-        });
-        
         let errorMessage = '';
         
         if (Array.isArray(errorData.message)) {
@@ -797,7 +796,7 @@ export default function CheckoutPage() {
                                   <p className="text-white font-medium text-sm truncate">{item.product.title}</p>
                                   <p className="text-[#ffcc99] text-xs">Qty: {item.quantity}</p>
                                 </div>
-                                <p className="text-[#ff6600] font-bold">{formatPrice(item.product.price * item.quantity)}</p>
+                                <p className="text-[#ff6600] font-bold">{formatPrice(item.resolvedTotalPrice ?? (item.resolvedUnitPrice ?? item.product?.price ?? 0) * item.quantity)}</p>
                               </div>
                             ))
                           )}
@@ -940,6 +939,38 @@ export default function CheckoutPage() {
                           </div>
                         </div>
                       </section>
+
+                      {hasB2BOnlyItems && (
+                        <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
+                          <div className="flex items-center gap-3 mb-4">
+                            <Package className="w-5 h-5 text-[#ff6600]" />
+                            <h2 className="text-white text-xl font-bold">Business details</h2>
+                          </div>
+                          <p className="text-[#ffcc99] text-sm mb-4">Required for B2B / wholesale orders.</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-white text-sm font-medium mb-2">Business name *</label>
+                              <input
+                                type="text"
+                                value={businessName}
+                                onChange={(e) => setBusinessName(e.target.value)}
+                                placeholder="Your company or business name"
+                                className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-white text-sm font-medium mb-2">Business purpose *</label>
+                              <input
+                                type="text"
+                                value={businessPurpose}
+                                onChange={(e) => setBusinessPurpose(e.target.value)}
+                                placeholder="e.g. retail, resale, distribution"
+                                className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
+                              />
+                            </div>
+                          </div>
+                        </section>
+                      )}
 
                       <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                         <div className="flex items-center gap-3 mb-4">
@@ -1269,7 +1300,7 @@ export default function CheckoutPage() {
                                   <p className="text-white text-sm font-medium truncate">{item.product.title}</p>
                                   <p className="text-[#ffcc99] text-xs">Qty: {item.quantity}</p>
                                 </div>
-                                <p className="text-[#ff6600] font-bold text-sm">{formatPrice(item.product.price * item.quantity)}</p>
+                                <p className="text-[#ff6600] font-bold text-sm">{formatPrice(item.resolvedTotalPrice ?? (item.resolvedUnitPrice ?? item.product?.price ?? 0) * item.quantity)}</p>
                               </div>
                             ))}
                           </div>

@@ -185,14 +185,14 @@ export default function ProductComparison({ products, onRemove, onClear }: Produ
                 {products.map((product) => (
                   <div key={`actions-${product.id}`} className="py-2">
                     <Link
-                      href={`/products/${product.id}`}
+                      href={`/buyer/products/${product.id}`}
                       className="block w-full px-4 py-2 bg-[#ff6600] text-black font-bold rounded-lg hover:bg-[#cc5200] transition text-center text-sm mb-2"
                     >
                       View Details
                     </Link>
                     {product.quantity > 0 && (
                       <Link
-                        href={`/products/${product.id}`}
+                        href={`/buyer/products/${product.id}`}
                         className="block w-full px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] rounded-lg hover:border-[#ff6600] transition text-center text-sm"
                       >
                         Add to Cart

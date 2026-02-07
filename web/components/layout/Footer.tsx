@@ -73,7 +73,7 @@ export default function Footer() {
               {[
                 { name: 'Sell on Carryofy', href: '/merchant-onboarding' },
                 { name: 'Help Center', href: '/help' },
-                { name: 'Products', href: '/products' },
+                { name: 'Products', href: '/buyer/products' },
                 { name: 'Track Order', href: '/buyer/track' },
               ].map((item) => (
                 <li key={item.name}>

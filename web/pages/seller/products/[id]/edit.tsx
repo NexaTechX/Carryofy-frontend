@@ -815,7 +815,7 @@ export default function EditProductPage() {
                         className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
                       >
                         <option value="B2C_ONLY">B2C only (consumers)</option>
-                        <option value="B2B_ONLY">B2B only (business buyers)</option>
+                        <option value="B2B_ONLY">B2B only (buyer business details required)</option>
                         <option value="B2C_AND_B2B">B2C + B2B</option>
                       </select>
                     </div>

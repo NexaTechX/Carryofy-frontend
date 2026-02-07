@@ -29,7 +29,7 @@ export default function CallToAction() {
             className="flex flex-col sm:flex-row justify-center gap-4"
           >
             <Link
-              href="/products"
+              href="/buyer/products"
               className="px-8 py-4 bg-white text-gray-900 rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl transition-all duration-300"
             >
               Start Shopping

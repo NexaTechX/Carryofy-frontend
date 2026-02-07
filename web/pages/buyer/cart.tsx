@@ -13,6 +13,9 @@ interface CartItem {
   cartId: string;
   productId: string;
   quantity: number;
+  resolvedUnitPrice: number;
+  resolvedTotalPrice: number;
+  sellingContext: 'B2C' | 'B2B';
   product: {
     id: string;
     title: string;
@@ -20,6 +23,8 @@ interface CartItem {
     images: string[];
     quantity: number;
     status: string;
+    sellingMode?: string;
+    moq?: number;
   };
 }
 
@@ -74,13 +79,6 @@ export default function CartPage() {
       
       // Handle API response wrapping
       const cartData = response.data.data || response.data;
-      
-      // Debug logging
-      console.log('Cart API Response:', response.data);
-      console.log('Cart Data:', cartData);
-      console.log('Cart Items Count:', cartData?.items?.length);
-      console.log('Cart Items:', cartData?.items);
-      
       setCart(cartData);
     } catch (err: any) {
       console.error('Error fetching cart:', err);
@@ -101,8 +99,7 @@ export default function CartPage() {
         item.id === itemId ? { ...item, quantity: newQuantity } : item
       );
       const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-      const totalAmount = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
-      return { ...prev, items, totalItems, totalAmount };
+      return { ...prev, items, totalItems, totalAmount: prev.totalAmount };
     });
 
     try {
@@ -145,7 +142,7 @@ export default function CartPage() {
 
   const calculateSubtotal = () => {
     if (!cart) return 0;
-    return cart.items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    return cart.items.reduce((sum, item) => sum + (item.resolvedTotalPrice ?? item.resolvedUnitPrice * item.quantity), 0);
   };
 
   const shippingFee = 500; // ₦5.00
@@ -296,9 +293,12 @@ export default function CartPage() {
                               {item.product.title}
                             </Link>
 
-                            {/* Price */}
+                            {/* Price - server-provided only */}
                             <p className="text-[#ff6600] text-2xl font-bold mb-4">
-                              {formatPrice(item.product.price)}
+                              {formatPrice(item.resolvedUnitPrice)}
+                              {item.sellingContext === 'B2B' && (
+                                <span className="ml-2 text-xs font-medium px-2 py-0.5 bg-[#ff6600]/20 text-[#ff6600] rounded">B2B</span>
+                              )}
                             </p>
 
                             {/* Quantity Controls */}
@@ -332,7 +332,7 @@ export default function CartPage() {
                               <div>
                                 <p className="text-[#ffcc99]/70 text-sm">Subtotal</p>
                                 <p className="text-white text-xl font-bold">
-                                  {formatPrice(item.product.price * item.quantity)}
+                                  {formatPrice(item.resolvedTotalPrice)}
                                 </p>
                               </div>
                               <button

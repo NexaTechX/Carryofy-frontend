@@ -160,7 +160,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       categories: categories.map(cat => ({
         name: cat.name,
         slug: cat.slug,
-        url: `${SITE_URL}/products?category=${cat.slug}`,
+        url: `${SITE_URL}/buyer/products?category=${cat.slug}`,
       })),
       featuredProducts: products.slice(0, 20).map(product => ({
         id: product.id,
@@ -168,7 +168,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         price: formatPrice(product.price),
         priceNumeric: product.price / 100,
         description: product.description?.slice(0, 200) || `Quality ${product.title} available on Carryofy`,
-        url: `${SITE_URL}/products/${product.id}`,
+        url: `${SITE_URL}/buyer/products/${product.id}`,
         image: product.images?.[0],
         seller: product.seller?.businessName || 'Carryofy Seller',
         inStock: product.quantity > 0,
@@ -182,7 +182,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         {
           title: 'All Products',
-          url: `${SITE_URL}/products`,
+          url: `${SITE_URL}/buyer/products`,
           description: 'Browse thousands of products from verified Nigerian sellers with fast delivery',
         },
         {

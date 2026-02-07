@@ -42,17 +42,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         const currentUser = await authService.getCurrentUser();
                         setUser(currentUser);
                     } catch (error: any) {
-                        // Silently handle 401 errors (token expired/invalid)
-                        // This is expected behavior and doesn't need logging
+                        // 401: apiClient already tried refresh; if we're here, refresh failed and
+                        // the interceptor will clear tokens and redirect to login. Do NOT clear here
+                        // to avoid double-clearing and flicker.
                         if (error?.response?.status === 401) {
-                            tokenManager.clearTokens();
-                            setUser(null);
-                        } else {
-                            // Only log unexpected errors
-                            console.error('Failed to initialize auth:', error);
-                            tokenManager.clearTokens();
-                            setUser(null);
+                            // Leave state as-is; redirect will load login page and initAuth will run with no token
+                            return;
                         }
+                        // Only log and clear on unexpected errors
+                        console.error('Failed to initialize auth:', error);
+                        tokenManager.clearTokens();
+                        setUser(null);
                     }
                 } else {
                     // No token, check if user exists in localStorage (shouldn't happen, but clear it)

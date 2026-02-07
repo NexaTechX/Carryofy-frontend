@@ -535,7 +535,7 @@ export default function ProductDetailPage() {
                       <p className="text-[#ffcc99] text-sm">View how buyers see your product</p>
                     </div>
                     <Link
-                      href={`/products/${product.id}`}
+                      href={`/buyer/products/${product.id}`}
                       target="_blank"
                       className="flex items-center gap-2 px-4 py-2 border border-[#ff6600]/30 text-[#ffcc99] font-medium rounded-xl hover:bg-[#ff6600]/10 transition-colors"
                     >

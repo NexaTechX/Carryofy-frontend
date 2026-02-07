@@ -101,9 +101,17 @@ export default function ProductCard({
       return;
     }
 
+    // B2B products with MOQ: add MOQ so quantity is valid; B2C: add 1
+    const qty =
+      (product.sellingMode === 'B2B_ONLY' || product.sellingMode === 'B2C_AND_B2B') &&
+      product.moq != null &&
+      product.moq > 0
+        ? product.moq
+        : 1;
+
     try {
       setIsAddingToCart(true);
-      await addToCart(product.id, 1);
+      await addToCart(product.id, qty);
     } catch (error) {
       // Error is handled by the cart context (toast notification)
     } finally {
@@ -111,7 +119,7 @@ export default function ProductCard({
     }
   };
 
-  const productHref = href || `/products/${product.id}`;
+  const productHref = href || `/buyer/products/${product.id}`;
 
   return (
     <article
@@ -222,7 +230,7 @@ export default function ProductCard({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                router.push(`/products?seller=${product.seller.id}`);
+                router.push(`/buyer/products?seller=${product.seller.id}`);
               }}
               className="text-[#ffcc99] hover:text-[#ff6600] text-xs font-medium truncate transition-colors text-left"
             >
@@ -245,9 +253,18 @@ export default function ProductCard({
               </span>
             )}
             
-            {/* Add to Cart Button — links to signup for non-authenticated users */}
+            {/* B2B_ONLY: View details only. B2C: Add to Cart (or signup link) */}
             {product.quantity > 0 && (
-              !isAuthenticated ? (
+              product.sellingMode === 'B2B_ONLY' ? (
+                <Link
+                  href={productHref}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0d0d0d] border-2 border-[#ff6600]/50 text-white rounded-lg font-semibold hover:bg-[#ff6600]/10 hover:border-[#ff6600] transition-all duration-200 text-sm"
+                  title="View details for wholesale pricing"
+                >
+                  View details
+                </Link>
+              ) : !isAuthenticated ? (
                 <Link
                   href={`/auth/signup?redirect=${encodeURIComponent(router.asPath || '/')}`}
                   onClick={(e) => e.stopPropagation()}

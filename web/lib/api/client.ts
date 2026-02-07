@@ -19,6 +19,27 @@ const apiClient: AxiosInstance = axios.create({
   timeout: 30000, // 30 second timeout (increased from 10s to handle slow queries)
 });
 
+// Single in-flight refresh promise so multiple 401s don't trigger concurrent refresh (which can invalidate refresh token)
+let refreshPromise: Promise<string | null> | null = null;
+
+function doRefresh(): Promise<string | null> {
+  if (typeof window === 'undefined') return Promise.resolve(null);
+  const refreshToken = tokenManager.getRefreshToken();
+  if (!refreshToken) return Promise.resolve(null);
+  return axios
+    .post(`${API_BASE_URL}/auth/refresh-token`, { refreshToken })
+    .then((response) => {
+      const responseData = response.data;
+      const accessToken = responseData?.data?.accessToken || responseData?.accessToken;
+      if (accessToken) {
+        tokenManager.setTokens(accessToken, refreshToken);
+        return accessToken;
+      }
+      return null;
+    })
+    .catch(() => null);
+}
+
 // Request interceptor to add Access Token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -97,58 +118,35 @@ apiClient.interceptors.response.use(
       });
     }
 
-    // Handle 401 Unauthorized - try to refresh token
-    // Skip refresh for login requests to avoid loops
+    // Handle 401 Unauthorized - try to refresh token (single in-flight refresh to avoid race on page load)
     const isLoginRequest = originalRequest.url?.includes('/auth/login');
 
     if (error.response?.status === 401 && !originalRequest._retry && typeof window !== 'undefined' && !isLoginRequest) {
       originalRequest._retry = true;
 
-      try {
-        const refreshToken = tokenManager.getRefreshToken();
-
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-
-        // Call refresh endpoint directly to avoid circular dependency and interceptors
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {
-          refreshToken,
+      // One refresh at a time: if another 401 already started refresh, wait for it and reuse the new token
+      if (!refreshPromise) {
+        refreshPromise = doRefresh().finally(() => {
+          refreshPromise = null;
         });
-
-        // Extract accessToken from wrapped response
-        const responseData = response.data;
-        const accessToken = responseData?.data?.accessToken || responseData?.accessToken;
-
-        if (accessToken) {
-          // Update tokens - keep the old refresh token? 
-          // The API spec says response is { accessToken: string }, so we reuse the old refresh token 
-          // unless the backend rotates it. Assuming we keep the old one.
-          tokenManager.setTokens(accessToken, refreshToken);
-
-          // Update header and retry original request
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          }
-          return apiClient(originalRequest);
-        }
-      } catch (refreshError: any) {
-        // Refresh failed, clear tokens and redirect to login
-        console.error('Token refresh failed:', {
-          error: refreshError,
-          message: refreshError?.message,
-          response: refreshError?.response?.data,
-          status: refreshError?.response?.status,
-        });
-        tokenManager.clearTokens();
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
-          // Only redirect if we're not already on login page
-          setTimeout(() => {
-            window.location.href = '/auth/login';
-          }, 100);
-        }
-        return Promise.reject(refreshError);
       }
+
+      const newAccessToken = await refreshPromise;
+
+      if (newAccessToken && originalRequest.headers) {
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return apiClient(originalRequest);
+      }
+
+      // Refresh failed (newAccessToken is null) - clear session and redirect so user can log in again
+      tokenManager.clearTokens();
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
+        console.error('Token refresh failed, clearing session');
+        setTimeout(() => {
+          window.location.href = '/auth/login';
+        }, 100);
+      }
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);

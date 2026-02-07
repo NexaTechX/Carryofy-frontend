@@ -57,8 +57,8 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="Carryofy - Verified Multi-Vendor Marketplace for Modern African Commerce"
-        description="Carryofy is a verified multi-vendor marketplace that helps businesses sell faster and buyers shop safely, without the chaos of traditional marketplaces. Built for modern African commerce."
+        title="Verified Multi-Vendor Marketplace for Modern African Commerce"
+        description="Carryofy is the leading marketplace and logistics platform for trusted sellers in Lagos. Shop safely from verified merchants with same-day delivery, secure payments, and buyer protection."
         keywords={fullKeywords}
         canonical="https://carryofy.com"
         ogType="website"

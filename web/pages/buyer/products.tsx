@@ -63,7 +63,6 @@ export default function ProductsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [b2bOnly, setB2bOnly] = useState(false);
-  const [hasBusinessProfile, setHasBusinessProfile] = useState<boolean | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -105,19 +104,6 @@ export default function ProductsPage() {
       fetchProducts();
     }
   }, [mounted, selectedCategory, minPrice, maxPrice, sortBy, currentPage, searchQuery, b2bOnly]);
-
-  useEffect(() => {
-    if (mounted && tokenManager.isAuthenticated()) {
-      apiClient.get('/users/me')
-        .then((res) => {
-          const data = (res.data as any)?.data ?? res.data;
-          setHasBusinessProfile(!!data?.businessBuyerProfile);
-        })
-        .catch(() => setHasBusinessProfile(false));
-    } else {
-      setHasBusinessProfile(false);
-    }
-  }, [mounted]);
 
   const fetchProducts = async () => {
     try {
@@ -285,24 +271,23 @@ export default function ProductsPage() {
                 </ul>
               </nav>
 
-              {/* B2B Filter - only show for business buyers */}
-              {hasBusinessProfile && (
-                <div className="mt-4 pt-4 border-t border-[#ff6600]/30">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={b2bOnly}
-                      onChange={(e) => {
-                        setB2bOnly(e.target.checked);
-                        setCurrentPage(1);
-                      }}
-                      className="rounded border-[#ff6600]/50 text-[#ff6600] focus:ring-[#ff6600]"
-                    />
-                    <span className="text-white text-sm">B2B suppliers only</span>
-                  </label>
-                  <p className="text-[#ffcc99]/60 text-xs mt-1">Products with bulk / business pricing</p>
-                </div>
-              )}
+              {/* B2B Filter - show bulk / business products only when enabled */}
+              <div className="mt-4 pt-4 border-t border-[#ff6600]/30">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={b2bOnly}
+                    onChange={(e) => {
+                      setB2bOnly(e.target.checked);
+                      setCurrentPage(1);
+                    }}
+                    className="rounded border-[#ff6600]/50 text-[#ff6600] focus:ring-[#ff6600]"
+                    aria-label="Show only B2B / bulk products"
+                  />
+                  <span className="text-white text-sm">B2B / bulk products only</span>
+                </label>
+                <p className="text-[#ffcc99]/60 text-xs mt-1">Products with MOQ, tiered pricing, or quote requests</p>
+              </div>
 
               {/* Price Range Filter */}
               <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-[#ff6600]/30">

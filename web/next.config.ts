@@ -163,26 +163,30 @@ const nextConfig: NextConfig = {
         destination: '/',
         permanent: true,
       },
-      // Redirect old/common paths to public products page
+      // Redirect old/common paths and public /products to buyer products (single products experience)
       {
         source: '/shop',
-        destination: '/products',
+        destination: '/buyer/products',
         permanent: true,
       },
       {
         source: '/store',
-        destination: '/products',
+        destination: '/buyer/products',
         permanent: true,
       },
       {
         source: '/buy',
-        destination: '/products',
+        destination: '/buyer/products',
         permanent: true,
       },
-      // Redirect authenticated product routes to public routes for crawlers
       {
-        source: '/buyer/products/:id',
-        destination: '/products/:id',
+        source: '/products',
+        destination: '/buyer/products',
+        permanent: true,
+      },
+      {
+        source: '/products/:id',
+        destination: '/buyer/products/:id',
         permanent: true,
       },
       {

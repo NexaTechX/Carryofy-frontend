@@ -127,7 +127,7 @@ export default function Header() {
               Sign In
             </Link>
             <Link
-              href="/products"
+              href="/buyer/products"
               className="px-6 py-2.5 text-gray-700 font-semibold rounded-full border border-gray-300 hover:border-primary hover:text-primary transition-colors"
             >
               Start Shopping
@@ -213,7 +213,7 @@ export default function Header() {
                       Sign In
                     </Link>
                     <Link
-                      href="/products"
+                      href="/buyer/products"
                       className="block w-full py-3 text-center text-gray-700 font-semibold rounded-xl border border-gray-200 hover:border-primary hover:text-primary transition-colors touch-target btn-mobile"
                       onClick={() => setMobileMenuOpen(false)}
                     >

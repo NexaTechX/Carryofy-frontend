@@ -9,7 +9,11 @@
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en-NG",
-  "categories": ["shopping", "business", "logistics"],
+  "categories": [
+    "shopping",
+    "business",
+    "logistics"
+  ],
   "icons": [
     {
       "src": "/favicon-16x16.png",
@@ -41,7 +45,7 @@
   ],
   "screenshots": [
     {
-      "src": "/og/default.png",
+      "src": "/logo.png",
       "sizes": "1200x630",
       "type": "image/png",
       "form_factor": "wide",
@@ -54,24 +58,38 @@
       "short_name": "Shop",
       "description": "Browse and buy products",
       "url": "/buyer/products",
-      "icons": [{ "src": "/favicon-32x32.png", "sizes": "32x32" }]
+      "icons": [
+        {
+          "src": "/favicon-32x32.png",
+          "sizes": "32x32"
+        }
+      ]
     },
     {
       "name": "Become a Seller",
       "short_name": "Sell",
       "description": "Start selling on Carryofy",
       "url": "/merchant-onboarding",
-      "icons": [{ "src": "/favicon-32x32.png", "sizes": "32x32" }]
+      "icons": [
+        {
+          "src": "/favicon-32x32.png",
+          "sizes": "32x32"
+        }
+      ]
     },
     {
       "name": "Track Order",
       "short_name": "Track",
       "description": "Track your delivery",
       "url": "/buyer/track",
-      "icons": [{ "src": "/favicon-32x32.png", "sizes": "32x32" }]
+      "icons": [
+        {
+          "src": "/favicon-32x32.png",
+          "sizes": "32x32"
+        }
+      ]
     }
   ],
   "related_applications": [],
   "prefer_related_applications": false
 }
-

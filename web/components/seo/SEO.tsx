@@ -19,7 +19,7 @@ interface SEOProps {
 }
 
 const SITE_URL = 'https://carryofy.com';
-const DEFAULT_OG_IMAGE = `${SITE_URL}/og/default.png`;
+const DEFAULT_OG_IMAGE = `${SITE_URL}/logo.png`;
 const SITE_NAME = 'Carryofy';
 const TWITTER_HANDLE = '@carryofy';
 

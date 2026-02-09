@@ -22,23 +22,14 @@ import {
   EyeOff,
   AlertTriangle,
   Sparkles,
+  Locate,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
 
-interface BusinessBuyerProfile {
-  id: string;
-  userId: string;
-  companyName: string;
-  businessCategory: string;
-  taxId?: string;
-  registrationNumber?: string;
-  country: string;
-  createdAt: string;
-  updatedAt: string;
-}
+
 
 interface UserProfile {
   id: string;
@@ -49,7 +40,7 @@ interface UserProfile {
   verified: boolean;
   createdAt: string;
   updatedAt: string;
-  businessBuyerProfile?: BusinessBuyerProfile;
+
 }
 
 interface Address {
@@ -61,6 +52,8 @@ interface Address {
   state: string;
   country: string;
   postalCode?: string;
+  latitude?: number;
+  longitude?: number;
   createdAt: string;
 }
 
@@ -84,7 +77,10 @@ export default function BuyerProfilePage() {
     state: '',
     country: 'Nigeria',
     postalCode: '',
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined,
   });
+  const [gettingLocation, setGettingLocation] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [addressSaving, setAddressSaving] = useState(false);
   const [addressMessage, setAddressMessage] = useState<string | null>(null);
@@ -103,15 +99,7 @@ export default function BuyerProfilePage() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [businessForm, setBusinessForm] = useState({
-    companyName: '',
-    businessCategory: '',
-    taxId: '',
-    registrationNumber: '',
-    country: 'Nigeria',
-  });
-  const [businessSaving, setBusinessSaving] = useState(false);
-  const [businessMessage, setBusinessMessage] = useState<string | null>(null);
+
   const confirmation = useConfirmation();
 
   useEffect(() => {
@@ -141,6 +129,32 @@ export default function BuyerProfilePage() {
     }
   }, [mounted]);
 
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      showErrorToast("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setAddressForm(prev => ({
+          ...prev,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        }));
+        showSuccessToast("Location captured successfully!");
+        setGettingLocation(false);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        showErrorToast("Failed to get location. Please enable permissions.");
+        setGettingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
   const fetchProfile = async () => {
     try {
       setLoadingProfile(true);
@@ -151,15 +165,6 @@ export default function BuyerProfilePage() {
         name: profileData.name || '',
         phone: profileData.phone || '',
       });
-      if (profileData.businessBuyerProfile) {
-        setBusinessForm({
-          companyName: profileData.businessBuyerProfile.companyName || '',
-          businessCategory: profileData.businessBuyerProfile.businessCategory || '',
-          taxId: profileData.businessBuyerProfile.taxId || '',
-          registrationNumber: profileData.businessBuyerProfile.registrationNumber || '',
-          country: profileData.businessBuyerProfile.country || 'Nigeria',
-        });
-      }
       setProfileError(null); // Clear any previous errors
     } catch (err: any) {
       console.error('Error fetching profile:', err);
@@ -251,26 +256,7 @@ export default function BuyerProfilePage() {
     }
   };
 
-  const handleBusinessProfileSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setBusinessSaving(true);
-      setBusinessMessage(null);
-      await apiClient.put('/users/me/business-profile', {
-        companyName: businessForm.companyName.trim(),
-        businessCategory: businessForm.businessCategory.trim(),
-        taxId: businessForm.taxId.trim() || undefined,
-        registrationNumber: businessForm.registrationNumber.trim() || undefined,
-        country: businessForm.country || 'Nigeria',
-      });
-      setBusinessMessage('Business details saved. You can now see B2B pricing and request quotes.');
-      fetchProfile();
-    } catch (err: any) {
-      setBusinessMessage(err.response?.data?.message || 'Failed to save business details');
-    } finally {
-      setBusinessSaving(false);
-    }
-  };
+
 
   const handleAddressSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -336,6 +322,8 @@ export default function BuyerProfilePage() {
         state: '',
         country: 'Nigeria',
         postalCode: '',
+        latitude: undefined as number | undefined,
+        longitude: undefined as number | undefined,
       });
       setEditingAddressId(null);
       fetchAddresses();
@@ -375,6 +363,8 @@ export default function BuyerProfilePage() {
       state: address.state,
       country: address.country,
       postalCode: address.postalCode || '',
+      latitude: address.latitude as number | undefined,
+      longitude: address.longitude as number | undefined,
     });
   };
 
@@ -408,6 +398,8 @@ export default function BuyerProfilePage() {
           state: '',
           country: 'Nigeria',
           postalCode: '',
+          latitude: undefined as number | undefined,
+          longitude: undefined as number | undefined,
         });
       }
       fetchAddresses();
@@ -467,6 +459,8 @@ export default function BuyerProfilePage() {
       state: '',
       country: 'Nigeria',
       postalCode: '',
+      latitude: undefined as number | undefined,
+      longitude: undefined as number | undefined,
     });
   };
 
@@ -781,295 +775,239 @@ export default function BuyerProfilePage() {
             </div>
           </div>
 
-          {/* Optional business details — same buyer role; enables B2B context (bulk, quotes) when filled */}
-          <div id="business" className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 mb-8">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <h2 className="text-white text-xl font-bold">Business details (optional)</h2>
-              {profile?.businessBuyerProfile ? (
-                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-medium rounded">Saved</span>
-              ) : (
-                <span className="text-[#ffcc99]/70 text-sm">Optional — add to see bulk pricing and request quotes</span>
-              )}
-            </div>
-            <p className="text-[#ffcc99]/80 text-sm mb-4">Add company details when you need B2B pricing, MOQ, tiered prices, or to request quotes. You can add or update these anytime.</p>
-            {businessMessage && (
-              <div className={`mb-4 p-3 rounded-lg text-sm ${businessMessage.startsWith('Business details saved') ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
-                {businessMessage}
-              </div>
-            )}
-            <form onSubmit={handleBusinessProfileSubmit} className="space-y-4 max-w-xl">
-              <div>
-                <label className="block text-[#ffcc99] text-sm font-medium mb-1">Company name *</label>
-                <input
-                  type="text"
-                  value={businessForm.companyName}
-                  onChange={(e) => setBusinessForm((prev) => ({ ...prev, companyName: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
-                  placeholder="Acme Retail Ltd"
-                />
-              </div>
-              <div>
-                <label className="block text-[#ffcc99] text-sm font-medium mb-1">Business category *</label>
-                <input
-                  type="text"
-                  value={businessForm.businessCategory}
-                  onChange={(e) => setBusinessForm((prev) => ({ ...prev, businessCategory: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
-                  placeholder="e.g. Retail, Manufacturing, Food Service"
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[#ffcc99] text-sm font-medium mb-1">Tax ID (optional)</label>
-                  <input
-                    type="text"
-                    value={businessForm.taxId}
-                    onChange={(e) => setBusinessForm((prev) => ({ ...prev, taxId: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#ffcc99] text-sm font-medium mb-1">Registration number (optional)</label>
-                  <input
-                    type="text"
-                    value={businessForm.registrationNumber}
-                    onChange={(e) => setBusinessForm((prev) => ({ ...prev, registrationNumber: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-[#ffcc99] text-sm font-medium mb-1">Country</label>
-                <input
-                  type="text"
-                  value={businessForm.country}
-                  onChange={(e) => setBusinessForm((prev) => ({ ...prev, country: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={businessSaving || !businessForm.companyName.trim() || !businessForm.businessCategory.trim()}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {businessSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {profile?.businessBuyerProfile ? 'Update business details' : 'Add business details'}
-              </button>
-            </form>
-          </div>
 
-          {/* Addresses Section */}
-          <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white text-xl font-bold">Saved Addresses</h2>
-              <div className="flex items-center gap-3 text-sm text-[#ffcc99]">
-                <MapPin className="w-4 h-4" />
-                Manage your delivery locations
-              </div>
-            </div>
-
-            {addressError && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg">
-                {addressError}
-              </div>
-            )}
-            {addressMessage && (
-              <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-lg">
-                {addressMessage}
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              {loadingAddresses ? (
-                <div className="col-span-2 flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 text-[#ff6600] animate-spin" />
-                </div>
-              ) : addresses.length === 0 ? (
-                <div className="col-span-2 bg-black/40 border border-[#ff6600]/20 rounded-xl p-6 text-center text-[#ffcc99]/80">
-                  <p>No saved addresses yet.</p>
-                  <p className="text-xs mt-1">Add a new address using the form below.</p>
-                </div>
-              ) : (
-                addresses.map((address) => (
-                  <div key={address.id} className="rounded-xl border border-[#ff6600]/20 bg-black/40 p-5 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[#ff6600] text-sm font-bold uppercase tracking-wide">
-                        {address.label || 'Address'}
-                      </span>
-                      <span className="text-xs text-[#ffcc99]/60">
-                        Added {formatDate(address.createdAt)}
-                      </span>
-                    </div>
-                    <div className="text-sm text-[#ffcc99] space-y-1">
-                      <p>{address.line1}</p>
-                      {address.line2 && <p>{address.line2}</p>}
-                      <p>
-                        {address.city}, {address.state}
-                      </p>
-                      <p>
-                        {address.country}
-                        {address.postalCode ? `, ${address.postalCode}` : ''}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 pt-2">
-                      <button
-                        onClick={() => handleEditAddress(address)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#ff6600]/10 text-[#ff6600] border border-[#ff6600]/30 hover:bg-[#ff6600]/20 transition text-xs font-semibold"
-                      >
-                        <Pencil className="w-4 h-4" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAddress(address.id)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition text-xs font-semibold"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Address Form */}
-            <div className="bg-black/40 border border-[#ff6600]/20 rounded-xl p-6">
+          <div>
+            {/* Addresses Section */}
+            <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 mb-8">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white text-lg font-semibold">
-                  {editingAddressId ? 'Edit Address' : 'Add New Address'}
-                </h3>
-                {editingAddressId && (
-                  <button
-                    onClick={resetAddressForm}
-                    className="text-xs text-[#ffcc99]/70 hover:text-[#ffcc99]"
-                  >
-                    Cancel Edit
-                  </button>
+                <h2 className="text-white text-xl font-bold">Saved Addresses</h2>
+                <div className="flex items-center gap-3 text-sm text-[#ffcc99]">
+                  <MapPin className="w-4 h-4" />
+                  Manage your delivery locations
+                </div>
+              </div>
+
+              {addressError && (
+                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg">
+                  {addressError}
+                </div>
+              )}
+              {addressMessage && (
+                <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-lg">
+                  {addressMessage}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {loadingAddresses ? (
+                  <div className="col-span-2 flex items-center justify-center py-8">
+                    <Loader2 className="w-8 h-8 text-[#ff6600] animate-spin" />
+                  </div>
+                ) : addresses.length === 0 ? (
+                  <div className="col-span-2 bg-black/40 border border-[#ff6600]/20 rounded-xl p-6 text-center text-[#ffcc99]/80">
+                    <p>No saved addresses yet.</p>
+                    <p className="text-xs mt-1">Add a new address using the form below.</p>
+                  </div>
+                ) : (
+                  addresses.map((address) => (
+                    <div key={address.id} className="rounded-xl border border-[#ff6600]/20 bg-black/40 p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[#ff6600] text-sm font-bold uppercase tracking-wide">
+                          {address.label || 'Address'}
+                        </span>
+                        <span className="text-xs text-[#ffcc99]/60">
+                          Added {formatDate(address.createdAt)}
+                        </span>
+                      </div>
+                      <div className="text-sm text-[#ffcc99] space-y-1">
+                        <p>{address.line1}</p>
+                        {address.line2 && <p>{address.line2}</p>}
+                        <p>
+                          {address.city}, {address.state}
+                        </p>
+                        <p>
+                          {address.country}
+                          {address.postalCode ? `, ${address.postalCode}` : ''}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 pt-2">
+                        <button
+                          onClick={() => handleEditAddress(address)}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#ff6600]/10 text-[#ff6600] border border-[#ff6600]/30 hover:bg-[#ff6600]/20 transition text-xs font-semibold"
+                        >
+                          <Pencil className="w-4 h-4" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAddress(address.id)}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition text-xs font-semibold"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
 
-              <form onSubmit={handleAddressSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[#ffcc99] text-sm font-medium mb-2">Label</label>
-                  <input
-                    type="text"
-                    value={addressForm.label}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, label: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
-                    placeholder="Home, Office, etc."
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#ffcc99] text-sm font-medium mb-2">Address Line 1 *</label>
-                  <input
-                    type="text"
-                    value={addressForm.line1}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, line1: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
-                    placeholder="Street address"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#ffcc99] text-sm font-medium mb-2">Address Line 2</label>
-                  <input
-                    type="text"
-                    value={addressForm.line2}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, line2: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
-                    placeholder="Apartment, suite, etc."
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#ffcc99] text-sm font-medium mb-2">City *</label>
-                  <input
-                    type="text"
-                    value={addressForm.city}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, city: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
-                    placeholder="City"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#ffcc99] text-sm font-medium mb-2">State *</label>
-                  <input
-                    type="text"
-                    value={addressForm.state}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, state: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
-                    placeholder="State"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#ffcc99] text-sm font-medium mb-2">Country *</label>
-                  <input
-                    type="text"
-                    value={addressForm.country}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, country: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
-                    placeholder="Country"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#ffcc99] text-sm font-medium mb-2">Postal Code</label>
-                  <input
-                    type="text"
-                    value={addressForm.postalCode}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, postalCode: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
-                    placeholder="Postal code"
-                  />
-                </div>
-
-                <div className="md:col-span-2 flex flex-wrap gap-3 items-center pt-2">
-                  <button
-                    type="submit"
-                    disabled={addressSaving}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition"
-                  >
-                    <Plus className="w-4 h-4" />
-                    {addressSaving ? 'Saving...' : editingAddressId ? 'Update Address' : 'Add Address'}
-                  </button>
+              {/* Address Form */}
+              <div className="bg-black/40 border border-[#ff6600]/20 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-white text-lg font-semibold">
+                    {editingAddressId ? 'Edit Address' : 'Add New Address'}
+                  </h3>
                   {editingAddressId && (
                     <button
-                      type="button"
                       onClick={resetAddressForm}
-                      className="px-6 py-3 border border-[#ff6600]/30 text-[#ffcc99] rounded-xl hover:bg-[#ff6600]/10 transition"
+                      className="text-xs text-[#ffcc99]/70 hover:text-[#ffcc99]"
                     >
-                      Cancel
+                      Cancel Edit
                     </button>
                   )}
-                  <p className="text-xs text-[#ffcc99]/60">
-                    Fields marked with * are required.
-                  </p>
                 </div>
-              </form>
-            </div>
-          </div>
 
-          {/* Account Tips */}
-          <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 flex flex-col md:flex-row gap-6">
-            <div className="flex-1">
-              <h3 className="text-white text-xl font-bold mb-3">Keep your profile up to date</h3>
-              <p className="text-[#ffcc99]/80 text-sm leading-relaxed">
-                Accurate contact and delivery information helps ensure seamless order processing and delivery. Update your addresses whenever you move or want deliveries sent elsewhere.
-              </p>
+                <form onSubmit={handleAddressSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={handleGetCurrentLocation}
+                      disabled={gettingLocation}
+                      className="flex items-center gap-2 text-sm text-[#ff6600] hover:text-[#ff8533] transition-colors"
+                    >
+                      {gettingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Locate className="w-4 h-4" />}
+                      {gettingLocation ? "Getting location..." : "Use Current Location"}
+                    </button>
+                    {addressForm.latitude && addressForm.longitude && (
+                      <span className="ml-3 text-xs text-green-400 inline-flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        Location captured
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-[#ffcc99] text-sm font-medium mb-2">Label</label>
+                    <input
+                      type="text"
+                      value={addressForm.label}
+                      onChange={(e) => setAddressForm((prev) => ({ ...prev, label: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                      placeholder="Home, Office, etc."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#ffcc99] text-sm font-medium mb-2">Address Line 1 *</label>
+                    <input
+                      type="text"
+                      value={addressForm.line1}
+                      onChange={(e) => setAddressForm((prev) => ({ ...prev, line1: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                      placeholder="Street address"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#ffcc99] text-sm font-medium mb-2">Address Line 2</label>
+                    <input
+                      type="text"
+                      value={addressForm.line2}
+                      onChange={(e) => setAddressForm((prev) => ({ ...prev, line2: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                      placeholder="Apartment, suite, etc."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#ffcc99] text-sm font-medium mb-2">City *</label>
+                    <input
+                      type="text"
+                      value={addressForm.city}
+                      onChange={(e) => setAddressForm((prev) => ({ ...prev, city: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                      placeholder="City"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#ffcc99] text-sm font-medium mb-2">State *</label>
+                    <input
+                      type="text"
+                      value={addressForm.state}
+                      onChange={(e) => setAddressForm((prev) => ({ ...prev, state: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                      placeholder="State"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#ffcc99] text-sm font-medium mb-2">Country *</label>
+                    <input
+                      type="text"
+                      value={addressForm.country}
+                      onChange={(e) => setAddressForm((prev) => ({ ...prev, country: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                      placeholder="Country"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#ffcc99] text-sm font-medium mb-2">Postal Code</label>
+                    <input
+                      type="text"
+                      value={addressForm.postalCode}
+                      onChange={(e) => setAddressForm((prev) => ({ ...prev, postalCode: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                      placeholder="Postal code"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 flex flex-wrap gap-3 items-center pt-2">
+                    <button
+                      type="submit"
+                      disabled={addressSaving}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      <Plus className="w-4 h-4" />
+                      {addressSaving ? 'Saving...' : editingAddressId ? 'Update Address' : 'Add Address'}
+                    </button>
+                    {editingAddressId && (
+                      <button
+                        type="button"
+                        onClick={resetAddressForm}
+                        className="px-6 py-3 border border-[#ff6600]/30 text-[#ffcc99] rounded-xl hover:bg-[#ff6600]/10 transition"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <p className="text-xs text-[#ffcc99]/60">
+                      Fields marked with * are required.
+                    </p>
+                  </div>
+                </form>
+              </div>
             </div>
-            <div className="flex-1 bg-black/40 border border-[#ff6600]/20 rounded-xl p-5 text-sm text-[#ffcc99]/80 space-y-2">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-[#ff6600]" />
-                <span>Use a strong password with at least 6 characters.</span>
+
+            {/* Account Tips */}
+            <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 flex flex-col md:flex-row gap-6">
+              <div className="flex-1">
+                <h3 className="text-white text-xl font-bold mb-3">Keep your profile up to date</h3>
+                <p className="text-[#ffcc99]/80 text-sm leading-relaxed">
+                  Accurate contact and delivery information helps ensure seamless order processing and delivery. Update your addresses whenever you move or want deliveries sent elsewhere.
+                </p>
               </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#ff6600]" />
-                <span>Add multiple addresses to switch delivery destinations quickly.</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-[#ff6600]" />
-                <span>Contact support if you notice any suspicious activity.</span>
+              <div className="flex-1 bg-black/40 border border-[#ff6600]/20 rounded-xl p-5 text-sm text-[#ffcc99]/80 space-y-2">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#ff6600]" />
+                  <span>Use a strong password with at least 6 characters.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-[#ff6600]" />
+                  <span>Add multiple addresses to switch delivery destinations quickly.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-[#ff6600]" />
+                  <span>Contact support if you notice any suspicious activity.</span>
+                </div>
               </div>
             </div>
           </div>

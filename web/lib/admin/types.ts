@@ -453,6 +453,32 @@ export interface Feedback {
   };
 }
 
+// Broadcast (admin notification/email broadcast)
+export type BroadcastAudience = 'BUYER' | 'SELLER' | 'RIDER';
+
+export interface CreateBroadcastPayload {
+  audience: BroadcastAudience[];
+  channels: { email?: boolean; inApp?: boolean };
+  subject: string;
+  body: string;
+  ctaLabel?: string;
+  ctaLink?: string;
+  productIds?: string[];
+}
+
+export interface BroadcastResult {
+  sentInApp: number;
+  sentEmail: number;
+  failed: number;
+}
+
+export interface BroadcastProductOption {
+  id: string;
+  title: string;
+  images: string[];
+  approvedAt?: string | null;
+}
+
 
 
 

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth, tokenManager, userManager } from '../../../lib/auth';
 import { useCart } from '../../../lib/contexts/CartContext';
+import { categoryDisplayName } from '../../../lib/buyer/categoryDisplay';
 import SEO from '../../../components/seo/SEO';
 import { ProductSchema, BreadcrumbSchema } from '../../../components/seo/JsonLd';
 import { addToWishlist, removeFromWishlist, checkWishlist } from '../../../lib/api/wishlist';
@@ -77,7 +78,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.c
 // Server-side data fetching for SEO
 export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({ params }) => {
   const id = params?.id as string;
-  
+
   if (!id) {
     return {
       props: {
@@ -98,9 +99,9 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
         'Content-Type': 'application/json',
       },
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (!response.ok) {
       // Handle specific HTTP error codes
       if (response.status === 404) {
@@ -111,7 +112,7 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
           },
         };
       }
-      
+
       return {
         props: {
           initialProduct: null,
@@ -130,7 +131,7 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
     };
   } catch (error: any) {
     console.error('Error fetching product for SSR:', error);
-    
+
     // Handle connection errors
     if (error.name === 'AbortError' || error.code === 'ECONNREFUSED' || error.message?.includes('fetch failed')) {
       console.warn(`Backend API not available at ${API_BASE_URL}. Product will be loaded client-side.`);
@@ -142,7 +143,7 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
         },
       };
     }
-    
+
     return {
       props: {
         initialProduct: null,
@@ -167,7 +168,6 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [hasBusinessProfile, setHasBusinessProfile] = useState<boolean | null>(null);
   const [inWishlist, setInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const { addToCart } = useCart();
@@ -181,33 +181,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
   useEffect(() => {
     const authenticated = !authLoading && authAuthenticated;
     setIsAuthenticated(!!authenticated);
-
-    if (!authenticated) {
-      setHasBusinessProfile(authLoading ? null : false);
-      return;
-    }
-
-    const user = authUser || userManager.getUser();
-    if (user && user.role && user.role !== 'BUYER' && user.role !== 'ADMIN') {
-      router.push('/');
-      return;
-    }
-    // Fetch full profile to check if buyer has optional business details (for B2B context)
-    setHasBusinessProfile(null); // loading until we know
-    apiClient.get('/users/me')
-      .then((res) => {
-        const data = (res.data as any)?.data ?? res.data;
-        setHasBusinessProfile(!!data?.businessBuyerProfile);
-      })
-      .catch((err: any) => {
-        // Only treat as "no business profile" on 401; otherwise leave unknown so we don't show CTA by mistake
-        if (err?.response?.status === 401) {
-          setHasBusinessProfile(false);
-        } else {
-          setHasBusinessProfile(null); // keep unknown on network/5xx so we don't show CTA incorrectly
-        }
-      });
-  }, [router, authLoading, authAuthenticated, authUser]);
+  }, [authLoading, authAuthenticated]);
 
   useEffect(() => {
     if (mounted && id && !initialProduct) {
@@ -220,8 +194,8 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
     }
   }, [mounted, id, initialProduct, isAuthenticated]);
 
-  // Only enforce MOQ in quantity when we're showing B2B (authenticated + business profile); never for public
-  const mayShowB2bFull = isAuthenticated && (hasBusinessProfile === true) && (product?.sellingMode === 'B2B_ONLY' || product?.sellingMode === 'B2C_AND_B2B');
+  // Only enforce MOQ in quantity when we're showing B2B (authenticated); never for public
+  const mayShowB2bFull = isAuthenticated && (product?.sellingMode === 'B2B_ONLY' || product?.sellingMode === 'B2C_AND_B2B');
   useEffect(() => {
     if (mayShowB2bFull && product && (product.moq ?? 0) > 0 && quantity < product.moq!) {
       setQuantity(product.moq!);
@@ -279,12 +253,12 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
       fetchReviews(productData.id);
     } catch (err: any) {
       console.error('Error fetching product:', err);
-      
+
       // Handle network errors with helpful messages
       if (err.code === 'ERR_NETWORK' || err.message === 'Network Error' || err.code === 'ECONNREFUSED') {
         const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
         const fullUrl = `${apiBase}/products/${id}`;
-        
+
         setError(
           `Cannot connect to backend server.\n\n` +
           `API URL: ${fullUrl}\n\n` +
@@ -375,13 +349,13 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
 
   const isB2bEnabled = product?.sellingMode === 'B2B_ONLY' || product?.sellingMode === 'B2C_AND_B2B';
   const isB2bOnly = product?.sellingMode === 'B2B_ONLY';
-  // B2B details (MOQ, tiers, bulk price) only for authenticated buyers with business details — never for public
-  const showB2bFull = isAuthenticated && isB2bEnabled && (hasBusinessProfile === true);
-  const showB2bCta = isAuthenticated && isB2bEnabled && hasBusinessProfile === false;
-  // B2B_ONLY: add-to-cart only when buyer has business details (and not quote-only). B2C_AND_B2B: cart unless quote-only for B2B context.
+  // B2B details (MOQ, tiers, bulk price) for all authenticated buyers — never for public
+  const showB2bFull = isAuthenticated && isB2bEnabled;
+  const showB2bCta = false; // logic removed
+  // B2B_ONLY: add-to-cart unless quote-only. B2C_AND_B2B: cart unless quote-only for B2B context.
   const canAddToCart = isB2bOnly
-    ? showB2bFull && !product?.requestQuoteOnly  // B2B_ONLY: requires buyer business details; no separate "business buyer" role
-    : !(showB2bFull && product?.requestQuoteOnly);  // B2C_AND_B2B: show unless B2B context + quote-only
+    ? showB2bFull && !product?.requestQuoteOnly
+    : !(showB2bFull && product?.requestQuoteOnly);
   // Only expose MOQ-based min quantity when showing B2B; otherwise public would see MOQ
   const minQuantity = showB2bFull && product && isB2bEnabled && (product.moq ?? 0) > 0 ? product.moq! : 1;
   const effectiveQuantity = product ? Math.max(minQuantity, Math.min(product.quantity, quantity)) : quantity;
@@ -403,19 +377,8 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
     : 0;
   const totalPriceKobo = product ? unitPriceKobo * effectiveQuantity : 0;
 
-  const getCategoryName = (categoryId?: string) => {
-    const categoryMap: { [key: string]: string } = {
-      grains: 'Grains',
-      oils: 'Oils',
-      packaged: 'Packaged Foods',
-      spices: 'Spices',
-      beverages: 'Beverages',
-      'personal-care': 'Personal Care',
-      electronics: 'Electronics',
-      fashion: 'Fashion',
-      home: 'Home & Living',
-    };
-    return categoryId ? categoryMap[categoryId] || categoryId : 'Uncategorized';
+  const getCategoryName = (slug?: string) => {
+    return slug ? categoryDisplayName(slug, slug) : 'Uncategorized';
   };
 
   // Calculate average rating from reviews
@@ -447,7 +410,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
     <>
       <SEO
         title={product ? `${product.title} - Buy Online in Nigeria | Carryofy` : 'Product | Carryofy'}
-        description={product 
+        description={product
           ? `Buy ${product.title} online in Nigeria at ${formatPrice(product.price)}. ${product.description?.slice(0, 120) || ''} Same-day delivery in Lagos. Sold by ${product.seller?.businessName || 'verified seller'} on Carryofy.`
           : 'Shop quality products online at Carryofy. Same-day delivery in Lagos, Nigeria.'
         }
@@ -457,7 +420,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
         ogImage={product?.images?.[0] || 'https://carryofy.com/og/product.png'}
         ogImageAlt={product?.title || 'Product on Carryofy'}
       />
-      
+
       {product && (
         <>
           <ProductSchema
@@ -486,7 +449,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
           />
         </>
       )}
-      
+
       <BuyerLayout>
         <div>
           {/* Breadcrumbs */}
@@ -497,8 +460,8 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
             <span className="text-[#ffcc99]/50">/</span>
             {product?.category && (
               <>
-                <Link 
-                  href={`/buyer/products?category=${product.category}`} 
+                <Link
+                  href={`/buyer/products?category=${product.category}`}
                   className="text-[#ffcc99] hover:text-[#ff6600] transition"
                 >
                   {getCategoryName(product.category)}
@@ -586,11 +549,10 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                       <button
                         key={index}
                         onClick={() => setSelectedImageIndex(index)}
-                        className={`aspect-square rounded-lg overflow-hidden border-2 transition ${
-                          selectedImageIndex === index
-                            ? 'border-[#ff6600]'
-                            : 'border-[#ff6600]/30 hover:border-[#ff6600]/70'
-                        }`}
+                        className={`aspect-square rounded-lg overflow-hidden border-2 transition ${selectedImageIndex === index
+                          ? 'border-[#ff6600]'
+                          : 'border-[#ff6600]/30 hover:border-[#ff6600]/70'
+                          }`}
                         aria-label={`View image ${index + 1}`}
                       >
                         <img src={image} alt={`${product.title} ${index + 1}`} className="w-full h-full object-cover" />
@@ -768,20 +730,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                     )}
                   </div>
                 )}
-                {/* CTA when product has B2B and buyer hasn't added optional business details — add details to see bulk pricing */}
-                {showB2bCta && (
-                  <div className="mb-6 p-6 bg-[#1a1a1a] border border-[#ff6600]/20 rounded-xl">
-                    <p className="text-[#ffcc99] text-sm font-bold mb-2">Bulk pricing available</p>
-                    <p className="text-white text-sm mb-4">Add optional business details to your profile to see MOQ, tiered pricing, and request custom quotes.</p>
-                    <Link
-                      href="/buyer/profile#business"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#ff6600]/20 border border-[#ff6600] text-[#ff6600] rounded-xl font-medium hover:bg-[#ff6600]/30 transition"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Add business details
-                    </Link>
-                  </div>
-                )}
+
 
                 {/* Quantity Selector */}
                 {product.quantity > 0 && (
@@ -810,11 +759,10 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                 {/* Cart Message */}
                 {cartMessage && (
                   <div
-                    className={`mb-4 p-4 rounded-xl ${
-                      cartMessage.type === 'success'
-                        ? 'bg-green-500/10 border border-green-500/50 text-green-400'
-                        : 'bg-red-500/10 border border-red-500/50 text-red-400'
-                    }`}
+                    className={`mb-4 p-4 rounded-xl ${cartMessage.type === 'success'
+                      ? 'bg-green-500/10 border border-green-500/50 text-green-400'
+                      : 'bg-red-500/10 border border-red-500/50 text-red-400'
+                      }`}
                     role="alert"
                   >
                     {cartMessage.text}
@@ -842,17 +790,17 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                       >
                         <TrendingUp className="w-5 h-5" />
                         <span>
-                          {!isAuthenticated 
-                            ? 'Login to Buy' 
-                            : addingToCart 
-                              ? 'Processing...' 
-                              : product.quantity === 0 
-                                ? 'Out of Stock' 
+                          {!isAuthenticated
+                            ? 'Login to Buy'
+                            : addingToCart
+                              ? 'Processing...'
+                              : product.quantity === 0
+                                ? 'Out of Stock'
                                 : 'Buy Now'
                           }
                         </span>
                       </button>
-                      
+
                       <div className="flex gap-3">
                         {/* Add to Cart Button */}
                         <button
@@ -862,31 +810,30 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                         >
                           <ShoppingCart className="w-5 h-5" />
                           <span>
-                            {!isAuthenticated 
-                              ? 'Login to Add to Cart' 
-                              : addingToCart 
-                                ? 'Adding...' 
-                                : product.quantity === 0 
-                                  ? 'Out of Stock' 
+                            {!isAuthenticated
+                              ? 'Login to Add to Cart'
+                              : addingToCart
+                                ? 'Adding...'
+                                : product.quantity === 0
+                                  ? 'Out of Stock'
                                   : 'Add to Cart'
                             }
                           </span>
                         </button>
-                    
-                    {/* Wishlist Button */}
-                    <button
-                      onClick={handleToggleWishlist}
-                      disabled={wishlistLoading || !isAuthenticated}
-                      className={`px-6 py-4 border-2 rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                        inWishlist
-                          ? 'bg-[#ff6600]/20 border-[#ff6600] text-[#ff6600]'
-                          : 'bg-[#1a1a1a] border-[#ff6600]/50 text-white hover:bg-[#ff6600]/10 hover:border-[#ff6600]'
-                      }`}
-                      title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
-                    >
-                      <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
-                    </button>
-                  </div>
+
+                        {/* Wishlist Button */}
+                        <button
+                          onClick={handleToggleWishlist}
+                          disabled={wishlistLoading || !isAuthenticated}
+                          className={`px-6 py-4 border-2 rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed ${inWishlist
+                            ? 'bg-[#ff6600]/20 border-[#ff6600] text-[#ff6600]'
+                            : 'bg-[#1a1a1a] border-[#ff6600]/50 text-white hover:bg-[#ff6600]/10 hover:border-[#ff6600]'
+                            }`}
+                          title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                        >
+                          <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
+                        </button>
+                      </div>
                     </>
                   )}
                 </div>
@@ -966,9 +913,8 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                               {[1, 2, 3, 4, 5].map((starValue) => (
                                 <Star
                                   key={starValue}
-                                  className={`w-4 h-4 ${
-                                    starValue <= review.rating ? 'text-[#ff6600] fill-[#ff6600]' : 'text-[#ffcc99]/30'
-                                  }`}
+                                  className={`w-4 h-4 ${starValue <= review.rating ? 'text-[#ff6600] fill-[#ff6600]' : 'text-[#ffcc99]/30'
+                                    }`}
                                 />
                               ))}
                             </div>

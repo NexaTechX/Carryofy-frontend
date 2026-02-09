@@ -36,6 +36,7 @@ export interface AdminReviewsResponse {
 export interface UseAdminReviewsQuery {
   page?: number;
   limit?: number;
+  /** true = flagged only, false = unflagged only, undefined = all */
   flaggedOnly?: boolean;
   productId?: string;
   rating?: number;
@@ -52,6 +53,9 @@ export function useAdminReviews(query: UseAdminReviewsQuery) {
   if (query.flaggedOnly === true) {
     params.append('flaggedOnly', 'true');
   }
+  if (query.flaggedOnly === false) {
+    params.append('flaggedOnly', 'false');
+  }
   if (query.productId) {
     params.append('productId', query.productId);
   }
@@ -64,8 +68,9 @@ export function useAdminReviews(query: UseAdminReviewsQuery) {
     queryFn: async () => {
       const queryString = params.toString();
       const url = `/reviews/admin/all${queryString ? `?${queryString}` : ''}`;
-      const response = await apiClient.get<AdminReviewsResponse>(url);
-      return response.data;
+      const response = await apiClient.get<{ data?: AdminReviewsResponse } & AdminReviewsResponse>(url);
+      const res = response.data;
+      return (res?.data ?? res) as AdminReviewsResponse;
     },
   });
 }
@@ -75,8 +80,9 @@ export function useAdminReviewDetail(reviewId: string | null) {
     queryKey: ['admin', 'review', reviewId],
     queryFn: async () => {
       if (!reviewId) throw new Error('Review ID is required');
-      const response = await apiClient.get<AdminReviewDetail>(`/reviews/admin/${reviewId}`);
-      return response.data;
+      const response = await apiClient.get<{ data?: AdminReviewDetail } & AdminReviewDetail>(`/reviews/admin/${reviewId}`);
+      const res = response.data;
+      return (res?.data ?? res) as AdminReviewDetail;
     },
     enabled: !!reviewId,
   });

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useForm } from 'react-hook-form';
+import { useForm, Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Lock, User, Eye, EyeOff, Phone } from 'lucide-react';
@@ -15,7 +15,15 @@ const signupSchema = z
   .object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Please enter a valid email address'),
-    phone: z.string().optional(),
+    phone: z.preprocess((val) => {
+      if (typeof val !== 'string') return val;
+      let cleaned = val.replace(/[\s-]/g, '');
+      // Auto-format local numbers
+      if (cleaned.startsWith('0')) return '+234' + cleaned.substring(1);
+      if (cleaned.startsWith('234')) return '+' + cleaned;
+      if (!cleaned.startsWith('+') && cleaned.length >= 10) return '+234' + cleaned;
+      return cleaned;
+    }, z.string().optional()),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
     role: z.enum(['BUYER', 'SELLER']),
@@ -42,7 +50,7 @@ const signupSchema = z
     }
     return true;
   }, {
-    message: 'Phone number must be in international format (e.g., +2348012345678)',
+    message: 'Please enter a valid phone number (e.g. 08012345678)',
     path: ['phone'],
   });
 
@@ -63,7 +71,7 @@ export default function Signup() {
     watch,
     formState: { errors },
   } = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
+    resolver: zodResolver(signupSchema) as Resolver<SignupFormData>,
     defaultValues: {
       role: (router.query.role as 'BUYER' | 'SELLER') || 'BUYER',
     },
@@ -102,12 +110,12 @@ export default function Signup() {
       console.error('Signup error:', error);
 
       let message = 'An error occurred. Please try again.';
-      
+
       if (error.response?.data) {
         const errorData = error.response.data;
         if (typeof errorData === 'object' && errorData.message) {
-          message = Array.isArray(errorData.message) 
-            ? errorData.message.join(', ') 
+          message = Array.isArray(errorData.message)
+            ? errorData.message.join(', ')
             : errorData.message;
         } else if (typeof errorData === 'string') {
           message = errorData;
@@ -141,19 +149,19 @@ export default function Signup() {
     'register Carryofy',
     'create account Carryofy',
     'join Carryofy',
-    
+
     // Buyer intent
     'create buyer account Nigeria',
     'sign up online shopping Nigeria',
     'register ecommerce Nigeria',
-    
+
     // Seller intent
     'seller registration Nigeria',
     'become seller Nigeria',
     'start selling online Nigeria',
     'merchant signup Lagos',
     'vendor registration Africa',
-    
+
     // General
     'free account Nigeria ecommerce',
     'sign up free Nigeria marketplace',
@@ -170,23 +178,23 @@ export default function Signup() {
         ogImage="https://carryofy.com/og/signup.png"
         ogImageAlt="Sign Up for Carryofy - Nigeria's E-Commerce Platform"
       />
-      
+
       <BreadcrumbSchema
         items={[
           { name: 'Home', url: '/' },
           { name: 'Sign Up', url: '/auth/signup' },
         ]}
       />
-      
+
       <div className="min-h-screen flex flex-col bg-linear-to-br from-gray-50 to-white">
         {/* Header */}
         <header className="bg-white shadow-sm">
           <nav className="container mx-auto px-4 py-4">
             <Link href="/" className="flex items-center space-x-2">
-              <Image 
-                src="/logo.png" 
-                alt="Carryofy Logo" 
-                width={32} 
+              <Image
+                src="/logo.png"
+                alt="Carryofy Logo"
+                width={32}
                 height={32}
                 className="w-8 h-8"
               />
@@ -272,7 +280,7 @@ export default function Signup() {
                       required={selectedRole === 'SELLER'}
                       className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${errors.phone ? 'border-red-300' : 'border-gray-300'
                         }`}
-                      placeholder="+234 800 000 0000"
+                      placeholder="e.g. 08012345678"
                     />
                   </div>
                   {errors.phone && (
@@ -360,10 +368,10 @@ export default function Signup() {
                   <div className="grid grid-cols-2 gap-4">
                     <label
                       className={`flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition ${errors.role
-                          ? 'border-red-300'
-                          : selectedRole === 'BUYER'
-                            ? 'border-primary bg-primary/5'
-                            : 'border-gray-300 hover:border-primary'
+                        ? 'border-red-300'
+                        : selectedRole === 'BUYER'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-gray-300 hover:border-primary'
                         }`}
                     >
                       <input
@@ -396,10 +404,10 @@ export default function Signup() {
                     </label>
                     <label
                       className={`flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition ${errors.role
-                          ? 'border-red-300'
-                          : selectedRole === 'SELLER'
-                            ? 'border-primary bg-primary/5'
-                            : 'border-gray-300 hover:border-primary'
+                        ? 'border-red-300'
+                        : selectedRole === 'SELLER'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-gray-300 hover:border-primary'
                         }`}
                     >
                       <input

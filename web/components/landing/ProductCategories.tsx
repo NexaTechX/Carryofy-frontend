@@ -28,6 +28,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Product } from '../../types/product';
 import ProductCard from '../common/ProductCard';
+import { categoryDisplayName } from '../../lib/buyer/categoryDisplay';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
 
@@ -302,7 +303,7 @@ export default function ProductCategories({ categories: initialCategories, produ
                         </div>
                       </div>
                       <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1 group-hover:text-primary transition-colors line-clamp-2">
-                        {category.name}
+                        {categoryDisplayName(category.slug, category.name)}
                       </h3>
                       {category.productCount !== undefined && (
                         <p className="text-xs sm:text-sm text-gray-500">
@@ -323,7 +324,7 @@ export default function ProductCategories({ categories: initialCategories, produ
                         </div>
                       </div>
                       <h3 className="text-sm sm:text-base font-semibold text-gray-600 line-clamp-2">
-                        {category.name}
+                        {categoryDisplayName(category.slug, category.name)}
                       </h3>
                       <span className="text-xs font-medium text-gray-500 mt-1 px-2 py-0.5 bg-gray-200 rounded-full">
                         Coming Soon
@@ -364,7 +365,7 @@ export default function ProductCategories({ categories: initialCategories, produ
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-semibold text-gray-900 group-hover:text-primary transition-colors truncate">
-                          {category.name}
+                          {categoryDisplayName(category.slug, category.name)}
                         </h3>
                         {category.productCount !== undefined && (
                           <p className="text-xs text-gray-500">
@@ -383,7 +384,7 @@ export default function ProductCategories({ categories: initialCategories, produ
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-semibold text-gray-600 truncate">
-                          {category.name}
+                          {categoryDisplayName(category.slug, category.name)}
                         </h3>
                         <span className="text-xs text-gray-500">Coming Soon</span>
                       </div>

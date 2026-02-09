@@ -6,6 +6,7 @@ import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import { Search, Package } from 'lucide-react';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
+import { categoryDisplayName } from '../../lib/buyer/categoryDisplay';
 
 export default function BuyerDashboard() {
   const router = useRouter();
@@ -150,7 +151,7 @@ export default function BuyerDashboard() {
                         )}
                         <div className="relative h-full flex items-end p-4">
                           <h3 className="text-white font-bold text-sm md:text-base drop-shadow-lg">
-                            {category.name}
+                            {categoryDisplayName(category.slug, category.name)}
                           </h3>
                         </div>
                       </div>

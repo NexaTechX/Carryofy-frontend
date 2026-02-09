@@ -442,13 +442,28 @@ export default function CheckoutPage() {
 
     // Validate phone number format
     if (contactInfo.phone) {
-      const cleaned = contactInfo.phone.replace(/[\s-]/g, '');
+      let cleaned = contactInfo.phone.replace(/[\s-]/g, '');
+
+      // Auto-format local numbers (default to Nigeria +234)
+      if (cleaned.startsWith('0')) {
+        cleaned = '+234' + cleaned.substring(1);
+      } else if (cleaned.startsWith('234')) {
+        cleaned = '+' + cleaned;
+      } else if (!cleaned.startsWith('+') && cleaned.length >= 10) {
+        cleaned = '+234' + cleaned;
+      }
+
       if (!/^\+[1-9]\d{9,14}$/.test(cleaned)) {
         setOrderMessage({
           type: 'error',
-          text: 'Phone number must be in international format (e.g., +2348012345678)'
+          text: 'Please enter a valid phone number (e.g. 08012345678)'
         });
         return false;
+      }
+
+      // Update state if formatted
+      if (cleaned !== contactInfo.phone) {
+        setContactInfo(prev => ({ ...prev, phone: cleaned }));
       }
     }
 
@@ -713,8 +728,8 @@ export default function CheckoutPage() {
               {orderMessage && (
                 <div
                   className={`p-4 rounded-xl ${orderMessage.type === 'success'
-                      ? 'bg-green-500/10 border border-green-500/50 text-green-400'
-                      : 'bg-red-500/10 border border-red-500/50 text-red-400'
+                    ? 'bg-green-500/10 border border-green-500/50 text-green-400'
+                    : 'bg-red-500/10 border border-red-500/50 text-red-400'
                     }`}
                 >
                   {orderMessage.text}
@@ -920,7 +935,7 @@ export default function CheckoutPage() {
                               name="phone"
                               value={contactInfo.phone}
                               onChange={handleContactChange}
-                              placeholder="+234 916 678 3040"
+                              placeholder="e.g. 08012345678"
                               className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
                               required
                             />
@@ -1009,8 +1024,8 @@ export default function CheckoutPage() {
                                     type="button"
                                     onClick={() => handleSelectSavedAddress(address.id)}
                                     className={`p-4 rounded-xl border-2 text-left transition-all ${selectedAddressId === address.id
-                                        ? 'border-[#ff6600] bg-[#ff6600]/10'
-                                        : 'border-[#ff6600]/30 bg-[#0d0d0d] hover:border-[#ff6600]/50'
+                                      ? 'border-[#ff6600] bg-[#ff6600]/10'
+                                      : 'border-[#ff6600]/30 bg-[#0d0d0d] hover:border-[#ff6600]/50'
                                       }`}
                                   >
                                     <div className="flex items-start justify-between mb-2">

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { io, Socket } from 'socket.io-client';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
@@ -153,6 +154,58 @@ export default function TrackOrderPage() {
   const [buyerOrders, setBuyerOrders] = useState<BuyerOrder[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
+
+  const [socket, setSocket] = useState<Socket | null>(null);
+
+  useEffect(() => {
+    // Socket connection for real-time rider updates
+    if (tokenManager.isAuthenticated() && delivery?.rider?.id) {
+      const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/location', {
+        extraHeaders: {
+          Authorization: `Bearer ${tokenManager.getAccessToken()}`,
+        },
+      });
+
+      newSocket.on('connect', () => {
+        console.log('Connected to location gateway');
+        if (delivery.rider?.id) {
+          newSocket.emit('subscribeToRider', { riderId: delivery.rider.id });
+        }
+      });
+
+      newSocket.on('riderLocationUpdated', (data: { riderId: string; lat: number; lng: number }) => {
+        if (data.riderId === delivery.rider?.id) {
+          setDelivery((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              rider: {
+                ...prev.rider!,
+                currentLat: data.lat,
+                currentLng: data.lng,
+                lastLocationUpdate: new Date().toISOString(),
+              },
+              mapData: {
+                ...prev.mapData,
+                riderLocation: {
+                  lat: data.lat,
+                  lng: data.lng,
+                  lastUpdate: new Date().toISOString(),
+                }
+              }
+            };
+          });
+        }
+      });
+
+      setSocket(newSocket);
+
+      return () => {
+        newSocket.disconnect();
+      };
+    }
+  }, [delivery?.rider?.id]);
+
   useEffect(() => {
     setMounted(true);
     if (!tokenManager.isAuthenticated()) {
@@ -179,17 +232,17 @@ export default function TrackOrderPage() {
     try {
       setLoadingOrders(true);
       const response = await apiClient.get('/orders');
-      
+
       // Handle API response wrapping - support both paginated and array responses
       const responseData = response.data.data || response.data;
-      // Handle paginated response: { orders: [...], pagination: {...} } or direct array
+      let orders: BuyerOrder[] = [];
       if (responseData && typeof responseData === 'object' && 'orders' in responseData && Array.isArray(responseData.orders)) {
-        setBuyerOrders(responseData.orders);
+        orders = responseData.orders;
       } else if (Array.isArray(responseData)) {
-        setBuyerOrders(responseData);
-      } else {
-        setBuyerOrders([]);
+        orders = responseData;
       }
+      // Only show orders that can still be tracked (exclude delivered)
+      setBuyerOrders(orders.filter((o) => o.status !== 'DELIVERED'));
     } catch (err: any) {
       console.error('Error fetching buyer orders:', err);
       setBuyerOrders([]);
@@ -564,7 +617,7 @@ export default function TrackOrderPage() {
                       const totalPrice = formatPrice(buyerOrder.amount);
                       const statusLabel = buyerOrder.status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase());
                       const itemCount = buyerOrder.items.reduce((sum, item) => sum + item.quantity, 0);
-                      
+
                       return (
                         <option key={buyerOrder.id} value={buyerOrder.id}>
                           #{buyerOrder.id.slice(0, 8)} • {formattedDate} {formattedTime} • {itemCount} item{itemCount !== 1 ? 's' : ''} • {totalPrice} • {statusLabel}
@@ -624,7 +677,7 @@ export default function TrackOrderPage() {
             </div>
           )}
 
-              {/* Tracking Details */}
+          {/* Tracking Details */}
           {!loading && !error && order && (
             <div className="space-y-6">
               {/* Order Summary */}
@@ -709,9 +762,8 @@ export default function TrackOrderPage() {
                   </div>
                   <div className="h-2 rounded-full bg-black border border-[#ff6600]/20 overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-700 ${
-                        progressPercentage >= 100 ? 'bg-green-500' : 'bg-[#ff6600]'
-                      }`}
+                      className={`h-full rounded-full transition-all duration-700 ${progressPercentage >= 100 ? 'bg-green-500' : 'bg-[#ff6600]'
+                        }`}
                       style={{ width: `${Math.min(100, Math.max(0, progressPercentage))}%` }}
                     />
                   </div>
@@ -731,8 +783,8 @@ export default function TrackOrderPage() {
                       const StatusIcon = index < activeStepIndex
                         ? CheckCircle2
                         : index === activeStepIndex
-                        ? Truck
-                        : Clock;
+                          ? Truck
+                          : Clock;
 
                       const showCancelled =
                         order.status === 'CANCELED' || order.status === 'CANCELLED' || order.status === 'REFUNDED';
@@ -745,9 +797,8 @@ export default function TrackOrderPage() {
                         <div key={step.key} className="relative flex gap-6">
                           <div className="flex flex-col items-center">
                             <div
-                              className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition ${
-                                isActive ? 'bg-[#ff6600] border-[#ff6600] text-black' : 'bg-black border-[#ff6600]/30 text-[#ffcc99]/60'
-                              }`}
+                              className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition ${isActive ? 'bg-[#ff6600] border-[#ff6600] text-black' : 'bg-black border-[#ff6600]/30 text-[#ffcc99]/60'
+                                }`}
                             >
                               <StatusIcon className="w-5 h-5" />
                             </div>

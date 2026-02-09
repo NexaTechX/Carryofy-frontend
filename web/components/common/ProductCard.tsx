@@ -6,24 +6,29 @@ import { useWishlist } from '../../lib/hooks/useWishlist';
 import { useCart } from '../../lib/contexts/CartContext';
 import { tokenManager } from '../../lib/auth';
 
-export interface ProductCardProps {
-  product: {
+export interface ProductCardProduct {
+  id: string;
+  title: string;
+  price: number;
+  images: string[];
+  quantity: number;
+  status?: string;
+  seller: {
     id: string;
-    title: string;
-    price: number;
-    images: string[];
-    quantity: number;
-    status?: string;
-    seller: {
-      id: string;
-      businessName: string;
-    };
-    keyFeatures?: string[];
-    category?: string;
-    sellingMode?: string;
-    moq?: number;
-    b2bProductType?: string;
+    businessName: string;
   };
+  keyFeatures?: string[];
+  category?: string;
+  sellingMode?: string;
+  moq?: number;
+  b2bProductType?: string;
+  requestQuoteOnly?: boolean;
+  priceTiers?: { minQuantity: number; maxQuantity: number; priceKobo: number }[];
+  tags?: string[];
+}
+
+export interface ProductCardProps {
+  product: ProductCardProduct;
   onAddToComparison?: (product: any) => void;
   href?: string;
   showFeatures?: boolean;
@@ -121,6 +126,43 @@ export default function ProductCard({
 
   const productHref = href || `/buyer/products/${product.id}`;
 
+  // Rule: MOQ or tiered pricing or quote-only → Request Quote; else Add to Cart
+  const needsQuote =
+    product.requestQuoteOnly === true ||
+    (product.priceTiers != null && product.priceTiers.length > 0) ||
+    (product.moq != null && product.moq > 1);
+
+  // Price display: never show suspiciously low fixed price for bulk/quote products
+  const LOW_PRICE_THRESHOLD_KOBO = 100; // ₦1
+  const getPriceDisplay = (): string => {
+    if (product.requestQuoteOnly) return 'Price on request';
+    if (product.priceTiers && product.priceTiers.length > 0) {
+      const sorted = [...product.priceTiers].sort((a, b) => a.minQuantity - b.minQuantity);
+      const lowest = sorted[0];
+      return `From ${formatPrice(lowest.priceKobo)}`;
+    }
+    if (
+      product.moq != null &&
+      product.moq > 1 &&
+      product.price < LOW_PRICE_THRESHOLD_KOBO
+    ) {
+      return 'Price on request';
+    }
+    return formatPrice(product.price);
+  };
+  const priceDisplay = getPriceDisplay();
+
+  // Business labels from tags (canonical tag → display label)
+  const BUSINESS_TAG_LABELS: Record<string, string> = {
+    'best-for-resale': 'Best for resale',
+    'fast-moving': 'Fast-moving',
+    'high-margin': 'High margin',
+    'popular-with-businesses': 'Popular with businesses',
+  };
+  const businessBadges = (product.tags || [])
+    .filter((t) => BUSINESS_TAG_LABELS[t.toLowerCase()])
+    .map((t) => BUSINESS_TAG_LABELS[t.toLowerCase()]);
+
   return (
     <article
       className={`group bg-[#1a1a1a] border border-[#ff6600]/20 rounded-xl overflow-hidden hover:border-[#ff6600] hover:shadow-lg hover:shadow-[#ff6600]/20 transition-all duration-300 ${className}`}
@@ -156,11 +198,19 @@ export default function ProductCard({
             </div>
           )}
 
-          {(product.sellingMode === 'B2B_ONLY' || product.sellingMode === 'B2C_AND_B2B') && (
+          {/* B2B micro-badges: visible for any product with MOQ, tiered pricing, or quote */}
+          {(product.priceTiers?.length ||
+            (product.moq != null && product.moq > 0) ||
+            product.requestQuoteOnly) && (
             <div className="absolute bottom-10 left-2 z-10 flex flex-wrap gap-1">
-              <span className="px-2 py-1 bg-[#ff6600]/90 text-black text-[10px] font-bold rounded-md">B2B</span>
+              {product.priceTiers && product.priceTiers.length > 0 && (
+                <span className="px-2 py-1 bg-[#ff6600]/90 text-black text-[10px] font-bold rounded-md">Bulk pricing</span>
+              )}
               {product.moq != null && product.moq > 0 && (
-                <span className="px-2 py-1 bg-black/70 text-white text-[10px] font-medium rounded-md">MOQ: {product.moq}</span>
+                <span className="px-2 py-1 bg-black/70 text-white text-[10px] font-medium rounded-md">MOQ: {product.moq} units</span>
+              )}
+              {product.requestQuoteOnly && (
+                <span className="px-2 py-1 bg-[#ff6600]/70 text-black text-[10px] font-bold rounded-md">Quote available</span>
               )}
             </div>
           )}
@@ -242,9 +292,23 @@ export default function ProductCard({
             </span>
           </div>
 
+          {/* Business prioritization badges (from tags) */}
+          {businessBadges.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {businessBadges.slice(0, 2).map((label) => (
+                <span
+                  key={label}
+                  className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-medium rounded border border-green-400/30"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className="mt-auto">
             <p className="text-[#ff6600] font-bold text-lg mb-2">
-              {formatPrice(product.price)}
+              {priceDisplay}
             </p>
             {product.quantity > 0 && (
               <span className="text-green-400 text-xs flex items-center gap-1 mb-3">
@@ -253,16 +317,16 @@ export default function ProductCard({
               </span>
             )}
             
-            {/* B2B_ONLY: View details only. B2C: Add to Cart (or signup link) */}
+            {/* Retail-friendly → Add to Cart; Bulk/MOQ/tiered/quote → Request Quote */}
             {product.quantity > 0 && (
-              product.sellingMode === 'B2B_ONLY' ? (
+              needsQuote ? (
                 <Link
                   href={productHref}
                   onClick={(e) => e.stopPropagation()}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0d0d0d] border-2 border-[#ff6600]/50 text-white rounded-lg font-semibold hover:bg-[#ff6600]/10 hover:border-[#ff6600] transition-all duration-200 text-sm"
-                  title="View details for wholesale pricing"
+                  title="Request quote for wholesale pricing"
                 >
-                  View details
+                  Request Quote
                 </Link>
               ) : !isAuthenticated ? (
                 <Link

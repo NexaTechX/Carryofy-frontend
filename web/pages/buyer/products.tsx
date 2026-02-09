@@ -9,6 +9,7 @@ import { useCategories } from '../../lib/buyer/hooks/useCategories';
 import SEO from '../../components/seo/SEO';
 import { BreadcrumbSchema } from '../../components/seo/JsonLd';
 import ProductCard from '../../components/common/ProductCard';
+import { categoryDisplayName } from '../../lib/buyer/categoryDisplay';
 
 interface Product {
   id: string;
@@ -25,6 +26,10 @@ interface Product {
   sellingMode?: string;
   moq?: number;
   b2bProductType?: string;
+  requestQuoteOnly?: boolean;
+  priceTiers?: { minQuantity: number; maxQuantity: number; priceKobo: number }[];
+  keyFeatures?: string[];
+  tags?: string[];
 }
 
 interface ProductsResponse {
@@ -63,6 +68,10 @@ export default function ProductsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [b2bOnly, setB2bOnly] = useState(false);
+  const [inStockOnly, setInStockOnly] = useState(true);
+  const [verifiedSellersOnly, setVerifiedSellersOnly] = useState(false);
+  const [moqMin, setMoqMin] = useState<string>('');
+  const [moqMax, setMoqMax] = useState<string>('');
 
   useEffect(() => {
     setMounted(true);
@@ -103,7 +112,7 @@ export default function ProductsPage() {
     if (mounted) {
       fetchProducts();
     }
-  }, [mounted, selectedCategory, minPrice, maxPrice, sortBy, currentPage, searchQuery, b2bOnly]);
+  }, [mounted, selectedCategory, minPrice, maxPrice, sortBy, currentPage, searchQuery, b2bOnly, inStockOnly, verifiedSellersOnly, moqMin, moqMax]);
 
   const fetchProducts = async () => {
     try {
@@ -133,6 +142,18 @@ export default function ProductsPage() {
       if (b2bOnly) {
         params.append('b2bOnly', 'true');
       }
+      params.append('inStockOnly', inStockOnly ? 'true' : 'false');
+      if (verifiedSellersOnly) {
+        params.append('verifiedSellersOnly', 'true');
+      }
+      if (moqMin !== '') {
+        const n = parseInt(moqMin, 10);
+        if (!isNaN(n) && n >= 0) params.append('moqMin', n.toString());
+      }
+      if (moqMax !== '') {
+        const n = parseInt(moqMax, 10);
+        if (!isNaN(n) && n >= 0) params.append('moqMax', n.toString());
+      }
 
       const response = await apiClient.get<ProductsResponse>(`/products?${params.toString()}`);
       
@@ -150,7 +171,15 @@ export default function ProductsPage() {
       }
     } catch (err: any) {
       console.error('Error fetching products:', err);
-      setError(err.response?.data?.message || 'Failed to load products');
+      const isNetworkError =
+        err.code === 'ERR_NETWORK' ||
+        err.code === 'ECONNREFUSED' ||
+        (err.message && String(err.message).toLowerCase().includes('network error'));
+      setError(
+        isNetworkError
+          ? 'Cannot reach the API. Start the API server (e.g. in apps/api run: npm run dev) and ensure it is running on the URL in NEXT_PUBLIC_API_BASE.'
+          : err.response?.data?.message || 'Failed to load products'
+      );
       setProducts([]);
       setTotalPages(1);
       setTotal(0);
@@ -166,6 +195,10 @@ export default function ProductsPage() {
     setSortBy('newest');
     setSearchQuery('');
     setB2bOnly(false);
+    setInStockOnly(true);
+    setVerifiedSellersOnly(false);
+    setMoqMin('');
+    setMoqMax('');
     setCurrentPage(1);
     router.push('/buyer/products', undefined, { shallow: true });
   };
@@ -182,10 +215,10 @@ export default function ProductsPage() {
     })}`;
   };
 
-  // Get category name for SEO
+  // Get category name for SEO (supply-oriented, capitalized)
   const getCategoryDisplayName = (slug: string) => {
     const cat = categories.find(c => c.slug === slug);
-    return cat?.name || slug;
+    return categoryDisplayName(slug, cat?.name);
   };
 
   // Dynamic SEO based on filters
@@ -218,7 +251,17 @@ export default function ProductsPage() {
     return null;
   }
 
-  const activeFiltersCount = [selectedCategory, minPrice, maxPrice, searchQuery, b2bOnly].filter(Boolean).length;
+  const activeFiltersCount = [
+    selectedCategory,
+    minPrice,
+    maxPrice,
+    searchQuery,
+    b2bOnly,
+    !inStockOnly,
+    verifiedSellersOnly,
+    moqMin,
+    moqMax,
+  ].filter(Boolean).length;
 
   return (
     <>
@@ -264,7 +307,7 @@ export default function ProductsPage() {
                               : 'text-white hover:bg-[#ff6600]/10 hover:text-white'
                           }`}
                         >
-                          {cat.name}
+                          {categoryDisplayName(cat.slug, cat.name)}
                         </button>
                       </li>
                     ))}
@@ -287,6 +330,75 @@ export default function ProductsPage() {
                   <span className="text-white text-sm">B2B / bulk products only</span>
                 </label>
                 <p className="text-[#ffcc99]/60 text-xs mt-1">Products with MOQ, tiered pricing, or quote requests</p>
+              </div>
+
+              {/* In-stock only (default ON) */}
+              <div className="mt-4 pt-4 border-t border-[#ff6600]/30">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={inStockOnly}
+                    onChange={(e) => {
+                      setInStockOnly(e.target.checked);
+                      setCurrentPage(1);
+                    }}
+                    className="rounded border-[#ff6600]/50 text-[#ff6600] focus:ring-[#ff6600]"
+                    aria-label="In-stock only"
+                  />
+                  <span className="text-white text-sm">In-stock only</span>
+                </label>
+              </div>
+
+              {/* Verified sellers only */}
+              <div className="mt-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={verifiedSellersOnly}
+                    onChange={(e) => {
+                      setVerifiedSellersOnly(e.target.checked);
+                      setCurrentPage(1);
+                    }}
+                    className="rounded border-[#ff6600]/50 text-[#ff6600] focus:ring-[#ff6600]"
+                    aria-label="Verified sellers only"
+                  />
+                  <span className="text-white text-sm">Verified sellers only</span>
+                </label>
+              </div>
+
+              {/* MOQ range */}
+              <div className="mt-4 pt-4 border-t border-[#ff6600]/30">
+                <h3 className="text-white font-bold text-sm mb-3">MOQ range</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[#ffcc99] text-xs mb-1 block">Min MOQ (units)</label>
+                    <input
+                      type="number"
+                      value={moqMin}
+                      onChange={(e) => {
+                        setMoqMin(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      placeholder="Any"
+                      min="0"
+                      className="w-full px-3 py-2 bg-black border border-[#ff6600]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#ff6600]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[#ffcc99] text-xs mb-1 block">Max MOQ (units)</label>
+                    <input
+                      type="number"
+                      value={moqMax}
+                      onChange={(e) => {
+                        setMoqMax(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      placeholder="Any"
+                      min="0"
+                      className="w-full px-3 py-2 bg-black border border-[#ff6600]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#ff6600]"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Price Range Filter */}

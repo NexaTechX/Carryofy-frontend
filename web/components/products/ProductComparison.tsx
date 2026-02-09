@@ -13,6 +13,10 @@ interface Product {
     id: string;
     businessName: string;
   };
+  sellingMode?: string;
+  moq?: number;
+  requestQuoteOnly?: boolean;
+  priceTiers?: { minQuantity: number; maxQuantity: number; priceKobo: number }[];
 }
 
 interface ProductComparisonProps {
@@ -38,11 +42,42 @@ export default function ProductComparison({ products, onRemove, onClear }: Produ
   };
 
   const getLowestPrice = () => {
-    return Math.min(...products.map(p => p.price));
+    const prices = products.map((p) => getPriceDisplayValue(p));
+    const numeric = prices.filter((x): x is number => typeof x === 'number');
+    return numeric.length ? Math.min(...numeric) : 0;
   };
 
   const getHighestPrice = () => {
-    return Math.max(...products.map(p => p.price));
+    const prices = products.map((p) => getPriceDisplayValue(p));
+    const numeric = prices.filter((x): x is number => typeof x === 'number');
+    return numeric.length ? Math.max(...numeric) : 0;
+  };
+
+  const needsQuote = (p: Product) =>
+    p.requestQuoteOnly === true ||
+    (p.priceTiers != null && p.priceTiers.length > 0) ||
+    (p.moq != null && p.moq > 1);
+
+  const getPriceDisplayValue = (p: Product): number | null => {
+    if (p.requestQuoteOnly) return null;
+    if (p.priceTiers && p.priceTiers.length > 0) {
+      const sorted = [...p.priceTiers].sort((a, b) => a.minQuantity - b.minQuantity);
+      return sorted[0].priceKobo;
+    }
+    return p.price;
+  };
+
+  const getPriceDisplayText = (p: Product): string => {
+    if (p.requestQuoteOnly) return 'Price on request';
+    const val = getPriceDisplayValue(p);
+    if (val == null) return 'Price on request';
+    return formatPrice(val);
+  };
+
+  const hasPriceRange = () => {
+    const values = products.map(getPriceDisplayValue).filter((x): x is number => typeof x === 'number');
+    if (values.length < 2) return false;
+    return Math.min(...values) !== Math.max(...values);
   };
 
   return (
@@ -132,9 +167,9 @@ export default function ProductComparison({ products, onRemove, onClear }: Produ
                 {products.map((product) => (
                   <div key={`price-${product.id}`} className="py-2">
                     <div className="text-[#ff6600] font-bold text-lg">
-                      {formatPrice(product.price)}
+                      {getPriceDisplayText(product)}
                     </div>
-                    {product.price === getLowestPrice() && (
+                    {!product.requestQuoteOnly && getPriceDisplayValue(product) === getLowestPrice() && getLowestPrice() > 0 && (
                       <span className="text-green-400 text-xs">Best Price</span>
                     )}
                   </div>
@@ -190,14 +225,22 @@ export default function ProductComparison({ products, onRemove, onClear }: Produ
                     >
                       View Details
                     </Link>
-                    {product.quantity > 0 && (
-                      <Link
-                        href={`/buyer/products/${product.id}`}
-                        className="block w-full px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] rounded-lg hover:border-[#ff6600] transition text-center text-sm"
-                      >
-                        Add to Cart
-                      </Link>
-                    )}
+                    {product.quantity > 0 &&
+                      (needsQuote(product) ? (
+                        <Link
+                          href={`/buyer/products/${product.id}`}
+                          className="block w-full px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] rounded-lg hover:border-[#ff6600] transition text-center text-sm"
+                        >
+                          Request Quote
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/buyer/products/${product.id}`}
+                          className="block w-full px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] rounded-lg hover:border-[#ff6600] transition text-center text-sm"
+                        >
+                          Add to Cart
+                        </Link>
+                      ))}
                   </div>
                 ))}
               </div>
@@ -210,7 +253,7 @@ export default function ProductComparison({ products, onRemove, onClear }: Produ
                   Comparing {products.length} product{products.length !== 1 ? 's' : ''}
                 </div>
                 <div className="flex items-center gap-3">
-                  {getLowestPrice() !== getHighestPrice() && (
+                  {hasPriceRange() && (
                     <div className="text-green-400 text-sm">
                       Price Range: {formatPrice(getLowestPrice())} - {formatPrice(getHighestPrice())}
                     </div>

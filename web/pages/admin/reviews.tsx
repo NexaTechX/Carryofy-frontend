@@ -24,15 +24,20 @@ import {
   useDeleteReviewMutation,
   AdminReview,
 } from '../../lib/admin/hooks/useAdminReviews';
+import { useAdminRiderRatings } from '../../lib/admin/hooks/useAdminRiderRatings';
 import { toast } from 'react-hot-toast';
-import { MessageSquare, Star, X } from 'lucide-react';
+import { MessageSquare, Star, X, Truck } from 'lucide-react';
 import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 
 const RATING_FILTERS = ['ALL', 5, 4, 3, 2, 1] as const;
 
+type TabType = 'products' | 'riders';
+
 export default function AdminReviews() {
+  const [activeTab, setActiveTab] = useState<TabType>('products');
   const [page, setPage] = useState(1);
+  const [riderPage, setRiderPage] = useState(1);
   const [flaggedFilter, setFlaggedFilter] = useState<'ALL' | 'FLAGGED' | 'UNFLAGGED'>('ALL');
   const [ratingFilter, setRatingFilter] = useState<typeof RATING_FILTERS[number]>('ALL');
   const [selectedReview, setSelectedReview] = useState<AdminReview | null>(null);
@@ -42,7 +47,8 @@ export default function AdminReviews() {
   const { data, isLoading, isError, error, refetch } = useAdminReviews({
     page,
     limit: 10,
-    flaggedOnly: flaggedFilter === 'FLAGGED' ? true : undefined,
+    flaggedOnly:
+      flaggedFilter === 'FLAGGED' ? true : flaggedFilter === 'UNFLAGGED' ? false : undefined,
     rating: ratingFilter === 'ALL' ? undefined : ratingFilter,
   });
 
@@ -52,8 +58,15 @@ export default function AdminReviews() {
   const deleteReview = useDeleteReviewMutation();
   const confirmation = useConfirmation();
 
+  const { data: riderData, isLoading: riderLoading, isError: riderError, error: riderErr, refetch: riderRefetch } = useAdminRiderRatings({
+    page: riderPage,
+    limit: 10,
+  });
+
   const reviews = data?.reviews || [];
   const pagination = data?.pagination;
+  const riderRatings = riderData?.ratings || [];
+  const riderPagination = riderData?.pagination;
 
   const stats = useMemo(() => {
     const flagged = reviews.filter((r) => r.flagged).length;
@@ -134,11 +147,40 @@ export default function AdminReviews() {
       <div className="min-h-screen bg-[#090c11]">
         <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
           <AdminPageHeader
-            title="Product Reviews"
+            title="Reviews"
             tag="Review Moderation"
-            subtitle="Monitor and moderate customer product reviews"
+            subtitle="Monitor product reviews and rider ratings"
           />
 
+          {/* Tabs */}
+          <div className="mb-6 flex gap-2 border-b border-[#1f2432]">
+            <button
+              onClick={() => setActiveTab('products')}
+              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition ${
+                activeTab === 'products'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-400 hover:text-white'
+              }`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              Product Reviews
+            </button>
+            <button
+              onClick={() => setActiveTab('riders')}
+              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition ${
+                activeTab === 'riders'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-400 hover:text-white'
+              }`}
+            >
+              <Truck className="h-4 w-4" />
+              Rider Reviews
+            </button>
+          </div>
+
+          {/* Product Reviews Tab */}
+          {activeTab === 'products' && (
+          <>
           {/* Stats Cards */}
           <section className="mb-10 grid gap-4 sm:grid-cols-4">
             <AdminCard title="Total Reviews" description="All product reviews">
@@ -263,6 +305,94 @@ export default function AdminReviews() {
                   totalPages={pagination.totalPages}
                   onPageChange={setPage}
                 />
+              )}
+            </>
+          )}
+          </>
+          )}
+
+          {/* Rider Reviews Tab */}
+          {activeTab === 'riders' && (
+            <>
+              <section className="mb-6 grid gap-4 sm:grid-cols-2">
+                <AdminCard title="Total Rider Ratings" description="All rider ratings">
+                  <p className="text-3xl font-bold text-primary">{riderPagination?.total ?? 0}</p>
+                </AdminCard>
+                <AdminCard title="Average Rating" description="From current page">
+                  <p className="text-3xl font-bold text-green-400">
+                    {riderRatings.length > 0
+                      ? (riderRatings.reduce((sum, r) => sum + r.rating, 0) / riderRatings.length).toFixed(1)
+                      : '-'}
+                  </p>
+                </AdminCard>
+              </section>
+
+              {riderLoading ? (
+                <LoadingState label="Loading rider ratings..." />
+              ) : riderError ? (
+                <AdminEmptyState
+                  icon={<Truck className="h-5 w-5" />}
+                  title="Error loading rider ratings"
+                  description={riderErr instanceof Error ? riderErr.message : 'Failed to load rider ratings'}
+                  action={
+                    <button
+                      onClick={() => riderRefetch()}
+                      className="rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light"
+                    >
+                      Retry
+                    </button>
+                  }
+                />
+              ) : riderRatings.length === 0 ? (
+                <AdminEmptyState
+                  icon={<Truck className="h-5 w-5" />}
+                  title="No rider ratings found"
+                  description="Riders have not received any ratings yet"
+                />
+              ) : (
+                <>
+                  <DataTableContainer>
+                    <DataTable>
+                      <DataTableHead columns={['Rider', 'Customer', 'Rating', 'Comment', 'Order ID', 'Date']} />
+                      <DataTableBody>
+                        {riderRatings.map((rating) => (
+                          <tr key={rating.id}>
+                            <DataTableCell>
+                              <div>
+                                <p className="font-medium text-white">{rating.riderName || 'Unknown'}</p>
+                                <p className="text-xs text-gray-400">{rating.riderEmail || '-'}</p>
+                              </div>
+                            </DataTableCell>
+                            <DataTableCell>
+                              <div>
+                                <p className="font-medium text-white">{rating.userName || rating.user?.name || 'Unknown'}</p>
+                                <p className="text-xs text-gray-400">{rating.userEmail || '-'}</p>
+                              </div>
+                            </DataTableCell>
+                            <DataTableCell>{renderStars(rating.rating)}</DataTableCell>
+                            <DataTableCell>
+                              <p className="max-w-[250px] truncate text-gray-300">{rating.comment || '-'}</p>
+                            </DataTableCell>
+                            <DataTableCell>
+                              <p className="font-mono text-xs text-gray-400">{rating.orderId?.slice(0, 8)}...</p>
+                            </DataTableCell>
+                            <DataTableCell>
+                              <p className="text-gray-300">{new Date(rating.createdAt).toLocaleDateString()}</p>
+                            </DataTableCell>
+                          </tr>
+                        ))}
+                      </DataTableBody>
+                    </DataTable>
+                  </DataTableContainer>
+
+                  {riderPagination && riderPagination.totalPages > 1 && (
+                    <Pagination
+                      currentPage={riderPagination.page}
+                      totalPages={riderPagination.totalPages}
+                      onPageChange={setRiderPage}
+                    />
+                  )}
+                </>
               )}
             </>
           )}

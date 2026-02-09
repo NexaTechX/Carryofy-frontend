@@ -36,6 +36,9 @@ import {
   TeamMember,
   CreateTeamMemberPayload,
   UpdateTeamMemberPayload,
+  CreateBroadcastPayload,
+  BroadcastResult,
+  BroadcastProductOption,
 } from './types';
 
 const ADMIN_DASHBOARD_CACHE_TAG = 'admin-dashboard';
@@ -1101,12 +1104,12 @@ export async function fetchFeedbacks(): Promise<Feedback[]> {
     const { data } = await apiClient.get('/feedback');
     const normalized = normalizeResponse<unknown>(data);
     
-    // Handle direct array response or wrapped response
+    // Handle direct array response or wrapped response (TransformInterceptor)
     if (Array.isArray(normalized)) {
-      return normalized;
+      return normalized as Feedback[];
     }
     
-    return normalizeListResponse<Feedback>(normalized, ['feedbacks', 'items', 'data', 'results']);
+    return normalizeListResponse<Feedback>(normalized, ['feedbacks', 'items', 'data', 'results']) ?? [];
   } catch (error) {
     throw error;
   }
@@ -1114,4 +1117,16 @@ export async function fetchFeedbacks(): Promise<Feedback[]> {
 
 export async function deleteFeedbackRequest(feedbackId: string): Promise<void> {
   await apiClient.delete(`/feedback/${feedbackId}`);
+}
+
+// Broadcast API (admin notification/email broadcast)
+export async function sendBroadcastRequest(payload: CreateBroadcastPayload): Promise<BroadcastResult> {
+  const { data } = await apiClient.post('/admin/broadcast', payload);
+  return normalizeResponse<BroadcastResult>(data);
+}
+
+export async function fetchBroadcastProducts(limit?: number): Promise<BroadcastProductOption[]> {
+  const params = limit != null ? { limit: String(limit) } : undefined;
+  const { data } = await apiClient.get('/admin/broadcast/products', { params });
+  return normalizeResponse<BroadcastProductOption[]>(data) ?? [];
 }

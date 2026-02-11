@@ -25,6 +25,7 @@ import SEO from '../../../components/seo/SEO';
 import { ProductSchema, BreadcrumbSchema } from '../../../components/seo/JsonLd';
 import { addToWishlist, removeFromWishlist, checkWishlist } from '../../../lib/api/wishlist';
 import { showSuccessToast, showErrorToast } from '../../../lib/ui/toast';
+import ShareButton from '../../../components/products/ShareButton';
 
 interface PriceTier {
   minQuantity: number;
@@ -55,6 +56,7 @@ interface Product {
   b2bProductType?: string;
   requestQuoteOnly?: boolean;
   priceTiers?: PriceTier[];
+  status?: string;
 }
 
 interface Review {
@@ -419,6 +421,10 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
         ogType="product"
         ogImage={product?.images?.[0] || 'https://carryofy.com/og/product.png'}
         ogImageAlt={product?.title || 'Product on Carryofy'}
+        productPrice={product?.price}
+        productCurrency="NGN"
+        productAvailability={product?.quantity && product.quantity > 0 ? 'in stock' : 'out of stock'}
+        productCondition="new"
       />
 
       {product && (
@@ -835,6 +841,15 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                         </button>
                       </div>
                     </>
+                  )}
+                  
+                  {/* Share Button */}
+                  {product.status === 'ACTIVE' && (
+                    <ShareButton
+                      productId={product.id}
+                      productTitle={product.title}
+                      className="w-full"
+                    />
                   )}
                 </div>
 

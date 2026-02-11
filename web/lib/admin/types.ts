@@ -456,14 +456,85 @@ export interface Feedback {
 // Broadcast (admin notification/email broadcast)
 export type BroadcastAudience = 'BUYER' | 'SELLER' | 'RIDER';
 
+export enum BroadcastType {
+  PRODUCT_LAUNCH = 'PRODUCT_LAUNCH',
+  PROMOTION = 'PROMOTION',
+  SYSTEM_UPDATE = 'SYSTEM_UPDATE',
+  OPERATIONAL_NOTICE = 'OPERATIONAL_NOTICE',
+  URGENT_ALERT = 'URGENT_ALERT',
+}
+
+export enum BroadcastStatus {
+  DRAFT = 'DRAFT',
+  SCHEDULED = 'SCHEDULED',
+  SENDING = 'SENDING',
+  SENT = 'SENT',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
+}
+
+export interface BuyerFilters {
+  newUsers?: boolean;
+  activeBuyers?: boolean;
+  b2bBuyers?: boolean;
+  city?: string;
+  state?: string;
+}
+
+export interface SellerFilters {
+  verified?: boolean;
+  categories?: string[];
+  newlyApprovedProductsDays?: number;
+}
+
+export interface RiderFilters {
+  activeOnly?: boolean;
+  city?: string;
+  onlineLast7Days?: boolean;
+}
+
+export interface AudienceFilters {
+  buyer?: BuyerFilters;
+  seller?: SellerFilters;
+  rider?: RiderFilters;
+}
+
+export interface RoleMessage {
+  body?: string;
+  ctaLabel?: string;
+  ctaLink?: string;
+}
+
+export interface RoleSpecificMessages {
+  BUYER?: RoleMessage;
+  SELLER?: RoleMessage;
+  RIDER?: RoleMessage;
+}
+
+export interface Scheduling {
+  sendNow: boolean;
+  scheduledFor?: string;
+  timezone?: string;
+}
+
+export interface RateLimit {
+  usersPerMinute?: number;
+}
+
 export interface CreateBroadcastPayload {
+  type: BroadcastType;
   audience: BroadcastAudience[];
+  audienceFilters?: AudienceFilters;
   channels: { email?: boolean; inApp?: boolean };
   subject: string;
   body: string;
+  roleSpecificMessages?: RoleSpecificMessages;
   ctaLabel?: string;
   ctaLink?: string;
   productIds?: string[];
+  scheduling?: Scheduling;
+  rateLimit?: RateLimit;
+  internalNote?: string;
 }
 
 export interface BroadcastResult {
@@ -472,11 +543,99 @@ export interface BroadcastResult {
   failed: number;
 }
 
+export interface CreateBroadcastResponse {
+  id: string;
+  status: BroadcastStatus;
+  result?: BroadcastResult;
+}
+
 export interface BroadcastProductOption {
   id: string;
   title: string;
   images: string[];
   approvedAt?: string | null;
+  price?: number;
+  sellerName?: string;
+  categoryName?: string;
+  quantity?: number;
+}
+
+export interface AudienceCount {
+  BUYER: number;
+  SELLER: number;
+  RIDER: number;
+  total: number;
+}
+
+export interface BroadcastListItem {
+  id: string;
+  type: BroadcastType;
+  status: BroadcastStatus;
+  audience: string[];
+  channels: { email: boolean; inApp: boolean };
+  subject: string;
+  recipientCount: number;
+  sentInApp: number;
+  sentEmail: number;
+  failed: number;
+  emailOpens?: number;
+  emailClicks?: number;
+  inAppReads?: number;
+  sentAt?: string;
+  createdAt: string;
+  sentByName?: string;
+}
+
+export interface BroadcastHistoryResponse {
+  broadcasts: BroadcastListItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface BroadcastHistoryQuery {
+  status?: BroadcastStatus;
+  type?: BroadcastType;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface BroadcastAnalytics {
+  broadcastId: string;
+  totalRecipients: number;
+  sentInApp: number;
+  sentEmail: number;
+  failed: number;
+  emailOpens: number;
+  emailClicks: number;
+  inAppReads: number;
+  emailOpenRate: number;
+  emailClickRate: number;
+  inAppReadRate: number;
+  perRolePerformance?: {
+    BUYER?: {
+      sent: number;
+      opens?: number;
+      clicks?: number;
+      reads?: number;
+    };
+    SELLER?: {
+      sent: number;
+      opens?: number;
+      clicks?: number;
+      reads?: number;
+    };
+    RIDER?: {
+      sent: number;
+      opens?: number;
+      clicks?: number;
+      reads?: number;
+    };
+  };
+  productCtr?: Record<string, number>;
 }
 
 

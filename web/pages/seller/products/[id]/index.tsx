@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import SellerLayout from '../../../../components/seller/SellerLayout';
 import { useAuth } from '../../../../lib/auth';
 import { apiClient } from '../../../../lib/api/client';
+import { getShareAnalytics, ProductShareAnalytics } from '../../../../lib/api/sharing';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -20,6 +21,7 @@ import {
   AlertCircle,
   ExternalLink,
   Copy,
+  Share2,
 } from 'lucide-react';
 
 interface Product {
@@ -32,7 +34,13 @@ interface Product {
   images: string[];
   createdAt: string;
   updatedAt: string;
-  commissionPercentage?: number;
+  commissionPercentage?: number; // DEPRECATED - not used
+  categoryRel?: {
+    id: string;
+    name: string;
+    commissionB2C: number;
+    commissionB2B?: number | null;
+  };
   seller?: {
     id: string;
     businessName: string;
@@ -91,8 +99,8 @@ export default function ProductDetailPage() {
     revenue: 0,
   });
   const [statsLoading, setStatsLoading] = useState(false);
-  const [defaultCommission, setDefaultCommission] = useState<number>(15);
-
+  const [shareAnalytics, setShareAnalytics] = useState<ProductShareAnalytics | null>(null);
+  const [shareAnalyticsLoading, setShareAnalyticsLoading] = useState(false);
   useEffect(() => {
     if (authLoading) return;
     if (!isAuthenticated || !user) {
@@ -110,6 +118,7 @@ export default function ProductDetailPage() {
     if (id && isAuthenticated) {
       fetchProduct();
       fetchProductStats();
+      fetchShareAnalytics();
     }
   }, [id, isAuthenticated]);
 
@@ -117,18 +126,9 @@ export default function ProductDetailPage() {
     if (!productId) return;
     
     try {
-      const [productResponse, settingsResponse] = await Promise.all([
-        apiClient.get(`/products/${productId}`),
-        apiClient.get('/settings/platform').catch(() => ({ data: { commissionPercentage: 15 } })),
-      ]);
-      
+      const productResponse = await apiClient.get(`/products/${productId}`);
       const productData = productResponse.data?.data || productResponse.data;
       setProduct(productData);
-      
-      const settingsData = settingsResponse.data?.data || settingsResponse.data;
-      if (settingsData?.commissionPercentage) {
-        setDefaultCommission(settingsData.commissionPercentage);
-      }
     } catch (error: any) {
       console.error('Error fetching product:', error);
       toast.error('Failed to load product');
@@ -181,6 +181,20 @@ export default function ProductDetailPage() {
       });
     } finally {
       setStatsLoading(false);
+    }
+  };
+
+  const fetchShareAnalytics = async () => {
+    if (!productId) return;
+    try {
+      setShareAnalyticsLoading(true);
+      const data = await getShareAnalytics(productId);
+      setShareAnalytics(data);
+    } catch (error) {
+      console.error('Error fetching share analytics:', error);
+      setShareAnalytics(null);
+    } finally {
+      setShareAnalyticsLoading(false);
     }
   };
 
@@ -400,6 +414,70 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Share Analytics */}
+              {product.status === 'ACTIVE' && (
+                <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-2xl p-4">
+                  <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                    <Share2 className="w-4 h-4" />
+                    Share Analytics
+                  </h3>
+                  {shareAnalyticsLoading ? (
+                    <div className="space-y-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="w-full h-4 bg-[#0a0a0a] rounded animate-pulse"></div>
+                      ))}
+                    </div>
+                  ) : shareAnalytics ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[#ffcc99] text-sm">Total Shares</span>
+                        <span className="text-white font-medium">
+                          {shareAnalytics.totalShares.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[#ffcc99] text-sm">Unique Sharers</span>
+                        <span className="text-white font-medium">
+                          {shareAnalytics.uniqueSharers.toLocaleString()}
+                        </span>
+                      </div>
+                      {shareAnalytics.sharesByPlatform.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-[#ff6600]/20">
+                          <p className="text-[#ffcc99] text-xs mb-2">By Platform</p>
+                          <div className="space-y-2">
+                            {shareAnalytics.sharesByPlatform.slice(0, 3).map((platform) => (
+                              <div key={platform.platform} className="flex items-center justify-between">
+                                <span className="text-white text-xs capitalize">{platform.platform}</span>
+                                <span className="text-[#ffcc99] text-xs">
+                                  {platform.count} ({platform.percentage.toFixed(1)}%)
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {shareAnalytics.sharesByRole.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-[#ff6600]/20">
+                          <p className="text-[#ffcc99] text-xs mb-2">By Role</p>
+                          <div className="space-y-2">
+                            {shareAnalytics.sharesByRole.map((role) => (
+                              <div key={role.role} className="flex items-center justify-between">
+                                <span className="text-white text-xs">{role.role}</span>
+                                <span className="text-[#ffcc99] text-xs">
+                                  {role.count} ({role.percentage.toFixed(1)}%)
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[#ffcc99] text-sm">No shares yet</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Right Column - Details */}
@@ -470,37 +548,37 @@ export default function ProductDetailPage() {
                   <div>
                     <h2 className="text-white font-semibold mb-1">Platform Commission</h2>
                     <p className="text-[#ffcc99] text-sm">
-                      This is the percentage that will be deducted from each sale
+                      Category-based commission rate (B2C)
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-3xl font-bold text-[#ff6600]">
-                      {(product.commissionPercentage ?? defaultCommission).toFixed(1)}%
+                      {product.categoryRel?.commissionB2C?.toFixed(1) ?? 'N/A'}%
                     </p>
-                    {product.commissionPercentage !== null && product.commissionPercentage !== undefined ? (
-                      <p className="text-[#ffcc99]/60 text-xs mt-1">Product-specific rate</p>
-                    ) : (
-                      <p className="text-[#ffcc99]/60 text-xs mt-1">Platform default</p>
+                    {product.categoryRel?.name && (
+                      <p className="text-[#ffcc99]/60 text-xs mt-1">{product.categoryRel.name}</p>
                     )}
                   </div>
                 </div>
-                <div className="mt-4 p-4 bg-[#0a0a0a]/50 rounded-xl border border-[#ff6600]/20">
-                  <p className="text-[#ffcc99] text-xs mb-2">Example Calculation:</p>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between text-white">
-                      <span>Sale Price:</span>
-                      <span>{formatPrice(product.price)}</span>
-                    </div>
-                    <div className="flex justify-between text-[#ffcc99]">
-                      <span>Commission ({(product.commissionPercentage ?? defaultCommission).toFixed(1)}%):</span>
-                      <span>-{formatPrice(Math.round((product.price * (product.commissionPercentage ?? defaultCommission)) / 100))}</span>
-                    </div>
-                    <div className="flex justify-between text-white font-semibold pt-2 border-t border-[#ff6600]/20">
-                      <span>Your Earnings:</span>
-                      <span className="text-green-400">{formatPrice(product.price - Math.round((product.price * (product.commissionPercentage ?? defaultCommission)) / 100))}</span>
+                {product.categoryRel?.commissionB2C != null && (
+                  <div className="mt-4 p-4 bg-[#0a0a0a]/50 rounded-xl border border-[#ff6600]/20">
+                    <p className="text-[#ffcc99] text-xs mb-2">Example Calculation:</p>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between text-white">
+                        <span>Sale Price:</span>
+                        <span>{formatPrice(product.price)}</span>
+                      </div>
+                      <div className="flex justify-between text-[#ffcc99]">
+                        <span>Commission ({product.categoryRel.commissionB2C.toFixed(1)}%):</span>
+                        <span>-{formatPrice(Math.round((product.price * product.categoryRel.commissionB2C) / 100))}</span>
+                      </div>
+                      <div className="flex justify-between text-white font-semibold pt-2 border-t border-[#ff6600]/20">
+                        <span>Your Earnings:</span>
+                        <span className="text-green-400">{formatPrice(product.price - Math.round((product.price * product.categoryRel.commissionB2C) / 100))}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Product Details Card */}

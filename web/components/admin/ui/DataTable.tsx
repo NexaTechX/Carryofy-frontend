@@ -5,7 +5,7 @@ export function DataTableContainer({ className, ...props }: HTMLAttributes<HTMLD
   return (
     <div
       className={clsx(
-        'overflow-hidden rounded-2xl border border-[#1f1f1f] bg-[#111111] shadow-[0_18px_38px_-24px_rgba(0,0,0,0.6)]',
+        'overflow-x-auto overflow-y-visible rounded-2xl border border-[#1f1f1f] bg-[#111111] shadow-[0_18px_38px_-24px_rgba(0,0,0,0.6)]',
         className
       )}
       {...props}
@@ -18,7 +18,7 @@ export function DataTable(props: TableHTMLAttributes<HTMLTableElement>) {
   return (
     <table
       className={clsx(
-        'min-w-full divide-y divide-[#1f1f1f] text-left text-sm text-gray-200',
+        'w-max min-w-full divide-y divide-[#1f1f1f] text-left text-sm text-gray-200',
         className
       )}
       {...rest}

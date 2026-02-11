@@ -286,23 +286,32 @@ export default function AdminSettings() {
         <div className="grid gap-6 lg:grid-cols-2">
           <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] p-6 shadow-lg">
             <header className="mb-5">
-              <h2 className="text-lg font-semibold text-white">Default Commission (Fallback)</h2>
-              <p className="text-sm text-gray-400">Commission is set per category. This value is used only for uncategorized products or when category commission is missing.</p>
+              <h2 className="text-lg font-semibold text-white">Platform Commission (DEPRECATED)</h2>
+              <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-sm text-yellow-400 font-medium mb-1">⚠️ This field is deprecated</p>
+                <p className="text-xs text-gray-400">
+                  Commission is now configured strictly per category. This field is kept for legacy compatibility only and is NOT used for commission resolution. 
+                  All categories must have commissionB2C configured. Products cannot be created or approved without category commission.
+                </p>
+              </div>
             </header>
             <div className="space-y-4">
               <label className="block text-sm font-medium text-gray-300">
-                Commission Percentage
+                Commission Percentage (Legacy - Not Used)
                 <input
                   type="number"
                   min={0}
                   max={100}
                   value={commissionPercentage}
                   onChange={(event) => setCommissionPercentage(Number(event.target.value))}
-                  className={`${inputClass} mt-2 ${errors.commissionPercentage ? 'border-red-500' : ''}`}
+                  disabled
+                  className={`${inputClass} mt-2 opacity-50 cursor-not-allowed ${errors.commissionPercentage ? 'border-red-500' : ''}`}
+                  title="This field is deprecated and disabled. Commission is configured per category."
                 />
                 {errors.commissionPercentage && (
                   <span className="mt-1 text-xs text-red-500">{errors.commissionPercentage}</span>
                 )}
+                <p className="mt-1 text-xs text-gray-500">This field is disabled. Configure commission in category settings instead.</p>
               </label>
 
               <div className="rounded-2xl border border-[#2a2a2a] bg-[#151515] p-4">

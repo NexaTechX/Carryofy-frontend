@@ -16,6 +16,11 @@ interface SEOProps {
   modifiedTime?: string;
   locale?: string;
   alternateLocales?: string[];
+  // Product-specific OG tags
+  productPrice?: number;
+  productCurrency?: string;
+  productAvailability?: 'in stock' | 'out of stock' | 'preorder' | 'discontinued';
+  productCondition?: 'new' | 'used' | 'refurbished';
 }
 
 const SITE_URL = 'https://carryofy.com';
@@ -147,6 +152,10 @@ export default function SEO({
   modifiedTime,
   locale = 'en_NG',
   alternateLocales = ['en_US', 'en_GB'],
+  productPrice,
+  productCurrency = 'NGN',
+  productAvailability,
+  productCondition = 'new',
 }: SEOProps) {
   // Ensure "Carryofy" is at the start of the title for brand recognition
   const fullTitle = title.startsWith('Carryofy') ? title : `Carryofy | ${title}`;
@@ -208,6 +217,20 @@ export default function SEO({
       )}
       {ogType === 'article' && (
         <meta property="article:author" content={author} />
+      )}
+
+      {/* Product specific OG tags */}
+      {ogType === 'product' && productPrice !== undefined && (
+        <>
+          <meta property="product:price:amount" content={productPrice.toString()} />
+          <meta property="product:price:currency" content={productCurrency} />
+        </>
+      )}
+      {ogType === 'product' && productAvailability && (
+        <meta property="product:availability" content={productAvailability} />
+      )}
+      {ogType === 'product' && productCondition && (
+        <meta property="product:condition" content={productCondition} />
       )}
 
       {/* Twitter Card */}

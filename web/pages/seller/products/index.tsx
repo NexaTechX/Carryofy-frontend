@@ -19,7 +19,13 @@ interface Product {
   status: string;
   images: string[];
   createdAt: string;
-  commissionPercentage?: number;
+  commissionPercentage?: number; // DEPRECATED - not used
+  categoryRel?: {
+    id: string;
+    name: string;
+    commissionB2C: number;
+    commissionB2B?: number | null;
+  };
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string; icon: React.ReactNode }> = {
@@ -61,7 +67,6 @@ export default function ProductsPage() {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<string | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
-  const [defaultCommission, setDefaultCommission] = useState<number>(15);
   const confirmation = useConfirmation();
 
   useEffect(() => {
@@ -91,18 +96,9 @@ export default function ProductsPage() {
         return;
       }
 
-      const [productsResponse, settingsResponse] = await Promise.all([
-        apiClient.get(`/products?sellerId=${sellerId}`),
-        apiClient.get('/settings/platform').catch(() => ({ data: { commissionPercentage: 15 } })),
-      ]);
-      
+      const productsResponse = await apiClient.get(`/products?sellerId=${sellerId}`);
       const productsData = productsResponse.data?.data || productsResponse.data;
       setProducts(productsData?.products || []);
-      
-      const settingsData = settingsResponse.data?.data || settingsResponse.data;
-      if (settingsData?.commissionPercentage) {
-        setDefaultCommission(settingsData.commissionPercentage);
-      }
     } catch (error: any) {
       console.error('Error fetching products:', error);
       if (error?.response?.status === 403) {
@@ -468,13 +464,13 @@ export default function ProductsPage() {
                           <td className="px-6 py-4">
                             <div className="flex flex-col">
                               <span className="text-white font-semibold text-sm">
-                                {(product.commissionPercentage ?? defaultCommission).toFixed(1)}%
+                                {product.categoryRel?.commissionB2C?.toFixed(1) ?? 'N/A'}%
                               </span>
-                              <span className="text-[#ffcc99]/60 text-xs">
-                                {product.commissionPercentage !== null && product.commissionPercentage !== undefined
-                                  ? 'Product rate'
-                                  : 'Platform default'}
-                              </span>
+                              {product.categoryRel?.name && (
+                                <span className="text-[#ffcc99]/60 text-xs">
+                                  {product.categoryRel.name}
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="px-6 py-4">
@@ -560,12 +556,10 @@ export default function ProductsPage() {
                           <div className="mt-2 p-2 bg-[#0a0a0a] rounded-lg border border-[#ff6600]/20">
                             <p className="text-[#ffcc99] text-xs mb-1">Platform Commission</p>
                             <p className="text-white font-semibold text-sm">
-                              {(product.commissionPercentage ?? defaultCommission).toFixed(1)}%
+                              {product.categoryRel?.commissionB2C?.toFixed(1) ?? 'N/A'}%
                             </p>
-                            {product.commissionPercentage !== null && product.commissionPercentage !== undefined ? (
-                              <p className="text-[#ffcc99]/60 text-xs mt-0.5">Product-specific rate</p>
-                            ) : (
-                              <p className="text-[#ffcc99]/60 text-xs mt-0.5">Platform default rate</p>
+                            {product.categoryRel?.name && (
+                              <p className="text-[#ffcc99]/60 text-xs mt-0.5">{product.categoryRel.name}</p>
                             )}
                           </div>
                         </div>

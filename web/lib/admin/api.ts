@@ -39,6 +39,13 @@ import {
   CreateBroadcastPayload,
   BroadcastResult,
   BroadcastProductOption,
+  CreateBroadcastResponse,
+  BroadcastHistoryQuery,
+  BroadcastHistoryResponse,
+  BroadcastAnalytics,
+  AudienceCount,
+  BroadcastAudience,
+  AudienceFilters,
 } from './types';
 
 const ADMIN_DASHBOARD_CACHE_TAG = 'admin-dashboard';
@@ -1120,13 +1127,53 @@ export async function deleteFeedbackRequest(feedbackId: string): Promise<void> {
 }
 
 // Broadcast API (admin notification/email broadcast)
-export async function sendBroadcastRequest(payload: CreateBroadcastPayload): Promise<BroadcastResult> {
+export async function createBroadcastRequest(payload: CreateBroadcastPayload): Promise<CreateBroadcastResponse> {
   const { data } = await apiClient.post('/admin/broadcast', payload);
-  return normalizeResponse<BroadcastResult>(data);
+  return normalizeResponse<CreateBroadcastResponse>(data);
 }
 
-export async function fetchBroadcastProducts(limit?: number): Promise<BroadcastProductOption[]> {
-  const params = limit != null ? { limit: String(limit) } : undefined;
+export async function getBroadcastHistory(query?: BroadcastHistoryQuery): Promise<BroadcastHistoryResponse> {
+  const { data } = await apiClient.get('/admin/broadcast', { params: query });
+  return normalizeResponse<BroadcastHistoryResponse>(data);
+}
+
+export async function getBroadcastDetails(broadcastId: string): Promise<any> {
+  const { data } = await apiClient.get(`/admin/broadcast/${broadcastId}`);
+  return normalizeResponse<any>(data);
+}
+
+export async function getBroadcastAnalytics(broadcastId: string): Promise<BroadcastAnalytics> {
+  const { data } = await apiClient.get(`/admin/broadcast/${broadcastId}/analytics`);
+  return normalizeResponse<BroadcastAnalytics>(data);
+}
+
+export async function cancelBroadcast(broadcastId: string): Promise<void> {
+  await apiClient.post(`/admin/broadcast/${broadcastId}/cancel`);
+}
+
+export async function getAudienceCount(
+  audience: BroadcastAudience[],
+  filters?: AudienceFilters,
+): Promise<AudienceCount> {
+  const params: any = {
+    audience: audience.join(','),
+  };
+  if (filters) {
+    params.filters = JSON.stringify(filters);
+  }
+  const { data } = await apiClient.get('/admin/broadcast/audience/count', { params });
+  return normalizeResponse<AudienceCount>(data);
+}
+
+export async function fetchBroadcastProducts(
+  limit?: number,
+  categoryId?: string,
+  days?: number,
+): Promise<BroadcastProductOption[]> {
+  const params: any = {};
+  if (limit != null) params.limit = String(limit);
+  if (categoryId) params.categoryId = categoryId;
+  if (days != null) params.days = String(days);
   const { data } = await apiClient.get('/admin/broadcast/products', { params });
   return normalizeResponse<BroadcastProductOption[]>(data) ?? [];
 }

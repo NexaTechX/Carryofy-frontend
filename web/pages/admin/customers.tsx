@@ -46,6 +46,13 @@ const STATUS_LABEL: Record<UserStatus, string> = {
   RIDER_PENDING: 'Pending Approval',
 };
 
+function getEffectiveStatus(customer: { status: UserStatus; verified: boolean }): { tone: 'success' | 'danger' | 'warning' | 'neutral'; label: string } {
+  if (customer.status === 'ACTIVE' && !customer.verified) {
+    return { tone: 'warning', label: 'Unverified' };
+  }
+  return { tone: STATUS_TONE[customer.status], label: STATUS_LABEL[customer.status] };
+}
+
 const ROLE_LABEL: Record<UserRole, string> = {
   BUYER: 'Buyer',
   SELLER: 'Seller',
@@ -83,7 +90,7 @@ export default function AdminCustomers() {
 
   // Calculate stats
   const totalCustomers = pagination?.total || 0;
-  const activeCustomers = customers.filter((c) => c.status === 'ACTIVE').length;
+  const activeCustomers = customers.filter((c) => c.status === 'ACTIVE' && c.verified).length;
   const suspendedCustomers = customers.filter((c) => c.status === 'SUSPENDED').length;
   const buyersCount = customers.filter((c) => c.role === 'BUYER').length;
 
@@ -249,8 +256,8 @@ export default function AdminCustomers() {
                         </DataTableCell>
                         <DataTableCell>
                           <StatusBadge
-                            tone={STATUS_TONE[customer.status]}
-                            label={STATUS_LABEL[customer.status]}
+                            tone={getEffectiveStatus(customer).tone}
+                            label={getEffectiveStatus(customer).label}
                           />
                         </DataTableCell>
                         <DataTableCell className="text-right">
@@ -366,8 +373,8 @@ export default function AdminCustomers() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Status</p>
                 <StatusBadge
-                  tone={STATUS_TONE[customerDetail.status]}
-                  label={STATUS_LABEL[customerDetail.status]}
+                  tone={getEffectiveStatus(customerDetail).tone}
+                  label={getEffectiveStatus(customerDetail).label}
                   className="mt-2"
                 />
               </div>

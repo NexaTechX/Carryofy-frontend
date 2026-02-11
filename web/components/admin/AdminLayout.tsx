@@ -3,6 +3,8 @@ import { ReactNode, useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import clsx from 'clsx';
 import {
+  BarChart2,
+  Calendar,
   DollarSign,
   FileBarChart2,
   HelpCircle,
@@ -39,6 +41,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { name: 'Overview', href: '/admin', icon: House },
+  { name: 'Analytics', href: '/admin/analytics', icon: BarChart2 },
   { name: 'Customers', href: '/admin/customers', icon: Users },
   { name: 'Sellers', href: '/admin/sellers', icon: Store },
   { name: 'Products', href: '/admin/products', icon: Package },
@@ -52,6 +55,7 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Finance', href: '/admin/finance', icon: FileBarChart2 },
   { name: 'Reports', href: '/admin/reports', icon: FileBarChart2 },
   { name: 'Broadcast', href: '/admin/broadcast', icon: Mail },
+  { name: 'Broadcast History', href: '/admin/broadcast-history', icon: Calendar },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
   { name: 'Feedback', href: '/admin/feedback', icon: Star },
   { name: 'Support Center', href: '/admin/support', icon: HelpCircle },

@@ -40,7 +40,7 @@ function doRefresh(): Promise<string | null> {
     .catch(() => null);
 }
 
-// Request interceptor to add Access Token
+// Request interceptor to add Access Token and CSRF Token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // Only add token on client-side
@@ -48,6 +48,16 @@ apiClient.interceptors.request.use(
       const token = tokenManager.getAccessToken();
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
+      }
+
+      // Add CSRF token for state-changing operations
+      const method = config.method?.toUpperCase();
+      if (method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+        // Try to get CSRF token from cookie or meta tag
+        const csrfToken = getCsrfToken();
+        if (csrfToken && config.headers) {
+          config.headers['X-CSRF-Token'] = csrfToken;
+        }
       }
     }
     return config;
@@ -57,9 +67,67 @@ apiClient.interceptors.request.use(
   }
 );
 
+// Helper function to get CSRF token
+function getCsrfToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  
+  // Try to get from meta tag (set by server-side rendering)
+  const metaTag = document.querySelector('meta[name="csrf-token"]');
+  if (metaTag) {
+    return metaTag.getAttribute('content');
+  }
+
+  // Try to get from cookie (if accessible)
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrf-token') {
+      return decodeURIComponent(value);
+    }
+  }
+
+  return null;
+}
+
+// Response interceptor to extract CSRF token from headers
+apiClient.interceptors.response.use(
+  (response) => {
+    // Extract CSRF token from response header and store it
+    const csrfToken = response.headers['x-csrf-token'];
+    if (csrfToken && typeof document !== 'undefined') {
+      // Store in meta tag for future requests
+      let metaTag = document.querySelector('meta[name="csrf-token"]');
+      if (!metaTag) {
+        metaTag = document.createElement('meta');
+        metaTag.setAttribute('name', 'csrf-token');
+        document.head.appendChild(metaTag);
+      }
+      metaTag.setAttribute('content', csrfToken);
+    }
+    return response;
+  },
+  (error: AxiosError) => {
+    return Promise.reject(error);
+  }
+);
+
 // Response interceptor to handle errors and token refresh
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Extract CSRF token from response header and store it
+    const csrfToken = response.headers['x-csrf-token'];
+    if (csrfToken && typeof document !== 'undefined') {
+      // Store in meta tag for future requests
+      let metaTag = document.querySelector('meta[name="csrf-token"]');
+      if (!metaTag) {
+        metaTag = document.createElement('meta');
+        metaTag.setAttribute('name', 'csrf-token');
+        document.head.appendChild(metaTag);
+      }
+      metaTag.setAttribute('content', csrfToken);
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 

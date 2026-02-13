@@ -33,7 +33,7 @@ interface DashboardKPIs {
   availableBalance: number;
   pendingPayoutRequestsCount: number;
   pendingPayoutRequestsTotal: number;
-  quoteRequestsCount: number;
+  pendingQuoteRequestsCount: number;
   b2bOrdersCount: number;
 }
 
@@ -56,7 +56,7 @@ export default function DashboardStats() {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
-      // Fetch dashboard KPIs, payouts, reports, and seller product count (same auth as charts)
+      // Fetch dashboard KPIs, payouts, reports, seller product count, seller stats (pending quotes), and B2B orders
       const [
         dashboardResponse,
         payoutsResponse,
@@ -64,7 +64,7 @@ export default function DashboardStats() {
         salesTrendResponse,
         orderDistributionResponse,
         productCountResponse,
-        quoteRequestsResponse,
+        sellerStatsResponse,
         ordersB2BResponse,
       ] = await Promise.all([
         fetch(`${apiUrl}/reports/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -73,7 +73,7 @@ export default function DashboardStats() {
         fetch(`${apiUrl}/reports/sales-trend`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${apiUrl}/reports/order-distribution`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${apiUrl}/reports/seller-product-count`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${apiUrl}/quote-requests`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${apiUrl}/sellers/me/stats`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${apiUrl}/orders?orderType=B2B`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
@@ -88,19 +88,14 @@ export default function DashboardStats() {
       const productCountJson = productCountResponse.ok
         ? await productCountResponse.json().catch(() => null)
         : null;
-      let quoteRequestsList: unknown[] = [];
-      if (quoteRequestsResponse.ok) {
-        try {
-          const qrJson = await quoteRequestsResponse.json();
-          quoteRequestsList = Array.isArray(qrJson?.data) ? qrJson.data : Array.isArray(qrJson) ? qrJson : [];
-        } catch {
-          quoteRequestsList = [];
-        }
-      }
+      const sellerStatsJson = sellerStatsResponse.ok
+        ? await sellerStatsResponse.json().catch(() => null)
+        : null;
+      const sellerStatsData = sellerStatsJson?.data ?? sellerStatsJson ?? {};
+      const pendingQuoteRequestsCount = Number(sellerStatsData.pendingQuoteRequestsCount) ?? 0;
       const ordersB2BData = ordersB2BResponse.ok
         ? await ordersB2BResponse.json().catch(() => ({ data: {}, orders: [] }))
         : { orders: [] };
-      const quoteRequestsCount = Array.isArray(quoteRequestsList) ? quoteRequestsList.length : 0;
       const b2bOrders = ordersB2BData?.orders ?? ordersB2BData?.data?.orders ?? [];
       const b2bOrdersCount = Array.isArray(b2bOrders) ? b2bOrders.length : 0;
 
@@ -159,7 +154,7 @@ export default function DashboardStats() {
         availableBalance,
         pendingPayoutRequestsCount,
         pendingPayoutRequestsTotal,
-        quoteRequestsCount,
+        pendingQuoteRequestsCount,
         b2bOrdersCount,
       });
     } catch (error) {
@@ -205,14 +200,14 @@ export default function DashboardStats() {
       <Link href="/seller/quotes" className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-[#ff6600]/30 hover:border-[#ff6600]/50 transition">
         <p className="text-white text-base font-medium leading-normal flex items-center gap-2">
           <FileText className="w-4 h-4 text-[#ff6600]" />
-          Quote requests
+          Pending quotes
         </p>
         {loading ? (
           <div className="h-8 w-24 bg-[#1a1a1a] animate-pulse rounded"></div>
         ) : (
-          <p className="text-white tracking-light text-2xl font-bold leading-tight">{stats?.quoteRequestsCount ?? 0}</p>
+          <p className="text-white tracking-light text-2xl font-bold leading-tight">{stats?.pendingQuoteRequestsCount ?? 0}</p>
         )}
-        <p className="text-xs text-gray-400 leading-snug">B2B inquiries</p>
+        <p className="text-xs text-gray-400 leading-snug">Awaiting your response</p>
       </Link>
       <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-[#ff6600]/30">
         <p className="text-white text-base font-medium leading-normal">B2B orders</p>

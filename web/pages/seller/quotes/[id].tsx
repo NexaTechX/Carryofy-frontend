@@ -38,6 +38,7 @@ export default function SellerQuoteDetailPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [sellerResponse, setSellerResponse] = useState('');
+  const [validUntil, setValidUntil] = useState('');
   const [itemPrices, setItemPrices] = useState<Record<string, { sellerQuotedPriceKobo?: number; sellerNotes?: string }>>({});
 
   useEffect(() => {
@@ -90,6 +91,7 @@ export default function SellerQuoteDetailPage() {
         status: 'APPROVED',
         sellerResponse: sellerResponse || undefined,
         items,
+        ...(validUntil ? { validUntil: new Date(validUntil).toISOString() } : {}),
       });
       toast.success('Quote approved');
       fetchQuote(quote.id);
@@ -245,6 +247,17 @@ export default function SellerQuoteDetailPage() {
                     rows={3}
                     className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
                   />
+                </div>
+                <div>
+                  <label className="block text-[#ffcc99] text-sm font-medium mb-2">Valid until (optional)</label>
+                  <input
+                    type="date"
+                    value={validUntil}
+                    onChange={(e) => setValidUntil(e.target.value)}
+                    min={new Date().toISOString().slice(0, 10)}
+                    className="px-4 py-2 rounded-xl bg-black border border-[#ff6600]/30 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+                  />
+                  <p className="mt-1 text-[#ffcc99]/70 text-xs">Leave empty for default 7 days from now.</p>
                 </div>
                 <div className="flex gap-3">
                   <button

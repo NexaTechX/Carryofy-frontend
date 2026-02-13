@@ -28,11 +28,19 @@ interface QuoteRequest {
   buyer?: { id: string; name: string; email: string };
 }
 
+const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: '', label: 'All' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'REJECTED', label: 'Rejected' },
+];
+
 export default function SellerQuotesPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     if (authLoading) return;
@@ -84,6 +92,10 @@ export default function SellerQuotesPage() {
     });
   };
 
+  const filteredQuotes = statusFilter
+    ? quotes.filter((q) => q.status === statusFilter)
+    : quotes;
+
   return (
     <>
       <Head>
@@ -92,14 +104,29 @@ export default function SellerQuotesPage() {
       </Head>
       <SellerLayout>
         <div className="p-4 lg:p-8">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-[#ff6600]/20 flex items-center justify-center">
-              <FileText className="w-6 h-6 text-[#ff6600]" />
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-[#ff6600]/20 flex items-center justify-center">
+                <FileText className="w-6 h-6 text-[#ff6600]" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">Quote Requests</h1>
+                <p className="text-[#ffcc99] text-sm">B2B inquiries and quote requests from buyers</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Quote Requests</h1>
-              <p className="text-[#ffcc99] text-sm">B2B inquiries and quote requests from buyers</p>
-            </div>
+            {!loading && quotes.length > 0 && (
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="rounded-xl border border-[#ff6600]/30 bg-black px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+              >
+                {STATUS_FILTER_OPTIONS.map((opt) => (
+                  <option key={opt.value || 'all'} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {loading ? (
@@ -112,9 +139,14 @@ export default function SellerQuotesPage() {
               <p className="text-white font-medium mb-1">No quote requests yet</p>
               <p className="text-[#ffcc99] text-sm">When buyers request quotes for your B2B products, they will appear here.</p>
             </div>
+          ) : filteredQuotes.length === 0 ? (
+            <div className="bg-[#1a1a1a] rounded-2xl border border-[#ff6600]/20 p-12 text-center">
+              <p className="text-white font-medium mb-1">No quotes match the selected filter</p>
+              <p className="text-[#ffcc99] text-sm">Try selecting a different status.</p>
+            </div>
           ) : (
             <div className="space-y-4">
-              {quotes.map((quote) => {
+              {filteredQuotes.map((quote) => {
                 const status = statusConfig[quote.status] || statusConfig.PENDING;
                 return (
                   <Link

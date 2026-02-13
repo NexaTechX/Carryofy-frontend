@@ -95,7 +95,7 @@ export default function ProductsPage() {
   useEffect(() => {
     if (mounted) {
       // Get URL params
-      const { category, search, page } = router.query;
+      const { category, search, page, b2bOnly: b2bParam } = router.query;
       if (category && typeof category === 'string') {
         setSelectedCategory(category);
       }
@@ -104,6 +104,9 @@ export default function ProductsPage() {
       }
       if (page && typeof page === 'string') {
         setCurrentPage(parseInt(page));
+      }
+      if (b2bParam === 'true' || b2bParam === '1') {
+        setB2bOnly(true);
       }
     }
   }, [mounted, router.query]);

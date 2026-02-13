@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { AlertCircle, Check, X } from 'lucide-react';
 import {
@@ -36,7 +36,6 @@ export default function AdminSettings() {
   const deleteTeam = useDeleteTeamMember();
 
   // Form state
-  const [commissionPercentage, setCommissionPercentage] = useState(15);
   const [deliveryCalculation, setDeliveryCalculation] = useState<'flat' | 'distance'>('distance');
   const [baseFee, setBaseFee] = useState(1500);
   const [perMileFee, setPerMileFee] = useState(350);
@@ -65,7 +64,6 @@ export default function AdminSettings() {
   // Load settings into form
   useEffect(() => {
     if (platformSettings) {
-      setCommissionPercentage(platformSettings.commissionPercentage);
       setDeliveryCalculation(platformSettings.deliveryCalculation);
       setBaseFee(platformSettings.baseFee);
       setPerMileFee(platformSettings.perMileFee);
@@ -81,24 +79,8 @@ export default function AdminSettings() {
     }
   }, [platformSettings]);
 
-  const commissionBreakdown = useMemo(() => {
-    const orderAmount = 100000;
-    const commissionValue = orderAmount * (commissionPercentage / 100);
-    const sellerReceives = orderAmount - commissionValue;
-
-    return {
-      orderAmount,
-      commissionValue,
-      sellerReceives,
-    };
-  }, [commissionPercentage]);
-
   const validate = () => {
     const newErrors: Record<string, string> = {};
-
-    if (commissionPercentage < 0 || commissionPercentage > 100) {
-      newErrors.commissionPercentage = 'Commission must be between 0 and 100';
-    }
 
     if (baseFee < 0) {
       newErrors.baseFee = 'Base fee cannot be negative';
@@ -145,7 +127,7 @@ export default function AdminSettings() {
 
     try {
       await updatePlatform.mutateAsync({
-        commissionPercentage,
+        commissionPercentage: platformSettings?.commissionPercentage ?? 15,
         deliveryCalculation,
         baseFee,
         perMileFee,
@@ -284,53 +266,6 @@ export default function AdminSettings() {
         )}
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] p-6 shadow-lg">
-            <header className="mb-5">
-              <h2 className="text-lg font-semibold text-white">Platform Commission (DEPRECATED)</h2>
-              <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                <p className="text-sm text-yellow-400 font-medium mb-1">⚠️ This field is deprecated</p>
-                <p className="text-xs text-gray-400">
-                  Commission is now configured strictly per category. This field is kept for legacy compatibility only and is NOT used for commission resolution. 
-                  All categories must have commissionB2C configured. Products cannot be created or approved without category commission.
-                </p>
-              </div>
-            </header>
-            <div className="space-y-4">
-              <label className="block text-sm font-medium text-gray-300">
-                Commission Percentage (Legacy - Not Used)
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={commissionPercentage}
-                  onChange={(event) => setCommissionPercentage(Number(event.target.value))}
-                  disabled
-                  className={`${inputClass} mt-2 opacity-50 cursor-not-allowed ${errors.commissionPercentage ? 'border-red-500' : ''}`}
-                  title="This field is deprecated and disabled. Commission is configured per category."
-                />
-                {errors.commissionPercentage && (
-                  <span className="mt-1 text-xs text-red-500">{errors.commissionPercentage}</span>
-                )}
-                <p className="mt-1 text-xs text-gray-500">This field is disabled. Configure commission in category settings instead.</p>
-              </label>
-
-              <div className="rounded-2xl border border-[#2a2a2a] bg-[#151515] p-4">
-                <div className="mb-2 flex items-center justify-between text-xs text-gray-500">
-                  <span>Order Amount</span>
-                  <span>₦{commissionBreakdown.orderAmount.toLocaleString()}</span>
-                </div>
-                <div className="mb-2 flex items-center justify-between text-sm text-primary">
-                  <span>Commission ({commissionPercentage}%)</span>
-                  <span>₦{commissionBreakdown.commissionValue.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center justify-between border-t border-[#2a2a2a] pt-3 text-sm font-semibold text-white">
-                  <span>Seller Receives</span>
-                  <span>₦{commissionBreakdown.sellerReceives.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
           <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] p-6 shadow-lg">
             <header className="mb-5">
               <h2 className="text-lg font-semibold text-white">Shipping Fee Rules (In-House Logistics)</h2>

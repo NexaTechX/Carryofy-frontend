@@ -58,7 +58,6 @@ export default function AdminCategories() {
     description: '',
     icon: '',
     color: DEFAULT_COLORS[0],
-    displayOrder: 0,
     commissionB2C: 15,
     commissionB2B: null,
   });
@@ -81,7 +80,6 @@ export default function AdminCategories() {
       description: '',
       icon: '',
       color: DEFAULT_COLORS[0],
-      displayOrder: categories.length,
       commissionB2C: 15,
       commissionB2B: null,
     });
@@ -96,7 +94,6 @@ export default function AdminCategories() {
       description: category.description || '',
       icon: category.icon || '',
       color: category.color || DEFAULT_COLORS[0],
-      displayOrder: category.displayOrder,
       commissionB2C: category.commissionB2C ?? 15,
       commissionB2B: category.commissionB2B ?? null,
     });
@@ -123,7 +120,6 @@ export default function AdminCategories() {
       description: formData.description,
       icon: formData.icon,
       color: formData.color,
-      displayOrder: formData.displayOrder,
       commissionB2C: formData.commissionB2C,
       commissionB2B: formData.commissionB2B,
     };
@@ -531,17 +527,6 @@ export default function AdminCategories() {
                     />
                   ))}
                 </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-300">Display Order</label>
-                <input
-                  type="number"
-                  value={formData.displayOrder}
-                  onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
-                  className="w-full rounded-lg border border-gray-700 bg-[#1a1a1a] px-4 py-2 text-white focus:border-primary focus:outline-none"
-                  min="0"
-                />
               </div>
 
               <div className="flex justify-end gap-3 pt-4">

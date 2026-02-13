@@ -92,6 +92,8 @@ export interface AdminDashboardData {
   lowStock: LowStockItem[];
   pendingSellerApprovals: number;
   pendingPayments: number;
+  pendingQuoteRequestsCount?: number;
+  b2bOrdersCount?: number;
 }
 
 export interface AdminProfile {

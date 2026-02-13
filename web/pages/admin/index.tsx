@@ -1,9 +1,10 @@
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useAdminDashboard } from '../../lib/admin/hooks/useAdminDashboard';
 import { useAdminProfile } from '../../lib/admin/hooks/useAdminProfile';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, FileText, ShoppingCart } from 'lucide-react';
 import { AdminCard, AdminPageHeader, AdminToolbar } from '../../components/admin/ui';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 const TrendChart = dynamic(() => import('../../components/admin/charts/TrendChart'), { ssr: false });
@@ -86,7 +87,7 @@ export default function AdminDashboard() {
     );
   }
 
-  const { metrics, salesTrend, topCategories, commissionRevenue, lowStock, pendingSellerApprovals, pendingPayments } =
+  const { metrics, salesTrend, topCategories, commissionRevenue, lowStock, pendingSellerApprovals, pendingPayments, pendingQuoteRequestsCount = 0, b2bOrdersCount = 0 } =
     data;
 
   const sparklineValues = (salesTrend?.trend || []).map((point) => point.amount);
@@ -181,6 +182,36 @@ export default function AdminDashboard() {
               ))}
             </div>
           </section>
+
+          {(pendingQuoteRequestsCount > 0 || b2bOrdersCount > 0) && (
+            <section className="mb-10">
+              <h2 className="px-1 text-[22px] font-bold leading-tight text-white">B2B</h2>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Link href="/admin/quote-requests">
+                  <AdminCard
+                    title="Pending quote requests"
+                    description="Awaiting seller response"
+                    className="bg-linear-to-br from-primary/12 via-[#101829] to-[#080d16] cursor-pointer hover:border-primary/40 transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-8 w-8 text-primary" />
+                      <p className="text-2xl font-bold tracking-tight text-white">{pendingQuoteRequestsCount}</p>
+                    </div>
+                  </AdminCard>
+                </Link>
+                <AdminCard
+                  title="B2B orders"
+                  description="Bulk and quote-based checkouts"
+                  className="bg-linear-to-br from-primary/12 via-[#101829] to-[#080d16]"
+                >
+                  <div className="flex items-center gap-3">
+                    <ShoppingCart className="h-8 w-8 text-primary" />
+                    <p className="text-2xl font-bold tracking-tight text-white">{b2bOrdersCount}</p>
+                  </div>
+                </AdminCard>
+              </div>
+            </section>
+          )}
 
           <section className="mb-10">
             <h2 className="px-1 text-[22px] font-bold leading-tight text-white">Customer Analytics</h2>

@@ -811,6 +811,8 @@ export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
       lowStock: (Array.isArray(normalized?.lowStock) ? normalized.lowStock : []) as LowStockItem[],
       pendingSellerApprovals: typeof normalized?.pendingSellerApprovals === 'number' ? normalized.pendingSellerApprovals : 0,
       pendingPayments: typeof normalized?.pendingPayments === 'number' ? normalized.pendingPayments : 0,
+      pendingQuoteRequestsCount: typeof normalized?.pendingQuoteRequestsCount === 'number' ? normalized.pendingQuoteRequestsCount : 0,
+      b2bOrdersCount: typeof normalized?.b2bOrdersCount === 'number' ? normalized.b2bOrdersCount : 0,
     };
     
     // Log final result in development
@@ -971,8 +973,63 @@ export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
       lowStock: lowStock || [],
       pendingSellerApprovals,
       pendingPayments,
+      pendingQuoteRequestsCount: 0,
+      b2bOrdersCount: 0,
     };
   }
+}
+
+export interface AdminQuoteRequestItem {
+  id: string;
+  productId: string;
+  requestedQuantity: number;
+  sellerQuotedPriceKobo?: number;
+  sellerNotes?: string;
+  product?: { id: string; title: string };
+}
+
+export interface AdminQuoteRequest {
+  id: string;
+  buyerId: string;
+  sellerId: string;
+  status: string;
+  message?: string;
+  sellerResponse?: string;
+  validUntil?: string;
+  createdAt: string;
+  updatedAt: string;
+  buyer?: { id: string; name: string; email: string };
+  seller?: { id: string; businessName: string };
+  items: AdminQuoteRequestItem[];
+}
+
+export interface AdminQuoteRequestsResponse {
+  items: AdminQuoteRequest[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
+export async function fetchAdminQuoteRequests(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+}): Promise<AdminQuoteRequestsResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.page != null) searchParams.set('page', String(params.page));
+  if (params?.limit != null) searchParams.set('limit', String(params.limit));
+  if (params?.status) searchParams.set('status', params.status);
+  if (params?.startDate) searchParams.set('startDate', params.startDate);
+  if (params?.endDate) searchParams.set('endDate', params.endDate);
+  const query = searchParams.toString();
+  const url = query ? `/admin/quote-requests?${query}` : '/admin/quote-requests';
+  const { data } = await apiClient.get(url);
+  return normalizeResponse<AdminQuoteRequestsResponse>(data);
+}
+
+export async function fetchQuoteRequestById(id: string): Promise<AdminQuoteRequest> {
+  const { data } = await apiClient.get(`/quote-requests/${id}`);
+  return normalizeResponse<AdminQuoteRequest>(data);
 }
 
 // Global Search API

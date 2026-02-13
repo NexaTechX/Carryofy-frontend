@@ -1,15 +1,23 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import SEO from '../../components/seo/SEO';
-import { useAuth, userManager } from '../../lib/auth';
+import { useAuth } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
 import { useCart } from '../../lib/contexts/CartContext';
-import { Plus, Trash2, ShoppingCart, Loader2, AlertCircle, FileText, CheckCircle } from 'lucide-react';
+import { Trash2, ShoppingCart, Loader2, AlertCircle, CheckCircle, Search } from 'lucide-react';
 import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
 import Link from 'next/link';
 
+interface SearchProduct {
+  id: string;
+  title: string;
+  price?: number;
+  seller?: { id: string; businessName: string };
+}
+
 interface BulkItem {
-    id: string; // SKU/Product ID
+    id: string;
+    title?: string; // For display when added from search
     quantity: number;
 }
 
@@ -27,40 +35,68 @@ interface ValidatedItem {
 export default function BulkOrderPage() {
     const { isAuthenticated, user, isLoading: authLoading } = useAuth();
     const { addToCart } = useCart();
-    const [items, setItems] = useState<BulkItem[]>([{ id: '', quantity: 10 }]);
+    const [items, setItems] = useState<BulkItem[]>([]);
     const [validating, setValidating] = useState(false);
     const [validatedItems, setValidatedItems] = useState<ValidatedItem[] | null>(null);
     const [validationError, setValidationError] = useState<string | null>(null);
     const [addingToCart, setAddingToCart] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
+    const [searching, setSearching] = useState(false);
+    const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
 
-    const handleItemChange = (index: number, field: keyof BulkItem, value: string | number) => {
-        const newItems = [...items];
-        if (field === 'quantity') {
-            newItems[index].quantity = Math.max(1, Number(value));
-        } else {
-            newItems[index].id = String(value);
+    const fetchSearchResults = useCallback(async (q: string) => {
+        if (!q.trim() || q.length < 2) {
+            setSearchResults([]);
+            return;
         }
-        setItems(newItems);
-        setValidatedItems(null); // Reset validation on change
+        setSearching(true);
+        try {
+            const res = await apiClient.get('/products', {
+                params: { search: q.trim(), limit: 15, inStockOnly: true, b2bOnly: true },
+            });
+            const data = res.data?.data ?? res.data;
+            const list = data?.products ?? data?.items ?? (Array.isArray(data) ? data : []);
+            setSearchResults(Array.isArray(list) ? list : []);
+        } catch {
+            setSearchResults([]);
+        } finally {
+            setSearching(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        const t = setTimeout(() => fetchSearchResults(searchQuery), 300);
+        return () => clearTimeout(t);
+    }, [searchQuery, fetchSearchResults]);
+
+    const addProductToList = (productId: string, title?: string, defaultQty = 10) => {
+        if (items.some((i) => i.id === productId)) return;
+        setItems((prev) => [...prev, { id: productId, title: title ?? 'Unknown', quantity: defaultQty }]);
+        setValidatedItems(null);
+        setSearchQuery('');
+        setSearchResults([]);
+        setSearchDropdownOpen(false);
     };
 
-    const addItemRow = () => {
-        setItems([...items, { id: '', quantity: 10 }]);
+    const handleQuantityChange = (index: number, value: number) => {
+        const newItems = [...items];
+        newItems[index].quantity = Math.max(1, value);
+        setItems(newItems);
+        setValidatedItems(null);
     };
 
     const removeItemRow = (index: number) => {
-        if (items.length > 1) {
-            const newItems = items.filter((_, i) => i !== index);
-            setItems(newItems);
-            setValidatedItems(null);
-        }
+        const newItems = items.filter((_, i) => i !== index);
+        setItems(newItems);
+        setValidatedItems(null);
     };
 
     const validateOrder = async () => {
         // Basic frontend validation
         const filledItems = items.filter(i => i.id.trim() !== '');
         if (filledItems.length === 0) {
-            setValidationError('Please enter at least one Product ID/SKU.');
+            setValidationError('Please add at least one product using the search above.');
             return;
         }
 
@@ -83,7 +119,7 @@ export default function BulkOrderPage() {
 
         } catch (err: any) {
             console.error('Validation error:', err);
-            setValidationError(err.response?.data?.message || 'Failed to validate items. Please check IDs.');
+            setValidationError(err.response?.data?.message || 'Failed to validate items. Please try again.');
             setValidatedItems(null);
         } finally {
             setValidating(false);
@@ -171,75 +207,123 @@ export default function BulkOrderPage() {
             <div className="max-w-4xl mx-auto">
                 <h1 className="text-3xl font-bold text-white mb-2">Bulk Order</h1>
                 <p className="text-[#ffcc99] mb-8">
-                    Enter Product IDs and quantities to order quickly. Tiered pricing is applied automatically.
+                    Search and add wholesale products below. Tiered pricing is applied automatically for bulk quantities.
                 </p>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Input Section */}
                     <div className="lg:col-span-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-[#ffcc99] mb-2">Search wholesale products</label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#ffcc99]/60" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        setSearchDropdownOpen(true);
+                                    }}
+                                    onFocus={() => setSearchDropdownOpen(true)}
+                                    onBlur={() => setTimeout(() => setSearchDropdownOpen(false), 200)}
+                                    placeholder="Type product name to find and add..."
+                                    className="w-full pl-10 pr-4 py-2 bg-black border border-[#ff6600]/30 rounded-lg text-white placeholder-[#ffcc99]/50 text-sm focus:outline-none focus:border-[#ff6600]"
+                                />
+                                {searchDropdownOpen && (searchQuery.length >= 2 || searchResults.length > 0) && (
+                                    <div className="absolute left-0 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-[#0d0d0d] border border-[#ff6600]/30 rounded-lg shadow-xl z-10">
+                                        {searching ? (
+                                            <div className="p-4 text-center text-[#ffcc99] text-sm flex items-center justify-center gap-2">
+                                                <Loader2 className="w-4 h-4 animate-spin" /> Searching...
+                                            </div>
+                                        ) : searchResults.length === 0 ? (
+                                            <div className="p-4 text-[#ffcc99]/70 text-sm">No wholesale products found. Try a different search.</div>
+                                        ) : (
+                                            searchResults.map((p) => (
+                                                <button
+                                                    key={p.id}
+                                                    type="button"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        addProductToList(p.id, p.title);
+                                                    }}
+                                                    className="w-full text-left px-4 py-3 hover:bg-[#ff6600]/10 border-b border-[#ff6600]/10 last:border-0 flex justify-between items-center"
+                                                >
+                                                    <span className="text-white text-sm truncate pr-2">{p.title}</span>
+                                                    <span className="text-[#ff6600] text-xs font-medium shrink-0">Add to list</span>
+                                                </button>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold text-white">Order Items</h2>
-                            <button
-                                onClick={() => setItems([{ id: '', quantity: 10 }])}
-                                className="text-xs text-[#ffcc99]/70 hover:text-[#ff6600]"
-                            >
-                                Clear All
-                            </button>
+                            <h2 className="text-xl font-bold text-white">Your List</h2>
+                            {items.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setItems([])}
+                                    className="text-xs text-[#ffcc99]/70 hover:text-[#ff6600]"
+                                >
+                                    Clear All
+                                </button>
+                            )}
                         </div>
 
                         <div className="space-y-3 mb-6">
-                            <div className="grid grid-cols-12 gap-2 text-sm text-[#ffcc99]/70 font-medium px-2">
-                                <div className="col-span-8">Product ID / SKU</div>
-                                <div className="col-span-3">Quantity</div>
-                                <div className="col-span-1"></div>
-                            </div>
-
-                            {items.map((item, index) => (
-                                <div key={index} className="grid grid-cols-12 gap-2 items-center">
-                                    <div className="col-span-8">
-                                        <input
-                                            type="text"
-                                            value={item.id}
-                                            onChange={(e) => handleItemChange(index, 'id', e.target.value)}
-                                            placeholder="e.g. prod_chk2..."
-                                            className="w-full bg-black border border-[#ff6600]/30 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#ff6600] text-sm font-mono"
-                                        />
-                                    </div>
-                                    <div className="col-span-3">
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            value={item.quantity}
-                                            onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                            className="w-full bg-black border border-[#ff6600]/30 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#ff6600] text-sm"
-                                        />
-                                    </div>
-                                    <div className="col-span-1 flex justify-center">
-                                        {items.length > 1 && (
-                                            <button
-                                                onClick={() => removeItemRow(index)}
-                                                className="text-red-400 hover:text-red-300 p-1"
-                                                aria-label="Remove item"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                    </div>
+                            {items.length === 0 ? (
+                                <div className="py-12 text-center rounded-xl border border-dashed border-[#ff6600]/30 bg-black/30">
+                                    <Search className="w-12 h-12 text-[#ff6600]/40 mx-auto mb-3" />
+                                    <p className="text-[#ffcc99]/80 text-sm mb-1">Search above to add products</p>
+                                    <p className="text-[#ffcc99]/50 text-xs mb-4">Type a product name and click to add to your list</p>
+                                    <Link href="/buyer/products?b2bOnly=true" className="text-[#ff6600] hover:text-[#ff9955] text-sm font-medium">
+                                        Browse wholesale products
+                                    </Link>
                                 </div>
-                            ))}
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-12 gap-2 text-sm text-[#ffcc99]/70 font-medium px-2">
+                                        <div className="col-span-7">Product</div>
+                                        <div className="col-span-4">Quantity</div>
+                                        <div className="col-span-1"></div>
+                                    </div>
+
+                                    {items.map((item, index) => (
+                                        <div key={`${item.id}-${index}`} className="grid grid-cols-12 gap-2 items-center">
+                                            <div className="col-span-7">
+                                                <div className="bg-black/50 border border-[#ff6600]/20 rounded-lg px-3 py-2 text-white text-sm truncate">
+                                                    {item.title || 'Unknown'}
+                                                </div>
+                                            </div>
+                                            <div className="col-span-4">
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={item.quantity}
+                                                    onChange={(e) => handleQuantityChange(index, Math.max(1, parseInt(e.target.value, 10) || 0))}
+                                                    className="w-full bg-black border border-[#ff6600]/30 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#ff6600] text-sm"
+                                                />
+                                            </div>
+                                            <div className="col-span-1 flex justify-center">
+                                                <button
+                                                    onClick={() => removeItemRow(index)}
+                                                    className="text-red-400 hover:text-red-300 p-1"
+                                                    aria-label="Remove item"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
                         </div>
 
                         <div className="flex gap-3">
                             <button
-                                onClick={addItemRow}
-                                className="flex items-center gap-2 px-4 py-2 bg-[#ff6600]/10 text-[#ff6600] border border-[#ff6600]/30 rounded-xl hover:bg-[#ff6600]/20 transition text-sm font-bold"
-                            >
-                                <Plus className="w-4 h-4" /> Add Row
-                            </button>
-
-                            <button
                                 onClick={validateOrder}
-                                disabled={validating}
+                                disabled={validating || items.length === 0}
                                 className="ml-auto flex items-center gap-2 px-6 py-2 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition disabled:opacity-50"
                             >
                                 {validating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}

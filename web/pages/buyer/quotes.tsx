@@ -21,16 +21,25 @@ interface QuoteRequest {
   status: string;
   message?: string;
   sellerResponse?: string;
+  validUntil?: string;
   createdAt: string;
   items: QuoteItem[];
   seller?: { id: string; businessName: string };
 }
+
+const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: '', label: 'All' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'REJECTED', label: 'Rejected' },
+];
 
 export default function MyQuotesPage() {
   const [mounted, setMounted] = useState(false);
   const [list, setList] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -61,6 +70,11 @@ export default function MyQuotesPage() {
   const formatPrice = (kobo: number) =>
     `₦${(kobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('en-NG', { dateStyle: 'medium' });
+
+  const filteredList = statusFilter ? list.filter((q) => q.status === statusFilter) : list;
+
   if (!mounted) return null;
 
   return (
@@ -88,8 +102,28 @@ export default function MyQuotesPage() {
               <Link href="/buyer/products" className="inline-block mt-4 text-[#ff6600] hover:underline">Browse B2B products</Link>
             </div>
           ) : (
+            <>
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <label className="text-[#ffcc99] text-sm">Filter:</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="rounded-lg border border-[#ff6600]/30 bg-black px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+                >
+                  {STATUS_FILTER_OPTIONS.map((opt) => (
+                    <option key={opt.value || 'all'} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {filteredList.length === 0 ? (
+                <div className="p-8 bg-[#1a1a1a] border border-[#ff6600]/20 rounded-xl text-center text-[#ffcc99]">
+                  <p>No quotes match the selected filter.</p>
+                </div>
+              ) : (
             <ul className="space-y-4">
-              {list.map((q) => (
+              {filteredList.map((q) => (
                 <li
                   key={q.id}
                   className="p-4 sm:p-6 bg-[#1a1a1a] border border-[#ff6600]/20 rounded-xl"
@@ -110,11 +144,14 @@ export default function MyQuotesPage() {
                       {q.status}
                     </span>
                   </div>
-                  <p className="text-[#ffcc99] text-sm mb-3">
-                    {new Date(q.createdAt).toLocaleDateString('en-NG', {
-                      dateStyle: 'medium',
-                    })}
+                  <p className="text-[#ffcc99] text-sm mb-2">
+                    {formatDate(q.createdAt)}
                   </p>
+                  {q.status === 'APPROVED' && q.validUntil && (
+                    <p className="text-green-400/90 text-sm mb-3">
+                      Valid until {formatDate(q.validUntil)}
+                    </p>
+                  )}
                   <ul className="space-y-2 mb-4">
                     {q.items.map((item) => (
                       <li key={item.id} className="flex flex-wrap items-center gap-2 text-sm text-white">
@@ -140,6 +177,8 @@ export default function MyQuotesPage() {
                 </li>
               ))}
             </ul>
+              )}
+            </>
           )}
         </div>
       </BuyerLayout>

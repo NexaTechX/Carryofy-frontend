@@ -15,6 +15,7 @@ import {
   HelpCircle,
   Heart,
   FileText,
+  Layers,
 } from 'lucide-react';
 import NotificationsDropdown from './NotificationsDropdown';
 import CartDrawer from './CartDrawer';
@@ -43,6 +44,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
     { name: 'Shop', href: '/buyer/categories', icon: ShoppingBag },
     { name: 'My Orders', href: '/buyer/orders', icon: Package },
     { name: 'My Quotes', href: '/buyer/quotes', icon: FileText },
+    { name: 'Bulk Order', href: '/buyer/bulk-order', icon: Layers },
     { name: 'Wishlist', href: '/buyer/wishlist', icon: Heart },
     { name: 'Track Order', href: '/buyer/track', icon: MapPin },
     { name: 'Profile', href: '/buyer/profile', icon: User },

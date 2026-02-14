@@ -640,6 +640,20 @@ export interface BroadcastAnalytics {
   productCtr?: Record<string, number>;
 }
 
+export interface LocationPoint {
+  userId: string;
+  role: 'RIDER' | 'BUYER' | 'SELLER';
+  lat: number;
+  lng: number;
+  lastUpdated?: string | null;
+  label?: string;
+}
+
+export interface AdminLocationsResponse {
+  riders: LocationPoint[];
+  buyers: LocationPoint[];
+  sellers: LocationPoint[];
+}
 
 
 

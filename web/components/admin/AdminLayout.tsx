@@ -11,6 +11,7 @@ import {
   HelpCircle,
   House,
   Mail,
+  MapPin,
   Menu,
   MessageSquare,
   Package,
@@ -52,6 +53,7 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Reviews', href: '/admin/reviews', icon: MessageSquare },
   { name: 'Refunds', href: '/admin/refunds', icon: DollarSign },
   { name: 'Deliveries', href: '/admin/deliveries', icon: Truck },
+  { name: 'Locations', href: '/admin/locations', icon: MapPin },
   { name: 'Warehouse', href: '/admin/warehouse', icon: WarehouseIcon },
   { name: 'Payouts', href: '/admin/payouts', icon: DollarSign },
   { name: 'Finance', href: '/admin/finance', icon: FileBarChart2 },
@@ -106,7 +108,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const navContent = useMemo(
     () => (
-      <nav className="flex-1 overflow-y-auto px-4 py-6">
+      <nav className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
         <div className="space-y-1">
           {NAV_ITEMS.map(({ name, href, icon: Icon }) => (
             <Link
@@ -133,9 +135,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <RealtimeProvider enabled={true} interval={15000}>
       <div className="flex min-h-screen bg-[#090c11] text-white">
-      {/* Desktop Sidebar */}
-      <aside className="hidden w-72 flex-col border-r border-[#12161f] bg-[#05070c] lg:flex">
-        <div className="flex items-center gap-3 border-b border-[#12161f] px-6 py-5">
+      {/* Desktop Sidebar - fixed, nav content scrollable */}
+      <aside className="fixed inset-y-0 left-0 z-20 hidden h-screen w-72 flex flex-col border-r border-[#12161f] bg-[#05070c] lg:flex">
+        <div className="flex shrink-0 items-center gap-3 border-b border-[#12161f] px-6 py-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
             CF
           </div>
@@ -145,7 +147,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </div>
         {navContent}
-        <div className="border-t border-[#12161f] px-6 py-6 space-y-4">
+        <div className="shrink-0 border-t border-[#12161f] px-6 py-6 space-y-4">
           <div className="flex items-center justify-between rounded-full border border-[#1f2432] px-4 py-2 text-xs font-medium text-gray-400">
             <span className="flex items-center gap-2">
               <Store className="h-4 w-4 text-primary" />
@@ -163,14 +165,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
       </aside>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar - fixed, nav content scrollable */}
       <div
         className={clsx(
-          'fixed inset-y-0 z-40 w-72 flex-col border-r border-[#12161f] bg-[#05070c] transition-transform duration-200 lg:hidden',
+          'fixed inset-y-0 left-0 z-40 flex h-screen w-72 flex-col border-r border-[#12161f] bg-[#05070c] transition-transform duration-200 lg:hidden',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex items-center justify-between border-b border-[#12161f] px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-[#12161f] px-5 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
               CF
@@ -190,7 +192,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </button>
         </div>
         {navContent}
-        <div className="border-t border-[#12161f] px-6 py-6">
+        <div className="shrink-0 border-t border-[#12161f] px-6 py-6">
           <button
             onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-gray-400 transition-colors hover:bg-[#1a1a1a] hover:text-red-400"
@@ -210,7 +212,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       )}
 
       {/* Main Content */}
-      <div className="flex flex-1 flex-col lg:ml-0">
+      <div className="flex flex-1 flex-col lg:ml-72">
         {/* Header */}
         <header className="sticky top-0 z-20 border-b border-[#12161f] bg-[#090c11]/90 backdrop-blur">
           <div className="flex items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">

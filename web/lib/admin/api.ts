@@ -46,6 +46,7 @@ import {
   AudienceCount,
   BroadcastAudience,
   AudienceFilters,
+  AdminLocationsResponse,
 } from './types';
 
 const ADMIN_DASHBOARD_CACHE_TAG = 'admin-dashboard';
@@ -263,6 +264,11 @@ export async function fetchCommissionRevenue(): Promise<CommissionRevenueRespons
       growth: 0,
     };
   }
+}
+
+export async function fetchAdminLocations(): Promise<AdminLocationsResponse> {
+  const { data } = await apiClient.get('/location/admin/all');
+  return normalizeResponse<AdminLocationsResponse>(data) ?? { riders: [], buyers: [], sellers: [] };
 }
 
 export async function fetchLowStock(threshold = 10): Promise<LowStockItem[]> {

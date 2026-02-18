@@ -231,7 +231,7 @@ export default function SettingsPage() {
             businessName: sellerData.businessName || '',
             logo: sellerData.logo || '',
           });
-        } else {
+        } else if (sellerResponse.status !== 404) {
           console.warn('Failed to fetch seller profile:', sellerResponse.statusText);
         }
       } catch (fetchError) {

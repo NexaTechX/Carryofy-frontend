@@ -18,6 +18,7 @@ import {
   Store
 } from 'lucide-react';
 import { aiOnboardingApi, AIOnboardingPreferences, UpdateAIOnboardingDto } from '../../lib/api/ai-onboarding';
+import { refreshAccessTokenBeforeRedirect } from '../../lib/api/client';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
 import BrandSelector from './BrandSelector';
 
@@ -1022,6 +1023,9 @@ export default function AIOnboardingWizard() {
       if (preferences.notificationPreference) dataToSend.notificationPreference = preferences.notificationPreference;
 
       await aiOnboardingApi.updatePreferences(dataToSend);
+
+      // Refresh token so the next page (e.g. /buyer) doesn't get 401 and trigger logout
+      await refreshAccessTokenBeforeRedirect();
 
       // Clear localStorage draft
       try {

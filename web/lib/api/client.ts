@@ -40,6 +40,18 @@ function doRefresh(): Promise<string | null> {
     .catch(() => null);
 }
 
+/** Call after a successful save (e.g. onboarding) before redirecting, so the next page has a fresh token and doesn't trigger 401 → logout. */
+export async function refreshAccessTokenBeforeRedirect(): Promise<void> {
+  if (refreshPromise) {
+    await refreshPromise;
+    return;
+  }
+  refreshPromise = doRefresh().finally(() => {
+    refreshPromise = null;
+  });
+  await refreshPromise;
+}
+
 // Request interceptor to add Access Token and CSRF Token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -131,8 +143,11 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // Enhanced error logging for all errors
-    if (error.response) {
+    // Skip noisy logging for 401 on auth/me and cart (session expired; interceptor will clear and redirect)
+    const isAuthOrCart401 =
+      error.response?.status === 401 &&
+      (originalRequest?.url?.includes('/auth/me') || originalRequest?.url === '/cart');
+    if (error.response && !isAuthOrCart401) {
       console.error('API Error Response:', {
         status: error.response.status,
         statusText: error.response.statusText,
@@ -141,7 +156,13 @@ apiClient.interceptors.response.use(
         data: error.response.data,
         headers: error.response.headers,
       });
-    } else if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.message === 'Network Error') {
+    } else if (error.response && isAuthOrCart401) {
+      // Optional: log once at debug level in development
+      if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+        console.info('Session expired (401 on auth/me or cart); clearing and redirecting to login.');
+      }
+    }
+    if (!error.response && (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.message === 'Network Error') {
       const fullURL = originalRequest ? `${API_BASE_URL}${originalRequest.url}` : 'N/A';
       console.error('Network Error Details:', {
         message: error.message,
@@ -222,4 +243,4 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
-export { apiClient };
+export { apiClient, refreshAccessTokenBeforeRedirect };

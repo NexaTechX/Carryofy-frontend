@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import { useAuth, tokenManager } from '../../lib/auth';
+import { refreshAccessTokenBeforeRedirect } from '../../lib/api/client';
 import { Building2, CheckCircle } from 'lucide-react';
 
 export default function SellerOnboardingPage() {
@@ -94,9 +95,12 @@ export default function SellerOnboardingPage() {
 
       if (response.ok) {
         toast.success('Successfully onboarded! Redirecting to dashboard...');
-        setTimeout(() => {
-          router.push('/seller');
-        }, 2000);
+        // Refresh token so the seller dashboard doesn't get 401 and trigger logout
+        refreshAccessTokenBeforeRedirect().finally(() => {
+          setTimeout(() => {
+            router.push('/seller');
+          }, 2000);
+        });
       } else {
         const error = await response.json();
         toast.error(`Failed to onboard: ${error.message || 'Unknown error'}`);

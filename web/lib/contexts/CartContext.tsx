@@ -52,7 +52,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +62,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const fetchCart = useCallback(async () => {
     if (!tokenManager.isAuthenticated()) {
       setCart(null);
+      setError(null);
       return;
     }
 
@@ -74,9 +75,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const cartData = response.data.data || response.data;
       setCart(cartData);
     } catch (err: any) {
+      if (err.response?.status === 401) {
+        setCart(null);
+        setError(null);
+        return;
+      }
       console.error('Error fetching cart:', err);
       setError(err.response?.data?.message || 'Failed to load cart');
-      // Don't set cart to null on error, keep previous state
     } finally {
       setLoading(false);
     }
@@ -178,10 +183,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setIsDrawerOpen(prev => !prev);
   }, []);
 
-  // Fetch cart when auth state changes (e.g. after login or on initial load when user is restored)
+  // Fetch cart only after auth has finished loading to avoid 401s with expired token
   useEffect(() => {
+    if (authLoading) return;
     fetchCart();
-  }, [user, fetchCart]);
+  }, [authLoading, user, fetchCart]);
 
   // Listen for cart update events (e.g., when items are added)
   useEffect(() => {

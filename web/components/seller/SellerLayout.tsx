@@ -139,15 +139,16 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       if (response.ok) {
         const result = await response.json();
         const sellerData = result.data || result;
-        console.log('[SellerLayout] Fetched seller profile:', { logo: sellerData.logo, businessName: sellerData.businessName });
         setSellerProfile({
           id: sellerData.id,
           businessName: sellerData.businessName,
           logo: sellerData.logo,
         });
+      } else if (response.status === 404) {
+        setSellerProfile(null);
       }
     } catch (error) {
-      console.warn('Failed to fetch seller profile:', error);
+      setSellerProfile(null);
     }
   };
 

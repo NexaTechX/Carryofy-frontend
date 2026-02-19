@@ -84,11 +84,13 @@ export default function ProductsPage() {
       return;
     }
     fetchKycStatus();
-    fetchProducts();
   }, [router, authLoading, isAuthenticated, user]);
 
   const fetchKycStatus = async () => {
     try {
+      setKycLoading(true);
+      // Reset sellerNotFound when checking KYC status
+      setSellerNotFound(false);
       const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
@@ -98,15 +100,33 @@ export default function ProductsPage() {
       if (response.ok) {
         const data = await response.json();
         const responseData = data.data || data;
-        setKycStatus(responseData.status);
+        const status = responseData.status || 'NOT_SUBMITTED';
+        setKycStatus(status);
+        
+        // Only fetch products if KYC is approved
+        if (status === 'APPROVED') {
+          fetchProducts();
+        } else {
+          setLoading(false);
+        }
+      } else if (response.status === 404) {
+        // KYC not submitted yet - seller may or may not exist
+        setKycStatus('NOT_SUBMITTED');
+        setLoading(false);
+      } else {
+        // Other error - assume KYC not submitted
+        setKycStatus('NOT_SUBMITTED');
+        setLoading(false);
       }
     } catch (err) {
       console.error('Error fetching KYC status:', err);
+      // Assume KYC not submitted
+      setKycStatus('NOT_SUBMITTED');
+      setLoading(false);
     } finally {
       setKycLoading(false);
     }
   };
-
 
   const fetchProducts = async () => {
     try {
@@ -118,7 +138,6 @@ export default function ProductsPage() {
 
       if (!sellerId) {
         console.error('Could not get seller ID');
-        toast.error('Please complete your seller onboarding first');
         setSellerNotFound(true);
         setProducts([]);
         return;
@@ -132,7 +151,7 @@ export default function ProductsPage() {
       if (error?.response?.status === 403) {
         toast.error('Access denied. Please ensure you are logged in as a seller.');
       } else if (error?.response?.status === 404) {
-        toast.error('Seller profile not found. Please complete onboarding first.');
+        // Seller profile doesn't exist - needs onboarding
         setSellerNotFound(true);
         setProducts([]);
       } else {
@@ -141,6 +160,7 @@ export default function ProductsPage() {
           error?.message ||
           'Failed to load products. Please try again.';
         toast.error(message);
+        setProducts([]);
       }
     } finally {
       setLoading(false);
@@ -338,7 +358,7 @@ export default function ProductsPage() {
             )}
           </div>
 
-          {/* KYC Gate Banner */}
+          {/* KYC Gate Banner - Show when KYC is not approved */}
           {!kycLoading && kycStatus !== 'APPROVED' && (
             <div className={`mb-6 rounded-2xl border p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 ${kycStatus === 'PENDING'
                 ? 'bg-yellow-900/20 border-yellow-500/30'
@@ -461,15 +481,15 @@ export default function ProductsPage() {
               </div>
               <h3 className="text-white font-semibold text-lg mb-2">No products found</h3>
               <p className="text-[#ffcc99] text-sm mb-6">
-                {sellerNotFound
-                  ? 'We could not find your seller profile. Complete seller onboarding to start adding products.'
-                  : searchQuery
-                    ? 'Try a different search term'
-                    : kycStatus !== 'APPROVED'
-                      ? 'Complete KYC verification to start adding products'
+                {searchQuery
+                  ? 'Try a different search term'
+                  : kycStatus !== 'APPROVED'
+                    ? 'Complete KYC verification to start adding products'
+                    : sellerNotFound && kycStatus === 'APPROVED'
+                      ? 'We could not find your seller profile. Please contact support.'
                       : 'Start by adding your first product'}
               </p>
-              {!searchQuery && !sellerNotFound && kycStatus === 'APPROVED' && (
+              {!searchQuery && kycStatus === 'APPROVED' && !sellerNotFound && (
                 <Link
                   href="/seller/products/new"
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff6600] text-black font-medium rounded-xl hover:bg-[#cc5200] transition-colors"
@@ -478,16 +498,16 @@ export default function ProductsPage() {
                   Add Your First Product
                 </Link>
               )}
-              {!searchQuery && !sellerNotFound && kycStatus !== 'APPROVED' && (
+              {!searchQuery && kycStatus !== 'APPROVED' && (
                 <Link
                   href="/seller/settings?tab=kyc"
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-500 transition-colors"
                 >
                   <ShieldAlert className="w-5 h-5" />
-                  {kycStatus === 'PENDING' ? 'View KYC Status' : 'Complete KYC Verification'}
+                  {kycStatus === 'PENDING' ? 'View KYC Status' : kycStatus === 'REJECTED' ? 'Resubmit KYC' : 'Apply for KYC Verification'}
                 </Link>
               )}
-              {!searchQuery && sellerNotFound && (
+              {!searchQuery && sellerNotFound && kycStatus === 'APPROVED' && (
                 <Link
                   href="/seller/onboard"
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff6600] text-black font-medium rounded-xl hover:bg-[#cc5200] transition-colors"

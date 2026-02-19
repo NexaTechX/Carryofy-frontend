@@ -23,7 +23,11 @@ import {
   Trash2,
   GripVertical,
   Wand2,
-  Loader2
+  Loader2,
+  ShieldAlert,
+  ShieldX,
+  Clock,
+  ShieldCheck
 } from 'lucide-react';
 
 type SellingMode = 'B2C_ONLY' | 'B2B_ONLY' | 'B2C_AND_B2B';
@@ -107,6 +111,8 @@ export default function AddProductPage() {
   const [enhancingImageIndex, setEnhancingImageIndex] = useState<number | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const [kycLoading, setKycLoading] = useState(true);
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
@@ -138,8 +144,31 @@ export default function AddProductPage() {
     }
     if (user.role && user.role !== 'SELLER' && user.role !== 'ADMIN') {
       router.push('/');
+      return;
     }
+    fetchKycStatus();
   }, [router, authLoading, isAuthenticated, user]);
+
+  const fetchKycStatus = async () => {
+    try {
+      const token = tokenManager.getAccessToken();
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+      const response = await fetch(`${apiUrl}/sellers/kyc`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const responseData = data.data || data;
+        setKycStatus(responseData.status);
+      }
+    } catch (err) {
+      console.error('Error fetching KYC status:', err);
+    } finally {
+      setKycLoading(false);
+    }
+  };
+
 
   // Helper to get selected category
   const getSelectedCategory = () => {
@@ -526,7 +555,7 @@ export default function AddProductPage() {
     );
   };
 
-  if (authLoading) {
+  if (authLoading || kycLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
@@ -539,6 +568,120 @@ export default function AddProductPage() {
 
   if (!isAuthenticated || !user) {
     return null;
+  }
+
+  // KYC Gate — block the form entirely for non-approved sellers
+  if (kycStatus !== 'APPROVED') {
+    const isPending = kycStatus === 'PENDING';
+    const isRejected = kycStatus === 'REJECTED';
+
+    return (
+      <>
+        <Head>
+          <title>KYC Required - Seller Portal | Carryofy</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+        </Head>
+        <SellerLayout>
+          <div className="min-h-full flex items-center justify-center py-16 px-4">
+            <div className="max-w-lg w-full">
+              {/* Icon */}
+              <div className={`w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-8 ${isPending ? 'bg-yellow-500/15 border border-yellow-500/30'
+                  : isRejected ? 'bg-red-500/15 border border-red-500/30'
+                    : 'bg-blue-500/15 border border-blue-500/30'
+                }`}>
+                {isPending ? (
+                  <Clock className="w-12 h-12 text-yellow-400" />
+                ) : isRejected ? (
+                  <ShieldX className="w-12 h-12 text-red-400" />
+                ) : (
+                  <ShieldAlert className="w-12 h-12 text-blue-400" />
+                )}
+              </div>
+
+              {/* Title */}
+              <h1 className={`text-3xl font-bold text-center mb-3 ${isPending ? 'text-yellow-300'
+                  : isRejected ? 'text-red-300'
+                    : 'text-blue-300'
+                }`}>
+                {isPending ? 'Verification In Progress' : isRejected ? 'Verification Rejected' : 'Identity Verification Required'}
+              </h1>
+
+              {/* Description */}
+              <p className="text-[#ffcc99]/80 text-center text-sm leading-relaxed mb-8">
+                {isPending
+                  ? 'Your KYC documents are currently being reviewed by our compliance team. Product uploads will be unlocked as soon as your verification is approved — typically within 1–2 business days.'
+                  : isRejected
+                    ? 'Your KYC submission was not approved. Please review the rejection reason in your settings, correct your documents, and resubmit. Product uploads will be enabled once your verification is approved.'
+                    : 'To protect buyers and sellers on Carryofy, all sellers must complete a one-time identity verification (KYC) before listing products. This process is quick and your verification never expires once approved.'}
+              </p>
+
+              {/* Steps (only for NOT_SUBMITTED) */}
+              {!isPending && !isRejected && (
+                <div className="bg-[#1a1a1a] border border-blue-500/20 rounded-2xl p-5 mb-8">
+                  <p className="text-white font-semibold text-sm mb-4">How to get verified:</p>
+                  <div className="space-y-3">
+                    {[
+                      { step: '1', text: 'Go to Settings → KYC Verification tab' },
+                      { step: '2', text: 'Upload your government-issued ID and proof of address' },
+                      { step: '3', text: 'Submit and wait for approval (1–2 business days)' },
+                      { step: '4', text: 'Start listing products — your KYC never expires!' },
+                    ].map(({ step, text }) => (
+                      <div key={step} className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-blue-400 text-xs font-bold">{step}</span>
+                        </div>
+                        <p className="text-[#ffcc99]/80 text-sm">{text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Rejection info box */}
+              {isRejected && (
+                <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-5 mb-8">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-red-300 font-semibold text-sm mb-1">What to do next</p>
+                      <p className="text-red-200/70 text-sm">Open your KYC settings to see the rejection reason, fix the issue with your documents, and resubmit. Our team will review your updated submission promptly.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CTAs */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => router.push('/seller/products')}
+                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] rounded-xl font-medium hover:bg-[#ff6600]/10 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Products
+                </button>
+                <a
+                  href="/seller/settings?tab=kyc"
+                  className={`flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-white transition-all ${isPending
+                      ? 'bg-yellow-600 hover:bg-yellow-500'
+                      : isRejected
+                        ? 'bg-red-600 hover:bg-red-500'
+                        : 'bg-blue-600 hover:bg-blue-500'
+                    }`}
+                >
+                  {isPending ? (
+                    <><Clock className="w-4 h-4" /> View KYC Status</>
+                  ) : isRejected ? (
+                    <><ShieldX className="w-4 h-4" /> Resubmit KYC</>
+                  ) : (
+                    <><ShieldAlert className="w-4 h-4" /> Start KYC Verification</>
+                  )}
+                </a>
+              </div>
+            </div>
+          </div>
+        </SellerLayout>
+      </>
+    );
   }
 
   return (

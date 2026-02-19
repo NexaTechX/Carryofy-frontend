@@ -14,7 +14,6 @@ export default function SellerDashboard() {
   const { user, isLoading, isAuthenticated } = useAuth();
 
   const [kycStatus, setKycStatus] = useState<string | null>(null);
-  const [kycExpiresAt, setKycExpiresAt] = useState<string | null>(null);
 
   useEffect(() => {
     // Wait for auth to finish loading before checking
@@ -49,7 +48,6 @@ export default function SellerDashboard() {
         const data = await response.json();
         const responseData = data.data || data;
         setKycStatus(responseData.status);
-        setKycExpiresAt(responseData.expiresAt || null);
       }
     } catch (error) {
       console.error('Error fetching KYC status:', error);
@@ -94,119 +92,65 @@ export default function SellerDashboard() {
 
           {/* KYC Status Widget */}
           {kycStatus && (
-            <div className={`mx-4 mb-6 p-4 rounded-xl flex items-center justify-between ${
-              kycStatus === 'APPROVED' && kycExpiresAt
-                ? (() => {
-                    const expirationDate = new Date(kycExpiresAt);
-                    const now = new Date();
-                    const daysUntilExpiration = Math.ceil((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                    return daysUntilExpiration <= 30 
-                      ? 'bg-yellow-900/30 border border-yellow-500/30' 
-                      : 'bg-green-900/30 border border-green-500/30';
-                  })()
-                : kycStatus === 'APPROVED'
-                  ? 'bg-green-900/30 border border-green-500/30'
-                  : 'bg-blue-900/30 border border-blue-500/30'
-            }`}>
+            <div className={`mx-4 mb-6 p-4 rounded-xl flex items-center justify-between ${kycStatus === 'APPROVED'
+                ? 'bg-green-900/30 border border-green-500/30'
+                : kycStatus === 'PENDING'
+                  ? 'bg-yellow-900/30 border border-yellow-500/30'
+                  : kycStatus === 'REJECTED'
+                    ? 'bg-red-900/30 border border-red-500/30'
+                    : 'bg-blue-900/30 border border-blue-500/30'
+              }`}>
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${
-                  kycStatus === 'APPROVED' && kycExpiresAt
-                    ? (() => {
-                        const expirationDate = new Date(kycExpiresAt);
-                        const now = new Date();
-                        const daysUntilExpiration = Math.ceil((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                        return daysUntilExpiration <= 30 
-                          ? 'bg-yellow-500/20' 
-                          : 'bg-green-500/20';
-                      })()
-                    : kycStatus === 'APPROVED'
-                      ? 'bg-green-500/20'
-                      : 'bg-blue-500/20'
-                }`}>
-                  <svg className={`w-6 h-6 ${
-                    kycStatus === 'APPROVED' && kycExpiresAt
-                      ? (() => {
-                          const expirationDate = new Date(kycExpiresAt);
-                          const now = new Date();
-                          const daysUntilExpiration = Math.ceil((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                          return daysUntilExpiration <= 30 
-                            ? 'text-yellow-400' 
-                            : 'text-green-400';
-                        })()
-                      : kycStatus === 'APPROVED'
-                        ? 'text-green-400'
-                        : 'text-blue-400'
-                  }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className={`p-2 rounded-lg ${kycStatus === 'APPROVED' ? 'bg-green-500/20'
+                    : kycStatus === 'PENDING' ? 'bg-yellow-500/20'
+                      : kycStatus === 'REJECTED' ? 'bg-red-500/20'
+                        : 'bg-blue-500/20'
+                  }`}>
+                  <svg className={`w-6 h-6 ${kycStatus === 'APPROVED' ? 'text-green-400'
+                      : kycStatus === 'PENDING' ? 'text-yellow-400'
+                        : kycStatus === 'REJECTED' ? 'text-red-400'
+                          : 'text-blue-400'
+                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 </div>
                 <div>
                   <h3 className="text-white font-bold">
-                    {kycStatus === 'APPROVED' 
-                      ? kycExpiresAt && (() => {
-                          const expirationDate = new Date(kycExpiresAt);
-                          const now = new Date();
-                          const daysUntilExpiration = Math.ceil((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                          return daysUntilExpiration <= 30 
-                            ? 'KYC Expiring Soon' 
-                            : 'Identity Verified';
-                        })()
-                      : 'Identity Verification Required'}
+                    {kycStatus === 'APPROVED'
+                      ? 'Identity Verified'
+                      : kycStatus === 'PENDING'
+                        ? 'Verification Under Review'
+                        : kycStatus === 'REJECTED'
+                          ? 'Verification Rejected'
+                          : 'Identity Verification Required'}
                   </h3>
-                  <p className={`text-sm ${
-                    kycStatus === 'APPROVED' && kycExpiresAt
-                      ? (() => {
-                          const expirationDate = new Date(kycExpiresAt);
-                          const now = new Date();
-                          const daysUntilExpiration = Math.ceil((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                          return daysUntilExpiration <= 30 
-                            ? 'text-yellow-200' 
-                            : 'text-green-200';
-                        })()
-                      : kycStatus === 'APPROVED'
-                        ? 'text-green-200'
-                        : 'text-blue-200'
-                  }`}>
-                    {kycStatus === 'APPROVED' && kycExpiresAt
-                      ? (() => {
-                          const expirationDate = new Date(kycExpiresAt);
-                          const now = new Date();
-                          const daysUntilExpiration = Math.ceil((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                          return daysUntilExpiration <= 30 
-                            ? `Your KYC expires in ${daysUntilExpiration} day${daysUntilExpiration !== 1 ? 's' : ''}. Please complete re-verification.`
-                            : 'Your account is fully verified and active.';
-                        })()
+                  <p className={`text-sm ${kycStatus === 'APPROVED' ? 'text-green-200'
+                      : kycStatus === 'PENDING' ? 'text-yellow-200'
+                        : kycStatus === 'REJECTED' ? 'text-red-200'
+                          : 'text-blue-200'
+                    }`}>
+                    {kycStatus === 'APPROVED'
+                      ? 'Your account is fully verified. Your KYC never expires.'
                       : kycStatus === 'PENDING'
                         ? 'Your verification is under review. You will be able to upload products once approved.'
-                        : 'Complete your KYC verification to start selling on Carryofy.'}
+                        : kycStatus === 'REJECTED'
+                          ? 'Your KYC was rejected. Please resubmit with corrected documents.'
+                          : 'Complete your KYC verification to start selling on Carryofy.'}
                   </p>
                 </div>
               </div>
               <Link
                 href="/seller/settings?tab=kyc"
-                className={`px-4 py-2 text-white text-sm font-bold rounded-lg transition ${
-                  kycStatus === 'APPROVED' && kycExpiresAt
-                    ? (() => {
-                        const expirationDate = new Date(kycExpiresAt);
-                        const now = new Date();
-                        const daysUntilExpiration = Math.ceil((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                        return daysUntilExpiration <= 30 
-                          ? 'bg-yellow-600 hover:bg-yellow-700' 
-                          : 'bg-green-600 hover:bg-green-700';
-                      })()
-                    : kycStatus === 'APPROVED'
-                      ? 'bg-green-600 hover:bg-green-700'
-                      : 'bg-blue-600 hover:bg-blue-700'
-                }`}
+                className={`px-4 py-2 text-white text-sm font-bold rounded-lg transition ${kycStatus === 'APPROVED' ? 'bg-green-600 hover:bg-green-700'
+                    : kycStatus === 'PENDING' ? 'bg-yellow-600 hover:bg-yellow-700'
+                      : kycStatus === 'REJECTED' ? 'bg-red-600 hover:bg-red-700'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
               >
-                {kycStatus === 'APPROVED' && kycExpiresAt
-                  ? (() => {
-                      const expirationDate = new Date(kycExpiresAt);
-                      const now = new Date();
-                      const daysUntilExpiration = Math.ceil((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                      return daysUntilExpiration <= 30 ? 'Re-verify Now' : 'View Status';
-                    })()
-                  : kycStatus === 'PENDING' ? 'View Status' : 'Verify Now'}
+                {kycStatus === 'APPROVED' ? 'View Status'
+                  : kycStatus === 'PENDING' ? 'View Status'
+                    : kycStatus === 'REJECTED' ? 'Resubmit KYC'
+                      : 'Verify Now'}
               </Link>
             </div>
           )}
@@ -221,14 +165,25 @@ export default function SellerDashboard() {
           </div>
         </div>
 
-        {/* Floating Action Button */}
-        <Link
-          href="/seller/products/new"
-          className="fixed bottom-6 right-6 bg-[#ff6600] hover:bg-[#cc5200] text-black px-6 py-3 rounded-xl shadow-lg flex items-center space-x-2 font-bold transition transform hover:scale-105 z-50"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Add Product</span>
-        </Link>
+        {/* Floating Action Button — only enabled for KYC-approved sellers */}
+        {kycStatus === 'APPROVED' ? (
+          <Link
+            href="/seller/products/new"
+            className="fixed bottom-6 right-6 bg-[#ff6600] hover:bg-[#cc5200] text-black px-6 py-3 rounded-xl shadow-lg flex items-center space-x-2 font-bold transition transform hover:scale-105 z-50"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Product</span>
+          </Link>
+        ) : (
+          <button
+            disabled
+            title="Complete KYC verification to add products"
+            className="fixed bottom-6 right-6 bg-[#333]/70 text-[#ffcc99]/30 px-6 py-3 rounded-xl shadow-lg flex items-center space-x-2 font-bold cursor-not-allowed z-50 border border-[#ff6600]/10"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Product</span>
+          </button>
+        )}
       </SellerLayout>
     </>
   );

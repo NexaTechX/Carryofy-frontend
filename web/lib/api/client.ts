@@ -82,7 +82,7 @@ apiClient.interceptors.request.use(
 // Helper function to get CSRF token
 function getCsrfToken(): string | null {
   if (typeof window === 'undefined') return null;
-  
+
   // Try to get from meta tag (set by server-side rendering)
   const metaTag = document.querySelector('meta[name="csrf-token"]');
   if (metaTag) {
@@ -162,7 +162,7 @@ apiClient.interceptors.response.use(
         console.info('Session expired (401 on auth/me or cart); clearing and redirecting to login.');
       }
     }
-    if (!error.response && (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.message === 'Network Error') {
+    if (!error.response && (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.message === 'Network Error')) {
       const fullURL = originalRequest ? `${API_BASE_URL}${originalRequest.url}` : 'N/A';
       console.error('Network Error Details:', {
         message: error.message,
@@ -177,7 +177,7 @@ apiClient.interceptors.response.use(
       console.error('3. CORS is properly configured on the backend');
       console.error('4. Check your .env file has NEXT_PUBLIC_API_BASE set correctly (should be: http://localhost:3000/api/v1)');
       console.error('5. Restart your Next.js dev server after changing .env file');
-      
+
       // Enhance error message for better debugging
       if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
         error.message = `Network Error: Unable to connect to ${fullURL}. Please ensure the API server is running at ${API_BASE_URL}`;
@@ -189,17 +189,17 @@ apiClient.interceptors.response.use(
       const retryAfter = error.response.headers['retry-after'];
       const responseData = error.response.data as { message?: string } | undefined;
       const message = (responseData?.message) || 'Too many requests. Please try again later.';
-      const retryMessage = retryAfter 
+      const retryMessage = retryAfter
         ? `${message} Please wait ${retryAfter} seconds before retrying.`
         : message;
-      
+
       // Enhance error with retry information
       error.response.data = {
         ...(responseData || {}),
         message: retryMessage,
         retryAfter: retryAfter ? parseInt(retryAfter, 10) : undefined,
       };
-      
+
       console.warn('Rate limit exceeded:', {
         url: originalRequest?.url,
         retryAfter,
@@ -243,4 +243,4 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
-export { apiClient, refreshAccessTokenBeforeRedirect };
+export { apiClient };

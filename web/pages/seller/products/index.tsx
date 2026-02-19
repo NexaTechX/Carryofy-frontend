@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
-import { Search, Trash2, Plus, Package, Edit, Eye, MoreVertical, Clock, CheckCircle, XCircle, AlertCircle, CheckSquare, Square, Copy } from 'lucide-react';
-import { useAuth } from '../../../lib/auth';
+import { Search, Trash2, Plus, Package, Edit, Eye, MoreVertical, Clock, CheckCircle, XCircle, AlertCircle, CheckSquare, Square, Copy, ShieldAlert, ShieldCheck, ShieldX, Loader2 } from 'lucide-react';
+import { useAuth, tokenManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -67,6 +67,9 @@ export default function ProductsPage() {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<string | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const [kycLoading, setKycLoading] = useState(true);
+  const [sellerNotFound, setSellerNotFound] = useState(false);
   const confirmation = useConfirmation();
 
   useEffect(() => {
@@ -80,11 +83,35 @@ export default function ProductsPage() {
       router.push('/');
       return;
     }
+    fetchKycStatus();
     fetchProducts();
   }, [router, authLoading, isAuthenticated, user]);
 
+  const fetchKycStatus = async () => {
+    try {
+      const token = tokenManager.getAccessToken();
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+      const response = await fetch(`${apiUrl}/sellers/kyc`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const responseData = data.data || data;
+        setKycStatus(responseData.status);
+      }
+    } catch (err) {
+      console.error('Error fetching KYC status:', err);
+    } finally {
+      setKycLoading(false);
+    }
+  };
+
+
   const fetchProducts = async () => {
     try {
+      setSellerNotFound(false);
+      setLoading(true);
       const sellerResponse = await apiClient.get('/sellers/me');
       const sellerData = sellerResponse.data?.data || sellerResponse.data;
       const sellerId = sellerData?.id;
@@ -92,7 +119,8 @@ export default function ProductsPage() {
       if (!sellerId) {
         console.error('Could not get seller ID');
         toast.error('Please complete your seller onboarding first');
-        setLoading(false);
+        setSellerNotFound(true);
+        setProducts([]);
         return;
       }
 
@@ -103,10 +131,16 @@ export default function ProductsPage() {
       console.error('Error fetching products:', error);
       if (error?.response?.status === 403) {
         toast.error('Access denied. Please ensure you are logged in as a seller.');
-        router.push('/auth/login');
       } else if (error?.response?.status === 404) {
         toast.error('Seller profile not found. Please complete onboarding first.');
-        router.push('/merchant-onboarding');
+        setSellerNotFound(true);
+        setProducts([]);
+      } else {
+        const message =
+          error?.response?.data?.message ||
+          error?.message ||
+          'Failed to load products. Please try again.';
+        toast.error(message);
       }
     } finally {
       setLoading(false);
@@ -284,14 +318,83 @@ export default function ProductsPage() {
                 Manage your product listings ({products.length} products)
               </p>
             </div>
-            <Link
-              href="/seller/products/new"
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#ff6600] to-[#cc5200] text-white font-medium rounded-xl hover:from-[#cc5200] hover:to-[#ff6600] transition-all"
-            >
-              <Plus className="w-5 h-5" />
-              Add Product
-            </Link>
+            {kycStatus === 'APPROVED' ? (
+              <Link
+                href="/seller/products/new"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#ff6600] to-[#cc5200] text-white font-medium rounded-xl hover:from-[#cc5200] hover:to-[#ff6600] transition-all"
+              >
+                <Plus className="w-5 h-5" />
+                Add Product
+              </Link>
+            ) : (
+              <button
+                disabled
+                title="Complete KYC verification to add products"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#333]/60 text-[#ffcc99]/40 font-medium rounded-xl cursor-not-allowed border border-[#ff6600]/10"
+              >
+                <Plus className="w-5 h-5" />
+                Add Product
+              </button>
+            )}
           </div>
+
+          {/* KYC Gate Banner */}
+          {!kycLoading && kycStatus !== 'APPROVED' && (
+            <div className={`mb-6 rounded-2xl border p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 ${kycStatus === 'PENDING'
+                ? 'bg-yellow-900/20 border-yellow-500/30'
+                : kycStatus === 'REJECTED'
+                  ? 'bg-red-900/20 border-red-500/30'
+                  : 'bg-blue-900/20 border-blue-500/30'
+              }`}>
+              <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${kycStatus === 'PENDING'
+                  ? 'bg-yellow-500/20'
+                  : kycStatus === 'REJECTED'
+                    ? 'bg-red-500/20'
+                    : 'bg-blue-500/20'
+                }`}>
+                {kycStatus === 'PENDING' ? (
+                  <Clock className={`w-6 h-6 text-yellow-400`} />
+                ) : kycStatus === 'REJECTED' ? (
+                  <ShieldX className="w-6 h-6 text-red-400" />
+                ) : (
+                  <ShieldAlert className="w-6 h-6 text-blue-400" />
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className={`font-bold text-base mb-1 ${kycStatus === 'PENDING' ? 'text-yellow-300'
+                    : kycStatus === 'REJECTED' ? 'text-red-300'
+                      : 'text-blue-300'
+                  }`}>
+                  {kycStatus === 'PENDING'
+                    ? '⏳ KYC Verification Under Review'
+                    : kycStatus === 'REJECTED'
+                      ? '❌ KYC Verification Rejected'
+                      : '🔒 KYC Verification Required'}
+                </h3>
+                <p className={`text-sm ${kycStatus === 'PENDING' ? 'text-yellow-200/80'
+                    : kycStatus === 'REJECTED' ? 'text-red-200/80'
+                      : 'text-blue-200/80'
+                  }`}>
+                  {kycStatus === 'PENDING'
+                    ? 'Your identity verification is currently under review by our team. You will be able to upload products once your KYC is approved. This usually takes 1–2 business days.'
+                    : kycStatus === 'REJECTED'
+                      ? 'Your KYC submission was rejected. Please review the feedback, update your documents, and resubmit to start selling.'
+                      : 'You must complete identity verification (KYC) before you can upload or manage products. This is a one-time process to protect buyers and sellers on Carryofy.'}
+                </p>
+              </div>
+              <Link
+                href="/seller/settings?tab=kyc"
+                className={`flex-shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all ${kycStatus === 'PENDING'
+                    ? 'bg-yellow-600 hover:bg-yellow-500'
+                    : kycStatus === 'REJECTED'
+                      ? 'bg-red-600 hover:bg-red-500'
+                      : 'bg-blue-600 hover:bg-blue-500'
+                  }`}
+              >
+                {kycStatus === 'PENDING' ? 'View Status' : kycStatus === 'REJECTED' ? 'Resubmit KYC' : 'Start KYC'}
+              </Link>
+            </div>
+          )}
 
           {/* Search */}
           <div className="mb-6">
@@ -358,15 +461,39 @@ export default function ProductsPage() {
               </div>
               <h3 className="text-white font-semibold text-lg mb-2">No products found</h3>
               <p className="text-[#ffcc99] text-sm mb-6">
-                {searchQuery ? 'Try a different search term' : 'Start by adding your first product'}
+                {sellerNotFound
+                  ? 'We could not find your seller profile. Complete seller onboarding to start adding products.'
+                  : searchQuery
+                    ? 'Try a different search term'
+                    : kycStatus !== 'APPROVED'
+                      ? 'Complete KYC verification to start adding products'
+                      : 'Start by adding your first product'}
               </p>
-              {!searchQuery && (
+              {!searchQuery && !sellerNotFound && kycStatus === 'APPROVED' && (
                 <Link
                   href="/seller/products/new"
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff6600] text-black font-medium rounded-xl hover:bg-[#cc5200] transition-colors"
                 >
                   <Plus className="w-5 h-5" />
                   Add Your First Product
+                </Link>
+              )}
+              {!searchQuery && !sellerNotFound && kycStatus !== 'APPROVED' && (
+                <Link
+                  href="/seller/settings?tab=kyc"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-500 transition-colors"
+                >
+                  <ShieldAlert className="w-5 h-5" />
+                  {kycStatus === 'PENDING' ? 'View KYC Status' : 'Complete KYC Verification'}
+                </Link>
+              )}
+              {!searchQuery && sellerNotFound && (
+                <Link
+                  href="/seller/onboard"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff6600] text-black font-medium rounded-xl hover:bg-[#cc5200] transition-colors"
+                >
+                  <ShieldAlert className="w-5 h-5" />
+                  Complete Seller Onboarding
                 </Link>
               )}
             </div>
@@ -414,7 +541,7 @@ export default function ProductsPage() {
                     {filteredProducts.map((product) => {
                       const statusCfg = getStatusConfig(product.status);
                       const stockStatus = getStockStatus(product.quantity);
-                      
+
                       const isSelected = selectedProducts.has(product.id);
                       return (
                         <tr key={product.id} className="hover:bg-[#ff6600]/5 transition-colors">
@@ -524,7 +651,7 @@ export default function ProductsPage() {
                 {filteredProducts.map((product) => {
                   const statusCfg = getStatusConfig(product.status);
                   const stockStatus = getStockStatus(product.quantity);
-                  
+
                   return (
                     <div key={product.id} className="p-4">
                       <div className="flex gap-4">

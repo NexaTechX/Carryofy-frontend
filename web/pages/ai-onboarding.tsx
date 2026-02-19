@@ -1,9 +1,18 @@
 import Head from 'next/head';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
-import AIOnboardingWizard from '../components/ai-onboarding/AIOnboardingWizard';
+import dynamic from 'next/dynamic';
 import { useAuth } from '../lib/auth';
 import SEO from '../components/seo/SEO';
+
+const AIOnboardingWizard = dynamic(() => import('../components/ai-onboarding/AIOnboardingWizard'), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  ),
+});
 
 export default function AIOnboardingPage() {
   const router = useRouter();

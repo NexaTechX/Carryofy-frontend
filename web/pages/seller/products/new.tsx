@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
@@ -344,10 +345,12 @@ export default function AddProductPage() {
       formDataToSend.append('images', file);
 
       // Use apiClient which handles token refresh automatically
+      // Increased timeout for file uploads (60 seconds)
       const response = await apiClient.post('/products/upload', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 60000, // 60 seconds for file uploads
       });
 
       const urls = response.data?.urls || response.data?.data?.urls || [];
@@ -359,7 +362,24 @@ export default function AddProductPage() {
       }
     } catch (error: any) {
       console.error('Error uploading image:', error);
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to upload image';
+      
+      // Handle timeout errors
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        toast.error('Upload timed out. Please check your connection and try again.');
+        return;
+      }
+      
+      // Handle network errors
+      if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        toast.error('Network error. Please check your connection and try again.');
+        return;
+      }
+      
+      // Handle API errors
+      const errorMessage = error?.response?.data?.message || 
+                          error?.response?.data?.error || 
+                          error?.message || 
+                          'Failed to upload image. Please try again.';
       toast.error(errorMessage);
     } finally {
       setUploadingImage(false);
@@ -780,19 +800,29 @@ export default function AddProductPage() {
                           key={index}
                           className="relative aspect-square rounded-lg overflow-hidden group border border-[#ff6600]/20"
                         >
-                          <img
-                            key={image.url}
-                            src={image.preview}
-                            alt={`Product ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
+                          {image.url ? (
+                            <Image
+                              src={image.url}
+                              alt={`Product ${index + 1}`}
+                              fill
+                              sizes="(max-width: 768px) 33vw, 20vw"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <img
+                              src={image.preview}
+                              alt={`Product ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
                           {index === 0 && (
                             <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-[#ff6600] text-black text-[10px] font-bold rounded">
                               Main
                             </span>
                           )}
                           <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
+                            {/* AI Enhance Image Button - Commented out (no API key yet) */}
+                            {/* <button
                               type="button"
                               onClick={() => handleEnhanceImage(index)}
                               disabled={enhancingImageIndex !== null}
@@ -804,7 +834,7 @@ export default function AddProductPage() {
                               ) : (
                                 <Sparkles className="w-3 h-3" />
                               )}
-                            </button>
+                            </button> */}
                             <button
                               type="button"
                               onClick={() => removeImage(index)}
@@ -813,9 +843,9 @@ export default function AddProductPage() {
                               <X className="w-3 h-3" />
                             </button>
                           </div>
-                          <p className="absolute bottom-1 left-1 right-1 text-center text-[10px] text-white/90 bg-black/50 rounded py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {/* <p className="absolute bottom-1 left-1 right-1 text-center text-[10px] text-white/90 bg-black/50 rounded py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                             Enhance with AI
-                          </p>
+                          </p> */}
                         </div>
                       ))}
 
@@ -842,7 +872,7 @@ export default function AddProductPage() {
                       <li>• Use natural lighting</li>
                       <li>• Show multiple angles</li>
                       <li>• Keep background clean</li>
-                      <li>• Hover an image and click the sparkle icon to enhance it with AI for better selling</li>
+                      {/* <li>• Hover an image and click the sparkle icon to enhance it with AI for better selling</li> */}
                     </ul>
                   </div>
                 </div>
@@ -884,10 +914,10 @@ export default function AddProductPage() {
                     </div>
 
                     {/* AI hint: per-field buttons are next to each section below */}
-                    <div className="flex items-center gap-2 text-[#ffcc99]/70 text-xs">
+                    {/* <div className="flex items-center gap-2 text-[#ffcc99]/70 text-xs">
                       <Wand2 className="w-4 h-4 text-[#ff6600] shrink-0" />
                       <span>Use &quot;Generate with AI&quot; next to each field below to fill it. Enter a product title first.</span>
-                    </div>
+                    </div> */}
 
                     {/* Key Features */}
                     <div>
@@ -895,7 +925,8 @@ export default function AddProductPage() {
                         <label className="block text-[#ffcc99] text-sm font-medium">
                           Key Features
                         </label>
-                        <button
+                        {/* AI Generate Button - Commented out (no API key yet) */}
+                        {/* <button
                           type="button"
                           onClick={() => handleGenerateAIField('keyFeatures')}
                           disabled={!!aiGeneratingField || !formData.title.trim()}
@@ -907,7 +938,7 @@ export default function AddProductPage() {
                             <Wand2 className="w-3.5 h-3.5" />
                           )}
                           <span>Generate with AI</span>
-                        </button>
+                        </button> */}
                       </div>
                       <p className="text-[#ffcc99]/60 text-xs mb-3">
                         Highlight 1-3 key features that appear in the product headline
@@ -983,7 +1014,8 @@ export default function AddProductPage() {
                         <label className="block text-[#ffcc99] text-sm font-medium">
                           Description
                         </label>
-                        <button
+                        {/* AI Generate Button - Commented out (no API key yet) */}
+                        {/* <button
                           type="button"
                           onClick={() => handleGenerateAIField('description')}
                           disabled={!!aiGeneratingField || !formData.title.trim()}
@@ -995,7 +1027,7 @@ export default function AddProductPage() {
                             <Wand2 className="w-3.5 h-3.5" />
                           )}
                           <span>Generate with AI</span>
-                        </button>
+                        </button> */}
                       </div>
                       <textarea
                         name="description"
@@ -1037,7 +1069,8 @@ export default function AddProductPage() {
                                   Use example
                                 </button>
                               )}
-                              <button
+                              {/* AI Generate Button - Commented out (no API key yet) */}
+                              {/* <button
                                 type="button"
                                 onClick={() => handleGenerateAIField('material')}
                                 disabled={!!aiGeneratingField || !formData.title.trim()}
@@ -1049,7 +1082,7 @@ export default function AddProductPage() {
                                   <Wand2 className="w-3.5 h-3.5" />
                                 )}
                                 <span>Generate with AI</span>
-                              </button>
+                              </button> */}
                             </div>
                           </div>
                           <textarea
@@ -1120,7 +1153,8 @@ export default function AddProductPage() {
                                   Use example
                                 </button>
                               )}
-                              <button
+                              {/* AI Generate Button - Commented out (no API key yet) */}
+                              {/* <button
                                 type="button"
                                 onClick={() => handleGenerateAIField('careInfo')}
                                 disabled={!!aiGeneratingField || !formData.title.trim()}
@@ -1132,7 +1166,7 @@ export default function AddProductPage() {
                                   <Wand2 className="w-3.5 h-3.5" />
                                 )}
                                 <span>Generate with AI</span>
-                              </button>
+                              </button> */}
                             </div>
                           </div>
                           <textarea

@@ -1,6 +1,6 @@
 import { X, ShoppingCart, Star, Package } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface Product {
   id: string;
@@ -25,7 +25,7 @@ interface ProductComparisonProps {
   onClear: () => void;
 }
 
-export default function ProductComparison({ products, onRemove, onClear }: ProductComparisonProps) {
+function ProductComparison({ products, onRemove, onClear }: ProductComparisonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -268,3 +268,4 @@ export default function ProductComparison({ products, onRemove, onClear }: Produ
   );
 }
 
+export default React.memo(ProductComparison);

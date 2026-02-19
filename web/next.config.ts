@@ -1,6 +1,14 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
+// Bundle analyzer configuration
+let withBundleAnalyzer: any = (config: NextConfig) => config;
+if (process.env.ANALYZE === 'true') {
+  withBundleAnalyzer = require('@next/bundle-analyzer')({
+    enabled: true,
+  });
+}
+
 const nextConfig: NextConfig = {
   // Image optimization
   images: {
@@ -289,8 +297,9 @@ const nextConfig: NextConfig = {
   },
 };
 
+// Apply bundle analyzer first, then Sentry config
 // Make sure adding Sentry options is the last code to run before exporting
-export default withSentryConfig(nextConfig, {
+export default withBundleAnalyzer(withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options
 
@@ -324,4 +333,4 @@ export default withSentryConfig(nextConfig, {
     // https://vercel.com/docs/cron-jobs
     automaticVercelMonitors: true,
   },
-});
+}));

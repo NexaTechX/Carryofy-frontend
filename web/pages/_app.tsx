@@ -16,8 +16,11 @@ export default function App({ Component, pageProps }: AppProps) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000,
+            staleTime: 5 * 60 * 1000, // 5 minutes for static data (categories, products)
+            gcTime: 10 * 60 * 1000, // 10 minutes garbage collection time (formerly cacheTime)
             refetchOnWindowFocus: false,
+            retry: 1, // Reduce retries for faster failure feedback
+            retryDelay: 1000, // 1 second delay between retries
           },
         },
       })

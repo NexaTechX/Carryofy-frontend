@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import SellerLayout from '../../../../components/seller/SellerLayout';
@@ -245,48 +246,56 @@ export default function EditProductPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
     // Create preview
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    const preview = await new Promise<string>((resolve) => {
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    });
+    setImagePreview(preview);
 
     // Upload to server
     setUploadingImage(true);
     try {
-      const token = tokenManager.getAccessToken();
-      const formData = new FormData();
-      formData.append('images', file);
+      const formDataToSend = new FormData();
+      formDataToSend.append('images', file);
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+      // Use apiClient which handles token refresh automatically
+      const response = await apiClient.post('/products/upload', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
-      const response = await fetch(
-        `${apiUrl}/products/upload`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        const newUrls = data.urls || [];
-        setUploadedImageUrls([...uploadedImageUrls, ...newUrls]);
+      const urls = response.data?.urls || response.data?.data?.urls || [];
+      if (urls.length > 0) {
+        setUploadedImageUrls(prev => [...prev, ...urls]);
         toast.success('Image uploaded successfully');
       } else {
-        const error = await response.json();
-        toast.error(`Failed to upload image: ${error.message || 'Unknown error'}`);
+        toast.error('Upload succeeded but no URL returned');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading image:', error);
-      toast.error('Failed to upload image. Please try again.');
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to upload image';
+      toast.error(errorMessage);
     } finally {
       setUploadingImage(false);
+      // Reset file input
+      if (e.target) {
+        e.target.value = '';
+      }
     }
   };
 
@@ -523,27 +532,30 @@ export default function EditProductPage() {
             <div className="p-4">
               <div className="flex flex-col items-stretch justify-start rounded-xl">
                 <div className="w-full">
-                  <div
-                    className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-xl bg-[#1a1a1a] border border-[#ff6600]/30 flex items-center justify-center min-h-[200px]"
-                    style={
-                      imagePreview
-                        ? { backgroundImage: `url(${imagePreview})` }
-                        : {}
-                    }
-                  >
-                    {!imagePreview && (
-                      <div className="text-center">
-                        <p className="text-[#ffcc99] mb-2">No image uploaded</p>
-                        <label className="cursor-pointer bg-[#ff6600] hover:bg-[#cc5200] text-black px-4 py-2 rounded-xl font-semibold transition">
-                          Upload Image
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                            disabled={uploadingImage}
-                          />
-                        </label>
+                  <div className="w-full aspect-video rounded-xl bg-[#1a1a1a] border border-[#ff6600]/30 flex items-center justify-center min-h-[200px] relative overflow-hidden">
+                    {imagePreview ? (
+                      <Image
+                        src={imagePreview}
+                        alt="Product preview"
+                        fill
+                        sizes="(max-width: 768px) 100vw, 80vw"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-center">
+                          <p className="text-[#ffcc99] mb-2">No image uploaded</p>
+                          <label className="cursor-pointer bg-[#ff6600] hover:bg-[#cc5200] text-black px-4 py-2 rounded-xl font-semibold transition">
+                            Upload Image
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              className="hidden"
+                              disabled={uploadingImage}
+                            />
+                          </label>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -554,12 +566,20 @@ export default function EditProductPage() {
                       {uploadedImageUrls.map((url, index) => (
                         <div key={`${index}-${url}`} className="relative group">
                           <div
-                            className="w-20 h-20 bg-center bg-cover rounded-lg border border-[#ff6600]/30 cursor-pointer"
-                            style={{ backgroundImage: `url(${url})` }}
+                            className="w-20 h-20 relative rounded-lg border border-[#ff6600]/30 cursor-pointer overflow-hidden"
                             onClick={() => setImagePreview(url)}
-                          />
+                          >
+                            <Image
+                              src={url}
+                              alt={`Product image ${index + 1}`}
+                              fill
+                              sizes="80px"
+                              className="object-cover"
+                            />
+                          </div>
                           <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                            <button
+                            {/* AI Enhance Image Button - Commented out (no API key yet) */}
+                            {/* <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); handleEnhanceImage(index); }}
                               disabled={enhancingImageIndex !== null}
@@ -571,7 +591,7 @@ export default function EditProductPage() {
                               ) : (
                                 <Sparkles className="w-3 h-3" />
                               )}
-                            </button>
+                            </button> */}
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); handleRemoveImage(url); }}
@@ -622,10 +642,10 @@ export default function EditProductPage() {
                 </div>
 
                 {/* AI hint: per-field buttons are next to each section below */}
-                <div className="flex items-center gap-2 text-[#ffcc99]/70 text-xs">
+                {/* <div className="flex items-center gap-2 text-[#ffcc99]/70 text-xs">
                   <Wand2 className="w-4 h-4 text-[#ff6600] shrink-0" />
                   <span>Use &quot;Generate with AI&quot; next to each field below to fill it. Enter a product title first.</span>
-                </div>
+                </div> */}
 
                 {/* Key Features */}
                 <div>
@@ -633,7 +653,8 @@ export default function EditProductPage() {
                     <label className="block text-white text-sm font-medium">
                       Key Features
                     </label>
-                    <button
+                    {/* AI Generate Button - Commented out (no API key yet) */}
+                    {/* <button
                       type="button"
                       onClick={() => handleGenerateAIField('keyFeatures')}
                       disabled={!!aiGeneratingField || !formData.title.trim()}
@@ -645,7 +666,7 @@ export default function EditProductPage() {
                         <Wand2 className="w-3.5 h-3.5" />
                       )}
                       <span>Generate with AI</span>
-                    </button>
+                    </button> */}
                   </div>
                   <p className="text-[#ffcc99]/60 text-xs mb-3">
                     Highlight 1-3 key features that appear in the product headline

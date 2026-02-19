@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../../components/seller/SellerLayout';
 import { useAuth } from '../../../../lib/auth';
@@ -340,10 +341,12 @@ export default function ProductDetailPage() {
               <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-2xl overflow-hidden">
                 <div className="aspect-square relative">
                   {product.images?.[selectedImage] ? (
-                    <img
+                    <Image
                       src={product.images[selectedImage]}
                       alt={product.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 33vw"
+                      className="object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-[#0a0a0a]">
@@ -366,10 +369,12 @@ export default function ProductDetailPage() {
                               : 'border-transparent hover:border-[#ff6600]/50'
                           }`}
                         >
-                          <img
+                          <Image
                             src={img}
                             alt={`${product.title} ${index + 1}`}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="64px"
+                            className="object-cover"
                           />
                         </button>
                       ))}

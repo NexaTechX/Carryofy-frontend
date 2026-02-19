@@ -17,8 +17,12 @@ import {
   FileText,
   Layers,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import NotificationsDropdown from './NotificationsDropdown';
-import CartDrawer from './CartDrawer';
+
+const CartDrawer = dynamic(() => import('./CartDrawer'), {
+  ssr: false,
+});
 import { useAuth, tokenManager } from '../../lib/auth';
 import { useCart } from '../../lib/contexts/CartContext';
 import ErrorBoundary from '../common/ErrorBoundary';

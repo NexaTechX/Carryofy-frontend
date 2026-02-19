@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import Image from 'next/image';
 import { GetServerSideProps } from 'next';
 import BuyerLayout from '../../../components/buyer/BuyerLayout';
 import apiClient from '../../../lib/api/client';
@@ -508,10 +509,12 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                 <div className="bg-black rounded-xl overflow-hidden mb-4 aspect-square relative">
                   {product.images && product.images.length > 0 ? (
                     <>
-                      <img
+                      <Image
                         src={product.images[selectedImageIndex]}
                         alt={product.title}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        className="object-cover"
                         itemProp="image"
                       />
                       {product.images.length > 1 && (
@@ -561,7 +564,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                           }`}
                         aria-label={`View image ${index + 1}`}
                       >
-                        <img src={image} alt={`${product.title} ${index + 1}`} className="w-full h-full object-cover" />
+                        <Image src={image} alt={`${product.title} ${index + 1}`} fill sizes="(max-width: 768px) 25vw, 20vw" className="object-cover" />
                       </button>
                     ))}
                   </div>

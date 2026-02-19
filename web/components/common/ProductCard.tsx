@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { Heart, Package, GitCompare, ShoppingCart, ShieldCheck, Truck } from 'lucide-react';
 import { useWishlist } from '../../lib/hooks/useWishlist';
@@ -35,7 +36,7 @@ export interface ProductCardProps {
   className?: string;
 }
 
-export default function ProductCard({
+function ProductCard({
   product,
   onAddToComparison,
   href,
@@ -171,11 +172,12 @@ export default function ProductCard({
         {/* Product Image */}
         <div className="aspect-square bg-linear-to-br from-black to-[#1a1a1a] relative overflow-hidden">
           {product.images && product.images.length > 0 ? (
-            <img
+            <Image
               src={product.images[0]}
               alt={product.title}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-              loading="lazy"
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover group-hover:scale-110 transition-transform duration-500"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-[#ffcc99]/50">
@@ -362,3 +364,4 @@ export default function ProductCard({
   );
 }
 
+export default React.memo(ProductCard);

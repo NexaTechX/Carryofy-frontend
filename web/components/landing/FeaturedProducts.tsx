@@ -1,3 +1,4 @@
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -66,7 +67,7 @@ function formatPrice(priceInKobo: number): string {
   }).format(priceInKobo / 100);
 }
 
-export default function FeaturedProducts({ products = [], loading = false, error, onRetry }: FeaturedProductsProps) {
+function FeaturedProducts({ products = [], loading = false, error, onRetry }: FeaturedProductsProps) {
   return (
     <section className="py-12 sm:py-16 lg:py-20 bg-linear-to-b from-gray-50 to-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -228,3 +229,5 @@ export default function FeaturedProducts({ products = [], loading = false, error
     </section>
   );
 }
+
+export default React.memo(FeaturedProducts);

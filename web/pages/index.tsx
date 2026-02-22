@@ -4,6 +4,7 @@ import HeroSection from '../components/landing/HeroSection';
 import TrustSection from '../components/landing/TrustSection';
 import HowItWorks from '../components/landing/HowItWorks';
 import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
+import B2BSection from '../components/landing/B2BSection';
 import SellerCTASection from '../components/landing/BuyerSellerSection';
 import Testimonials from '../components/landing/Testimonials';
 import CallToAction from '../components/landing/CallToAction';
@@ -11,12 +12,9 @@ import SEO, { generateKeywords } from '../components/seo/SEO';
 import { CombinedSchema } from '../components/seo/JsonLd';
 
 export default function Home() {
-  // Comprehensive keywords for maximum SEO coverage
   const homeKeywords = generateKeywords(['primary', 'problemAware', 'longTail', 'brand', 'locations', 'industry']);
 
-  // Additional long-tail keywords specifically for homepage
   const additionalKeywords = [
-    // E-commerce intent keywords
     'verified marketplace Nigeria',
     'multi-vendor marketplace Nigeria',
     'verified vendors Nigeria',
@@ -27,8 +25,6 @@ export default function Home() {
     'buy online Nigeria',
     'online shopping Nigeria',
     'verified sellers Nigeria',
-
-    // Trust and credibility keywords
     'secure marketplace Nigeria',
     'transparent commissions',
     'verified vendors marketplace',
@@ -36,16 +32,12 @@ export default function Home() {
     'secure payments Nigeria',
     'buyer protection Nigeria',
     'admin approved products',
-
-    // Business focused keywords
     'marketplace for businesses',
     'vendor marketplace Nigeria',
     'sell products online Nigeria',
     'multi-vendor platform',
     'African ecommerce',
     'African marketplace',
-
-    // Location variations
     'marketplace Lagos',
     'ecommerce Lagos',
     'online marketplace Lagos',
@@ -70,13 +62,11 @@ export default function Home() {
         includeOrganization
         includeWebsite
         includeSoftwareApp
-        breadcrumbs={[
-          { name: 'Home', url: '/' },
-        ]}
+        breadcrumbs={[{ name: 'Home', url: '/' }]}
         faqs={[
           {
             question: 'How does delivery work?',
-            answer: 'Carryofy stores all products in our warehouse. When you order, we pack and ship directly to you. Same-day delivery is available in Lagos for orders placed before 12pm. For other areas in Nigeria, delivery takes 1-3 business days. You\'ll receive tracking information once your order ships.',
+            answer: "Carryofy stores all products in our warehouse. When you order, we pack and ship directly to you. Same-day delivery is available in Lagos for orders placed before 12pm. For other areas in Nigeria, delivery takes 1-3 business days. You'll receive tracking information once your order ships.",
           },
           {
             question: 'Who do I contact if something goes wrong?',
@@ -84,7 +74,7 @@ export default function Home() {
           },
           {
             question: 'How do refunds work?',
-            answer: 'Carryofy offers a 7-day return policy. If you receive a damaged or incorrect item, contact our support team via phone or email. We\'ll arrange a full refund or replacement. Refunds are processed to your original payment method within 3-5 business days after we receive the returned item.',
+            answer: "Carryofy offers a 7-day return policy. If you receive a damaged or incorrect item, contact our support team via phone or email. We'll arrange a full refund or replacement. Refunds are processed to your original payment method within 3-5 business days after we receive the returned item.",
           },
           {
             question: 'Are products really in stock?',
@@ -92,20 +82,21 @@ export default function Home() {
           },
           {
             question: 'Is it safe to pay on Carryofy?',
-            answer: 'Yes. Your payment is protected by Carryofy. We use secure payment infrastructure with buyer protection. All transactions are encrypted. We only release funds after successful delivery, so you\'re covered if anything goes wrong.',
+            answer: "Yes. Your payment is protected by Carryofy. We use secure payment infrastructure with buyer protection. All transactions are encrypted. We only release funds after successful delivery, so you're covered if anything goes wrong.",
           },
         ]}
       />
 
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col font-inter bg-[#FAFAFA]">
         <Header />
         <main className="grow">
           <HeroSection />
           <TrustSection />
           <HowItWorks />
           <WhyChooseCarryofy />
-          <SellerCTASection />
+          <B2BSection />
           <Testimonials />
+          <SellerCTASection />
           <CallToAction />
         </main>
         <Footer />
@@ -113,5 +104,3 @@ export default function Home() {
     </>
   );
 }
-
-

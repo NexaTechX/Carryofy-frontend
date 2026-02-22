@@ -59,7 +59,9 @@ export default function NotificationsDropdown({ className }: NotificationsDropdo
       const listData = listRes.data;
       const countData = countRes.data;
       setNotifications(Array.isArray(listData) ? listData : []);
-      setUnreadCount(countData?.count ?? 0);
+      const raw = countData?.count ?? 0;
+      const num = typeof raw === 'number' && !Number.isNaN(raw) ? Math.max(0, Math.floor(raw)) : 0;
+      setUnreadCount(num);
     } catch (err: unknown) {
       console.error('Failed to fetch notifications', err);
       type AxiosLikeError = { response?: { data?: { message?: string } } };
@@ -153,9 +155,9 @@ export default function NotificationsDropdown({ className }: NotificationsDropdo
         aria-label="Notifications"
       >
         <Bell className="w-6 h-6" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-[#ff6600] text-black text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
+        {typeof unreadCount === 'number' && Number.isFinite(unreadCount) && unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 bg-[#ff6600] text-black text-[10px] font-bold rounded-full min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center overflow-hidden">
+            {unreadCount > 99 ? '99+' : unreadCount > 9 ? '9+' : Math.floor(unreadCount)}
           </span>
         )}
       </button>

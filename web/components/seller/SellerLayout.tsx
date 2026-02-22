@@ -234,10 +234,18 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   };
 
   const isActive = (href: string) => {
-    if (href === '/seller') {
+    const [path, query] = href.split('?');
+    if (path === '/seller') {
       return router.pathname === '/seller';
     }
-    return router.pathname.startsWith(href);
+    if (query) {
+      const params = new URLSearchParams(query);
+      const tab = params.get('tab');
+      if (tab) {
+        return router.pathname === path && String(router.query?.tab ?? '') === tab;
+      }
+    }
+    return router.pathname.startsWith(path);
   };
 
   return (
@@ -466,14 +474,22 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             <div className="px-3 sm:px-4 py-3 sm:py-4 border-t border-primary/30 safe-bottom space-y-1">
               <Link
                 href="/seller/help"
-                className="flex items-center space-x-3 px-3 py-3 sm:py-2 text-[#ffcc99] hover:bg-gray-800 hover:text-white rounded-xl transition touch-target btn-mobile"
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center space-x-3 px-3 py-3 sm:py-2 rounded-xl transition touch-target btn-mobile ${isActive('/seller/help')
+                  ? 'bg-primary/20 text-white'
+                  : 'text-[#ffcc99] hover:bg-gray-800 hover:text-white'
+                  }`}
               >
                 <HelpCircle className="w-5 h-5" />
                 <span className="font-medium text-sm">Help and Support</span>
               </Link>
               <Link
                 href="/seller/feedback"
-                className="flex items-center space-x-3 px-3 py-3 sm:py-2 text-[#ffcc99] hover:bg-gray-800 hover:text-white rounded-xl transition touch-target btn-mobile"
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center space-x-3 px-3 py-3 sm:py-2 rounded-xl transition touch-target btn-mobile ${isActive('/seller/feedback')
+                  ? 'bg-primary/20 text-white'
+                  : 'text-[#ffcc99] hover:bg-gray-800 hover:text-white'
+                  }`}
               >
                 <MessageSquare className="w-5 h-5" />
                 <span className="font-medium text-sm">Feedback</span>

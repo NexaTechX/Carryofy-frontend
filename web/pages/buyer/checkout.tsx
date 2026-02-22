@@ -6,7 +6,7 @@ import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
 import { validateCoupon } from '../../lib/api/coupons';
 import { fetchShippingQuote } from '../../lib/api/shipping';
-import { geocodeAddress } from '../../lib/api/geocode';
+import { geocodeAddress, getCurrentPosition, reverseGeocode } from '../../lib/api/geocode';
 import {
   Truck,
   MapPin,
@@ -20,6 +20,7 @@ import {
   Lock,
   ChevronRight,
   ChevronLeft,
+  Locate,
 } from 'lucide-react';
 
 interface CartItem {
@@ -113,6 +114,7 @@ export default function CheckoutPage() {
   const [orderNotes, setOrderNotes] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [businessPurpose, setBusinessPurpose] = useState('');
+  const [gettingLocation, setGettingLocation] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -378,6 +380,42 @@ export default function CheckoutPage() {
   const handleDeliveryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setDeliveryInfo((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleUseMyLocation = async () => {
+    if (!navigator.geolocation) {
+      setOrderMessage({ type: 'error', text: 'Geolocation is not supported by your browser' });
+      setTimeout(() => setOrderMessage(null), 3000);
+      return;
+    }
+    setGettingLocation(true);
+    setOrderMessage(null);
+    try {
+      const coords = await getCurrentPosition();
+      if (!coords) {
+        setOrderMessage({ type: 'error', text: 'Failed to get location. Please enable permissions.' });
+        setTimeout(() => setOrderMessage(null), 3000);
+        return;
+      }
+      const reversed = await reverseGeocode(coords.latitude, coords.longitude);
+      if (reversed) {
+        setDeliveryInfo((prev) => ({
+          ...prev,
+          address: reversed.line1 || prev.address,
+          city: reversed.city || prev.city,
+          state: reversed.state || prev.state,
+        }));
+        setOrderMessage({ type: 'success', text: 'Address filled from your location' });
+      } else {
+        setOrderMessage({ type: 'error', text: 'Could not resolve address. Please enter manually.' });
+      }
+      setTimeout(() => setOrderMessage(null), 3000);
+    } catch {
+      setOrderMessage({ type: 'error', text: 'Failed to get location. Please try again.' });
+      setTimeout(() => setOrderMessage(null), 3000);
+    } finally {
+      setGettingLocation(false);
+    }
   };
 
   const applyCoupon = async () => {
@@ -1055,22 +1093,31 @@ export default function CheckoutPage() {
                           {/* New Address Form */}
                           {showNewAddressForm && (
                             <div className="space-y-4 mb-4">
-                              <div className="flex items-center justify-between mb-4">
+                              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                                 <h3 className="text-white font-semibold">New Delivery Address</h3>
-                                {savedAddresses.length > 0 && (
+                                <div className="flex items-center gap-3">
                                   <button
                                     type="button"
-                                    onClick={() => {
-                                      setShowNewAddressForm(false);
-                                      if (savedAddresses.length > 0 && selectedAddressId) {
-                                        handleSelectSavedAddress(selectedAddressId);
-                                      }
-                                    }}
-                                    className="text-[#ffcc99] text-sm hover:text-white transition"
+                                    onClick={handleUseMyLocation}
+                                    disabled={gettingLocation}
+                                    className="flex items-center gap-2 text-sm text-[#ff6600] hover:text-[#ff8533] disabled:opacity-50"
                                   >
-                                    Cancel
+                                    {gettingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Locate className="w-4 h-4" />}
+                                    Use my location
                                   </button>
-                                )}
+                                  {savedAddresses.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setShowNewAddressForm(false);
+                                        if (selectedAddressId) handleSelectSavedAddress(selectedAddressId);
+                                      }}
+                                      className="text-[#ffcc99] text-sm hover:text-white transition"
+                                    >
+                                      Cancel
+                                    </button>
+                                  )}
+                                </div>
                               </div>
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1148,6 +1195,15 @@ export default function CheckoutPage() {
                           {/* Show form if no saved addresses */}
                           {savedAddresses.length === 0 && !showNewAddressForm && (
                             <div className="space-y-4">
+                              <button
+                                type="button"
+                                onClick={handleUseMyLocation}
+                                disabled={gettingLocation}
+                                className="flex items-center gap-2 text-sm text-[#ff6600] hover:text-[#ff8533] disabled:opacity-50 mb-2"
+                              >
+                                {gettingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Locate className="w-4 h-4" />}
+                                Use my location to fill address
+                              </button>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="md:col-span-2">
                                   <label className="block text-white text-sm font-medium mb-2">

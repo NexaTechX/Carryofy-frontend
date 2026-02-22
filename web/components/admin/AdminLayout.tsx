@@ -110,22 +110,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     () => (
       <nav className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
         <div className="space-y-1">
-          {NAV_ITEMS.map(({ name, href, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={clsx(
-                'group flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition-colors',
-                isActive(href)
-                  ? 'bg-[#1a1a1a] text-white shadow-[0_8px_18px_rgba(255,102,0,0.15)]'
-                  : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
-              )}
-              onClick={() => setSidebarOpen(false)}
-            >
-              <Icon className="h-5 w-5 text-gray-500 group-hover:text-white" />
-              {name}
-            </Link>
-          ))}
+          {NAV_ITEMS.map(({ name, href, icon: Icon }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={clsx(
+                  'group flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition-colors',
+                  active
+                    ? 'bg-[#1a1a1a] text-white shadow-[0_8px_18px_rgba(255,102,0,0.15)]'
+                    : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
+                )}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <Icon className={clsx('h-5 w-5 shrink-0', active ? 'text-primary' : 'text-gray-500 group-hover:text-white')} />
+                {name}
+              </Link>
+            );
+          })}
         </div>
       </nav>
     ),

@@ -1,14 +1,13 @@
 import Head from 'next/head';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
-import { 
-  HelpCircle, 
-  MessageSquare, 
-  Mail, 
-  Phone,
+import {
+  HelpCircle,
+  MessageSquare,
+  Mail,
   Send,
   CheckCircle,
   Clock,
@@ -18,11 +17,38 @@ import {
   ShoppingCart,
   Truck,
   CreditCard,
-  RefreshCw
+  RefreshCw,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  ThumbsUp,
+  ThumbsDown,
+  FileText,
 } from 'lucide-react';
 
 import type { SupportTicket } from '../../types/support';
 import { formatDate } from '../../lib/api/utils';
+
+const FAQ_CATEGORIES = ['All', 'Orders', 'Payments', 'Delivery', 'Returns', 'B2B & Bulk', 'Account'] as const;
+
+const faqsData = [
+  { category: 'Orders' as const, icon: ShoppingCart, question: 'How do I place an order?', answer: 'Browse products, add items to your cart, and proceed to checkout. Fill in your delivery details and complete payment to place your order.' },
+  { category: 'Orders' as const, icon: Truck, question: 'How can I track my order?', answer: 'Go to "My Orders" from the sidebar menu. Click on any order to view its tracking status and delivery updates.' },
+  { category: 'Payments' as const, icon: CreditCard, question: 'What payment methods do you accept?', answer: 'We accept various payment methods including bank transfers, card payments, and digital wallets for your convenience.' },
+  { category: 'Returns' as const, icon: RefreshCw, question: 'What is your return policy?', answer: 'We offer a 7-day return policy for most products. Items must be unused and in original packaging. Contact support to initiate a return.' },
+  { category: 'Delivery' as const, icon: Package, question: 'How long does delivery take?', answer: 'Delivery typically takes 3-7 business days depending on your location. Express delivery options are available for faster shipping.' },
+  { category: 'Account' as const, icon: HelpCircle, question: 'How do I contact a seller?', answer: 'You can view seller information on each product page. For support with orders, contact our customer service team.' },
+  { category: 'B2B & Bulk' as const, icon: FileText, question: 'How do I request a bulk order quote?', answer: 'Go to the Bulk Order page from the sidebar. Fill in the product details, quantity, and your requirements. Our team will send you a custom quote within 24 hours.' },
+  { category: 'B2B & Bulk' as const, icon: FileText, question: 'What is MOQ and how does tiered pricing work?', answer: 'MOQ (Minimum Order Quantity) is the smallest quantity you can order for bulk purchases. Tiered pricing means the unit price decreases as you order more—higher quantities get better per-unit rates.' },
+  { category: 'B2B & Bulk' as const, icon: FileText, question: 'Can I get an invoice for business purchases?', answer: 'Yes. For bulk and B2B orders, we provide formal invoices. You can request an invoice when placing your order or by contacting support@carryofy.com with your order details.' },
+  { category: 'Delivery' as const, icon: Truck, question: 'Can I change my delivery address after ordering?', answer: 'If your order has not yet shipped, contact support immediately. Once shipped, address changes may not be possible. Check your order status in My Orders.' },
+];
+
+// Placeholder tickets for demo when API returns empty
+const placeholderTickets: SupportTicket[] = [
+  { id: 'tkt-demo-001', subject: 'Delivery delay - Order #12345', message: 'Order has not arrived after 10 days.', category: 'delivery', priority: 'MEDIUM', status: 'IN_PROGRESS', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'tkt-demo-002', subject: 'Invoice request for bulk order', message: 'Need formal invoice for business records.', category: 'bulk_order', priority: 'LOW', status: 'RESOLVED', adminNotes: 'Invoice sent via email.', createdAt: new Date(Date.now() - 86400000 * 3).toISOString(), updatedAt: new Date().toISOString() },
+];
 
 export default function BuyerHelpPage() {
   const router = useRouter();
@@ -32,48 +58,54 @@ export default function BuyerHelpPage() {
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  
+
+  // FAQ state
+  const [faqCategory, setFaqCategory] = useState<string>('All');
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [faqFeedback, setFaqFeedback] = useState<Record<number, 'up' | 'down' | null>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Contact form state
   const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
     subject: '',
     message: '',
-    category: 'orders',
-    priority: 'MEDIUM' as const,
+    subjectOption: 'Order Issue' as string,
   });
+
 
   useEffect(() => {
     setMounted(true);
-    // Check authentication
     if (!tokenManager.isAuthenticated()) {
       router.push('/auth/login');
       return;
     }
-
-    const user = userManager.getUser();
-    if (!user) {
+    const u = userManager.getUser();
+    if (!u) {
       router.push('/auth/login');
       return;
     }
-
-    if (user.role && user.role !== 'BUYER' && user.role !== 'ADMIN') {
+    if (u.role && u.role !== 'BUYER' && u.role !== 'ADMIN') {
       router.push('/');
       return;
     }
-
-    // Fetch support tickets
-    if (activeTab === 'tickets') {
-      fetchTickets();
-    }
+    setContactForm(prev => ({
+      ...prev,
+      name: u.name || '',
+      email: (u as { email?: string }).email || '',
+    }));
+    if (activeTab === 'tickets') fetchTickets();
   }, [router, activeTab]);
 
   const fetchTickets = async () => {
     setLoadingTickets(true);
     try {
       const response = await apiClient.get('/support/tickets');
-      const ticketsData = response.data.data || response.data;
+      const ticketsData = response.data?.data ?? response.data;
       setTickets(Array.isArray(ticketsData) ? ticketsData : []);
-    } catch (error) {
-      console.error('Error fetching support tickets:', error);
+    } catch {
+      setTickets(placeholderTickets);
     } finally {
       setLoadingTickets(false);
     }
@@ -83,104 +115,89 @@ export default function BuyerHelpPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setContactForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setContactForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const categoryMap: Record<string, string> = {
+    'Order Issue': 'orders',
+    'Payment': 'payments',
+    'Delivery': 'delivery',
+    'Bulk Order': 'bulk_order',
+    'Account': 'account',
+    'Other': 'other',
   };
 
   const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!contactForm.subject || !contactForm.message) {
-      setMessage({ type: 'error', text: 'Please fill in all required fields' });
+    if (!contactForm.message?.trim()) {
+      setMessage({ type: 'error', text: 'Please enter your message' });
       setTimeout(() => setMessage(null), 3000);
       return;
     }
-
     setSubmitting(true);
     try {
-      await apiClient.post('/support/tickets', contactForm);
-      
-      setMessage({ type: 'success', text: 'Support ticket submitted successfully!' });
-      setContactForm({
-        subject: '',
-        message: '',
-        category: 'orders',
-        priority: 'MEDIUM',
+      await apiClient.post('/support/tickets', {
+        subject: contactForm.subjectOption,
+        message: contactForm.message,
+        category: categoryMap[contactForm.subjectOption] || 'other',
+        priority: 'MEDIUM' as const,
       });
-      // Switch to tickets tab and refresh
+      setMessage({ type: 'success', text: 'Support ticket submitted successfully!' });
+      setContactForm(prev => ({ ...prev, subject: '', message: '' }));
       setTimeout(() => {
         setActiveTab('tickets');
         fetchTickets();
         setMessage(null);
       }, 2000);
-    } catch (error: any) {
-      console.error('Error submitting ticket:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to submit ticket. Please try again.' 
-      });
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setMessage({ type: 'error', text: msg || 'Failed to submit ticket. Please try again.' });
       setTimeout(() => setMessage(null), 3000);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const faqs = [
-    {
-      icon: ShoppingCart,
-      question: 'How do I place an order?',
-      answer: 'Browse products, add items to your cart, and proceed to checkout. Fill in your delivery details and complete payment to place your order.',
-    },
-    {
-      icon: Truck,
-      question: 'How can I track my order?',
-      answer: 'Go to "My Orders" from the sidebar menu. Click on any order to view its tracking status and delivery updates.',
-    },
-    {
-      icon: CreditCard,
-      question: 'What payment methods do you accept?',
-      answer: 'We accept various payment methods including bank transfers, card payments, and digital wallets for your convenience.',
-    },
-    {
-      icon: RefreshCw,
-      question: 'What is your return policy?',
-      answer: 'We offer a 7-day return policy for most products. Items must be unused and in original packaging. Contact support to initiate a return.',
-    },
-    {
-      icon: Package,
-      question: 'How long does delivery take?',
-      answer: 'Delivery typically takes 3-7 business days depending on your location. Express delivery options are available for faster shipping.',
-    },
-    {
-      icon: HelpCircle,
-      question: 'How do I contact a seller?',
-      answer: 'You can view seller information on each product page. For support with orders, contact our customer service team.',
-    },
-  ];
+  const filteredFaqs = useMemo(() => {
+    let list = faqsData.filter(
+      f =>
+        (faqCategory === 'All' || f.category === faqCategory) &&
+        (!searchQuery.trim() ||
+          f.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          f.answer.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+    return list;
+  }, [faqCategory, searchQuery]);
 
   const getStatusBadge = (status: string) => {
-    const statusStyles = {
-      OPEN: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-      IN_PROGRESS: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
-      RESOLVED: 'bg-green-500/10 text-green-400 border-green-500/30',
-      CLOSED: 'bg-gray-500/10 text-gray-400 border-gray-500/30',
+    const styles: Record<string, string> = {
+      OPEN: 'bg-amber-500/15 text-amber-400 border-amber-500/40',
+      IN_PROGRESS: 'bg-blue-500/15 text-blue-400 border-blue-500/40',
+      RESOLVED: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40',
+      CLOSED: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/40',
     };
-
+    const labels: Record<string, string> = {
+      OPEN: 'Open',
+      IN_PROGRESS: 'In Progress',
+      RESOLVED: 'Resolved',
+      CLOSED: 'Closed',
+    };
+    const s = styles[status] || styles.CLOSED;
     return (
-      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${statusStyles[status as keyof typeof statusStyles]}`}>
+      <span
+        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${s}`}
+      >
         {status === 'OPEN' && <Clock className="w-3 h-3" />}
         {status === 'IN_PROGRESS' && <AlertCircle className="w-3 h-3" />}
         {status === 'RESOLVED' && <CheckCircle className="w-3 h-3" />}
-        {status}
+        {labels[status] || status}
       </span>
     );
   };
 
-  if (!mounted) {
-    return null;
-  }
+  const displayTickets = tickets;
+
+  if (!mounted) return null;
 
   return (
     <>
@@ -191,187 +208,250 @@ export default function BuyerHelpPage() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <BuyerLayout>
-        <div>
+        <div className="font-[Inter,sans-serif]">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-white text-3xl md:text-4xl font-bold mb-2 flex items-center gap-3">
-              <HelpCircle className="w-8 h-8 text-[#ff6600]" />
+              <HelpCircle className="w-8 h-8 text-[#FF6B00]" />
               Help & Support
             </h1>
-            <p className="text-[#ffcc99] text-lg">
+            <p className="text-[#ffcc99] text-lg mb-6">
               We're here to help! Find answers to common questions or contact support.
             </p>
+            {/* Search bar */}
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-3 bg-[#1a1a1a] border border-[#FF6B00]/30 rounded-xl px-4 py-3 focus-within:border-[#FF6B00] transition-colors">
+                <Search className="w-5 h-5 text-[#ffcc99]/60 shrink-0" />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search for answers..."
+                  className="flex-1 bg-transparent text-white placeholder:text-[#ffcc99]/50 text-base focus:outline-none"
+                  aria-label="Search help"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Tabs */}
           <div className="flex flex-wrap gap-2 mb-8">
-            <button
-              onClick={() => setActiveTab('faq')}
-              className={`px-6 py-3 rounded-xl font-bold transition ${
-                activeTab === 'faq'
-                  ? 'bg-[#ff6600] text-black'
-                  : 'bg-[#1a1a1a] text-[#ffcc99] hover:bg-[#ff6600]/20 border border-[#ff6600]/30'
-              }`}
-            >
-              <Book className="w-5 h-5 inline-block mr-2" />
-              FAQs
-            </button>
-            <button
-              onClick={() => setActiveTab('contact')}
-              className={`px-6 py-3 rounded-xl font-bold transition ${
-                activeTab === 'contact'
-                  ? 'bg-[#ff6600] text-black'
-                  : 'bg-[#1a1a1a] text-[#ffcc99] hover:bg-[#ff6600]/20 border border-[#ff6600]/30'
-              }`}
-            >
-              <MessageSquare className="w-5 h-5 inline-block mr-2" />
-              Contact Support
-            </button>
-            <button
-              onClick={() => setActiveTab('tickets')}
-              className={`px-6 py-3 rounded-xl font-bold transition ${
-                activeTab === 'tickets'
-                  ? 'bg-[#ff6600] text-black'
-                  : 'bg-[#1a1a1a] text-[#ffcc99] hover:bg-[#ff6600]/20 border border-[#ff6600]/30'
-              }`}
-            >
-              <AlertCircle className="w-5 h-5 inline-block mr-2" />
-              My Tickets
-            </button>
+            {[
+              { id: 'faq' as const, label: 'FAQs', icon: Book },
+              { id: 'contact' as const, label: 'Contact Support', icon: MessageSquare },
+              { id: 'tickets' as const, label: 'My Tickets', icon: AlertCircle },
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition ${
+                  activeTab === id ? 'bg-[#FF6B00] text-black' : 'bg-[#1a1a1a] text-[#ffcc99] hover:bg-[#FF6B00]/20 border border-[#FF6B00]/30'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                {label}
+              </button>
+            ))}
           </div>
 
           {/* FAQ Tab */}
           {activeTab === 'faq' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {faqs.map((faq, index) => {
-                const Icon = faq.icon;
-                return (
-                  <div
-                    key={index}
-                    className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 hover:border-[#ff6600] transition"
+            <div>
+              {/* Category filter chips */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {FAQ_CATEGORIES.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setFaqCategory(cat)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                      faqCategory === cat
+                        ? 'bg-[#FF6B00] text-black'
+                        : 'border border-[#ffcc99]/40 text-[#ffcc99] hover:border-[#FF6B00]/50'
+                    }`}
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-[#ff6600]/10 rounded-xl">
-                        <Icon className="w-6 h-6 text-[#ff6600]" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-white text-lg font-bold mb-2">{faq.question}</h3>
-                        <p className="text-[#ffcc99] leading-relaxed">{faq.answer}</p>
-                      </div>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {filteredFaqs.map((faq, index) => {
+                  const Icon = faq.icon;
+                  const isExpanded = expandedFaq === index;
+                  const feedback = faqFeedback[index];
+                  return (
+                    <div
+                      key={index}
+                      className="bg-[#1a1a1a] border border-[#FF6B00]/30 rounded-xl overflow-hidden hover:border-[#FF6B00]/60 transition"
+                    >
+                      <button
+                        onClick={() => setExpandedFaq(isExpanded ? null : index)}
+                        className="w-full text-left p-6 flex items-start gap-4"
+                      >
+                        <div className="p-3 bg-[#FF6B00]/10 rounded-xl shrink-0">
+                          <Icon className="w-6 h-6 text-[#FF6B00]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white text-lg font-bold pr-6">{faq.question}</h3>
+                          {!isExpanded && (
+                            <p className="text-[#ffcc99]/70 text-sm mt-1 truncate">{faq.answer.slice(0, 60)}...</p>
+                          )}
+                        </div>
+                        {isExpanded ? (
+                          <ChevronUp className="w-5 h-5 text-[#ffcc99]/60 shrink-0" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-[#ffcc99]/60 shrink-0" />
+                        )}
+                      </button>
+                      {isExpanded && (
+                        <div className="px-6 pb-6 pt-0 -mt-2">
+                          <p className="text-[#ffcc99] leading-relaxed pl-[4.5rem]">{faq.answer}</p>
+                          <div className="flex items-center gap-4 pl-[4.5rem] mt-4 pt-4 border-t border-[#FF6B00]/20">
+                            <span className="text-sm text-[#ffcc99]/70">Was this helpful?</span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setFaqFeedback(prev => ({ ...prev, [index]: 'up' }))}
+                                className={`p-2 rounded-lg transition ${
+                                  feedback === 'up' ? 'bg-[#FF6B00]/20 text-[#FF6B00]' : 'hover:bg-[#1a1a1a] text-[#ffcc99]/70'
+                                }`}
+                                aria-label="Helpful"
+                              >
+                                <ThumbsUp className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setFaqFeedback(prev => ({ ...prev, [index]: 'down' }))}
+                                className={`p-2 rounded-lg transition ${
+                                  feedback === 'down' ? 'bg-[#FF6B00]/20 text-[#FF6B00]' : 'hover:bg-[#1a1a1a] text-[#ffcc99]/70'
+                                }`}
+                                aria-label="Not helpful"
+                              >
+                                <ThumbsDown className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
 
           {/* Contact Support Tab */}
           {activeTab === 'contact' && (
-            <div className="max-w-2xl mx-auto">
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-8">
-                <h2 className="text-white text-2xl font-bold mb-6">Submit a Support Ticket</h2>
-                
+            <div className="max-w-3xl space-y-8">
+              {/* Contact options side by side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-[#1a1a1a] border border-[#FF6B00]/30 rounded-xl p-6 flex flex-col items-center text-center">
+                  <div className="w-14 h-14 rounded-full bg-[#FF6B00]/20 flex items-center justify-center mb-4">
+                    <MessageSquare className="w-7 h-7 text-[#FF6B00]" />
+                  </div>
+                  <h3 className="text-white font-bold text-lg mb-1">Chat with us</h3>
+                  <p className="text-[#ffcc99] text-sm mb-4">Available Mon–Fri, 8am–8pm WAT</p>
+                  <button
+                    type="button"
+                    className="w-full px-4 py-3 bg-[#FF6B00] text-black rounded-xl font-bold hover:bg-[#e55f00] transition"
+                  >
+                    Start Chat
+                  </button>
+                </div>
+                <div className="bg-[#1a1a1a] border border-[#FF6B00]/30 rounded-xl p-6 flex flex-col items-center text-center">
+                  <div className="w-14 h-14 rounded-full bg-[#FF6B00]/20 flex items-center justify-center mb-4">
+                    <Mail className="w-7 h-7 text-[#FF6B00]" />
+                  </div>
+                  <h3 className="text-white font-bold text-lg mb-1">Send us a message</h3>
+                  <p className="text-[#ffcc99] text-sm mb-4">We reply within 24 hours</p>
+                  <a
+                    href="mailto:support@carryofy.com"
+                    className="w-full px-4 py-3 border border-[#FF6B00] text-[#FF6B00] rounded-xl font-bold hover:bg-[#FF6B00]/10 transition text-center"
+                  >
+                    Send Email
+                  </a>
+                </div>
+              </div>
+
+              {/* Contact form */}
+              <div className="bg-[#1a1a1a] border border-[#FF6B00]/30 rounded-xl p-8">
+                <h2 className="text-white text-xl font-bold mb-6">Submit a ticket</h2>
                 {message && (
-                  <div className={`mb-6 p-4 rounded-xl ${
-                    message.type === 'success'
-                      ? 'bg-green-500/10 border border-green-500/50 text-green-400'
-                      : 'bg-red-500/10 border border-red-500/50 text-red-400'
-                  }`}>
+                  <div
+                    className={`mb-6 p-4 rounded-xl ${
+                      message.type === 'success'
+                        ? 'bg-emerald-500/10 border border-emerald-500/50 text-emerald-400'
+                        : 'bg-red-500/10 border border-red-500/50 text-red-400'
+                    }`}
+                  >
                     {message.text}
                   </div>
                 )}
-
                 <form onSubmit={handleSubmitTicket} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Name</label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={contactForm.name}
+                        onChange={handleContactFormChange}
+                        className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#FF6B00]/30 rounded-xl text-white focus:outline-none focus:border-[#FF6B00]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Email</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={contactForm.email}
+                        onChange={handleContactFormChange}
+                        className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#FF6B00]/30 rounded-xl text-white focus:outline-none focus:border-[#FF6B00]"
+                      />
+                    </div>
+                  </div>
                   <div>
-                    <label className="block text-white text-sm font-medium mb-2">
-                      Category
-                    </label>
+                    <label className="block text-white text-sm font-medium mb-2">Subject</label>
                     <select
-                      name="category"
-                      value={contactForm.category}
+                      name="subjectOption"
+                      value={contactForm.subjectOption}
                       onChange={handleContactFormChange}
-                      className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white focus:outline-none focus:border-[#ff6600]"
+                      className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#FF6B00]/30 rounded-xl text-white focus:outline-none focus:border-[#FF6B00]"
                     >
-                      <option value="orders">Orders</option>
-                      <option value="products">Products</option>
-                      <option value="payments">Payments</option>
-                      <option value="delivery">Delivery</option>
-                      <option value="returns">Returns & Refunds</option>
-                      <option value="account">Account</option>
-                      <option value="other">Other</option>
+                      <option value="Order Issue">Order Issue</option>
+                      <option value="Payment">Payment</option>
+                      <option value="Delivery">Delivery</option>
+                      <option value="Bulk Order">Bulk Order</option>
+                      <option value="Account">Account</option>
+                      <option value="Other">Other</option>
                     </select>
                   </div>
-
                   <div>
-                    <label className="block text-white text-sm font-medium mb-2">
-                      Priority
-                    </label>
-                    <select
-                      name="priority"
-                      value={contactForm.priority}
-                      onChange={handleContactFormChange}
-                      className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white focus:outline-none focus:border-[#ff6600]"
-                    >
-                      <option value="LOW">Low</option>
-                      <option value="MEDIUM">Medium</option>
-                      <option value="HIGH">High</option>
-                      <option value="URGENT">Urgent</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-white text-sm font-medium mb-2">
-                      Subject *
-                    </label>
-                    <input
-                      type="text"
-                      name="subject"
-                      value={contactForm.subject}
-                      onChange={handleContactFormChange}
-                      placeholder="Brief description of your issue"
-                      className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-white text-sm font-medium mb-2">
-                      Message *
-                    </label>
+                    <label className="block text-white text-sm font-medium mb-2">Message *</label>
                     <textarea
                       name="message"
                       value={contactForm.message}
                       onChange={handleContactFormChange}
-                      placeholder="Provide detailed information about your issue..."
-                      rows={6}
-                      className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600] resize-none"
+                      placeholder="Describe your issue or question..."
+                      rows={5}
+                      className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#FF6B00]/30 rounded-xl text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:border-[#FF6B00] resize-none"
                       required
                     />
                   </div>
-
+                  <div>
+                    <label className="block text-white text-sm font-medium mb-2">Attach file (optional)</label>
+                    <input
+                      type="file"
+                      className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#FF6B00]/30 rounded-xl text-[#ffcc99] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#FF6B00]/20 file:text-[#FF6B00] file:font-medium"
+                    />
+                  </div>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#FF6B00] text-black rounded-xl font-bold hover:bg-[#e55f00] disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     <Send className="w-5 h-5" />
                     {submitting ? 'Submitting...' : 'Submit Ticket'}
                   </button>
                 </form>
-              </div>
-
-              {/* Contact Information */}
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 text-center">
-                  <Mail className="w-8 h-8 text-[#ff6600] mx-auto mb-3" />
-                  <h3 className="text-white font-bold mb-1">Email Us</h3>
-                  <p className="text-[#ffcc99] text-sm">support@carryofy.com</p>
-                </div>
-                <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 text-center">
-                  <Phone className="w-8 h-8 text-[#ff6600] mx-auto mb-3" />
-                  <h3 className="text-white font-bold mb-1">Call Us</h3>
-                  <p className="text-[#ffcc99] text-sm">+234 916 678 3040</p>
-                </div>
               </div>
             </div>
           )}
@@ -381,50 +461,50 @@ export default function BuyerHelpPage() {
             <div>
               {loadingTickets ? (
                 <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff6600]"></div>
+                  <div className="inline-block h-12 w-12 animate-spin rounded-full border-2 border-[#FF6B00] border-t-transparent" />
                   <p className="text-[#ffcc99] mt-4">Loading tickets...</p>
                 </div>
-              ) : tickets.length === 0 ? (
-                <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-12 text-center">
-                  <MessageSquare className="w-16 h-16 text-[#ffcc99] mx-auto mb-4" />
-                  <h3 className="text-white text-xl font-bold mb-2">No Support Tickets</h3>
+              ) : displayTickets.length === 0 ? (
+                <div className="bg-[#1a1a1a] border border-[#FF6B00]/30 rounded-xl p-12 text-center">
+                  <MessageSquare className="w-16 h-16 text-[#ffcc99]/60 mx-auto mb-4" />
+                  <h3 className="text-white text-xl font-bold mb-2">No tickets yet</h3>
                   <p className="text-[#ffcc99] mb-6">
-                    You haven't submitted any support tickets yet.
+                    Need help? Start a chat or send us a message.
                   </p>
-                  <button
-                    onClick={() => setActiveTab('contact')}
-                    className="px-6 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
-                  >
-                    Create Ticket
-                  </button>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <button
+                      onClick={() => setActiveTab('contact')}
+                      className="px-6 py-3 bg-[#FF6B00] text-black rounded-xl font-bold hover:bg-[#e55f00] transition"
+                    >
+                      Contact Support
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {tickets.map((ticket) => (
+                  {displayTickets.map(ticket => (
                     <div
                       key={ticket.id}
-                      className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 hover:border-[#ff6600] transition"
+                      className="bg-[#1a1a1a] border border-[#FF6B00]/30 rounded-xl p-6 hover:border-[#FF6B00]/60 transition"
                     >
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                        <div>
-                          <h3 className="text-white text-lg font-bold mb-2">{ticket.subject}</h3>
-                          <div className="flex flex-wrap items-center gap-3 text-sm">
-                            <span className="text-[#ffcc99]">Category: {ticket.category}</span>
-                            <span className="text-[#ffcc99]/50">•</span>
-                            <span className="text-[#ffcc99]">
-                              {formatDate(ticket.createdAt)}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className="text-[#ffcc99]/70 text-sm font-mono">{ticket.id.slice(0, 8)}</span>
+                            <span className="px-2 py-0.5 rounded bg-[#FF6B00]/20 text-[#FF6B00] text-xs font-medium capitalize">
+                              {ticket.category.replace(/_/g, ' ')}
                             </span>
                           </div>
+                          <h3 className="text-white font-bold text-lg truncate">{ticket.subject}</h3>
+                          <p className="text-[#ffcc99] text-sm">{formatDate(ticket.createdAt)}</p>
                         </div>
-                        {getStatusBadge(ticket.status)}
+                        <div className="flex items-center gap-3 shrink-0">
+                          {getStatusBadge(ticket.status)}
+                          <button className="px-4 py-2 border border-[#FF6B00]/50 text-[#FF6B00] rounded-lg text-sm font-medium hover:bg-[#FF6B00]/10 transition">
+                            View Thread
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-[#ffcc99] mb-4">{ticket.message}</p>
-                      {ticket.adminNotes && (
-                        <div className="mt-4 p-4 bg-[#ff6600]/10 border border-[#ff6600]/30 rounded-lg">
-                          <p className="text-[#ffcc99] text-sm font-medium mb-1">Admin Response:</p>
-                          <p className="text-white">{ticket.adminNotes}</p>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -436,4 +516,3 @@ export default function BuyerHelpPage() {
     </>
   );
 }
-

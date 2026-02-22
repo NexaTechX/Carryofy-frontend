@@ -248,7 +248,7 @@ function ProductCard({
                     ? 'bg-[#ff6600] hover:bg-[#ff6600]/80'
                     : 'hover:bg-[#ff6600]'
                 } ${isToggling ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                title={inWishlist ? 'Remove from saved list' : 'Add to saved list'}
               >
                 <Heart
                   className={`w-4 h-4 ${inWishlist ? 'fill-current' : ''}`}
@@ -266,14 +266,13 @@ function ProductCard({
           
           {/* Key Features */}
           {showFeatures && product.keyFeatures && product.keyFeatures.length > 0 && (
-            <ul className="mb-2 space-y-1">
+            <div className="flex flex-wrap gap-1.5 mb-2">
               {product.keyFeatures.slice(0, 2).map((feature, idx) => (
-                <li key={idx} className="text-[#ff6600] text-xs flex items-start gap-1.5">
-                  <span className="mt-0.5">•</span>
-                  <span className="line-clamp-1">{feature}</span>
-                </li>
+                <span key={idx} className="text-[#ff6600] text-xs font-semibold px-1.5 py-0.5 rounded bg-[#ff6600]/10 line-clamp-1">
+                  {feature}
+                </span>
               ))}
-            </ul>
+            </div>
           )}
           
           <div className="flex items-center gap-2 mb-1 flex-wrap">

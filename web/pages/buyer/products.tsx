@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
-import { ChevronLeft, ChevronRight, Filter, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, Search, X } from 'lucide-react';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
 import SEO from '../../components/seo/SEO';
 import { BreadcrumbSchema } from '../../components/seo/JsonLd';
-import ProductCard from '../../components/common/ProductCard';
+import ShopFiltersPanel from '../../components/buyer/shop/ShopFiltersPanel';
+import ShopProductCard, { ShopProductCardProduct } from '../../components/buyer/shop/ShopProductCard';
+import EmptyShopState from '../../components/buyer/shop/EmptyShopState';
 import { categoryDisplayName } from '../../lib/buyer/categoryDisplay';
 
 interface Product {
@@ -22,6 +23,7 @@ interface Product {
   seller: {
     id: string;
     businessName: string;
+    isVerified?: boolean;
   };
   sellingMode?: string;
   moq?: number;
@@ -48,6 +50,9 @@ const sortOptions = [
   { value: 'popular', label: 'Most Popular' },
 ];
 
+const PRICE_MIN = 0;
+const PRICE_MAX = 2_147_483_647;
+
 export default function ProductsPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -56,37 +61,35 @@ export default function ProductsPage() {
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFiltersMobile, setShowFiltersMobile] = useState(false);
   const { data: categoriesData } = useCategories();
   const categories = categoriesData?.categories?.filter(cat => cat.isActive) || [];
 
-  // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [minPrice, setMinPrice] = useState<string>('');
-  const [maxPrice, setMaxPrice] = useState<string>('');
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [b2bOnly, setB2bOnly] = useState(false);
+  const [purchaseType, setPurchaseType] = useState<'B2C' | 'B2B'>('B2C');
   const [inStockOnly, setInStockOnly] = useState(true);
   const [verifiedSellersOnly, setVerifiedSellersOnly] = useState(false);
   const [moqMin, setMoqMin] = useState<string>('');
   const [moqMax, setMoqMax] = useState<string>('');
+  const [priceLow, setPriceLow] = useState(PRICE_MIN);
+  const [priceHigh, setPriceHigh] = useState(PRICE_MAX);
+
+  const b2bOnly = purchaseType === 'B2B';
 
   useEffect(() => {
     setMounted(true);
-    // Check authentication
     if (!tokenManager.isAuthenticated()) {
       router.push('/auth/login');
       return;
     }
-
     const user = userManager.getUser();
     if (!user) {
       router.push('/auth/login');
       return;
     }
-
     if (user.role && user.role !== 'BUYER' && user.role !== 'ADMIN') {
       router.push('/');
     }
@@ -94,61 +97,52 @@ export default function ProductsPage() {
 
   useEffect(() => {
     if (mounted) {
-      // Get URL params
       const { category, search, page, b2bOnly: b2bParam } = router.query;
-      if (category && typeof category === 'string') {
-        setSelectedCategory(category);
-      }
-      if (search && typeof search === 'string') {
-        setSearchQuery(search);
-      }
-      if (page && typeof page === 'string') {
-        setCurrentPage(parseInt(page));
-      }
-      if (b2bParam === 'true' || b2bParam === '1') {
-        setB2bOnly(true);
-      }
+      if (category && typeof category === 'string') setSelectedCategory(category);
+      if (search && typeof search === 'string') setSearchQuery(search);
+      if (page && typeof page === 'string') setCurrentPage(parseInt(page));
+      if (b2bParam === 'true' || b2bParam === '1') setPurchaseType('B2B');
     }
   }, [mounted, router.query]);
 
   useEffect(() => {
-    if (mounted) {
-      fetchProducts();
+    if (mounted) fetchProducts();
+  }, [mounted, selectedCategory, sortBy, currentPage, searchQuery, b2bOnly, inStockOnly, verifiedSellersOnly, moqMin, moqMax, priceLow, priceHigh]);
+
+  useEffect(() => {
+    if (showFiltersMobile) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setShowFiltersMobile(false);
+      };
+      window.addEventListener('keydown', handleEscape);
+      return () => {
+        document.body.style.overflow = '';
+        document.body.style.touchAction = '';
+        window.removeEventListener('keydown', handleEscape);
+      };
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
     }
-  }, [mounted, selectedCategory, minPrice, maxPrice, sortBy, currentPage, searchQuery, b2bOnly, inStockOnly, verifiedSellersOnly, moqMin, moqMax]);
+  }, [showFiltersMobile]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError(null);
-
       const params = new URLSearchParams();
       params.append('page', currentPage.toString());
       params.append('limit', '15');
-
-      if (searchQuery) {
-        params.append('search', searchQuery);
-      }
-      if (selectedCategory) {
-        params.append('category', selectedCategory);
-      }
-      if (minPrice) {
-        params.append('minPrice', (parseFloat(minPrice) * 100).toString());
-      }
-      if (maxPrice) {
-        params.append('maxPrice', (parseFloat(maxPrice) * 100).toString());
-      }
-
-      if (sortBy && sortBy !== 'newest') {
-        params.append('sortBy', sortBy);
-      }
-      if (b2bOnly) {
-        params.append('b2bOnly', 'true');
-      }
+      if (searchQuery) params.append('search', searchQuery);
+      if (selectedCategory) params.append('category', selectedCategory);
+      if (sortBy && sortBy !== 'newest') params.append('sortBy', sortBy);
+      if (b2bOnly) params.append('b2bOnly', 'true');
       params.append('inStockOnly', inStockOnly ? 'true' : 'false');
-      if (verifiedSellersOnly) {
-        params.append('verifiedSellersOnly', 'true');
-      }
+      if (verifiedSellersOnly) params.append('verifiedSellersOnly', 'true');
+      if (priceLow > PRICE_MIN) params.append('minPrice', priceLow.toString());
+      if (priceHigh < PRICE_MAX) params.append('maxPrice', priceHigh.toString());
       if (moqMin !== '') {
         const n = parseInt(moqMin, 10);
         if (!isNaN(n) && n >= 0) params.append('moqMin', n.toString());
@@ -159,28 +153,24 @@ export default function ProductsPage() {
       }
 
       const response = await apiClient.get<ProductsResponse>(`/products?${params.toString()}`);
-      
       const responseData = (response.data as any).data || response.data;
-      
+
       if (responseData && Array.isArray(responseData.products)) {
         setProducts(responseData.products);
         setTotalPages(responseData.totalPages || 1);
         setTotal(responseData.total || 0);
       } else {
-        console.error('Invalid response structure:', response.data);
         setProducts([]);
         setTotalPages(1);
         setTotal(0);
       }
     } catch (err: any) {
-      console.error('Error fetching products:', err);
       const isNetworkError =
-        err.code === 'ERR_NETWORK' ||
-        err.code === 'ECONNREFUSED' ||
+        err.code === 'ERR_NETWORK' || err.code === 'ECONNREFUSED' ||
         (err.message && String(err.message).toLowerCase().includes('network error'));
       setError(
         isNetworkError
-          ? 'Cannot reach the API. Start the API server (e.g. in apps/api run: npm run dev) and ensure it is running on the URL in NEXT_PUBLIC_API_BASE.'
+          ? 'Cannot reach the API. Start the API server and ensure it is running.'
           : err.response?.data?.message || 'Failed to load products'
       );
       setProducts([]);
@@ -191,19 +181,26 @@ export default function ProductsPage() {
     }
   };
 
-  const handleClearFilters = () => {
+  const handleApplyFilters = () => {
+    setCurrentPage(1);
+    fetchProducts();
+    setShowFiltersMobile(false);
+  };
+
+  const handleResetFilters = () => {
     setSelectedCategory('');
-    setMinPrice('');
-    setMaxPrice('');
     setSortBy('newest');
     setSearchQuery('');
-    setB2bOnly(false);
+    setPurchaseType('B2C');
     setInStockOnly(true);
     setVerifiedSellersOnly(false);
     setMoqMin('');
     setMoqMax('');
+    setPriceLow(PRICE_MIN);
+    setPriceHigh(PRICE_MAX);
     setCurrentPage(1);
     router.push('/buyer/products', undefined, { shallow: true });
+    setTimeout(() => fetchProducts(), 0);
   };
 
   const handlePageChange = (page: number) => {
@@ -211,377 +208,223 @@ export default function ProductsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const formatPrice = (priceInKobo: number) => {
-    return `₦${(priceInKobo / 100).toLocaleString('en-NG', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
+  const toShopCard = (p: Product): ShopProductCardProduct => ({
+    id: p.id,
+    title: p.title,
+    price: p.price,
+    images: p.images || [],
+    quantity: p.quantity ?? 0,
+    seller: { id: p.seller.id, businessName: p.seller.businessName, isVerified: p.seller.isVerified ?? true },
+    keyFeatures: p.keyFeatures,
+    moq: p.moq,
+    requestQuoteOnly: p.requestQuoteOnly,
+    priceTiers: p.priceTiers,
+    fulfilledByCarryofy: true,
+  });
 
-  // Get category name for SEO (supply-oriented, capitalized)
-  const getCategoryDisplayName = (slug: string) => {
-    const cat = categories.find(c => c.slug === slug);
-    return categoryDisplayName(slug, cat?.name);
-  };
+  const displayProducts = products.length > 0 ? products.map(toShopCard) : [];
+  const displayTotal = total;
 
-  // Dynamic SEO based on filters
   const pageTitle = selectedCategory
-    ? `Buy ${getCategoryDisplayName(selectedCategory)} Online in Nigeria | Carryofy`
+    ? `Buy ${categoryDisplayName(selectedCategory, '')} Online in Nigeria | Carryofy`
     : searchQuery
       ? `Search: ${searchQuery} - Products | Carryofy`
-      : 'Shop Products Online in Nigeria | Same-Day Delivery Lagos | Carryofy';
+      : 'Shop Products Online in Nigeria | Carryofy';
 
   const pageDescription = selectedCategory
-    ? `Shop ${getCategoryDisplayName(selectedCategory)} online at Carryofy Nigeria. ${total}+ products from verified sellers with same-day delivery in Lagos. Best prices, secure payments, buyer protection.`
-    : `Discover ${total}+ products from verified Nigerian sellers. Shop electronics, fashion, groceries & more with same-day delivery in Lagos. Secure payments & buyer protection on Carryofy.`;
+    ? `Shop ${categoryDisplayName(selectedCategory, '')} online at Carryofy Nigeria. Same-day delivery in Lagos. Best prices, secure payments.`
+    : `Discover products from verified Nigerian sellers. Shop with same-day delivery in Lagos. Secure payments on Carryofy.`;
 
-  const pageKeywords = [
-    'buy online Nigeria',
-    'shop online Lagos',
-    'online shopping Nigeria',
-    'same day delivery Lagos',
-    'Nigerian marketplace',
-    selectedCategory ? `buy ${getCategoryDisplayName(selectedCategory)} Nigeria` : '',
-    selectedCategory ? `${getCategoryDisplayName(selectedCategory)} Lagos` : '',
-    'verified sellers Nigeria',
-    'secure shopping Nigeria',
-    'Carryofy products',
-    'best prices Nigeria',
-    'fast delivery Nigeria',
-  ].filter(Boolean).join(', ');
-
-  if (!mounted) {
-    return null;
-  }
-
-  const activeFiltersCount = [
-    selectedCategory,
-    minPrice,
-    maxPrice,
-    searchQuery,
-    b2bOnly,
-    !inStockOnly,
-    verifiedSellersOnly,
-    moqMin,
-    moqMax,
-  ].filter(Boolean).length;
+  if (!mounted) return null;
 
   return (
     <>
-      <SEO
-        title={pageTitle}
-        description={pageDescription}
-        keywords={pageKeywords}
-        canonical={`https://carryofy.com/buyer/products${selectedCategory ? `?category=${selectedCategory}` : ''}`}
-        ogType="website"
-        ogImage="https://carryofy.com/og/products.png"
-        ogImageAlt="Shop Products on Carryofy Nigeria"
-      />
-      
+      <SEO title={pageTitle} description={pageDescription} canonical={`https://carryofy.com/buyer/products${selectedCategory ? `?category=${selectedCategory}` : ''}`} />
       <BreadcrumbSchema
         items={[
           { name: 'Home', url: '/' },
           { name: 'Products', url: '/buyer/products' },
-          ...(selectedCategory ? [{ name: getCategoryDisplayName(selectedCategory), url: `/buyer/products?category=${selectedCategory}` }] : []),
+          ...(selectedCategory ? [{ name: categoryDisplayName(selectedCategory, ''), url: `/buyer/products?category=${selectedCategory}` }] : []),
         ]}
       />
-      
+
       <BuyerLayout>
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-          {/* Left Sidebar - Categories & Filters */}
-          <aside className="lg:w-64 lg:shrink-0">
-            <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 lg:sticky lg:top-24">
-              {/* Categories Section */}
-              <h2 className="text-white font-bold text-lg mb-4">Categories</h2>
-              <nav aria-label="Product categories">
-                <ul className="space-y-1 sm:space-y-2">
-                  {categories
-                    .sort((a, b) => a.displayOrder - b.displayOrder)
-                    .map((cat) => (
-                      <li key={cat.id}>
-                        <button
-                          onClick={() => {
-                            setSelectedCategory(selectedCategory === cat.slug ? '' : cat.slug);
-                            setCurrentPage(1);
-                          }}
-                          className={`w-full text-left px-4 py-3 sm:py-2 rounded-lg transition ${
-                            selectedCategory === cat.slug
-                              ? 'bg-[#ff6600] text-black font-bold'
-                              : 'text-white hover:bg-[#ff6600]/10 hover:text-white'
-                          }`}
-                        >
-                          {categoryDisplayName(cat.slug, cat.name)}
-                        </button>
-                      </li>
-                    ))}
-                </ul>
-              </nav>
+        <div className="flex h-full min-h-0 -m-3 sm:-m-4 lg:-m-6 xl:-m-8">
+          {/* Filter Panel - Desktop */}
+          <div className="hidden lg:flex lg:flex-col lg:w-[260px] lg:shrink-0 lg:h-full lg:min-h-0 lg:overflow-hidden">
+            <ShopFiltersPanel
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onCategoryChange={(slug) => { setSelectedCategory(slug); setCurrentPage(1); }}
+              purchaseType={purchaseType}
+              onPurchaseTypeChange={(t) => { setPurchaseType(t); setCurrentPage(1); }}
+              inStockOnly={inStockOnly}
+              onInStockOnlyChange={(v) => { setInStockOnly(v); setCurrentPage(1); }}
+              verifiedSellersOnly={verifiedSellersOnly}
+              onVerifiedSellersOnlyChange={(v) => { setVerifiedSellersOnly(v); setCurrentPage(1); }}
+              moqMin={moqMin}
+              moqMax={moqMax}
+              onMoqMinChange={setMoqMin}
+              onMoqMaxChange={setMoqMax}
+              priceLow={priceLow}
+              priceHigh={priceHigh}
+              onPriceLowChange={setPriceLow}
+              onPriceHighChange={setPriceHigh}
+              priceMinBound={PRICE_MIN}
+              priceMaxBound={PRICE_MAX}
+              onApply={handleApplyFilters}
+              onReset={handleResetFilters}
+            />
+          </div>
 
-              {/* B2B Filter - show bulk / business products only when enabled */}
-              <div className="mt-4 pt-4 border-t border-[#ff6600]/30">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={b2bOnly}
-                    onChange={(e) => {
-                      setB2bOnly(e.target.checked);
-                      setCurrentPage(1);
-                    }}
-                    className="rounded border-[#ff6600]/50 text-[#ff6600] focus:ring-[#ff6600]"
-                    aria-label="Show only B2B / bulk products"
-                  />
-                  <span className="text-white text-sm">B2B / bulk products only</span>
-                </label>
-                <p className="text-[#ffcc99]/60 text-xs mt-1">Products with MOQ, tiered pricing, or quote requests</p>
+          {/* Mobile Filter Overlay */}
+          {showFiltersMobile && (
+            <>
+              <div
+                className="fixed inset-0 bg-black/70 z-[100] lg:hidden backdrop-blur-sm"
+                onClick={() => setShowFiltersMobile(false)}
+                aria-hidden="true"
+              />
+              <div
+                className="fixed inset-y-0 left-0 w-[min(320px,85vw)] max-w-full z-[110] lg:hidden flex flex-col bg-[#1A1A1A] shadow-2xl transition-transform duration-200 ease-out"
+                role="dialog"
+                aria-label="Product filters"
+              >
+                <ShopFiltersPanel
+                  categories={categories}
+                  selectedCategory={selectedCategory}
+                  onCategoryChange={(slug) => { setSelectedCategory(slug); setCurrentPage(1); }}
+                  purchaseType={purchaseType}
+                  onPurchaseTypeChange={(t) => { setPurchaseType(t); setCurrentPage(1); }}
+                  inStockOnly={inStockOnly}
+                  onInStockOnlyChange={(v) => { setInStockOnly(v); setCurrentPage(1); }}
+                  verifiedSellersOnly={verifiedSellersOnly}
+                  onVerifiedSellersOnlyChange={(v) => { setVerifiedSellersOnly(v); setCurrentPage(1); }}
+                  moqMin={moqMin}
+                  moqMax={moqMax}
+                  onMoqMinChange={setMoqMin}
+                  onMoqMaxChange={setMoqMax}
+                  priceLow={priceLow}
+                  priceHigh={priceHigh}
+                  onPriceLowChange={setPriceLow}
+                  onPriceHighChange={setPriceHigh}
+                  priceMinBound={PRICE_MIN}
+                  priceMaxBound={PRICE_MAX}
+                  onApply={handleApplyFilters}
+                  onReset={handleResetFilters}
+                  onClose={() => setShowFiltersMobile(false)}
+                />
               </div>
+            </>
+          )}
 
-              {/* In-stock only (default ON) */}
-              <div className="mt-4 pt-4 border-t border-[#ff6600]/30">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={inStockOnly}
-                    onChange={(e) => {
-                      setInStockOnly(e.target.checked);
-                      setCurrentPage(1);
-                    }}
-                    className="rounded border-[#ff6600]/50 text-[#ff6600] focus:ring-[#ff6600]"
-                    aria-label="In-stock only"
-                  />
-                  <span className="text-white text-sm">In-stock only</span>
-                </label>
+          {/* Product Grid Area */}
+          <div className="flex-1 min-w-0 flex flex-col bg-[#111111]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+            {/* Search + Sort - sticky */}
+            <div className="sticky top-0 z-20 flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-4 bg-[#111111] border-b border-[#2a2a2a]">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#ffcc99]/60" />
+                <input
+                  type="search"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && fetchProducts()}
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#1A1A1A] border border-[#2a2a2a] rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#FF6B00]"
+                />
               </div>
-
-              {/* Verified sellers only */}
-              <div className="mt-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={verifiedSellersOnly}
-                    onChange={(e) => {
-                      setVerifiedSellersOnly(e.target.checked);
-                      setCurrentPage(1);
-                    }}
-                    className="rounded border-[#ff6600]/50 text-[#ff6600] focus:ring-[#ff6600]"
-                    aria-label="Verified sellers only"
-                  />
-                  <span className="text-white text-sm">Verified sellers only</span>
-                </label>
-              </div>
-
-              {/* MOQ range */}
-              <div className="mt-4 pt-4 border-t border-[#ff6600]/30">
-                <h3 className="text-white font-bold text-sm mb-3">MOQ range</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[#ffcc99] text-xs mb-1 block">Min MOQ (units)</label>
-                    <input
-                      type="number"
-                      value={moqMin}
-                      onChange={(e) => {
-                        setMoqMin(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      placeholder="Any"
-                      min="0"
-                      className="w-full px-3 py-2 bg-black border border-[#ff6600]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#ff6600]"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[#ffcc99] text-xs mb-1 block">Max MOQ (units)</label>
-                    <input
-                      type="number"
-                      value={moqMax}
-                      onChange={(e) => {
-                        setMoqMax(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      placeholder="Any"
-                      min="0"
-                      className="w-full px-3 py-2 bg-black border border-[#ff6600]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#ff6600]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Price Range Filter */}
-              <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-[#ff6600]/30">
-                <h3 className="text-white font-bold text-sm mb-3">Price Range (₦)</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[#ffcc99] text-xs mb-1 block">Min Price (₦)</label>
-                    <input
-                      type="number"
-                      value={minPrice}
-                      onChange={(e) => setMinPrice(e.target.value)}
-                      placeholder="0"
-                      min="0"
-                      className="w-full px-3 py-2 bg-black border border-[#ff6600]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#ff6600]"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[#ffcc99] text-xs mb-1 block">Max Price (₦)</label>
-                    <input
-                      type="number"
-                      value={maxPrice}
-                      onChange={(e) => setMaxPrice(e.target.value)}
-                      placeholder="Any"
-                      min="0"
-                      className="w-full px-3 py-2 bg-black border border-[#ff6600]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#ff6600]"
-                    />
-                  </div>
-                  <button
-                    onClick={() => {
-                      setCurrentPage(1);
-                      fetchProducts();
-                    }}
-                    className="w-full px-4 py-2 bg-[#ff6600] text-black font-bold rounded-lg hover:bg-[#cc5200] transition text-sm"
-                  >
-                    Apply Filter
-                  </button>
-                  {(minPrice || maxPrice) && (
-                    <button
-                      onClick={() => {
-                        setMinPrice('');
-                        setMaxPrice('');
-                        setCurrentPage(1);
-                        fetchProducts();
-                      }}
-                      className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] rounded-lg hover:border-[#ff6600] transition text-sm"
-                    >
-                      Clear Filter
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          {/* Main Content Area */}
-          <div className="flex-1 min-w-0 bg-black/50 rounded-xl p-4 sm:p-6">
-            {/* Results Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
-              <p className="text-white text-sm sm:text-base">
-                Showing <span className="font-bold">{products.length}</span> of{' '}
-                <span className="font-bold">{total.toLocaleString()}</span> products
-              </p>
-              {/* Sort Options */}
-              <div className="flex items-center gap-2">
-                <label className="text-white text-sm">Sort by:</label>
-                <select 
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setShowFiltersMobile(true)}
+                  className="lg:hidden flex items-center gap-2 px-4 py-2.5 bg-[#FF6B00]/20 border border-[#FF6B00]/50 rounded-xl text-[#FF6B00] font-medium hover:bg-[#FF6B00]/30 hover:border-[#FF6B00] transition-colors min-w-[100px] justify-center"
+                  aria-label="Open filters"
+                >
+                  <Filter className="w-4 h-4 shrink-0" />
+                  <span>Filters</span>
+                </button>
+                <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="px-3 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                  className="px-4 py-2.5 bg-[#1A1A1A] border border-[#2a2a2a] rounded-xl text-white text-sm focus:outline-none focus:border-[#FF6B00] cursor-pointer"
                 >
-                  {sortOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
+                  {sortOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {/* Loading State */}
-            {loading && (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff6600]"></div>
-                <p className="text-white mt-4">Loading products...</p>
-              </div>
-            )}
+            <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+              {loading && (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="animate-spin rounded-full h-12 w-12 border-2 border-[#FF6B00] border-t-transparent" />
+                  <p className="text-[#ffcc99] mt-4">Loading products...</p>
+                </div>
+              )}
 
-            {/* Error State */}
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-6 text-center" role="alert">
-                <p className="text-red-400">{error}</p>
-                <button
-                  onClick={fetchProducts}
-                  className="mt-4 px-6 py-2 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
-                >
-                  Try Again
-                </button>
-              </div>
-            )}
+              {error && (
+                <div className="py-12 text-center">
+                  <p className="text-red-400 mb-4">{error}</p>
+                  <button onClick={fetchProducts} className="px-6 py-2.5 bg-[#FF6B00] text-black font-bold rounded-xl hover:bg-[#ff9955]">
+                    Try Again
+                  </button>
+                </div>
+              )}
 
-            {/* Products Grid */}
-            {!loading && !error && products.length > 0 && (
-              <section className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5" aria-label="Products list">
-                {products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    href={`/buyer/products/${product.id}`}
-                    showFeatures={true}
-                  />
-                ))}
-              </section>
-            )}
+              {!loading && !error && products.length === 0 && (
+                <EmptyShopState onBrowseCategories={handleResetFilters} />
+              )}
 
-            {/* Empty State */}
-            {!loading && !error && products.length === 0 && (
-              <div className="text-center py-12">
-                <div className="text-white text-xl mb-4">No products found</div>
-                <p className="text-[#ffcc99]/70 mb-6">Try adjusting your filters or search query</p>
-                <button
-                  onClick={handleClearFilters}
-                  className="px-6 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
-                >
-                  Clear Filters
-                </button>
-              </div>
-            )}
+              {!loading && !error && products.length > 0 && (
+                <>
+                  <p className="text-[#ffcc99]/80 text-sm mb-4">
+                    Showing <span className="font-semibold text-white">{displayProducts.length}</span> of {displayTotal.toLocaleString()} products
+                  </p>
+                  <section className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-5" aria-label="Products">
+                    {displayProducts.map((product) => (
+                      <ShopProductCard key={product.id} product={product} href={`/buyer/products/${product.id}`} />
+                    ))}
+                  </section>
 
-            {/* Pagination */}
-            {!loading && !error && products.length > 0 && totalPages > 1 && (
-              <nav className="mt-6 sm:mt-8 flex justify-center items-center gap-1 sm:gap-2" aria-label="Pagination">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="p-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-lg sm:rounded-xl text-white hover:border-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed transition"
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg sm:rounded-xl font-medium text-sm sm:text-base transition ${
-                        currentPage === pageNum
-                          ? 'bg-[#ff6600] text-black'
-                          : 'bg-[#1a1a1a] border border-[#ff6600]/30 text-white hover:border-[#ff6600]'
-                      }`}
-                      aria-label={`Page ${pageNum}`}
-                      aria-current={currentPage === pageNum ? 'page' : undefined}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="p-2 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-lg sm:rounded-xl text-white hover:border-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed transition"
-                  aria-label="Next page"
-                >
-                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-              </nav>
-            )}
+                  {products.length > 0 && totalPages > 1 && (
+                    <nav className="mt-8 flex justify-center items-center gap-2" aria-label="Pagination">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="p-2 bg-[#1A1A1A] border border-[#2a2a2a] rounded-xl text-white hover:border-[#FF6B00] disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Previous page"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i;
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`w-10 h-10 flex items-center justify-center rounded-xl font-medium text-sm ${
+                              currentPage === pageNum ? 'bg-[#FF6B00] text-black' : 'bg-[#1A1A1A] border border-[#2a2a2a] text-white hover:border-[#FF6B00]'
+                            }`}
+                            aria-label={`Page ${pageNum}`}
+                            aria-current={currentPage === pageNum ? 'page' : undefined}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="p-2 bg-[#1A1A1A] border border-[#2a2a2a] rounded-xl text-white hover:border-[#FF6B00] disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Next page"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </nav>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </BuyerLayout>

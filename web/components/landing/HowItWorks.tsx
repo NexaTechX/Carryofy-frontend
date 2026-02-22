@@ -1,81 +1,100 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { UserCheck, Package, Truck, CircleDollarSign, ShoppingBag, CreditCard, Shield } from 'lucide-react';
-
-const sellerSteps = [
-  { id: 1, title: 'Apply & get verified', description: 'Submit your business details. We verify and onboard you.', icon: UserCheck },
-  { id: 2, title: 'List products', description: 'Add your products. We help if needed.', icon: Package },
-  { id: 3, title: 'We handle orders & delivery', description: 'We store, pack, and deliver. You focus on selling.', icon: Truck },
-  { id: 4, title: 'Get paid', description: 'Receive payouts after delivery confirmation.', icon: CircleDollarSign },
-];
+import { Search, ShoppingCart, Truck, PackageCheck, UserCheck, Package, CircleDollarSign } from 'lucide-react';
 
 const buyerSteps = [
-  { id: 1, title: 'Browse & order', description: 'Shop quality products from verified Lagos sellers. Add to cart and checkout.', icon: ShoppingBag },
-  { id: 2, title: 'Pay securely', description: 'Checkout safely. Your payment is protected until delivery.', icon: CreditCard },
-  { id: 3, title: 'Same-day delivery', description: 'Get your order the same day. Track it in real time across Lagos.', icon: Truck },
-  { id: 4, title: 'Buyer protection', description: 'Full refunds and support if delivery fails or the item isn\'t as described.', icon: Shield },
+  {
+    id: 1,
+    title: 'Browse & discover',
+    description: 'Browse and discover products from verified sellers',
+    icon: Search,
+  },
+  {
+    id: 2,
+    title: 'Place your order',
+    description: 'Place your order securely',
+    icon: ShoppingCart,
+  },
+  {
+    id: 3,
+    title: 'We handle fulfillment & delivery',
+    description: 'We handle fulfillment & delivery',
+    icon: Truck,
+  },
+  {
+    id: 4,
+    title: 'Receive & track',
+    description: 'Receive your order, track in real time',
+    icon: PackageCheck,
+  },
+];
+
+const sellerSteps = [
+  { id: 1, title: 'Apply & get verified', description: 'Apply and get verified', icon: UserCheck },
+  { id: 2, title: 'List your products', description: 'List your products', icon: Package },
+  { id: 3, title: 'We handle orders & delivery', description: 'We handle orders and delivery', icon: Truck },
+  { id: 4, title: 'Get paid fast', description: 'Get paid fast', icon: CircleDollarSign },
 ];
 
 export default function HowItWorks() {
-  const [activeTab, setActiveTab] = useState<'sellers' | 'buyers'>('sellers');
-
-  const steps = activeTab === 'sellers' ? sellerSteps : buyerSteps;
+  const [activeTab, setActiveTab] = useState<'buyers' | 'sellers'>('buyers');
+  const steps = activeTab === 'buyers' ? buyerSteps : sellerSteps;
 
   return (
-    <section className="py-16 sm:py-20 lg:py-24 bg-white relative overflow-hidden">
+    <section className="py-16 sm:py-20 lg:py-24 bg-[#F5F5F5]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10 sm:mb-12">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-gray-900"
-            >
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="font-inter text-3xl sm:text-4xl lg:text-5xl font-bold text-[#111111] mb-6">
               How it Works
-            </motion.h2>
-            {/* Tabs */}
-            <div className="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1 mt-4">
-              <button
-                type="button"
-                onClick={() => setActiveTab('sellers')}
-                className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-                  activeTab === 'sellers'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                For Sellers
-              </button>
+            </h2>
+            <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
               <button
                 type="button"
                 onClick={() => setActiveTab('buyers')}
-                className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                className={`px-6 py-3 rounded-lg text-sm font-semibold transition-all ${
                   activeTab === 'buyers'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-[#111111] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-[#111111]'
                 }`}
               >
                 For Buyers
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('sellers')}
+                className={`px-6 py-3 rounded-lg text-sm font-semibold transition-all ${
+                  activeTab === 'sellers'
+                    ? 'bg-[#111111] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-[#111111]'
+                }`}
+              >
+                For Sellers
+              </button>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 max-w-5xl mx-auto relative">
-            {/* Step connector line - hidden on mobile */}
-            <div className="hidden lg:block absolute top-7 left-[12.5%] right-[12.5%] h-0.5 bg-linear-to-r from-primary/30 via-primary/50 to-primary/30" aria-hidden />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
             {steps.map((step, index) => (
               <motion.div
                 key={step.id}
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="text-center relative"
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.08 }}
+                className="relative bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
               >
-                <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 relative z-10 shadow-lg shadow-primary/25">
-                  <step.icon className="w-7 h-7 text-white" />
+                <div className="w-12 h-12 rounded-xl bg-[#FF6B00]/10 flex items-center justify-center mb-4">
+                  <step.icon className="w-6 h-6 text-[#FF6B00]" />
                 </div>
-                <h3 className="text-base font-bold text-gray-900 mb-2">{step.title}</h3>
+                <div className="text-sm font-semibold text-[#111111] mb-2">
+                  {index + 1}. {step.title}
+                </div>
                 <p className="text-sm text-gray-600 leading-relaxed">
                   {step.description}
                 </p>

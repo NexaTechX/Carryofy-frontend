@@ -74,6 +74,70 @@ export async function geocodeAddress(input: GeocodeAddressInput): Promise<Geocod
 }
 
 /**
+ * Reverse geocode: convert latitude/longitude to address components.
+ * Uses OpenStreetMap Nominatim reverse geocoding.
+ * Returns address parts for auto-filling forms, or null if lookup fails.
+ */
+export interface ReverseGeocodeResult {
+  line1: string;
+  city: string;
+  state: string;
+  country: string;
+  postalCode?: string;
+  latitude: number;
+  longitude: number;
+}
+
+const NOMINATIM_REVERSE = 'https://nominatim.openstreetmap.org/reverse';
+
+export async function reverseGeocode(lat: number, lon: number): Promise<ReverseGeocodeResult | null> {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+  const params = new URLSearchParams({
+    lat: String(lat),
+    lon: String(lon),
+    format: 'json',
+    addressdetails: '1',
+    'accept-language': 'en',
+  });
+
+  try {
+    const res = await fetch(`${NOMINATIM_REVERSE}?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': USER_AGENT,
+      },
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const addr = data?.address;
+    if (!addr || typeof addr !== 'object') return null;
+
+    const road = addr.road || addr.street || addr.pedestrian || '';
+    const house = addr.house_number || addr.house_name || '';
+    const line1 = [house, road].filter(Boolean).join(' ').trim() || data.display_name?.split(',')[0]?.trim() || '';
+    const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
+    const state = addr.state || addr.region || '';
+    const country = addr.country || 'Nigeria';
+    const postalCode = addr.postcode || undefined;
+
+    return {
+      line1: line1 || city || state || country || 'Address',
+      city: city || state || country || '',
+      state: state || '',
+      country,
+      postalCode,
+      latitude: lat,
+      longitude: lon,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Get the user's current position via browser Geolocation API (optional, for "Use my location").
  * Returns { latitude, longitude } or null if denied/unsupported.
  */

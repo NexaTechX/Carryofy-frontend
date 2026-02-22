@@ -15,6 +15,7 @@ const SUPPLY_NAMES: Record<string, string> = {
   beverages: 'Beverages',
   'personal-care': 'Beauty & Personal Care',
   electronics: 'Electronics',
+  'electronics-gadgets': 'Electronics & Gadgets',
   fashion: 'Fashion & Apparel',
   groceries: 'Food & Agriculture',
 };

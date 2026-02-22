@@ -42,7 +42,7 @@ const payoutStatusLabel: Record<PayoutStatus, string> = {
   REJECTED: 'Rejected',
 };
 
-const NGN = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 });
+import { formatNgnFromKobo } from '../../lib/api/utils';
 
 const PAYOUT_FILTERS: Array<'ALL' | PayoutStatus> = [
   'ALL',
@@ -115,10 +115,10 @@ export default function AdminFinance() {
           ) : metrics ? (
             <section className="mb-10 grid gap-4 sm:grid-cols-3">
               <AdminCard title="Gross Order Volume" description="Total value of paid orders (before commissions).">
-                <p className="text-3xl font-semibold text-white">{NGN.format(grossOrderVolume)}</p>
+                <p className="text-3xl font-semibold text-white">{formatNgnFromKobo(grossOrderVolume)}</p>
               </AdminCard>
               <AdminCard title="Platform Commission Revenue" description="Total commissions earned across all orders.">
-                <p className="text-3xl font-semibold text-primary">{NGN.format(platformCommissionRevenue)}</p>
+                <p className="text-3xl font-semibold text-primary">{formatNgnFromKobo(platformCommissionRevenue)}</p>
               </AdminCard>
               <AdminCard title="Payout Operations" description="Review and process seller payout requests.">
                 <p className="text-3xl font-semibold text-[#6ce7a2]">{pendingPayouts.length}</p>
@@ -189,7 +189,7 @@ export default function AdminFinance() {
                           </span>
                         </DataTableCell>
                         <DataTableCell>
-                          <span className="text-sm font-semibold text-primary">{NGN.format(payout.amount / 100)}</span>
+                          <span className="text-sm font-semibold text-primary">{formatNgnFromKobo(payout.amount)}</span>
                         </DataTableCell>
                         <DataTableCell>
                           <StatusBadge
@@ -254,7 +254,7 @@ export default function AdminFinance() {
         open={Boolean(selectedPayout)}
         onClose={() => setSelectedPayout(null)}
         title={selectedPayout ? `Process payout ${selectedPayout.id.slice(0, 8)}` : 'Process payout'}
-        description={selectedPayout ? `Amount ${NGN.format(selectedPayout.amount / 100)}` : ''}
+        description={selectedPayout ? `Amount ${formatNgnFromKobo(selectedPayout.amount)}` : ''}
       >
         {selectedPayout ? (
           <form className="space-y-6" onSubmit={handleProcessSubmit}>

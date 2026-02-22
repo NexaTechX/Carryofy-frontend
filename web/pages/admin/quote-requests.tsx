@@ -13,6 +13,7 @@ import {
   StatusBadge,
 } from '../../components/admin/ui';
 import { fetchAdminQuoteRequests, AdminQuoteRequest } from '../../lib/admin/api';
+import { formatDateTime } from '../../lib/api/utils';
 import { FileText, ChevronRight, Filter } from 'lucide-react';
 
 const STATUS_OPTIONS = [
@@ -21,15 +22,6 @@ const STATUS_OPTIONS = [
   { value: 'APPROVED', label: 'Approved' },
   { value: 'REJECTED', label: 'Rejected' },
 ];
-
-const formatDate = (dateString: string) =>
-  new Date(dateString).toLocaleDateString('en-NG', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 
 export default function AdminQuoteRequestsPage() {
   const [data, setData] = useState<{ items: AdminQuoteRequest[]; pagination: { page: number; total: number; totalPages: number } } | null>(null);
@@ -158,7 +150,7 @@ export default function AdminQuoteRequestsPage() {
                           {quote.items?.length ?? 0} item(s)
                         </DataTableCell>
                         <DataTableCell className="text-gray-400 text-sm">
-                          {formatDate(quote.createdAt)}
+                          {formatDateTime(quote.createdAt)}
                         </DataTableCell>
                         <DataTableCell>
                           <Link

@@ -22,7 +22,7 @@ import { Download } from 'lucide-react';
 const TrendChart = dynamic(() => import('../../components/admin/charts/TrendChart'), { ssr: false });
 const BarChart = dynamic(() => import('../../components/admin/charts/BarChart'), { ssr: false });
 
-const NGN = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 });
+import { formatNgnFromKobo } from '../../lib/api/utils';
 
 const ORDER_DISTRIBUTION_TONE: Record<string, 'info' | 'warning' | 'success' | 'danger'> = {
   pending: 'warning',
@@ -74,13 +74,13 @@ export default function AdminReports() {
     setAppliedFilters(reset);
   };
 
-  const salesTrendValues = salesTrend?.trend.map((point) => point.amount / 100) ?? [];
+  const salesTrendValues = salesTrend?.trend.map((point) => point.amount) ?? [];
 
   const exportSalesReport = () => {
     if (!salesReport) return;
     downloadCsv('sales-report.csv', [
       ['Metric', 'Value'],
-      ['Total Sales', NGN.format(salesReport.totalSales / 100)],
+      ['Total Sales', formatNgnFromKobo(salesReport.totalSales)],
       ['Total Orders', String(salesReport.totalOrders)],
       ['Products Sold', String(salesReport.totalProductsSold)],
       ['Start Date', salesReport.startDate ?? '—'],
@@ -92,9 +92,9 @@ export default function AdminReports() {
     if (!earningsReport) return;
     downloadCsv('earnings-report.csv', [
       ['Metric', 'Value'],
-      ['Gross', NGN.format(earningsReport.totalGross / 100)],
-      ['Commission', NGN.format(earningsReport.totalCommission / 100)],
-      ['Net', NGN.format(earningsReport.totalNet / 100)],
+      ['Gross', formatNgnFromKobo(earningsReport.totalGross)],
+      ['Commission', formatNgnFromKobo(earningsReport.totalCommission)],
+      ['Net', formatNgnFromKobo(earningsReport.totalNet)],
       ['Orders', String(earningsReport.totalOrders)],
       ['Start Date', earningsReport.startDate ?? '—'],
       ['End Date', earningsReport.endDate ?? '—'],
@@ -118,7 +118,7 @@ export default function AdminReports() {
       ['Date', 'Sales Amount (NGN)'],
       ...salesTrend.trend.map((point) => [
         new Date(point.date).toLocaleDateString(),
-        String(point.amount / 100),
+        String(point.amount),
       ]),
     ]);
   };
@@ -215,7 +215,7 @@ export default function AdminReports() {
               {salesLoading || !salesReport ? (
                 <LoadingState />
               ) : (
-                <p className="text-3xl font-semibold text-white">{NGN.format(salesReport.totalSales / 100)}</p>
+                <p className="text-3xl font-semibold text-white">{formatNgnFromKobo(salesReport.totalSales)}</p>
               )}
             </AdminCard>
             <AdminCard title="Earnings" description={earningsReport ? `${earningsReport.totalOrders} orders` : 'Loading…'} actions={
@@ -232,8 +232,8 @@ export default function AdminReports() {
                 <LoadingState />
               ) : (
                 <div className="space-y-1">
-                  <p className="text-2xl font-semibold text-primary">Net {NGN.format(earningsReport.totalNet / 100)}</p>
-                  <p className="text-xs text-gray-500">Gross {NGN.format(earningsReport.totalGross / 100)} • Commission {NGN.format(earningsReport.totalCommission / 100)}</p>
+                  <p className="text-2xl font-semibold text-primary">Net {formatNgnFromKobo(earningsReport.totalNet)}</p>
+                  <p className="text-xs text-gray-500">Gross {formatNgnFromKobo(earningsReport.totalGross)} • Commission {formatNgnFromKobo(earningsReport.totalCommission)}</p>
                 </div>
               )}
             </AdminCard>

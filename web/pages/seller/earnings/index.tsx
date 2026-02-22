@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
+import { formatDate, formatNgnFromKobo, getApiUrl } from '../../../lib/api/utils';
 import { DollarSign, TrendingUp, TrendingDown, Wallet, Download, X } from 'lucide-react';
 import { useConfirmation } from '../../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
@@ -117,15 +118,12 @@ export default function EarningsPage() {
   const fetchEarningsData = async () => {
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
       const { startDate, endDate } = getDateRangeParams();
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
-      const response = await fetch(`${apiUrl}/reports/earnings?${params.toString()}`, {
+      const response = await fetch(getApiUrl(`/reports/earnings?${params.toString()}`), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -146,10 +144,7 @@ export default function EarningsPage() {
   const fetchPayouts = async () => {
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      const response = await fetch(`${apiUrl}/payouts`, {
+      const response = await fetch(getApiUrl('/payouts'), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -176,10 +171,7 @@ export default function EarningsPage() {
   const fetchPayoutRequests = async () => {
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      const response = await fetch(`${apiUrl}/payouts/requests`, {
+      const response = await fetch(getApiUrl('/payouts/requests'), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -211,10 +203,7 @@ export default function EarningsPage() {
     confirmation.setLoading(true);
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      const response = await fetch(`${apiUrl}/payouts/requests/${requestId}/cancel`, {
+      const response = await fetch(getApiUrl(`/payouts/requests/${requestId}/cancel`), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -239,18 +228,7 @@ export default function EarningsPage() {
     }
   };
 
-  const formatPrice = (priceInKobo: number) => {
-    return `₦${(priceInKobo / 100).toFixed(2)}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  const formatPrice = (priceInKobo: number) => formatNgnFromKobo(priceInKobo);
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -313,10 +291,7 @@ export default function EarningsPage() {
     setRequesting(true);
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      const response = await fetch(`${apiUrl}/payouts/request`, {
+      const response = await fetch(getApiUrl('/payouts/request'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

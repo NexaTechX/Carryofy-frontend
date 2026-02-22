@@ -27,6 +27,7 @@ import DocumentViewer from '../../components/admin/DocumentViewer';
 import KycAuditLog from '../../components/admin/KycAuditLog';
 import { Clock, User, FileText, Download } from 'lucide-react';
 import { bulkApproveSellersRequest, bulkRejectSellersRequest } from '../../lib/admin/api';
+import { formatDate } from '../../lib/api/utils';
 
 const SELLER_FILTERS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const;
 type SellerFilter = (typeof SELLER_FILTERS)[number];
@@ -42,13 +43,6 @@ const statusLabel: Record<string, string> = {
   APPROVED: 'Approved',
   REJECTED: 'Rejected',
 };
-
-const formatDate = (isoDate: string) =>
-  new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(isoDate));
 
 export default function AdminSellers() {
   const [filter, setFilter] = useState<SellerFilter>('PENDING');

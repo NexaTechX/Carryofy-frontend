@@ -25,6 +25,7 @@ import SubmitReviewModal from '../../../components/buyer/SubmitReviewModal';
 import RiderRatingModal from '../../../components/buyer/RiderRatingModal';
 import RefundRequestModal from '../../../components/buyer/RefundRequestModal';
 import { useConfirmation } from '../../../lib/hooks/useConfirmation';
+import { formatDateTime, formatNgnFromKobo } from '../../../lib/api/utils';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 
 interface OrderItem {
@@ -361,23 +362,7 @@ export default function BuyerOrderDetailPage() {
     }
   };
 
-  const formatPrice = (priceInKobo: number) => {
-    return `₦${(priceInKobo / 100).toLocaleString('en-NG', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-NG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatPrice = (priceInKobo: number) => formatNgnFromKobo(priceInKobo, { maximumFractionDigits: 2 });
 
   const activeStepIndex = useMemo(() => {
     if (!order) return 0;
@@ -526,7 +511,7 @@ export default function BuyerOrderDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-5">
                   <p className="text-[#ffcc99]/70 text-sm">Order placed</p>
-                  <p className="text-white text-xl font-bold mt-2">{formatDate(order.createdAt)}</p>
+                  <p className="text-white text-xl font-bold mt-2">{formatDateTime(order.createdAt)}</p>
                   <p className="text-[#ffcc99]/60 text-xs mt-2">
                     We&apos;ll keep you posted on every update.
                   </p>
@@ -696,7 +681,7 @@ export default function BuyerOrderDetailPage() {
                         })}
                       </div>
                       <p className="text-[#ffcc99]/60 text-xs mt-4">
-                        Last updated: {refundInfo.updatedAt ? formatDate(refundInfo.updatedAt) : '—'}
+                        Last updated: {refundInfo.updatedAt ? formatDateTime(refundInfo.updatedAt) : '—'}
                       </p>
                     </div>
                   ) : null}
@@ -719,7 +704,7 @@ export default function BuyerOrderDetailPage() {
                           {order.delivery.eta && (
                             <p className="flex items-center gap-2">
                               <Clock className="w-4 h-4 text-[#ff6600]" />
-                              Estimated arrival: <span className="text-white">{formatDate(order.delivery.eta)}</span>
+                              Estimated arrival: <span className="text-white">{formatDateTime(order.delivery.eta)}</span>
                             </p>
                           )}
                         </>

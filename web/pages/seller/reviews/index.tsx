@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
+import { formatDate, formatDateTime, getApiUrl } from '../../../lib/api/utils';
 import { Star, MessageSquare, Filter, Search, TrendingUp, Send, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -88,9 +89,6 @@ export default function ReviewsPage() {
     try {
       setLoading(true);
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
       const params = new URLSearchParams();
       if (ratingFilter !== 'all') {
         params.append('rating', ratingFilter);
@@ -108,7 +106,7 @@ export default function ReviewsPage() {
         params.append('endDate', endDate);
       }
 
-      const response = await fetch(`${apiUrl}/products/reviews?${params.toString()}`, {
+      const response = await fetch(getApiUrl(`/products/reviews?${params.toString()}`), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -131,10 +129,7 @@ export default function ReviewsPage() {
     try {
       setAnalyticsLoading(true);
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      const response = await fetch(`${apiUrl}/products/reviews/analytics`, {
+      const response = await fetch(getApiUrl('/products/reviews/analytics'), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -165,26 +160,6 @@ export default function ReviewsPage() {
     );
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   const handleCreateReply = async (reviewId: string) => {
     const comment = replyText[reviewId]?.trim();
     if (!comment) {
@@ -195,10 +170,7 @@ export default function ReviewsPage() {
     try {
       setSubmittingReply(reviewId);
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      const response = await fetch(`${apiUrl}/products/reviews/${reviewId}/reply`, {
+      const response = await fetch(getApiUrl(`/products/reviews/${reviewId}/reply`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

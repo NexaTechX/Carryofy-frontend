@@ -8,7 +8,7 @@ import SellerLayout from '../../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../../lib/auth';
 import { apiClient } from '../../../../lib/api/client';
 import { useCategories } from '../../../../lib/buyer/hooks/useCategories';
-import { X, Plus, AlertCircle, Sparkles, Wand2, Loader2, Layers } from 'lucide-react';
+import { X, Plus, AlertCircle, Sparkles, Wand2, Loader2, Layers, Check } from 'lucide-react';
 
 type SellingMode = 'B2C_ONLY' | 'B2B_ONLY' | 'B2C_AND_B2B';
 type B2bProductType = 'WHOLESALE' | 'DISTRIBUTOR' | 'MANUFACTURER_DIRECT';
@@ -25,6 +25,7 @@ interface FormData {
   price: string;
   category: string;
   categoryId: string;
+  categoryIds: string[];
   quantity: string;
   material?: string;
   careInfo?: string;
@@ -47,6 +48,7 @@ interface Product {
   status: string;
   category?: string;
   categoryId?: string;
+  categoryIds?: string[];
   material?: string;
   careInfo?: string;
   keyFeatures?: string[];
@@ -67,16 +69,14 @@ export default function EditProductPage() {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string>('');
-  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
-  const [enhancingImageIndex, setEnhancingImageIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     price: '',
     category: '',
     categoryId: '',
+    categoryIds: [],
     quantity: '',
     material: '',
     careInfo: '',
@@ -91,12 +91,14 @@ export default function EditProductPage() {
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [aiGeneratingField, setAiGeneratingField] = useState<'description' | 'keyFeatures' | 'material' | 'careInfo' | null>(null);
 
-  // Resolve category for commission display (by categoryId first, then slug or name)
-  const selectedCategory = formData.categoryId
-    ? categories.find((c) => c.id === formData.categoryId)
-    : formData.category
-      ? categories.find((c) => c.slug === formData.category || c.name === formData.category)
-      : null;
+  // Resolve category for commission display (primary = first in categoryIds, else legacy categoryId/category)
+  const selectedCategory = formData.categoryIds?.length
+    ? categories.find((c) => c.id === formData.categoryIds[0])
+    : formData.categoryId
+      ? categories.find((c) => c.id === formData.categoryId)
+      : formData.category
+        ? categories.find((c) => c.slug === formData.category || c.name === formData.category)
+        : null;
 
   useEffect(() => {
     setMounted(true);
@@ -146,6 +148,7 @@ export default function EditProductPage() {
           price: (product.price / 100).toFixed(2),
           category: product.category || '',
           categoryId: product.categoryId || '',
+          categoryIds: product.categoryIds?.length ? product.categoryIds : (product.categoryId ? [product.categoryId] : []),
           quantity: product.quantity.toString(),
           material: product.material || '',
           careInfo: product.careInfo || '',
@@ -162,7 +165,6 @@ export default function EditProductPage() {
           })),
         });
 
-        setUploadedImageUrls(product.images || []);
         if (product.images && product.images.length > 0) {
           setImagePreview(product.images[0]);
         }
@@ -242,97 +244,6 @@ export default function EditProductPage() {
     }));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file');
-      return;
-    }
-
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
-      return;
-    }
-
-    // Create preview
-    const reader = new FileReader();
-    const preview = await new Promise<string>((resolve) => {
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.readAsDataURL(file);
-    });
-    setImagePreview(preview);
-
-    // Upload to server
-    setUploadingImage(true);
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('images', file);
-
-      // Use apiClient which handles token refresh automatically
-      const response = await apiClient.post('/products/upload', formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const urls = response.data?.urls || response.data?.data?.urls || [];
-      if (urls.length > 0) {
-        setUploadedImageUrls(prev => [...prev, ...urls]);
-        toast.success('Image uploaded successfully');
-      } else {
-        toast.error('Upload succeeded but no URL returned');
-      }
-    } catch (error: any) {
-      console.error('Error uploading image:', error);
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to upload image';
-      toast.error(errorMessage);
-    } finally {
-      setUploadingImage(false);
-      // Reset file input
-      if (e.target) {
-        e.target.value = '';
-      }
-    }
-  };
-
-  const handleRemoveImage = (urlToRemove: string) => {
-    setUploadedImageUrls(uploadedImageUrls.filter(url => url !== urlToRemove));
-    if (imagePreview === urlToRemove) {
-      const remainingImages = uploadedImageUrls.filter(url => url !== urlToRemove);
-      setImagePreview(remainingImages.length > 0 ? remainingImages[0] : '');
-    }
-  };
-
-  const handleEnhanceImage = async (index: number) => {
-    const url = uploadedImageUrls[index];
-    if (!url) return;
-    setEnhancingImageIndex(index);
-    try {
-      const response = await apiClient.post<{ enhancedUrl: string }>('/products/ai/enhance-image', {
-        imageUrl: url,
-      });
-      const payload = response.data;
-      const enhancedUrl = payload?.enhancedUrl;
-      if (enhancedUrl) {
-        setUploadedImageUrls(prev =>
-          prev.map((u, i) => (i === index ? enhancedUrl : u))
-        );
-        if (imagePreview === url) setImagePreview(enhancedUrl);
-        toast.success('Image enhanced for better presentation');
-      } else {
-        toast.error('Could not get enhanced image');
-      }
-    } catch (error: any) {
-      const msg = error?.response?.data?.message || error?.message || 'Failed to enhance image';
-      toast.error(msg);
-    } finally {
-      setEnhancingImageIndex(null);
-    }
-  };
 
   type AIGenerateField = 'description' | 'keyFeatures' | 'material' | 'careInfo';
 
@@ -391,10 +302,6 @@ export default function EditProductPage() {
       return;
     }
 
-    if (uploadedImageUrls.length === 0) {
-      toast.error('Please upload at least one product image');
-      return;
-    }
 
     setLoading(true);
     try {
@@ -417,12 +324,24 @@ export default function EditProductPage() {
       const sellingMode = formData.sellingMode || 'B2C_ONLY';
       const isB2bEnabled = sellingMode === 'B2B_ONLY' || sellingMode === 'B2C_AND_B2B';
 
+      if (!formData.categoryIds?.length) {
+        toast.error('Select at least one category');
+        setLoading(false);
+        return;
+      }
+      if (formData.categoryIds.length > 10) {
+        toast.error('Maximum 10 categories allowed');
+        setLoading(false);
+        return;
+      }
+
       const productData: Record<string, unknown> = {
         title: formData.title,
         description: formData.description || undefined,
         price: priceInKobo,
-        images: uploadedImageUrls,
+        images: [],
         quantity: parseInt(formData.quantity),
+        categoryIds: formData.categoryIds,
         material: formData.material || undefined,
         careInfo: formData.careInfo || undefined,
         sellingMode,
@@ -545,79 +464,11 @@ export default function EditProductPage() {
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="text-center">
                           <p className="text-[#ffcc99] mb-2">No image uploaded</p>
-                          <label className="cursor-pointer bg-[#ff6600] hover:bg-[#cc5200] text-black px-4 py-2 rounded-xl font-semibold transition">
-                            Upload Image
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImageUpload}
-                              className="hidden"
-                              disabled={uploadingImage}
-                            />
-                          </label>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Image thumbnails */}
-                  {uploadedImageUrls.length > 0 && (
-                    <div className="mt-4 flex gap-2 flex-wrap">
-                      {uploadedImageUrls.map((url, index) => (
-                        <div key={`${index}-${url}`} className="relative group">
-                          <div
-                            className="w-20 h-20 relative rounded-lg border border-[#ff6600]/30 cursor-pointer overflow-hidden"
-                            onClick={() => setImagePreview(url)}
-                          >
-                            <Image
-                              src={url}
-                              alt={`Product image ${index + 1}`}
-                              fill
-                              sizes="80px"
-                              className="object-cover"
-                            />
-                          </div>
-                          <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                            {/* AI Enhance Image Button - Commented out (no API key yet) */}
-                            {/* <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleEnhanceImage(index); }}
-                              disabled={enhancingImageIndex !== null}
-                              title="Enhance image for better selling"
-                              className="bg-[#ff6600]/90 text-black rounded-full p-1 hover:bg-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {enhancingImageIndex === index ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Sparkles className="w-3 h-3" />
-                              )}
-                            </button> */}
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleRemoveImage(url); }}
-                              className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      <label className="w-20 h-20 border-2 border-dashed border-[#ff6600]/50 rounded-lg flex items-center justify-center cursor-pointer hover:bg-[#1a1a1a] transition">
-                        <span className="text-[#ff6600] text-2xl">+</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                          disabled={uploadingImage}
-                        />
-                      </label>
-                    </div>
-                  )}
-
-                  {uploadingImage && (
-                    <p className="text-[#ffcc99] text-sm mt-2">Uploading image...</p>
-                  )}
                 </div>
               </div>
             </div>
@@ -639,6 +490,58 @@ export default function EditProductPage() {
                     required
                     className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-[#1a1a1a] focus:border-[#ff6600] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
                   />
+                </div>
+
+                {/* Categories (multi-select) */}
+                <div>
+                  <label className="block text-white text-sm font-medium mb-2">
+                    Categories <span className="text-red-400">*</span>
+                  </label>
+                  <p className="text-[#ffcc99]/60 text-xs mb-3">
+                    Select one or more categories (up to 10). First selected is primary for commission.
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {categories.map((cat) => {
+                      const isSelected = (formData.categoryIds || []).includes(cat.id);
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => {
+                              const ids = prev.categoryIds || [];
+                              if (ids.includes(cat.id)) {
+                                return { ...prev, categoryIds: ids.filter(id => id !== cat.id) };
+                              }
+                              if (ids.length >= 10) return prev;
+                              return { ...prev, categoryIds: [...ids, cat.id] };
+                            });
+                          }}
+                          className={`relative p-4 rounded-xl border text-center transition-all ${isSelected
+                            ? 'bg-[#ff6600] border-[#ff6600] text-black shadow-lg shadow-[#ff6600]/30'
+                            : (formData.categoryIds?.length ?? 0) >= 10 ? 'opacity-60 cursor-not-allowed bg-black border-[#ff6600]/20 text-[#ffcc99]/60'
+                            : 'bg-black border-[#ff6600]/30 text-[#ffcc99] hover:border-[#ff6600]/60 hover:bg-[#1a1a1a]'
+                            }`}
+                          disabled={!formData.categoryIds?.includes(cat.id) && (formData.categoryIds?.length ?? 0) >= 10}
+                        >
+                          {cat.icon && (
+                            <span className="text-2xl block mb-2">{cat.icon}</span>
+                          )}
+                          <span className="text-sm font-medium block">{cat.name}</span>
+                          {isSelected && (
+                            <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center">
+                              <Check className="w-3 h-3" />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {(formData.categoryIds?.length ?? 0) > 0 && (
+                    <p className="mt-2 text-[#ffcc99]/70 text-xs">
+                      Selected: {formData.categoryIds?.length ?? 0}/10
+                    </p>
+                  )}
                 </div>
 
                 {/* AI hint: per-field buttons are next to each section below */}
@@ -684,17 +587,14 @@ export default function EditProductPage() {
                           className={`flex-1 px-4 py-2 rounded-xl bg-[#1a1a1a] border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${errors.keyFeatures ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
                             }`}
                         />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveKeyFeature(index)}
-                          className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 hover:border-red-500/50 transition-all flex items-center justify-center"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                        <span className="text-[#ffcc99]/60 text-xs w-12 text-right">
-                          {feature.length}/30
-                        </span>
-                      </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveKeyFeature(index)}
+                            className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 hover:border-red-500/50 transition-all flex items-center justify-center"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                     ))}
 
                     {(formData.keyFeatures || []).length < 3 && (
@@ -968,7 +868,7 @@ export default function EditProductPage() {
                 <div className="flex gap-4">
                   <button
                     type="submit"
-                    disabled={loading || uploadingImage}
+                    disabled={loading}
                     className="flex-1 bg-[#ff6600] hover:bg-[#cc5200] disabled:bg-[#ff6600]/50 disabled:cursor-not-allowed text-black px-6 py-3 rounded-xl font-semibold transition"
                   >
                     {loading ? 'Updating Product...' : 'Update Product'}

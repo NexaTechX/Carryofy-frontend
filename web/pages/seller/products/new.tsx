@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
@@ -9,9 +9,7 @@ import { apiClient } from '../../../lib/api/client';
 import { useCategories, Category } from '../../../lib/buyer/hooks/useCategories';
 import {
   Package,
-  Upload,
   X,
-  Image as ImageIcon,
   DollarSign,
   Tag,
   Layers,
@@ -28,7 +26,9 @@ import {
   ShieldAlert,
   ShieldX,
   Clock,
-  ShieldCheck
+  ShieldCheck,
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
 
 type SellingMode = 'B2C_ONLY' | 'B2B_ONLY' | 'B2C_AND_B2B';
@@ -44,7 +44,7 @@ interface FormData {
   title: string;
   description: string;
   price: string;
-  categoryId: string;
+  categoryIds: string[];
   quantity: string;
   material?: string;
   careInfo?: string;
@@ -57,10 +57,6 @@ interface FormData {
   priceTiers?: PriceTier[];
 }
 
-interface UploadedImage {
-  url: string;
-  preview: string;
-}
 
 // Categories that strongly benefit from material and care information (by slug)
 const MATERIAL_CARE_REQUIRED_CATEGORIES = ['clothing', 'home', 'fashion'];
@@ -101,24 +97,23 @@ const getCategoryExamples = (category: string) => {
 };
 
 export default function AddProductPage() {
+  // 1. All hooks and state first
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { data: categoriesData, isLoading: categoriesLoading } = useCategories();
   const categories = categoriesData?.categories || [];
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
-  const [enhancingImageIndex, setEnhancingImageIndex] = useState<number | null>(null);
-  const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [kycLoading, setKycLoading] = useState(true);
+  const [productImages, setProductImages] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [pendingImages, setPendingImages] = useState<{ id: string; url: string; progress: number }[]>([]);
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     price: '',
-    categoryId: '',
+    categoryIds: [],
     quantity: '',
     material: '',
     careInfo: '',
@@ -133,6 +128,36 @@ export default function AddProductPage() {
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [aiGeneratingField, setAiGeneratingField] = useState<'description' | 'keyFeatures' | 'material' | 'careInfo' | null>(null);
 
+  // 2. Function declarations (helpers - hoisted but kept here for clarity)
+  async function fetchKycStatus() {
+    try {
+      const response = await apiClient.get('/sellers/kyc');
+      const data = response.data?.data || response.data;
+      setKycStatus(data.status);
+    } catch (err) {
+      console.error('Error fetching KYC status:', err);
+    } finally {
+      setKycLoading(false);
+    }
+  }
+
+  function getSelectedCategory() {
+    const primaryId = formData.categoryIds[0];
+    return primaryId ? categories.find(c => c.id === primaryId) : undefined;
+  }
+
+  function getCategorySlug() {
+    return getSelectedCategory()?.slug || '';
+  }
+
+  // 3. Derived state (recomputes when category or form data changes)
+  const selectedCategory = getSelectedCategory();
+  const categorySlug = getCategorySlug();
+  const categoryInfo = categorySlug ? shouldShowMaterialCarePrompt(categorySlug) : null;
+  const categoryExamples = categorySlug ? getCategoryExamples(categorySlug) : null;
+  const needsMaterialCare = categoryInfo?.required || categoryInfo?.recommended;
+
+  // 4. Effects
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -150,47 +175,13 @@ export default function AddProductPage() {
     fetchKycStatus();
   }, [router, authLoading, isAuthenticated, user]);
 
-  const fetchKycStatus = async () => {
-    try {
-      const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-      const response = await fetch(`${apiUrl}/sellers/kyc`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const responseData = data.data || data;
-        setKycStatus(responseData.status);
-      }
-    } catch (err) {
-      console.error('Error fetching KYC status:', err);
-    } finally {
-      setKycLoading(false);
-    }
-  };
 
-
-  // Helper to get selected category
-  const getSelectedCategory = () => {
-    return categories.find(c => c.id === formData.categoryId);
-  };
-
-  // Helper to get category slug
-  const getCategorySlug = () => {
-    const category = getSelectedCategory();
-    return category?.slug || '';
-  };
-
-  const validateField = (name: string, value: string) => {
+  function validateField(name: string, value: string) {
     switch (name) {
       case 'title':
         if (!value.trim()) return 'Product title is required';
         if (value.length < 3) return 'Title must be at least 3 characters';
         if (value.length > 100) return 'Title must be less than 100 characters';
-        break;
-      case 'categoryId':
-        if (!value) return 'Category is required';
         break;
       case 'price':
         if (!value) return 'Price is required';
@@ -203,19 +194,18 @@ export default function AddProductPage() {
       case 'material':
       case 'careInfo':
         // Warn if category requires material/care but field is empty
-        const categorySlug = getCategorySlug();
         if (categorySlug) {
-          const categoryInfo = shouldShowMaterialCarePrompt(categorySlug);
-          if (categoryInfo.required && !value.trim()) {
+          const catInfo = shouldShowMaterialCarePrompt(categorySlug);
+          if (catInfo.required && !value.trim()) {
             return 'This information is highly recommended for this product category. 88% of customers look for this information.';
           }
         }
         break;
     }
     return '';
-  };
+  }
 
-  const validateKeyFeatures = (features: string[]): string => {
+  function validateKeyFeatures(features: string[]): string {
     if (features.length > 3) {
       return 'Maximum 3 key features allowed';
     }
@@ -228,7 +218,7 @@ export default function AddProductPage() {
       }
     }
     return '';
-  };
+  }
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -280,143 +270,75 @@ export default function AddProductPage() {
     }));
   };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      await handleFiles(Array.from(files));
-    }
-  };
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
-      await handleFiles(Array.from(files));
-    }
-  };
+    if (!files || files.length === 0) return;
 
-  const handleFiles = async (files: File[]) => {
-    const validFiles = files.filter(file => {
-      if (!file.type.startsWith('image/')) {
-        toast.error(`${file.name} is not an image`);
-        return false;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(`${file.name} is too large (max 5MB)`);
-        return false;
-      }
-      return true;
-    });
-
-    if (uploadedImages.length + validFiles.length > 5) {
-      toast.error('Maximum 5 images allowed');
+    // Check if adding these files would exceed 5 images
+    const currentTotal = productImages.length + pendingImages.length;
+    if (currentTotal + files.length > 5) {
+      toast.error('Maximum 5 images allowed. Please remove some images first.');
+      e.target.value = ''; // Reset input
       return;
     }
 
-    for (const file of validFiles) {
-      await uploadImage(file);
-    }
-  };
+    const selectedFiles = Array.from(files);
+    const newPending = selectedFiles.map((file) => ({
+      id: Math.random().toString(36).substring(7),
+      url: URL.createObjectURL(file),
+      progress: 0,
+      file,
+    }));
 
-  const uploadImage = async (file: File) => {
-    // Create preview
-    const reader = new FileReader();
-    const preview = await new Promise<string>((resolve) => {
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.readAsDataURL(file);
+    setPendingImages((prev) => [...prev, ...newPending]);
+    setUploadingImages(true);
+
+    // Upload images individually for faster single-task success and to avoid big batch timeouts
+    const uploadTasks = newPending.map(async (pendingItem) => {
+      try {
+        const uploadData = new FormData();
+        uploadData.append('images', pendingItem.file);
+
+        console.log(`📤 Uploading image ${pendingItem.id}...`);
+        const response = await apiClient.post('/products/images/upload', uploadData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 60000, // 60s per individual image is plenty
+        });
+
+        const data = response.data?.data || response.data;
+        const uploadedUrls = data?.urls || (Array.isArray(data) ? data : []);
+
+        if (uploadedUrls.length > 0) {
+          console.log('✅ INSTANT CLOUDINARY URL RECEIVED:', uploadedUrls[0]);
+          setProductImages((prev) => [...prev, ...uploadedUrls]);
+        } else {
+          throw new Error('No URL returned');
+        }
+      } catch (error: any) {
+        console.error(`❌ Error uploading image ${pendingItem.id}:`, error);
+        const errorMessage = error?.response?.data?.message || error?.message || 'Upload failed';
+        toast.error(`${pendingItem.file.name}: ${errorMessage}`);
+      } finally {
+        // Revoke URL and remove from pending
+        URL.revokeObjectURL(pendingItem.url);
+        setPendingImages((prev) => prev.filter(p => p.id !== pendingItem.id));
+      }
     });
 
-    setUploadingImage(true);
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('images', file);
-
-      // Use apiClient which handles token refresh automatically
-      // Increased timeout for file uploads (60 seconds)
-      const response = await apiClient.post('/products/upload', formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: 60000, // 60 seconds for file uploads
-      });
-
-      const urls = response.data?.urls || response.data?.data?.urls || [];
-      if (urls.length > 0) {
-        setUploadedImages(prev => [...prev, { url: urls[0], preview }]);
-        toast.success('Image uploaded successfully');
-      } else {
-        toast.error('Upload succeeded but no URL returned');
-      }
-    } catch (error: any) {
-      console.error('Error uploading image:', error);
-      
-      // Handle timeout errors
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        toast.error('Upload timed out. Please check your connection and try again.');
-        return;
-      }
-      
-      // Handle network errors
-      if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-        toast.error('Network error. Please check your connection and try again.');
-        return;
-      }
-      
-      // Handle API errors
-      const errorMessage = error?.response?.data?.message || 
-                          error?.response?.data?.error || 
-                          error?.message || 
-                          'Failed to upload image. Please try again.';
-      toast.error(errorMessage);
+      await Promise.all(uploadTasks);
     } finally {
-      setUploadingImage(false);
+      setUploadingImages(false);
+      if (e.target) e.target.value = '';
     }
   };
 
-  const removeImage = (index: number) => {
-    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  const handleRemoveImage = (index: number) => {
+    setProductImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleEnhanceImage = async (index: number) => {
-    const image = uploadedImages[index];
-    if (!image?.url) return;
-    setEnhancingImageIndex(index);
-    try {
-      const response = await apiClient.post<{ enhancedUrl: string }>('/products/ai/enhance-image', {
-        imageUrl: image.url,
-      });
-      const payload = response.data;
-      const enhancedUrl = payload?.enhancedUrl;
-      if (enhancedUrl) {
-        setUploadedImages(prev =>
-          prev.map((img, i) =>
-            i === index ? { ...img, url: enhancedUrl, preview: enhancedUrl } : img
-          )
-        );
-        toast.success('Image enhanced for better presentation');
-      } else {
-        toast.error('Could not get enhanced image');
-      }
-    } catch (error: any) {
-      const msg = error?.response?.data?.message || error?.message || 'Failed to enhance image';
-      toast.error(msg);
-    } finally {
-      setEnhancingImageIndex(null);
-    }
-  };
 
   type AIGenerateField = 'description' | 'keyFeatures' | 'material' | 'careInfo';
 
@@ -440,6 +362,8 @@ export default function AddProductPage() {
         existingDescription: formData.description || undefined,
         needsMaterial: categoryInfo.required || categoryInfo.recommended,
         needsCareInfo: categoryInfo.required || categoryInfo.recommended,
+      }, {
+        timeout: 60000, // 60 second timeout for AI generation
       });
 
       const payload = response.data?.data ?? response.data;
@@ -474,13 +398,15 @@ export default function AddProductPage() {
     // Validate all fields
     const newErrors: Partial<Record<keyof FormData, string>> = {};
 
-    // Validate categoryId first
-    if (!formData.categoryId) {
-      newErrors.categoryId = 'Category is required';
+    // Validate categoryIds
+    if (!formData.categoryIds?.length) {
+      newErrors.categoryIds = 'Select at least one category';
+    } else if (formData.categoryIds.length > 10) {
+      newErrors.categoryIds = 'Maximum 10 categories allowed';
     }
 
     Object.entries(formData).forEach(([key, value]) => {
-      if (key !== 'keyFeatures') {
+      if (key !== 'keyFeatures' && key !== 'categoryIds') {
         const error = validateField(key, value as string);
         if (error) newErrors[key as keyof FormData] = error;
       }
@@ -500,21 +426,17 @@ export default function AddProductPage() {
       return;
     }
 
-    if (uploadedImages.length === 0) {
-      toast.error('Please upload at least one product image');
-      return;
-    }
 
     setLoading(true);
     try {
-      const priceInKobo = Math.round(parseFloat(formData.price) * 100);
-
-      if (!formData.categoryId) {
-        toast.error('Please select a category');
+      // images validation
+      if (productImages.length === 0) {
+        toast.error('Please upload at least one product image');
         setLoading(false);
         return;
       }
 
+      const priceInKobo = Math.round(parseFloat(formData.price) * 100);
       const sellingMode = formData.sellingMode || 'B2C_ONLY';
       const isB2bEnabled = sellingMode === 'B2B_ONLY' || sellingMode === 'B2C_AND_B2B';
 
@@ -522,9 +444,9 @@ export default function AddProductPage() {
         title: formData.title,
         description: formData.description || undefined,
         price: priceInKobo,
-        images: uploadedImages.map(img => img.url),
+        images: productImages,
         quantity: parseInt(formData.quantity),
-        categoryId: formData.categoryId,
+        categoryIds: formData.categoryIds,
         material: formData.material || undefined,
         careInfo: formData.careInfo || undefined,
         keyFeatures: formData.keyFeatures && formData.keyFeatures.length > 0
@@ -549,6 +471,8 @@ export default function AddProductPage() {
         }
       }
 
+      console.log('🚀 SUBMITTING PRODUCT DATA - Images:', productData.images);
+
       // Use apiClient which handles token refresh automatically
       await apiClient.post('/products', productData);
 
@@ -565,13 +489,14 @@ export default function AddProductPage() {
 
   const isFormValid = () => {
     return (
+      productImages.length > 0 &&
       formData.title.trim() &&
-      formData.categoryId &&
+      formData.categoryIds?.length > 0 &&
       formData.price &&
       parseFloat(formData.price) > 0 &&
       formData.quantity &&
       parseInt(formData.quantity) >= 0 &&
-      uploadedImages.length > 0
+      true
     );
   };
 
@@ -606,8 +531,8 @@ export default function AddProductPage() {
             <div className="max-w-lg w-full">
               {/* Icon */}
               <div className={`w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-8 ${isPending ? 'bg-yellow-500/15 border border-yellow-500/30'
-                  : isRejected ? 'bg-red-500/15 border border-red-500/30'
-                    : 'bg-blue-500/15 border border-blue-500/30'
+                : isRejected ? 'bg-red-500/15 border border-red-500/30'
+                  : 'bg-blue-500/15 border border-blue-500/30'
                 }`}>
                 {isPending ? (
                   <Clock className="w-12 h-12 text-yellow-400" />
@@ -620,8 +545,8 @@ export default function AddProductPage() {
 
               {/* Title */}
               <h1 className={`text-3xl font-bold text-center mb-3 ${isPending ? 'text-yellow-300'
-                  : isRejected ? 'text-red-300'
-                    : 'text-blue-300'
+                : isRejected ? 'text-red-300'
+                  : 'text-blue-300'
                 }`}>
                 {isPending ? 'Verification In Progress' : isRejected ? 'Verification Rejected' : 'Identity Verification Required'}
               </h1>
@@ -682,10 +607,10 @@ export default function AddProductPage() {
                 <a
                   href="/seller/settings?tab=kyc"
                   className={`flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-white transition-all ${isPending
-                      ? 'bg-yellow-600 hover:bg-yellow-500'
-                      : isRejected
-                        ? 'bg-red-600 hover:bg-red-500'
-                        : 'bg-blue-600 hover:bg-blue-500'
+                    ? 'bg-yellow-600 hover:bg-yellow-500'
+                    : isRejected
+                      ? 'bg-red-600 hover:bg-red-500'
+                      : 'bg-blue-600 hover:bg-blue-500'
                     }`}
                 >
                   {isPending ? (
@@ -735,151 +660,128 @@ export default function AddProductPage() {
           </div>
 
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column - Images */}
-              <div className="lg:col-span-1 space-y-4">
-                {/* Image Upload Card */}
+            <div className="space-y-6">
+              {/* Form */}
+              <div className="space-y-4">
+                {/* Product Images */}
                 <div className="bg-[#1a1a1a] rounded-2xl border border-[#ff6600]/20 p-5">
-                  <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-2 mb-5">
                     <ImageIcon className="w-5 h-5 text-[#ff6600]" />
                     <h2 className="text-white font-semibold">Product Images</h2>
-                    <span className="text-xs text-[#ffcc99] ml-auto">{uploadedImages.length}/5</span>
                   </div>
 
-                  {/* Drop Zone */}
-                  <div
-                    onDragEnter={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`
-                      relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200
-                      ${dragActive
-                        ? 'border-[#ff6600] bg-[#ff6600]/10'
-                        : 'border-[#ff6600]/30 hover:border-[#ff6600]/60 hover:bg-[#ff6600]/5'
-                      }
-                      ${uploadingImage ? 'pointer-events-none opacity-60' : ''}
-                    `}
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileSelect}
-                      className="hidden"
-                      disabled={uploadingImage}
-                    />
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[#ffcc99] text-sm font-medium mb-2">
+                        Upload Images <span className="text-red-400">*</span>
+                      </label>
+                      <p className="text-[#ffcc99]/60 text-xs mb-3">
+                        Upload up to 5 product images (JPG, PNG, or WebP, max 5MB each). High-quality images improve conversion rates.
+                      </p>
 
-                    {uploadingImage ? (
-                      <div className="py-4">
-                        <div className="w-10 h-10 border-3 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-3"></div>
-                        <p className="text-[#ffcc99] text-sm">Uploading...</p>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="w-14 h-14 rounded-full bg-[#ff6600]/10 flex items-center justify-center mx-auto mb-3">
-                          <Upload className="w-6 h-6 text-[#ff6600]" />
-                        </div>
-                        <p className="text-white font-medium mb-1">
-                          Drop images here or click to upload
-                        </p>
-                        <p className="text-[#ffcc99] text-xs">
-                          PNG, JPG up to 5MB • Max 5 images
-                        </p>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Uploaded Images Grid */}
-                  {uploadedImages.length > 0 && (
-                    <div className="mt-4 grid grid-cols-3 gap-2">
-                      {uploadedImages.map((image, index) => (
-                        <div
-                          key={index}
-                          className="relative aspect-square rounded-lg overflow-hidden group border border-[#ff6600]/20"
-                        >
-                          {image.url ? (
-                            <Image
-                              src={image.url}
-                              alt={`Product ${index + 1}`}
-                              fill
-                              sizes="(max-width: 768px) 33vw, 20vw"
-                              className="object-cover"
-                            />
-                          ) : (
-                            <img
-                              src={image.preview}
-                              alt={`Product ${index + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                          {index === 0 && (
-                            <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-[#ff6600] text-black text-[10px] font-bold rounded">
-                              Main
-                            </span>
-                          )}
-                          <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {/* AI Enhance Image Button - Commented out (no API key yet) */}
-                            {/* <button
-                              type="button"
-                              onClick={() => handleEnhanceImage(index)}
-                              disabled={enhancingImageIndex !== null}
-                              title="Enhance image for better selling"
-                              className="w-6 h-6 bg-[#ff6600]/90 text-black rounded-full flex items-center justify-center hover:bg-[#ff6600] disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {enhancingImageIndex === index ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Sparkles className="w-3 h-3" />
+                      {/* Image Preview Grid */}
+                      {(productImages.length > 0 || pendingImages.length > 0) && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-4">
+                          {productImages.map((url, index) => (
+                            <div key={`remote-${index}`} className="relative group">
+                              <div className="aspect-square rounded-xl overflow-hidden border-2 border-[#ff6600]/30 bg-black">
+                                <Image
+                                  src={url}
+                                  alt={`Product image ${index + 1}`}
+                                  width={200}
+                                  height={200}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveImage(index)}
+                                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500/90 hover:bg-red-500 border border-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="w-4 h-4 text-white" />
+                              </button>
+                              {index === 0 && (
+                                <div className="absolute bottom-2 left-2 px-2 py-1 bg-[#ff6600] text-white text-xs font-medium rounded">
+                                  Main
+                                </div>
                               )}
-                            </button> */}
-                            <button
-                              type="button"
-                              onClick={() => removeImage(index)}
-                              className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                          {/* <p className="absolute bottom-1 left-1 right-1 text-center text-[10px] text-white/90 bg-black/50 rounded py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            Enhance with AI
-                          </p> */}
-                        </div>
-                      ))}
+                            </div>
+                          ))}
 
-                      {/* Add More Button */}
-                      {uploadedImages.length < 5 && (
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="aspect-square rounded-lg border-2 border-dashed border-[#ff6600]/30 flex items-center justify-center hover:border-[#ff6600]/60 hover:bg-[#ff6600]/5 transition-all"
+                          {/* Pending Images */}
+                          {pendingImages.map((p) => (
+                            <div key={`pending-${p.id}`} className="relative">
+                              <div className="aspect-square rounded-xl overflow-hidden border-2 border-[#ff6600]/10 bg-[#1a1a1a] opacity-60">
+                                <img
+                                  src={p.url}
+                                  alt="Pending upload"
+                                  className="w-full h-full object-cover grayscale blur-[2px]"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="flex flex-col items-center gap-2">
+                                    <Loader2 className="w-6 h-6 text-[#ff6600] animate-spin" />
+                                    <span className="text-[10px] text-[#ffcc99] font-medium">Uploading...</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Upload Button */}
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/webp"
+                          multiple
+                          onChange={handleImageUpload}
+                          disabled={uploadingImages || productImages.length >= 5}
+                          className="hidden"
+                          id="image-upload"
+                        />
+                        <label
+                          htmlFor="image-upload"
+                          className={`flex items-center justify-center gap-2 px-6 py-4 rounded-xl border-2 border-dashed transition-all cursor-pointer ${uploadingImages || productImages.length >= 5
+                            ? 'border-gray-600 text-gray-500 cursor-not-allowed'
+                            : 'border-[#ff6600]/50 text-[#ffcc99] hover:border-[#ff6600] hover:bg-[#ff6600]/5'
+                            }`}
                         >
-                          <Plus className="w-6 h-6 text-[#ffcc99]" />
-                        </button>
+                          {uploadingImages ? (
+                            <>
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                              <span>Uploading...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-5 h-5" />
+                              <span>
+                                {productImages.length === 0
+                                  ? 'Upload Product Images'
+                                  : `Add More Images (${productImages.length}/5)`}
+                              </span>
+                            </>
+                          )}
+                        </label>
+                      </div>
+
+                      {productImages.length >= 5 && (
+                        <p className="mt-2 text-yellow-400 text-xs flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          Maximum 5 images reached. Remove an image to add more.
+                        </p>
+                      )}
+
+                      {productImages.length === 0 && (
+                        <p className="mt-2 text-red-400 text-xs flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          At least one product image is required
+                        </p>
                       )}
                     </div>
-                  )}
-
-                  {/* Tips */}
-                  <div className="mt-4 p-3 bg-[#ff6600]/5 rounded-lg border border-[#ff6600]/10">
-                    <p className="text-[#ff6600] text-xs font-medium mb-1 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      Tips for great photos
-                    </p>
-                    <ul className="text-[#ffcc99] text-xs space-y-0.5">
-                      <li>• Use natural lighting</li>
-                      <li>• Show multiple angles</li>
-                      <li>• Keep background clean</li>
-                      {/* <li>• Hover an image and click the sparkle icon to enhance it with AI for better selling</li> */}
-                    </ul>
                   </div>
                 </div>
-              </div>
 
-              {/* Right Column - Form */}
-              <div className="lg:col-span-2 space-y-4">
                 {/* Basic Information */}
                 <div className="bg-[#1a1a1a] rounded-2xl border border-[#ff6600]/20 p-5">
                   <div className="flex items-center gap-2 mb-5">
@@ -963,9 +865,6 @@ export default function AddProductPage() {
                             >
                               <X className="w-4 h-4" />
                             </button>
-                            <span className="text-[#ffcc99]/60 text-xs w-12 text-right">
-                              {feature.length}/30
-                            </span>
                           </div>
                         ))}
 
@@ -1043,172 +942,128 @@ export default function AddProductPage() {
                     </div>
 
                     {/* Material Information */}
-                    {(() => {
-                      const categorySlug = getCategorySlug();
-                      const categoryInfo = categorySlug ? shouldShowMaterialCarePrompt(categorySlug) : { required: false, recommended: false };
-                      const examples = categorySlug ? getCategoryExamples(categorySlug) : null;
-                      const selectedCategory = getSelectedCategory();
-                      const needsMaterial = categoryInfo.required || categoryInfo.recommended;
-
-                      return (
-                        <div>
-                          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-                            <label className="block text-[#ffcc99] text-sm font-medium">
-                              Materials & Composition
-                              {categoryInfo.required && <span className="text-yellow-400 ml-1">*</span>}
-                            </label>
-                            <div className="flex items-center gap-2">
-                              {needsMaterial && !formData.material && examples && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setFormData(prev => ({ ...prev, material: examples.material }));
-                                  }}
-                                  className="text-xs text-[#ff6600] hover:text-[#ff8800] underline"
-                                >
-                                  Use example
-                                </button>
-                              )}
-                              {/* AI Generate Button - Commented out (no API key yet) */}
-                              {/* <button
+                    {needsMaterialCare && (
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                          <label className="block text-[#ffcc99] text-sm font-medium">
+                            Materials & Composition
+                            {categoryInfo?.required && <span className="text-yellow-400 ml-1">*</span>}
+                          </label>
+                          <div className="flex items-center gap-2">
+                            {needsMaterialCare && !formData.material && categoryExamples && (
+                              <button
                                 type="button"
-                                onClick={() => handleGenerateAIField('material')}
-                                disabled={!!aiGeneratingField || !formData.title.trim()}
-                                className="px-3 py-1.5 rounded-lg bg-[#ff6600]/20 border border-[#ff6600]/40 text-[#ff6600] text-xs font-medium hover:bg-[#ff6600]/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, material: categoryExamples.material }));
+                                }}
+                                className="text-xs text-[#ff6600] hover:text-[#ff8800] underline"
                               >
-                                {aiGeneratingField === 'material' ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Wand2 className="w-3.5 h-3.5" />
-                                )}
-                                <span>Generate with AI</span>
-                              </button> */}
-                            </div>
+                                Use example
+                              </button>
+                            )}
                           </div>
-                          <textarea
-                            name="material"
-                            placeholder={examples?.material || "e.g., 100% Cotton, Linen blend, Polyester, etc. Include specific materials, blends, dimensions, or composition details."}
-                            value={formData.material || ''}
-                            onChange={handleInputChange}
-                            rows={4}
-                            className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all resize-none ${categoryInfo.required && !formData.material
-                              ? 'border-yellow-400/50'
-                              : errors.material
-                                ? 'border-red-500'
-                                : 'border-[#ff6600]/30'
-                              }`}
-                          />
-                          {categoryInfo.required && !formData.material && selectedCategory && (
-                            <div className="mt-2 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
-                              <p className="text-yellow-400 text-xs font-medium flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>88% of customers actively look for material information for {selectedCategory.name.toLowerCase()} products. Adding this information improves customer confidence and reduces product returns.</span>
-                              </p>
-                            </div>
-                          )}
-                          {categoryInfo.recommended && !formData.material && (
-                            <p className="mt-1 text-yellow-400/80 text-xs">
-                              ⭐ Recommended: Material information is highly valued by customers in this category
-                            </p>
-                          )}
-                          {errors.material && (
-                            <p className="mt-1 text-red-400 text-xs flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" />
-                              {errors.material}
-                            </p>
-                          )}
-                          {!errors.material && formData.material && (
-                            <p className="mt-1 text-green-400/80 text-xs">
-                              ✓ Material information added - customers will see this on the product page
-                            </p>
-                          )}
                         </div>
-                      );
-                    })()}
+                        <textarea
+                          name="material"
+                          placeholder={categoryExamples?.material || "e.g., 100% Cotton, Linen blend, Polyester, etc. Include specific materials, blends, dimensions, or composition details."}
+                          value={formData.material || ''}
+                          onChange={handleInputChange}
+                          rows={4}
+                          className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all resize-none ${categoryInfo?.required && !formData.material
+                            ? 'border-yellow-400/50'
+                            : errors.material
+                              ? 'border-red-500'
+                              : 'border-[#ff6600]/30'
+                            }`}
+                        />
+                        {categoryInfo?.required && !formData.material && selectedCategory && (
+                          <div className="mt-2 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
+                            <p className="text-yellow-400 text-xs font-medium flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4" />
+                              <span>88% of customers actively look for material information for {selectedCategory.name.toLowerCase()} products. Adding this information improves customer confidence and reduces product returns.</span>
+                            </p>
+                          </div>
+                        )}
+                        {categoryInfo?.recommended && !formData.material && (
+                          <p className="mt-1 text-yellow-400/80 text-xs">
+                            ⭐ Recommended: Material information is highly valued by customers in this category
+                          </p>
+                        )}
+                        {errors.material && (
+                          <p className="mt-1 text-red-400 text-xs flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {errors.material}
+                          </p>
+                        )}
+                        {!errors.material && formData.material && (
+                          <p className="mt-1 text-green-400/80 text-xs">
+                            ✓ Material information added - customers will see this on the product page
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {/* Care Instructions */}
-                    {(() => {
-                      const categorySlug = getCategorySlug();
-                      const categoryInfo = categorySlug ? shouldShowMaterialCarePrompt(categorySlug) : { required: false, recommended: false };
-                      const examples = categorySlug ? getCategoryExamples(categorySlug) : null;
-                      const selectedCategory = getSelectedCategory();
-                      const needsCareInfo = categoryInfo.required || categoryInfo.recommended;
-
-                      return (
-                        <div>
-                          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-                            <label className="block text-[#ffcc99] text-sm font-medium">
-                              Care Instructions
-                              {categoryInfo.required && <span className="text-yellow-400 ml-1">*</span>}
-                            </label>
-                            <div className="flex items-center gap-2">
-                              {needsCareInfo && !formData.careInfo && examples && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setFormData(prev => ({ ...prev, careInfo: examples.careInfo }));
-                                  }}
-                                  className="text-xs text-[#ff6600] hover:text-[#ff8800] underline"
-                                >
-                                  Use example
-                                </button>
-                              )}
-                              {/* AI Generate Button - Commented out (no API key yet) */}
-                              {/* <button
+                    {needsMaterialCare && (
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                          <label className="block text-[#ffcc99] text-sm font-medium">
+                            Care Instructions
+                            {categoryInfo?.required && <span className="text-yellow-400 ml-1">*</span>}
+                          </label>
+                          <div className="flex items-center gap-2">
+                            {needsMaterialCare && !formData.careInfo && categoryExamples && (
+                              <button
                                 type="button"
-                                onClick={() => handleGenerateAIField('careInfo')}
-                                disabled={!!aiGeneratingField || !formData.title.trim()}
-                                className="px-3 py-1.5 rounded-lg bg-[#ff6600]/20 border border-[#ff6600]/40 text-[#ff6600] text-xs font-medium hover:bg-[#ff6600]/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, careInfo: categoryExamples.careInfo }));
+                                }}
+                                className="text-xs text-[#ff6600] hover:text-[#ff8800] underline"
                               >
-                                {aiGeneratingField === 'careInfo' ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Wand2 className="w-3.5 h-3.5" />
-                                )}
-                                <span>Generate with AI</span>
-                              </button> */}
-                            </div>
+                                Use example
+                              </button>
+                            )}
                           </div>
-                          <textarea
-                            name="careInfo"
-                            placeholder={examples?.careInfo || "e.g., Machine wash cold, tumble dry low, do not bleach, iron on low heat. Include washing, cleaning, storage, or maintenance instructions."}
-                            value={formData.careInfo || ''}
-                            onChange={handleInputChange}
-                            rows={4}
-                            className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all resize-none ${categoryInfo.required && !formData.careInfo
-                              ? 'border-yellow-400/50'
-                              : errors.careInfo
-                                ? 'border-red-500'
-                                : 'border-[#ff6600]/30'
-                              }`}
-                          />
-                          {categoryInfo.required && !formData.careInfo && selectedCategory && (
-                            <div className="mt-2 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
-                              <p className="text-yellow-400 text-xs font-medium flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>88% of customers need care instructions for {selectedCategory.name.toLowerCase()} products. Without this, customers may skip your product or make returns due to improper care.</span>
-                              </p>
-                            </div>
-                          )}
-                          {categoryInfo.recommended && !formData.careInfo && (
-                            <p className="mt-1 text-yellow-400/80 text-xs">
-                              ⭐ Recommended: Care instructions help customers properly maintain the product
-                            </p>
-                          )}
-                          {errors.careInfo && (
-                            <p className="mt-1 text-red-400 text-xs flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" />
-                              {errors.careInfo}
-                            </p>
-                          )}
-                          {!errors.careInfo && formData.careInfo && (
-                            <p className="mt-1 text-green-400/80 text-xs">
-                              ✓ Care instructions added - helps customers maintain the product properly
-                            </p>
-                          )}
                         </div>
-                      );
-                    })()}
+                        <textarea
+                          name="careInfo"
+                          placeholder={categoryExamples?.careInfo || "e.g., Machine wash cold, tumble dry low, do not bleach, iron on low heat. Include washing, cleaning, storage, or maintenance instructions."}
+                          value={formData.careInfo || ''}
+                          onChange={handleInputChange}
+                          rows={4}
+                          className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all resize-none ${categoryInfo?.required && !formData.careInfo
+                            ? 'border-yellow-400/50'
+                            : errors.careInfo
+                              ? 'border-red-500'
+                              : 'border-[#ff6600]/30'
+                            }`}
+                        />
+                        {categoryInfo?.required && !formData.careInfo && selectedCategory && (
+                          <div className="mt-2 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
+                            <p className="text-yellow-400 text-xs font-medium flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4" />
+                              <span>88% of customers need care instructions for {selectedCategory.name.toLowerCase()} products. Without this, customers may skip your product or make returns due to improper care.</span>
+                            </p>
+                          </div>
+                        )}
+                        {categoryInfo?.recommended && !formData.careInfo && (
+                          <p className="mt-1 text-yellow-400/80 text-xs">
+                            ⭐ Recommended: Care instructions help customers properly maintain the product
+                          </p>
+                        )}
+                        {errors.careInfo && (
+                          <p className="mt-1 text-red-400 text-xs flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {errors.careInfo}
+                          </p>
+                        )}
+                        {!errors.careInfo && formData.careInfo && (
+                          <p className="mt-1 text-green-400/80 text-xs">
+                            ✓ Care instructions added - helps customers maintain the product properly
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {/* Category */}
                     <div>
@@ -1226,35 +1081,57 @@ export default function AddProductPage() {
                         </div>
                       ) : (
                         <>
+                          <p className="text-[#ffcc99]/70 text-sm mb-2">Select one or more categories (up to 10). First selected is primary for commission.</p>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                            {categories.map((cat) => (
-                              <button
-                                key={cat.id}
-                                type="button"
-                                onClick={() => {
-                                  setFormData(prev => ({ ...prev, categoryId: cat.id }));
-                                  // Clear category error when selecting
-                                  setErrors(prev => ({ ...prev, categoryId: undefined }));
-                                }}
-                                className={`p-4 rounded-xl border text-center transition-all ${formData.categoryId === cat.id
-                                  ? 'bg-[#ff6600] border-[#ff6600] text-black shadow-lg shadow-[#ff6600]/30'
-                                  : 'bg-black border-[#ff6600]/30 text-[#ffcc99] hover:border-[#ff6600]/60 hover:bg-[#1a1a1a]'
-                                  } ${errors.categoryId ? 'border-red-500' : ''}`}
-                              >
-                                {cat.icon && (
-                                  <span className="text-2xl block mb-2">{cat.icon}</span>
-                                )}
-                                <span className="text-sm font-medium block">{cat.name}</span>
-                              </button>
-                            ))}
+                            {categories.map((cat) => {
+                              const isSelected = formData.categoryIds.includes(cat.id);
+                              return (
+                                <button
+                                  key={cat.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData(prev => {
+                                      const ids = prev.categoryIds || [];
+                                      if (ids.includes(cat.id)) {
+                                        return { ...prev, categoryIds: ids.filter(id => id !== cat.id) };
+                                      }
+                                      if (ids.length >= 10) return prev;
+                                      return { ...prev, categoryIds: [...ids, cat.id] };
+                                    });
+                                    setErrors(prev => ({ ...prev, categoryIds: undefined }));
+                                  }}
+                                  className={`relative p-4 rounded-xl border text-center transition-all ${isSelected
+                                    ? 'bg-[#ff6600] border-[#ff6600] text-black shadow-lg shadow-[#ff6600]/30'
+                                    : formData.categoryIds?.length >= 10 ? 'opacity-60 cursor-not-allowed bg-black border-[#ff6600]/20 text-[#ffcc99]/60'
+                                    : 'bg-black border-[#ff6600]/30 text-[#ffcc99] hover:border-[#ff6600]/60 hover:bg-[#1a1a1a]'
+                                    } ${errors.categoryIds ? 'border-red-500' : ''}`}
+                                  disabled={!formData.categoryIds.includes(cat.id) && (formData.categoryIds?.length ?? 0) >= 10}
+                                >
+                                  {cat.icon && (
+                                    <span className="text-2xl block mb-2">{cat.icon}</span>
+                                  )}
+                                  <span className="text-sm font-medium block">{cat.name}</span>
+                                  {isSelected && (
+                                    <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center">
+                                      <Check className="w-3 h-3" />
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
                           </div>
-                          {errors.categoryId && (
-                            <p className="mt-2 text-red-400 text-xs flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" />
-                              {errors.categoryId}
+                          {formData.categoryIds?.length > 0 && (
+                            <p className="mt-2 text-[#ffcc99]/70 text-xs">
+                              Selected: {formData.categoryIds.length}/10
                             </p>
                           )}
-                          {formData.categoryId && getSelectedCategory() && (
+                          {errors.categoryIds && (
+                            <p className="mt-2 text-red-400 text-xs flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              {errors.categoryIds}
+                            </p>
+                          )}
+                          {formData.categoryIds?.length > 0 && getSelectedCategory() && (
                             <div className="mt-4 p-4 rounded-xl border border-[#ff6600]/30 bg-[#ff6600]/5">
                               <p className="text-[#ffcc99] text-sm font-medium mb-2">Commission for this category</p>
                               <p className="text-white text-lg font-semibold">
@@ -1534,7 +1411,7 @@ export default function AddProductPage() {
                 <div className="bg-[#1a1a1a] rounded-xl border border-[#ff6600]/20 p-4">
                   <p className="text-[#ffcc99] text-xs mb-3">Form Completion</p>
                   <div className="flex gap-2">
-                    <div className={`flex-1 h-1.5 rounded-full ${uploadedImages.length > 0 ? 'bg-[#ff6600]' : 'bg-[#ff6600]/20'}`}></div>
+                    <div className={`flex-1 h-1.5 rounded-full ${productImages.length > 0 ? 'bg-[#ff6600]' : 'bg-[#ff6600]/20'}`}></div>
                     <div className={`flex-1 h-1.5 rounded-full ${formData.title.trim() ? 'bg-[#ff6600]' : 'bg-[#ff6600]/20'}`}></div>
                     <div className={`flex-1 h-1.5 rounded-full ${formData.price && parseFloat(formData.price) > 0 ? 'bg-[#ff6600]' : 'bg-[#ff6600]/20'}`}></div>
                     <div className={`flex-1 h-1.5 rounded-full ${formData.quantity && parseInt(formData.quantity) >= 0 ? 'bg-[#ff6600]' : 'bg-[#ff6600]/20'}`}></div>

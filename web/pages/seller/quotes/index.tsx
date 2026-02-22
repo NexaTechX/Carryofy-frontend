@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
+import { getApiUrl, formatDateTime } from '../../../lib/api/utils';
 import { FileText, ChevronRight, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 interface QuoteItem {
@@ -58,9 +59,7 @@ export default function SellerQuotesPage() {
   const fetchQuotes = async () => {
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-      const response = await fetch(`${apiUrl}/quote-requests`, {
+      const response = await fetch(getApiUrl('/quote-requests'), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -80,16 +79,6 @@ export default function SellerQuotesPage() {
     PENDING: { label: 'Pending', color: 'text-yellow-400', icon: <Clock className="w-4 h-4" /> },
     APPROVED: { label: 'Approved', color: 'text-green-400', icon: <CheckCircle className="w-4 h-4" /> },
     REJECTED: { label: 'Rejected', color: 'text-red-400', icon: <XCircle className="w-4 h-4" /> },
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-NG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   const filteredQuotes = statusFilter
@@ -163,7 +152,7 @@ export default function SellerQuotesPage() {
                         <span className="text-white font-medium">
                           {quote.buyer?.name ?? 'Buyer'} · {quote.items?.length ?? 0} item(s)
                         </span>
-                        <span className="text-[#ffcc99] text-sm">{formatDate(quote.createdAt)}</span>
+                        <span className="text-[#ffcc99] text-sm">{formatDateTime(quote.createdAt)}</span>
                       </div>
                       <ChevronRight className="w-5 h-5 text-[#ffcc99]" />
                     </div>

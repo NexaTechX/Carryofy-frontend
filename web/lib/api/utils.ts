@@ -26,6 +26,29 @@ export const getApiUrl = (endpoint: string = ''): string => {
 };
 
 /**
+ * Format a date string or Date for display (date only).
+ * Uses en-NG locale by default; pass opts to customize.
+ */
+export const formatDate = (
+  date: string | Date,
+  opts: Intl.DateTimeFormatOptions = { dateStyle: 'medium' },
+): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return new Intl.DateTimeFormat('en-NG', opts).format(d);
+};
+
+/**
+ * Format a date string or Date for display (date and time).
+ */
+export const formatDateTime = (date: string | Date): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return new Intl.DateTimeFormat('en-NG', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(d);
+};
+
+/**
  * Format a kobo amount as NGN currency string.
  * All money values in the system are stored as integers in kobo.
  */

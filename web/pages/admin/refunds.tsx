@@ -26,12 +26,7 @@ import {
 import { useAdminPayouts } from '../../lib/admin/hooks/usePayouts';
 import apiClient from '../../lib/api/client';
 import { toast } from 'react-hot-toast';
-
-const NGN_FORMATTER = new Intl.NumberFormat('en-NG', {
-  style: 'currency',
-  currency: 'NGN',
-  maximumFractionDigits: 0,
-});
+import { formatNgnFromKobo } from '../../lib/api/utils';
 
 const REFUND_FILTERS: Array<'ALL' | RefundStatus> = [
   'ALL',
@@ -157,7 +152,7 @@ export default function AdminRefunds() {
             </AdminCard>
             <AdminCard title="Total Refunded" description="Completed refunds">
               <p className="text-3xl font-semibold text-green-500">
-                {NGN_FORMATTER.format(totalRefundedAmount / 100)}
+                {formatNgnFromKobo(totalRefundedAmount)}
               </p>
             </AdminCard>
           </section>
@@ -243,7 +238,7 @@ export default function AdminRefunds() {
                         </DataTableCell>
                         <DataTableCell>
                           <span className="text-sm font-semibold text-primary">
-                            {NGN_FORMATTER.format(refund.amount / 100)}
+                            {formatNgnFromKobo(refund.amount)}
                           </span>
                         </DataTableCell>
                         <DataTableCell>
@@ -404,7 +399,7 @@ export default function AdminRefunds() {
                   Refund Amount
                 </p>
                 <p className="mt-2 text-2xl font-bold text-primary">
-                  {NGN_FORMATTER.format(refundDetail.amount / 100)}
+                  {formatNgnFromKobo(refundDetail.amount)}
                 </p>
               </div>
               <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
@@ -412,7 +407,7 @@ export default function AdminRefunds() {
                   Order Amount
                 </p>
                 <p className="mt-2 text-2xl font-bold text-white">
-                  {refundDetail.orderAmount ? NGN_FORMATTER.format(refundDetail.orderAmount / 100) : '—'}
+                  {refundDetail.orderAmount ? formatNgnFromKobo(refundDetail.orderAmount) : '—'}
                 </p>
               </div>
             </div>

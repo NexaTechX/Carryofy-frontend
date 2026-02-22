@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import apiClient from '../../lib/api/client';
+import { formatDate, formatNgnFromKobo } from '../../lib/api/utils';
 import { tokenManager } from '../../lib/auth';
 import { FileText, Loader2, ChevronRight, Package } from 'lucide-react';
 
@@ -67,11 +68,7 @@ export default function MyQuotesPage() {
     })();
   }, [mounted]);
 
-  const formatPrice = (kobo: number) =>
-    `₦${(kobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('en-NG', { dateStyle: 'medium' });
+  const formatPrice = (kobo: number) => formatNgnFromKobo(kobo, { maximumFractionDigits: 2 });
 
   const filteredList = statusFilter ? list.filter((q) => q.status === statusFilter) : list;
 

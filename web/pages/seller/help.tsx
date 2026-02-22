@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../components/seller/SellerLayout';
+import { formatDate, getApiUrl } from '../../lib/api/utils';
 import { useAuth, tokenManager } from '../../lib/auth';
 import { 
   HelpCircle, 
@@ -19,18 +20,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 
-interface SupportTicket {
-  id: string;
-  subject: string;
-  message: string;
-  category: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
-  adminNotes?: string;
-  resolvedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { SupportTicket } from '../../types/support';
 
 export default function HelpPage() {
   const router = useRouter();
@@ -76,10 +66,7 @@ export default function HelpPage() {
     setLoadingTickets(true);
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      const response = await fetch(`${apiUrl}/support/tickets`, {
+      const response = await fetch(getApiUrl('/support/tickets'), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -118,10 +105,7 @@ export default function HelpPage() {
     setSubmitting(true);
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      const response = await fetch(`${apiUrl}/support/tickets`, {
+      const response = await fetch(getApiUrl('/support/tickets'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -180,15 +164,6 @@ export default function HelpPage() {
       default:
         return 'bg-[#1a1a1a] text-white border-[#ff6600]/30';
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
   };
 
   const faqs = [

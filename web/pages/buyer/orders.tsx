@@ -23,6 +23,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
+import { formatDate, formatNgnFromKobo } from '../../lib/api/utils';
 import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 
@@ -167,23 +168,7 @@ export default function OrdersPage() {
     }
   };
 
-  const formatPrice = (priceInKobo: number) => {
-    return `₦${(priceInKobo / 100).toLocaleString('en-NG', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-NG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatPrice = (priceInKobo: number) => formatNgnFromKobo(priceInKobo, { maximumFractionDigits: 2 });
 
   const getStatusBadge = (status: string) => {
     const statusConfig: { [key: string]: { label: string; color: string; icon: any } } = {

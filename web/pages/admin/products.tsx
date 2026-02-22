@@ -30,12 +30,7 @@ import { toast } from 'react-hot-toast';
 import { Check, X, Trash2, MoreVertical } from 'lucide-react';
 import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
-
-const NGN_FORMATTER = new Intl.NumberFormat('en-NG', {
-  style: 'currency',
-  currency: 'NGN',
-  maximumFractionDigits: 0,
-});
+import { formatNgnFromKobo } from '../../lib/api/utils';
 
 const productStatusLabel: Record<string, string> = {
   PENDING_APPROVAL: 'Pending Approval',
@@ -459,7 +454,7 @@ export default function AdminProducts() {
                           label={productStatusLabel[product.status] ?? product.status}
                         />
                       </DataTableCell>
-                      <DataTableCell>{NGN_FORMATTER.format(product.price / 100)}</DataTableCell>
+                      <DataTableCell>{formatNgnFromKobo(product.price)}</DataTableCell>
                       <DataTableCell>
                         <span className="text-sm text-gray-300">{product.quantity}</span>
                       </DataTableCell>
@@ -594,7 +589,7 @@ export default function AdminProducts() {
                   Price
                 </p>
                 <p className="mt-2 text-lg font-semibold text-white">
-                  {NGN_FORMATTER.format(focusedProduct.price / 100)}
+                  {formatNgnFromKobo(focusedProduct.price)}
                 </p>
               </div>
               <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">

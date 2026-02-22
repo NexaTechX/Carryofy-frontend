@@ -21,18 +21,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-interface SupportTicket {
-  id: string;
-  subject: string;
-  message: string;
-  category: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
-  adminNotes?: string;
-  resolvedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { SupportTicket } from '../../types/support';
+import { formatDate } from '../../lib/api/utils';
 
 export default function BuyerHelpPage() {
   const router = useRouter();
@@ -422,7 +412,7 @@ export default function BuyerHelpPage() {
                             <span className="text-[#ffcc99]">Category: {ticket.category}</span>
                             <span className="text-[#ffcc99]/50">•</span>
                             <span className="text-[#ffcc99]">
-                              {new Date(ticket.createdAt).toLocaleDateString()}
+                              {formatDate(ticket.createdAt)}
                             </span>
                           </div>
                         </div>

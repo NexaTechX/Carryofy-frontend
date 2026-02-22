@@ -1,26 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../api/client';
 import { toast } from 'react-hot-toast';
+import type { Category, CategoriesResponse } from '../../../types/category';
+import { unwrapCategoriesResponse } from '../../shared/hooks/useCategories';
 
-export interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  icon: string | null;
-  color: string | null;
-  isActive: boolean;
-  displayOrder: number;
-  commissionB2C: number;
-  commissionB2B: number | null;
-  createdAt: string;
-  updatedAt: string;
-  productCount?: number;
-}
-
-export interface CategoriesResponse {
-  categories: Category[];
-}
+export type { Category, CategoriesResponse };
 
 export interface CreateCategoryPayload {
   name: string;
@@ -56,15 +40,7 @@ export function useAdminCategories(includeInactive: boolean = true) {
       const response = await apiClient.get<CategoriesResponse>(
         `/categories/admin/all?includeInactive=${includeInactive}`
       );
-      // Handle TransformInterceptor wrapper
-      const data = response.data as any;
-      if (data?.data && 'categories' in data.data) {
-        return data.data as CategoriesResponse;
-      }
-      if (data?.categories) {
-        return data as CategoriesResponse;
-      }
-      return { categories: [] };
+      return unwrapCategoriesResponse(response.data);
     },
   });
 }

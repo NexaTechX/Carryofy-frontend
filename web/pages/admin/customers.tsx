@@ -24,12 +24,7 @@ import {
   type UserStatus,
 } from '../../lib/admin/hooks/useCustomers';
 import { toast } from 'react-hot-toast';
-
-const NGN_FORMATTER = new Intl.NumberFormat('en-NG', {
-  style: 'currency',
-  currency: 'NGN',
-  maximumFractionDigits: 0,
-});
+import { formatNgnFromKobo } from '../../lib/api/utils';
 
 const ROLE_FILTERS: Array<'ALL' | UserRole> = ['ALL', 'BUYER', 'SELLER', 'RIDER', 'ADMIN'];
 const STATUS_FILTERS: Array<'ALL' | UserStatus> = ['ALL', 'ACTIVE', 'SUSPENDED', 'RIDER_PENDING'];
@@ -250,7 +245,7 @@ export default function AdminCustomers() {
                                 ? new Date(customer.lastLoginAt).toLocaleDateString()
                                 : '—'
                             ) : (
-                              NGN_FORMATTER.format(customer.totalSpent / 100)
+                              formatNgnFromKobo(customer.totalSpent)
                             )}
                           </span>
                         </DataTableCell>
@@ -398,7 +393,7 @@ export default function AdminCustomers() {
                 <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Total Spent</p>
                   <p className="mt-2 text-2xl font-bold text-primary">
-                    {NGN_FORMATTER.format(customerDetail.totalSpent / 100)}
+                    {formatNgnFromKobo(customerDetail.totalSpent)}
                   </p>
                 </div>
               </div>
@@ -416,7 +411,7 @@ export default function AdminCustomers() {
                 <div className="col-span-2 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Total Sales</p>
                   <p className="mt-2 text-2xl font-bold text-primary">
-                    {NGN_FORMATTER.format(customerDetail.totalSpent / 100)}
+                    {formatNgnFromKobo(customerDetail.totalSpent)}
                   </p>
                 </div>
               </div>
@@ -430,7 +425,7 @@ export default function AdminCustomers() {
                 <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Total Earnings</p>
                   <p className="mt-2 text-2xl font-bold text-primary">
-                    {NGN_FORMATTER.format(customerDetail.totalSpent / 100)}
+                    {formatNgnFromKobo(customerDetail.totalSpent)}
                   </p>
                 </div>
               </div>
@@ -491,7 +486,7 @@ export default function AdminCustomers() {
                         </p>
                       </div>
                       <p className="text-sm font-semibold text-primary">
-                        {NGN_FORMATTER.format(order.amount / 100)}
+                        {formatNgnFromKobo(order.amount)}
                       </p>
                     </div>
                   ))}
@@ -519,10 +514,10 @@ export default function AdminCustomers() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-semibold text-primary">
-                          {NGN_FORMATTER.format((e.gross ?? e.net) / 100)}
+                          {formatNgnFromKobo((e.gross ?? e.net))}
                         </p>
                         {e.net != null && e.gross !== e.net && (
-                          <p className="text-xs text-gray-500">Net: {NGN_FORMATTER.format(e.net / 100)}</p>
+                          <p className="text-xs text-gray-500">Net: {formatNgnFromKobo(e.net)}</p>
                         )}
                       </div>
                     </div>
@@ -552,7 +547,7 @@ export default function AdminCustomers() {
                         </p>
                       </div>
                       <p className="text-sm font-semibold text-primary">
-                        {NGN_FORMATTER.format(d.amount / 100)}
+                        {formatNgnFromKobo(d.amount)}
                       </p>
                     </div>
                   ))}

@@ -29,6 +29,7 @@ import {
 } from '../../lib/admin/hooks/useAdminDeliveries';
 import { AdminDeliveryStatus, AdminOrder, AdminOrderStatus } from '../../lib/admin/types';
 import { toast } from 'react-hot-toast';
+import { formatNgnFromKobo } from '../../lib/api/utils';
 
 const ORDER_STATUS_OPTIONS: { value: AdminOrderStatus; label: string }[] = [
   { value: 'PENDING_PAYMENT', label: 'Pending Payment' },
@@ -55,12 +56,6 @@ const ORDER_STATUS_TONE: Record<AdminOrderStatus, 'neutral' | 'warning' | 'succe
   DELIVERED: 'success',
   CANCELED: 'danger',
 };
-
-const NGN_FORMATTER = new Intl.NumberFormat('en-NG', {
-  style: 'currency',
-  currency: 'NGN',
-  maximumFractionDigits: 0,
-});
 
 const ORDER_FILTERS = ['ALL', ...ORDER_STATUS_OPTIONS.map((item) => item.value)] as const;
 type OrderFilter = (typeof ORDER_FILTERS)[number];
@@ -247,7 +242,7 @@ export default function AdminOrders() {
                       </DataTableCell>
                       <DataTableCell>
                         <span className="text-sm font-semibold text-white">
-                          {NGN_FORMATTER.format(order.amount / 100)}
+                          {formatNgnFromKobo(order.amount)}
                         </span>
                       </DataTableCell>
                       <DataTableCell>
@@ -292,7 +287,7 @@ export default function AdminOrders() {
         open={Boolean(focusedOrderId)}
         onClose={() => setFocusedOrder(null)}
         title={detailOrder?.id ? `Order #${detailOrder.id.slice(0, 8)}` : 'Order details'}
-        description={detailOrder?.amount ? `Total ${NGN_FORMATTER.format(detailOrder.amount / 100)}` : ''}
+        description={detailOrder?.amount ? `Total ${formatNgnFromKobo(detailOrder.amount)}` : ''}
       >
         {detailOrder ? (
           <div className="space-y-6 text-sm text-gray-300">
@@ -400,7 +395,7 @@ export default function AdminOrders() {
                       <p className="text-xs text-gray-500">Qty {item.quantity}</p>
                     </div>
                     <span className="text-sm font-semibold text-white">
-                      {NGN_FORMATTER.format((item.price * item.quantity) / 100)}
+                      {formatNgnFromKobo(item.price * item.quantity)}
                     </span>
                   </div>
                 ))}

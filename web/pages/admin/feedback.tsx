@@ -13,6 +13,7 @@ import { Feedback } from '../../lib/admin/types';
 import { Star, MessageSquare, Trash2, User, RefreshCw } from 'lucide-react';
 import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
+import { formatDateTime } from '../../lib/api/utils';
 
 const FEEDBACK_FILTERS: Array<{ id: 'all' | string; label: string }> = [
   { id: 'all', label: 'All Feedback' },
@@ -41,7 +42,6 @@ const RATING_TONE: Record<number, 'danger' | 'warning' | 'info' | 'success'> = {
   5: 'success',
 };
 
-const formatDateTime = (iso: string) => new Date(iso).toLocaleString();
 
 const formatCategory = (category: string) => {
   return category

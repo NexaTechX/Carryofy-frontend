@@ -7,6 +7,7 @@ import SellerLayout from '../../../../components/seller/SellerLayout';
 import { useAuth } from '../../../../lib/auth';
 import { apiClient } from '../../../../lib/api/client';
 import { getShareAnalytics, ProductShareAnalytics } from '../../../../lib/api/sharing';
+import { formatDateTime, formatNgnFromKobo } from '../../../../lib/api/utils';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -199,23 +200,7 @@ export default function ProductDetailPage() {
     }
   };
 
-  const formatPrice = (priceInKobo: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-    }).format(priceInKobo / 100);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-NG', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatPrice = (priceInKobo: number) => formatNgnFromKobo(priceInKobo);
 
   const getStatusConfig = (status: string) => {
     return statusConfig[status] || statusConfig.PENDING_APPROVAL;
@@ -592,11 +577,11 @@ export default function ProductDetailPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 bg-[#0a0a0a] rounded-xl">
                     <p className="text-[#ffcc99] text-xs uppercase tracking-wider mb-1">Created</p>
-                    <p className="text-white text-sm">{formatDate(product.createdAt)}</p>
+                    <p className="text-white text-sm">{formatDateTime(product.createdAt)}</p>
                   </div>
                   <div className="p-4 bg-[#0a0a0a] rounded-xl">
                     <p className="text-[#ffcc99] text-xs uppercase tracking-wider mb-1">Last Updated</p>
-                    <p className="text-white text-sm">{formatDate(product.updatedAt)}</p>
+                    <p className="text-white text-sm">{formatDateTime(product.updatedAt)}</p>
                   </div>
                   <div className="p-4 bg-[#0a0a0a] rounded-xl">
                     <p className="text-[#ffcc99] text-xs uppercase tracking-wider mb-1">Price</p>

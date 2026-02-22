@@ -5,6 +5,7 @@ import Link from 'next/link';
 import SellerLayout from '../../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../../lib/auth';
 import { ArrowLeft, Package, User, MapPin, CreditCard, Calendar } from 'lucide-react';
+import { formatNgnFromKobo, formatDateTime, getApiUrl } from '../../../../lib/api/utils';
 
 interface OrderItem {
   id: string;
@@ -76,10 +77,7 @@ export default function OrderDetailPage() {
   const fetchOrder = async () => {
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      const response = await fetch(`${apiUrl}/orders/${id}`, {
+      const response = await fetch(getApiUrl(`/orders/${id}`), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -97,20 +95,7 @@ export default function OrderDetailPage() {
     }
   };
 
-  const formatPrice = (priceInKobo: number) => {
-    return `₦${(priceInKobo / 100).toFixed(2)}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatPrice = (priceInKobo: number) => formatNgnFromKobo(priceInKobo);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -241,7 +226,7 @@ export default function OrderDetailPage() {
                   Order #{order.id.slice(0, 8)}
                 </p>
                 <p className="text-[#ffcc99] text-sm font-normal leading-normal mt-1">
-                  {formatDate(order.createdAt)}
+                  {formatDateTime(order.createdAt)}
                 </p>
               </div>
             </div>
@@ -322,7 +307,7 @@ export default function OrderDetailPage() {
                       {order.delivery.eta && (
                         <div>
                           <p className="text-[#ffcc99] text-sm mb-1">Estimated Delivery</p>
-                          <p className="text-white">{formatDate(order.delivery.eta)}</p>
+                          <p className="text-white">{formatDateTime(order.delivery.eta)}</p>
                         </div>
                       )}
                     </div>
@@ -398,11 +383,11 @@ export default function OrderDetailPage() {
                   <div className="space-y-3">
                     <div>
                       <p className="text-[#ffcc99] text-sm mb-1">Created</p>
-                      <p className="text-white text-sm">{formatDate(order.createdAt)}</p>
+                      <p className="text-white text-sm">{formatDateTime(order.createdAt)}</p>
                     </div>
                     <div>
                       <p className="text-[#ffcc99] text-sm mb-1">Last Updated</p>
-                      <p className="text-white text-sm">{formatDate(order.updatedAt)}</p>
+                      <p className="text-white text-sm">{formatDateTime(order.updatedAt)}</p>
                     </div>
                   </div>
                 </div>

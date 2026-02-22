@@ -43,7 +43,7 @@ const payoutStatusLabel: Record<PayoutStatus, string> = {
   REJECTED: 'Rejected',
 };
 
-const NGN = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 });
+import { formatNgnFromKobo } from '../../lib/api/utils';
 
 const PAYOUT_FILTERS: Array<'ALL' | PayoutStatus> = [
   'ALL',
@@ -134,7 +134,7 @@ export default function AdminPayouts() {
     ];
     const rows = payouts.map((p) => [
       p.sellerId,
-      (p.amount / 100).toFixed(2),
+      (p.amount).toFixed(2),
       p.status,
       new Date(p.requestedAt).toLocaleString(),
       p.paidAt ? new Date(p.paidAt).toLocaleString() : '',
@@ -168,16 +168,16 @@ export default function AdminPayouts() {
           ) : metrics ? (
             <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <AdminCard title="Gross Order Volume" description="Total value of paid orders (before commissions)">
-                <p className="text-3xl font-semibold text-white">{NGN.format(grossOrderVolume)}</p>
+                <p className="text-3xl font-semibold text-white">{formatNgnFromKobo(grossOrderVolume)}</p>
               </AdminCard>
               <AdminCard title="Platform Commission Revenue" description="Total commissions earned across all orders">
-                <p className="text-3xl font-semibold text-primary">{NGN.format(platformCommissionRevenue)}</p>
+                <p className="text-3xl font-semibold text-primary">{formatNgnFromKobo(platformCommissionRevenue)}</p>
               </AdminCard>
               <AdminCard title="Payouts" description="Total paid to sellers">
-                <p className="text-3xl font-semibold text-[#6ce7a2]">{NGN.format(totalPayouts)}</p>
+                <p className="text-3xl font-semibold text-[#6ce7a2]">{formatNgnFromKobo(totalPayouts)}</p>
               </AdminCard>
               <AdminCard title="Pending Requests" description="Total requested amount pending review/processing">
-                <p className="text-3xl font-semibold text-[#ffd700]">{NGN.format(totalPendingAmount)}</p>
+                <p className="text-3xl font-semibold text-[#ffd700]">{formatNgnFromKobo(totalPendingAmount)}</p>
               </AdminCard>
             </section>
           ) : null}
@@ -187,7 +187,7 @@ export default function AdminPayouts() {
               <div>
                 <h2 className="text-lg font-semibold text-white">Payout Requests</h2>
                 <p className="mt-1 text-sm text-gray-400">
-                  Pending: {pendingPayouts.length} • Total pending amount: {NGN.format(totalPendingAmount)}
+                  Pending: {pendingPayouts.length} • Total pending amount: {formatNgnFromKobo(totalPendingAmount)}
                 </p>
               </div>
               <button
@@ -257,7 +257,7 @@ export default function AdminPayouts() {
                           </span>
                         </DataTableCell>
                         <DataTableCell>
-                          <span className="text-sm font-semibold text-primary">{NGN.format(payout.amount / 100)}</span>
+                          <span className="text-sm font-semibold text-primary">{formatNgnFromKobo(payout.amount)}</span>
                         </DataTableCell>
                         <DataTableCell>
                           <span className="text-xs text-gray-400">
@@ -354,7 +354,7 @@ export default function AdminPayouts() {
             <form className="space-y-4" onSubmit={handleProcessSubmit}>
               <div className="mb-4 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Requested Amount</p>
-                <p className="mt-1 text-2xl font-bold text-primary">{NGN.format(selectedPayout.amount / 100)}</p>
+                <p className="mt-1 text-2xl font-bold text-primary">{formatNgnFromKobo(selectedPayout.amount)}</p>
                 <p className="mt-2 text-xs text-gray-400">
                   Requested {new Date(selectedPayout.requestedAt).toLocaleString()}
                 </p>
@@ -429,7 +429,7 @@ export default function AdminPayouts() {
                 <div className="mt-3 space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-400">Requested amount:</span>
-                    <span className="font-semibold text-white">{NGN.format(selectedPayout.amount / 100)}</span>
+                    <span className="font-semibold text-white">{formatNgnFromKobo(selectedPayout.amount)}</span>
                   </div>
                 </div>
               </div>

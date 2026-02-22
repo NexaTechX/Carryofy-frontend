@@ -8,6 +8,7 @@ import { io, Socket } from 'socket.io-client';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
+import { formatDateTime, formatNgnFromKobo } from '../../lib/api/utils';
 import {
   Truck,
   Package,
@@ -316,23 +317,7 @@ export default function TrackOrderPage() {
     }
   };
 
-  const formatPrice = (priceInKobo: number) => {
-    return `₦${(priceInKobo / 100).toLocaleString('en-NG', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-NG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatPrice = (priceInKobo: number) => formatNgnFromKobo(priceInKobo, { maximumFractionDigits: 2 });
 
   const activeStepIndex = useMemo(() => {
     if (!order) return 0;
@@ -689,7 +674,7 @@ export default function TrackOrderPage() {
                     <div className="flex flex-wrap items-center gap-4 text-sm text-[#ffcc99]">
                       <span className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        Placed {formatDate(order.createdAt)}
+                        Placed {formatDateTime(order.createdAt)}
                       </span>
                       <span className="flex items-center gap-2">
                         <Package className="w-4 h-4" />
@@ -710,7 +695,7 @@ export default function TrackOrderPage() {
                       <p className="flex items-center gap-2">
                         <RefreshCw className="w-3.5 h-3.5 text-[#ff6600]" />
                         Auto-updates every 30 seconds
-                        {lastUpdatedAt ? ` • Last updated ${formatDate(lastUpdatedAt)}` : ''}
+                        {lastUpdatedAt ? ` • Last updated ${formatDateTime(lastUpdatedAt)}` : ''}
                       </p>
                     </div>
                   </div>
@@ -769,7 +754,7 @@ export default function TrackOrderPage() {
                   </div>
                   {delivery?.eta && (
                     <p className="mt-2 text-xs text-[#ffcc99]/70">
-                      ETA: <span className="text-white">{formatDate(delivery.eta)}</span>
+                      ETA: <span className="text-white">{formatDateTime(delivery.eta)}</span>
                     </p>
                   )}
                 </div>
@@ -814,7 +799,7 @@ export default function TrackOrderPage() {
                             {index === activeStepIndex && delivery?.status && (
                               <p className="mt-2 text-[#ff6600] text-sm font-medium">
                                 {getDeliveryStatusText(delivery.status)}
-                                {delivery?.eta && ` • ETA ${formatDate(delivery.eta)}`}
+                                {delivery?.eta && ` • ETA ${formatDateTime(delivery.eta)}`}
                                 {etaText ? ` • ${etaText}` : ''}
                               </p>
                             )}
@@ -868,7 +853,7 @@ export default function TrackOrderPage() {
                           ) : null}
                         </div>
                         <p className="text-[#ffcc99]/80 text-xs sm:text-sm whitespace-nowrap">
-                          {formatDate(event.timestamp)}
+                          {formatDateTime(event.timestamp)}
                         </p>
                       </div>
                     ))}
@@ -961,13 +946,13 @@ export default function TrackOrderPage() {
 
                         <p className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-[#ff6600]" />
-                          Updated: <span className="text-white">{formatDate(delivery.updatedAt)}</span>
+                          Updated: <span className="text-white">{formatDateTime(delivery.updatedAt)}</span>
                         </p>
                         {delivery.eta && (
                           <>
                             <p className="flex items-center gap-2">
                               <Clock className="w-4 h-4 text-[#ff6600]" />
-                              Estimated Arrival: <span className="text-white">{formatDate(delivery.eta)}</span>
+                              Estimated Arrival: <span className="text-white">{formatDateTime(delivery.eta)}</span>
                             </p>
                             <p className="text-[#ffcc99]/70 text-xs mt-1">
                               Based on distance from rider (or warehouse) to your address; updates as the rider moves.

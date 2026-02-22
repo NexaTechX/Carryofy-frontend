@@ -3,12 +3,7 @@ import { useRouter } from 'next/router';
 import { Search, X, Package, ShoppingCart, Truck, Users } from 'lucide-react';
 import { useGlobalSearch } from '../../lib/admin/hooks/useGlobalSearch';
 import { useDebounce } from '../../lib/hooks/useDebounce';
-
-const NGN = new Intl.NumberFormat('en-NG', {
-  style: 'currency',
-  currency: 'NGN',
-  maximumFractionDigits: 0,
-});
+import { formatNgnFromKobo } from '../../lib/api/utils';
 
 interface GlobalSearchProps {
   isOpen: boolean;
@@ -37,7 +32,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
       type: 'order' as const,
       id: item.id,
       title: `Order #${item.id.slice(0, 8)}`,
-      subtitle: `${NGN.format(item.amount / 100)} • ${item.status}`,
+      subtitle: `${formatNgnFromKobo(item.amount)} • ${item.status}`,
       href: `/admin/orders`,
       icon: ShoppingCart,
     })),
@@ -45,7 +40,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
       type: 'product' as const,
       id: item.id,
       title: item.title,
-      subtitle: `${NGN.format(item.price / 100)} • ${item.seller?.businessName || 'Unknown'}`,
+      subtitle: `${formatNgnFromKobo(item.price)} • ${item.seller?.businessName || 'Unknown'}`,
       href: `/admin/products`,
       icon: Package,
     })),

@@ -23,6 +23,7 @@ import {
 import { useAdminOrderDetail } from '../../lib/admin/hooks/useAdminOrders';
 import { AdminDelivery } from '../../lib/admin/types';
 import { toast } from 'react-hot-toast';
+import { formatNgnFromKobo } from '../../lib/api/utils';
 
 const DELIVERY_FILTERS = ['ALL', 'PREPARING', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'ISSUE'] as const;
 type DeliveryFilter = (typeof DELIVERY_FILTERS)[number];
@@ -424,9 +425,7 @@ export default function AdminDeliveries() {
                     {orderDetail.items?.length ?? 0} item{(orderDetail.items?.length ?? 0) > 1 ? 's' : ''}
                   </span>
                   <span className="text-sm font-semibold text-white">
-                    {orderDetail.amount ? new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(
-                      orderDetail.amount / 100
-                    ) : '—'}
+                    {orderDetail.amount ? formatNgnFromKobo(orderDetail.amount) : '—'}
                   </span>
                 </div>
                 <div className="space-y-2">

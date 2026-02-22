@@ -23,7 +23,7 @@ const signupSchema = z
       if (cleaned.startsWith('234')) return '+' + cleaned;
       if (!cleaned.startsWith('+') && cleaned.length >= 10) return '+234' + cleaned;
       return cleaned;
-    }, z.string().optional()),
+    }, z.string().min(1, 'Phone number is required')),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
     role: z.enum(['BUYER', 'SELLER']),
@@ -33,13 +33,10 @@ const signupSchema = z
     path: ['confirmPassword'],
   })
   .refine((data) => {
-    // Phone is required for SELLER role
-    if (data.role === 'SELLER') {
-      return data.phone && data.phone.trim().length > 0;
-    }
-    return true;
+    // Phone is required for all roles
+    return data.phone && data.phone.trim().length > 0;
   }, {
-    message: 'Phone number is required for seller accounts',
+    message: 'Phone number is required',
     path: ['phone'],
   })
   .refine((data) => {
@@ -268,8 +265,7 @@ export default function Signup() {
                 {/* Phone Field */}
                 <div>
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number {selectedRole === 'SELLER' && '*'}
-                    {selectedRole !== 'SELLER' && <span className="text-gray-500 text-xs">(Optional)</span>}
+                    Phone Number *
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -277,7 +273,7 @@ export default function Signup() {
                       type="tel"
                       id="phone"
                       {...register('phone')}
-                      required={selectedRole === 'SELLER'}
+                      required
                       className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${errors.phone ? 'border-red-300' : 'border-gray-300'
                         }`}
                       placeholder="e.g. 08012345678"
@@ -285,9 +281,6 @@ export default function Signup() {
                   </div>
                   {errors.phone && (
                     <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
-                  )}
-                  {selectedRole === 'SELLER' && (
-                    <p className="mt-1 text-xs text-gray-500">Required for seller accounts</p>
                   )}
                 </div>
 

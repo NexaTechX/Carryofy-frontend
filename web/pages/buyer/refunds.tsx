@@ -6,6 +6,7 @@ import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import { Gift, ArrowLeft, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { getUserRefunds, Refund } from '../../lib/api/refunds';
+import { formatDateTime, formatNgnFromKobo } from '../../lib/api/utils';
 
 export default function RefundsPage() {
   const router = useRouter();
@@ -53,23 +54,7 @@ export default function RefundsPage() {
     }
   };
 
-  const formatPrice = (priceInKobo: number) => {
-    return `₦${(priceInKobo / 100).toLocaleString('en-NG', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-NG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatPrice = (priceInKobo: number) => formatNgnFromKobo(priceInKobo, { maximumFractionDigits: 2 });
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; className: string; icon: React.ReactElement }> = {
@@ -202,7 +187,7 @@ export default function RefundsPage() {
                           <div className="flex items-center gap-3 mb-3">
                             {getStatusBadge(refund.status)}
                             <span className="text-[#ffcc99]/70 text-sm">
-                              Requested: {formatDate(refund.createdAt)}
+                              Requested: {formatDateTime(refund.createdAt)}
                             </span>
                           </div>
                           

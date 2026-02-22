@@ -25,6 +25,7 @@ import {
   SupportTicketPriority,
   SupportTicketStatus,
 } from '../../lib/admin/types';
+import { formatDateTime } from '../../lib/api/utils';
 
 const SUPPORT_FILTERS: Array<{ id: 'all' | SupportTicketStatus | 'pending'; label: string }> = [
   { id: 'all', label: 'All Tickets' },
@@ -75,8 +76,6 @@ const NOTIFICATION_TONE: Record<NotificationType, 'info' | 'warning' | 'success'
 const SUPPORT_STATUS_OPTIONS: SupportTicketStatus[] = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
 const notificationTypeOptions: NotificationType[] = ['SYSTEM', 'ORDER', 'PRODUCT', 'PAYOUT', 'KYC'];
-
-const formatDateTime = (iso: string) => new Date(iso).toLocaleString();
 
 export default function AdminSupport() {
   const [activeFilter, setActiveFilter] = useState<'all' | SupportTicketStatus | 'pending'>('all');

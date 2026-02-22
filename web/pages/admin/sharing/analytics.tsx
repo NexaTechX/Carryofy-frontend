@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import { AdminCard, AdminPageHeader } from '../../../components/admin/ui';
 import { getPlatformWideAnalytics, PlatformWideAnalytics, PlatformAnalyticsQuery } from '../../../lib/api/sharing';
+import { formatDate } from '../../../lib/api/utils';
 import { Share2, TrendingUp, Users, Package, Calendar, Filter } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -31,14 +32,6 @@ export default function AdminSharingAnalytics() {
   };
 
   const formatNumber = (value: number) => value.toLocaleString();
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-NG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   if (loading && !analytics) {
     return (

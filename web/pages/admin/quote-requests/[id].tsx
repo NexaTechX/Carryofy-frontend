@@ -5,18 +5,8 @@ import Link from 'next/link';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import { AdminPageHeader, AdminCard, LoadingState } from '../../../components/admin/ui';
 import { fetchQuoteRequestById, AdminQuoteRequest } from '../../../lib/admin/api';
+import { formatDateTime, formatNgnFromKobo } from '../../../lib/api/utils';
 import { ArrowLeft, FileText } from 'lucide-react';
-
-const formatDate = (dateString: string) =>
-  new Date(dateString).toLocaleDateString('en-NG', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-const formatPrice = (kobo: number) => `₦${(kobo / 100).toFixed(2)}`;
 
 export default function AdminQuoteRequestDetailPage() {
   const router = useRouter();
@@ -110,12 +100,12 @@ export default function AdminQuoteRequestDetailPage() {
                 </div>
                 <div>
                   <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Created</dt>
-                  <dd className="mt-1 text-gray-300">{formatDate(quote.createdAt)}</dd>
+                  <dd className="mt-1 text-gray-300">{formatDateTime(quote.createdAt)}</dd>
                 </div>
                 {quote.validUntil && (
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Valid until</dt>
-                    <dd className="mt-1 text-gray-300">{formatDate(quote.validUntil)}</dd>
+                    <dd className="mt-1 text-gray-300">{formatDateTime(quote.validUntil)}</dd>
                   </div>
                 )}
               </dl>
@@ -145,7 +135,7 @@ export default function AdminQuoteRequestDetailPage() {
                       <p className="text-sm text-gray-400">Qty: {item.requestedQuantity}</p>
                     </div>
                     {'sellerQuotedPriceKobo' in item && item.sellerQuotedPriceKobo != null && (
-                      <p className="text-primary font-semibold">{formatPrice(item.sellerQuotedPriceKobo)}</p>
+                      <p className="text-primary font-semibold">{formatNgnFromKobo(item.sellerQuotedPriceKobo)}</p>
                     )}
                   </div>
                 ))}

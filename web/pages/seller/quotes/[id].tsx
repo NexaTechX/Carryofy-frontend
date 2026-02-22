@@ -7,6 +7,7 @@ import { useAuth, tokenManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
 import { FileText, ArrowLeft, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatDateTime, formatNgnFromKobo } from '../../../lib/api/utils';
 
 interface QuoteItem {
   id: string;
@@ -119,9 +120,7 @@ export default function SellerQuoteDetailPage() {
     }
   };
 
-  const formatPrice = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('en-NG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const formatPrice = (kobo: number) => formatNgnFromKobo(kobo, { maximumFractionDigits: 2 });
 
   if (loading || !quote) {
     return (
@@ -153,7 +152,7 @@ export default function SellerQuoteDetailPage() {
               <div>
                 <h1 className="text-xl font-bold text-white">Quote request</h1>
                 <p className="text-[#ffcc99] text-sm">
-                  From {quote.buyer?.name ?? 'Buyer'} · {formatDate(quote.createdAt)}
+                  From {quote.buyer?.name ?? 'Buyer'} · {formatDateTime(quote.createdAt)}
                 </p>
               </div>
               <span

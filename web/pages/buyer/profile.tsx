@@ -28,6 +28,7 @@ import Link from 'next/link';
 import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
+import { formatDate } from '../../lib/api/utils';
 
 
 
@@ -461,15 +462,6 @@ export default function BuyerProfilePage() {
       postalCode: '',
       latitude: undefined as number | undefined,
       longitude: undefined as number | undefined,
-    });
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-NG', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
     });
   };
 

@@ -480,9 +480,14 @@ export default function SettingsPage() {
 
       const response = await apiClient.post('/sellers/kyc/upload', formDataToSend, {
         timeout: 300000, // 5 min timeout for large file uploads (identity docs can be large)
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        transformRequest: [
+          (data: unknown, headers?: Record<string, string>) => {
+            if (data instanceof FormData && headers) {
+              delete headers['Content-Type'];
+            }
+            return data;
+          },
+        ],
       });
 
       const data = response.data;

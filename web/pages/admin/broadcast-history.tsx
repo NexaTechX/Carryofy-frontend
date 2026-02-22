@@ -30,6 +30,7 @@ import {
   FileText,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatDateTime } from '../../lib/api/utils';
 
 const STATUS_CONFIG: Record<BroadcastStatus, { label: string; color: string; icon: typeof CheckCircle2 }> = {
   DRAFT: { label: 'Draft', color: 'text-gray-400', icon: FileText },
@@ -81,16 +82,6 @@ export default function BroadcastHistoryPage() {
 
   const handleFilterChange = (key: keyof BroadcastHistoryQuery, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   return (
@@ -242,7 +233,7 @@ export default function BroadcastHistoryPage() {
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-sm text-gray-400">
-                            {broadcast.sentAt ? formatDate(broadcast.sentAt) : formatDate(broadcast.createdAt)}
+                            {broadcast.sentAt ? formatDateTime(broadcast.sentAt) : formatDateTime(broadcast.createdAt)}
                           </span>
                         </td>
                         <td className="px-4 py-3">

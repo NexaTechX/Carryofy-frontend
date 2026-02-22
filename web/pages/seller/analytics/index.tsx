@@ -5,6 +5,7 @@ import Link from 'next/link';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
 import { Download, TrendingUp, Users, Package, DollarSign, BarChart3, Calendar } from 'lucide-react';
+import { formatNgnFromKobo, getApiUrl } from '../../../lib/api/utils';
 
 interface ProductAnalytics {
   productId: string;
@@ -71,7 +72,6 @@ function downloadCsv(filename: string, rows: Array<string[]>) {
   URL.revokeObjectURL(url);
 }
 
-const NGN = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 });
 
 export default function AnalyticsPage() {
   const router = useRouter();
@@ -104,25 +104,22 @@ export default function AnalyticsPage() {
     try {
       setLoading(true);
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
       // Fetch all analytics in parallel
       const [productRes, customerRes, orderRes, commissionRes] = await Promise.allSettled([
-        fetch(`${apiUrl}/reports/products/analytics?${params.toString()}`, {
+        fetch(getApiUrl(`/reports/products/analytics?${params.toString()}`), {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${apiUrl}/reports/customers/insights`, {
+        fetch(getApiUrl('/reports/customers/insights'), {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${apiUrl}/orders/analytics?${params.toString()}`, {
+        fetch(getApiUrl(`/orders/analytics?${params.toString()}`), {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${apiUrl}/reports/commission/breakdown?${params.toString()}`, {
+        fetch(getApiUrl(`/reports/commission/breakdown?${params.toString()}`), {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -162,7 +159,7 @@ export default function AnalyticsPage() {
   };
 
   const formatPrice = (priceInKobo: number) => {
-    return NGN.format(priceInKobo / 100);
+    return formatNgnFromKobo(priceInKobo);
   };
 
   const exportProductAnalytics = () => {

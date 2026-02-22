@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
+import { formatDate, formatNgnFromKobo, getApiUrl } from '../../../lib/api/utils';
 
 interface OrderItem {
   id: string;
@@ -77,14 +78,12 @@ export default function OrdersPage() {
   const fetchOrders = async () => {
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
       const params = new URLSearchParams();
       if (orderTypeFilter === 'B2B' || orderTypeFilter === 'CONSUMER') {
         params.set('orderType', orderTypeFilter);
       }
       const query = params.toString();
-      const url = query ? `${apiUrl}/orders?${query}` : `${apiUrl}/orders`;
+      const url = query ? getApiUrl(`/orders?${query}`) : getApiUrl('/orders');
 
       const response = await fetch(url, {
         headers: {
@@ -113,18 +112,7 @@ export default function OrdersPage() {
     }
   };
 
-  const formatPrice = (priceInKobo: number) => {
-    return `₦${(priceInKobo / 100).toFixed(2)}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-  };
+  const formatPrice = (priceInKobo: number) => formatNgnFromKobo(priceInKobo);
 
   const getStatusDisplay = (order: Order) => {
     // If order has delivery info, use delivery status

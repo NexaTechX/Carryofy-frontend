@@ -20,6 +20,7 @@ import {
   BarChart3,
   MessageSquare,
   FileText,
+  LogOut,
 } from 'lucide-react';
 import { useAuth, tokenManager } from '../../lib/auth';
 import OnboardingBanner from '../ai-onboarding/OnboardingBanner';
@@ -382,6 +383,19 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                 </div>
               )}
             </div>
+
+            {/* Sign Out */}
+            <button
+              onClick={handleLogout}
+              className="relative p-2 text-[#A0A0A0] hover:text-white hover:bg-red-500/20 rounded-lg transition-colors touch-target btn-mobile group"
+              title="Sign out"
+              aria-label="Sign out"
+            >
+              <LogOut className="w-5 h-5 sm:w-6 sm:h-6" />
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                Sign out
+              </span>
+            </button>
 
             {/* Profile */}
             <div className="relative">

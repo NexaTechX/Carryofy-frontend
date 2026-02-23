@@ -49,6 +49,38 @@ export const formatDateTime = (date: string | Date): string => {
 };
 
 /**
+ * Format date as "21 Feb 2026, 23:58" (day month year, 24h)
+ */
+export const formatDetailDateTime = (date: string | Date): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const datePart = new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(d);
+  const timePart = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d);
+  return `${datePart}, ${timePart}`;
+};
+
+/**
+ * Check if a date is yesterday (same calendar day as yesterday)
+ */
+export const isYesterday = (date: string | Date): boolean => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return (
+    d.getDate() === yesterday.getDate() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getFullYear() === yesterday.getFullYear()
+  );
+};
+
+/**
  * Format date as "Feb 23, 2026 · 2:30pm"
  */
 export const formatDateWithTime = (date: string | Date): string => {

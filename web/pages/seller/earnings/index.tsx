@@ -4,8 +4,9 @@ import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
+import { apiClient } from '../../../lib/api/client';
 import { formatDate, formatNgnFromKobo, getApiUrl } from '../../../lib/api/utils';
-import { DollarSign, TrendingUp, TrendingDown, Wallet, Download, X } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Wallet, Download, X, Info } from 'lucide-react';
 import { useConfirmation } from '../../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 
@@ -62,6 +63,12 @@ export default function EarningsPage() {
   const [payoutAmount, setPayoutAmount] = useState('');
   const [requesting, setRequesting] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [bankAccount, setBankAccount] = useState<{
+    accountName: string;
+    accountNumber: string;
+    bankCode: string;
+    bankName: string;
+  } | null>(null);
   const confirmation = useConfirmation();
 
   useEffect(() => {
@@ -87,7 +94,32 @@ export default function EarningsPage() {
     fetchEarningsData();
     fetchPayouts();
     fetchPayoutRequests();
+    fetchBankAccount();
   }, [router, dateRange, authLoading, isAuthenticated, user]);
+
+  const fetchBankAccount = async () => {
+    try {
+      const res = await apiClient.get('/sellers/me/bank-account');
+      const payload = res.data as { data?: { accountName: string; accountNumber: string; bankCode: string; bankName: string } } | { accountName: string; accountNumber: string; bankCode: string; bankName: string };
+      const raw = 'data' in payload ? payload.data : payload;
+      const account =
+        raw &&
+        'accountName' in raw &&
+        'accountNumber' in raw &&
+        'bankCode' in raw &&
+        'bankName' in raw
+          ? {
+              accountName: raw.accountName,
+              accountNumber: raw.accountNumber,
+              bankCode: raw.bankCode,
+              bankName: raw.bankName,
+            }
+          : null;
+      setBankAccount(account);
+    } catch {
+      setBankAccount(null);
+    }
+  };
 
   const getDateRangeParams = () => {
     const now = new Date();
@@ -233,19 +265,18 @@ export default function EarningsPage() {
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'APPROVED':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'PAID':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
       case 'REQUESTED':
+      case 'PROCESSING':
         return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'PAID':
+      case 'APPROVED':
+        return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'REFUNDED':
+        return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
       case 'CANCELLED':
         return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
       case 'REJECTED':
         return 'bg-red-500/20 text-red-400 border-red-500/30';
-      case 'PROCESSING':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       default:
         return 'bg-[#1a1a1a] text-white border-[#ff6600]/30';
     }
@@ -348,8 +379,8 @@ export default function EarningsPage() {
       </Head>
       <SellerLayout>
         <div>
-          {/* Title Section */}
-          <div className="flex flex-wrap justify-between gap-3 p-4">
+          {/* Title Section + Time Filter */}
+          <div className="flex flex-wrap justify-between items-start gap-3 p-4">
             <div>
               <p className="text-white tracking-light text-[32px] font-bold leading-tight min-w-72">
                 Earnings
@@ -361,19 +392,16 @@ export default function EarningsPage() {
                 Earnings released after successful delivery.
               </p>
             </div>
-          </div>
-
-          {/* Date Range Filter */}
-          <div className="px-4 py-3">
-            <div className="flex gap-2">
+            {/* Segmented Time Filter */}
+            <div className="flex bg-[#1A1A1A] p-1 rounded-[6px]">
               {(['all', 'month', 'quarter', 'year'] as const).map((range) => (
                 <button
                   key={range}
                   onClick={() => setDateRange(range)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${
                     dateRange === range
-                      ? 'bg-[#ff6600] text-black'
-                      : 'bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] hover:bg-[#ff6600]/10'
+                      ? 'bg-[#FF6B00] text-white'
+                      : 'text-[#ffcc99] hover:bg-white/5'
                   }`}
                 >
                   {range.charAt(0).toUpperCase() + range.slice(1)}
@@ -386,12 +414,12 @@ export default function EarningsPage() {
           {loading ? (
             <div className="px-4 py-8 text-center text-white">Loading...</div>
           ) : earningsReport ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-4 py-3">
-              {/* Total Revenue Card */}
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 py-3">
+              {/* Top-left: Total Revenue (largest, orange accent) */}
+              <div className="bg-[#1a1a1a] border border-[#FF6B00]/40 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-[#ff6600]/20 rounded-xl">
-                    <TrendingUp className="w-6 h-6 text-[#ff6600]" />
+                  <div className="p-3 bg-[#FF6B00]/20 rounded-xl">
+                    <TrendingUp className="w-6 h-6 text-[#FF6B00]" />
                   </div>
                 </div>
                 <p className="text-[#ffcc99] text-sm font-medium mb-1">Total Revenue</p>
@@ -403,24 +431,8 @@ export default function EarningsPage() {
                 </p>
               </div>
 
-              {/* Commission Card */}
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-red-500/20 rounded-xl">
-                    <TrendingDown className="w-6 h-6 text-red-400" />
-                  </div>
-                </div>
-                <p className="text-[#ffcc99] text-sm font-medium mb-1">Commission</p>
-                <p className="text-white text-2xl font-bold">
-                  {formatPrice(earningsReport.totalCommission)}
-                </p>
-                <p className="text-[#ffcc99] text-xs mt-2">
-                  {((earningsReport.totalCommission / earningsReport.totalGross) * 100).toFixed(1)}% of revenue
-                </p>
-              </div>
-
-              {/* Net Earnings Card */}
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
+              {/* Top-right: Net Earnings (green left border) */}
+              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 border-l-4 border-l-[#22C55E]">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 bg-green-500/20 rounded-xl">
                     <DollarSign className="w-6 h-6 text-green-400" />
@@ -435,28 +447,49 @@ export default function EarningsPage() {
                 </p>
               </div>
 
-              {/* Available for Withdrawal Card */}
+              {/* Bottom-left: Platform Commission (neutral) */}
               <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-blue-500/20 rounded-xl">
-                    <Wallet className="w-6 h-6 text-blue-400" />
+                  <div className="p-3 bg-[#2a2a2a] rounded-xl">
+                    <TrendingDown className="w-6 h-6 text-[#ffcc99]" />
                   </div>
                 </div>
-                <p className="text-[#ffcc99] text-sm font-medium mb-1">Available</p>
+                <p className="text-[#ffcc99] text-sm font-medium mb-1">Platform Commission</p>
                 <p className="text-white text-2xl font-bold">
+                  {formatPrice(earningsReport.totalCommission)}
+                </p>
+                <p className={`text-xs mt-2 ${earningsReport.totalGross > 0 ? 'text-[#ffcc99]' : 'text-[#A0A0A0]'}`}>
+                  {earningsReport.totalGross > 0
+                    ? `${((earningsReport.totalCommission / earningsReport.totalGross) * 100).toFixed(1)}% of revenue`
+                    : '— % of revenue'}
+                </p>
+              </div>
+
+              {/* Bottom-right: Available Balance (special styling) */}
+              <div className="p-6" style={{ backgroundColor: '#FF6B0010', border: '1px solid #FF6B0040', borderRadius: '12px' }}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-3 rounded-xl" style={{ backgroundColor: '#FF6B0020' }}>
+                    <Wallet className="w-6 h-6" style={{ color: '#FF6B00' }} />
+                  </div>
+                </div>
+                <p className="text-[#ffcc99] text-sm font-medium mb-1">Available Balance</p>
+                <p className="text-white text-2xl font-bold font-dm-mono" style={{ fontFamily: "'DM Mono', monospace" }}>
                   {formatPrice(availableForWithdrawal)}
                 </p>
+                <p className="text-[#A0A0A0] text-xs mt-1">Minimum payout: ₦1,000</p>
                 <button
                   onClick={handleRequestPayout}
                   disabled={availableForWithdrawal < MIN_PAYOUT_AMOUNT}
-                  className="mt-3 w-full px-4 py-2 bg-[#ff6600] text-black text-sm font-bold rounded-xl hover:bg-[#cc5200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  title={availableForWithdrawal < MIN_PAYOUT_AMOUNT ? 'Minimum payout is ₦1,000' : undefined}
+                  className={`mt-4 w-full px-4 py-3 text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all ${
+                    availableForWithdrawal >= MIN_PAYOUT_AMOUNT
+                      ? 'bg-[#FF6B00] text-white hover:bg-[#FF6B00]/90 animate-glow-pulse'
+                      : 'bg-[#2a2a2a] text-[#A0A0A0] cursor-not-allowed'
+                  }`}
                 >
                   <Download className="w-4 h-4" />
                   Request Payout
                 </button>
-                <p className="text-[#ffcc99] text-xs mt-2">
-                  Minimum payout: ₦1,000
-                </p>
               </div>
             </div>
           ) : null}
@@ -469,21 +502,30 @@ export default function EarningsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-[#ffcc99]">Gross Revenue</span>
-                    <span className="text-white font-semibold">
+                    <span className="text-white font-semibold text-right">
                       {formatPrice(earningsReport.totalGross)}
                     </span>
                   </div>
-                  <div className="h-px bg-[#ff6600]/30"></div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[#ffcc99]">Platform Commission</span>
-                    <span className="text-red-400 font-semibold">
+                    <span className="text-[#ffcc99] flex items-center gap-1.5">
+                      Platform Commission ({earningsReport.totalGross > 0
+                        ? ((earningsReport.totalCommission / earningsReport.totalGross) * 100).toFixed(0)
+                        : '—'}%)
+                      <span
+                        className="inline-flex text-[#A0A0A0] cursor-help"
+                        title="Commission rate depends on your product category (8–15%)"
+                      >
+                        <Info className="w-4 h-4" />
+                      </span>
+                    </span>
+                    <span className="text-[#FF6B00] font-semibold text-right">
                       -{formatPrice(earningsReport.totalCommission)}
                     </span>
                   </div>
-                  <div className="h-px bg-[#ff6600]/30"></div>
+                  <div className="h-px bg-[#2A2A2A]"></div>
                   <div className="flex items-center justify-between pt-2">
-                    <span className="text-white font-bold text-lg">Net Earnings</span>
-                    <span className="text-[#ff6600] font-bold text-lg">
+                    <span className="text-white font-bold text-base">Net Earnings</span>
+                    <span className="text-[#22C55E] font-bold text-base text-right">
                       {formatPrice(earningsReport.totalNet)}
                     </span>
                   </div>
@@ -564,41 +606,41 @@ export default function EarningsPage() {
           {/* Payout History Table */}
           <div className="px-4 py-3">
             <h3 className="text-white text-lg font-bold mb-4">Payout History</h3>
-            <div className="flex overflow-hidden rounded-xl border border-[#ff6600]/30 bg-black">
-              <table className="flex-1">
+            <div className="overflow-x-auto rounded-xl border border-[#ff6600]/30 bg-black">
+              <table className="w-full table-fixed min-w-[800px]">
+                <colgroup>
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '11%' }} />
+                  <col style={{ width: '10%' }} />
+                </colgroup>
                 <thead>
                   <tr className="bg-[#1a1a1a]">
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
-                      Order ID
-                    </th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
-                      Date
-                    </th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
-                      Gross
-                    </th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
-                      Commission
-                    </th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
-                      Rate (Snapshot)
-                    </th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
-                      Net Amount
-                    </th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
-                      Refunded
-                    </th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
-                      Status
-                    </th>
+                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Order ID</th>
+                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Date</th>
+                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Gross</th>
+                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Commission</th>
+                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Rate</th>
+                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Net Amount</th>
+                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Refunded</th>
+                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {payouts.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-white">
-                        No payout history available
+                      <td colSpan={8} className="px-4 py-12">
+                        <div className="flex flex-col items-center justify-center text-center">
+                          <div className="w-10 h-10 mb-3 flex items-center justify-center rounded-full" style={{ backgroundColor: '#FF6B0020' }}>
+                            <Wallet className="w-10 h-10" style={{ color: '#FF6B00' }} />
+                          </div>
+                          <p className="text-white font-semibold mb-1">No payouts yet</p>
+                          <p className="text-[#A0A0A0] text-sm">Payouts will appear here once you request your first payout</p>
+                        </div>
                       </td>
                     </tr>
                   ) : (
@@ -616,7 +658,7 @@ export default function EarningsPage() {
                         <td className="h-[72px] px-4 py-2 text-[#ffcc99] text-sm font-normal leading-normal">
                           {formatPrice(payout.gross)}
                         </td>
-                        <td className="h-[72px] px-4 py-2 text-red-400 text-sm font-normal leading-normal">
+                        <td className="h-[72px] px-4 py-2 text-[#FF6B00] text-sm font-normal leading-normal">
                           -{formatPrice(payout.commission)}
                         </td>
                         <td className="h-[72px] px-4 py-2 text-[#ffcc99] text-sm font-normal leading-normal">
@@ -666,18 +708,15 @@ export default function EarningsPage() {
           {/* Payout Request Modal */}
           {showPayoutModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/50 rounded-xl p-6 max-w-md w-full">
+              <div className="bg-[#1a1a1a] border border-[#FF6B00]/50 rounded-xl p-6 max-w-md w-full">
                 <h2 className="text-white text-2xl font-bold mb-4">Request Payout</h2>
-                <p className="text-[#ffcc99] text-sm mb-6">
-                  Enter the amount you want to withdraw. Available balance: {formatPrice(availableForWithdrawal)}
+                <p className="text-[#22C55E] text-sm font-medium mb-6">
+                  Available balance: {formatPrice(availableForWithdrawal)}
                 </p>
-                <p className="text-[#ffcc99] text-xs mb-4">
-                  Minimum payout: ₦1,000
-                </p>
-                
-                <div className="mb-6">
+
+                <div className="mb-5">
                   <label className="block text-white text-sm font-medium mb-2">
-                    Amount (₦) *
+                    Amount to withdraw
                   </label>
                   <input
                     type="number"
@@ -687,25 +726,40 @@ export default function EarningsPage() {
                     step="0.01"
                     min="0"
                     max={(availableForWithdrawal / 100).toString()}
-                    className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-black focus:border-[#ff6600] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
+                    className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-black focus:border-[#FF6B00] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
                   />
-                  <p className="text-[#ffcc99] text-xs mt-2">
-                    Maximum: ₦{(availableForWithdrawal / 100).toFixed(2)}
-                  </p>
                 </div>
 
-                <div className="flex gap-3">
+                {bankAccount ? (
+                  <div className="mb-5 p-4 rounded-xl bg-black/50 border border-[#2A2A2A]">
+                    <p className="text-[#ffcc99] text-xs font-medium mb-1">Your payout account details</p>
+                    <p className="text-white text-sm">{bankAccount.bankName}</p>
+                    <p className="text-[#ffcc99] text-sm font-mono">
+                      {bankAccount.accountNumber ? bankAccount.accountNumber.replace(/\d(?=\d{4})/g, '*') : 'N/A'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mb-5 p-4 rounded-xl bg-black/50 border border-[#2A2A2A]">
+                    <p className="text-[#A0A0A0] text-sm">Add your payout account in Settings to receive payouts</p>
+                  </div>
+                )}
+
+                <p className="text-[#A0A0A0] text-xs mb-5">
+                  Payouts are processed within 1–3 business days
+                </p>
+
+                <div className="flex flex-col gap-3">
                   <button
                     onClick={handleSubmitPayoutRequest}
-                    disabled={requesting}
-                    className="flex-1 bg-[#ff6600] hover:bg-[#cc5200] disabled:bg-[#ff6600]/50 disabled:cursor-not-allowed text-black px-6 py-3 rounded-xl font-semibold transition"
+                    disabled={requesting || !bankAccount}
+                    className="w-full bg-[#FF6B00] hover:bg-[#FF6B00]/90 disabled:bg-[#FF6B00]/50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-semibold transition"
                   >
-                    {requesting ? 'Submitting...' : 'Submit Request'}
+                    {requesting ? 'Submitting...' : 'Confirm Payout'}
                   </button>
                   <button
                     onClick={handlePayoutModalClose}
                     disabled={requesting}
-                    className="px-6 py-3 bg-black border border-[#ff6600]/30 text-[#ffcc99] rounded-xl font-semibold hover:bg-[#ff6600]/10 transition disabled:opacity-50"
+                    className="text-[#ffcc99] hover:text-white text-sm font-medium transition disabled:opacity-50"
                   >
                     Cancel
                   </button>

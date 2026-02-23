@@ -4,10 +4,12 @@ import { useRouter } from 'next/router';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
 import { formatDate, formatDateTime, getApiUrl } from '../../../lib/api/utils';
-import { Star, MessageSquare, Filter, Search, TrendingUp, Send, ChevronDown, ChevronUp } from 'lucide-react';
+import { Star, Search, TrendingUp, Send, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { toast } from 'react-hot-toast';
+
+const STAR_FILLED = '#FF6B00';
+const STAR_EMPTY = '#2A2A2A';
 
 interface ReviewReply {
   id: string;
@@ -31,6 +33,7 @@ interface Review {
   comment: string;
   createdAt: string;
   orderId?: string;
+  helpfulCount?: number;
   replies?: ReviewReply[];
 }
 
@@ -67,6 +70,16 @@ export default function ReviewsPage() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<{ [reviewId: string]: string }>({});
   const [submittingReply, setSubmittingReply] = useState<string | null>(null);
+  const [expandedReviewId, setExpandedReviewId] = useState<string | null>(null);
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -147,16 +160,16 @@ export default function ReviewsPage() {
     }
   };
 
-  const renderStars = (rating: number) => {
+  const renderStars = (rating: number, size: 'sm' | 'md' = 'md') => {
+    const sizeClass = size === 'sm' ? 'text-sm' : 'text-base';
     return (
-      <div className="flex gap-1">
+      <span className={`inline-flex gap-0.5 ${sizeClass}`} aria-label={`${rating} out of 5 stars`}>
         {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`w-4 h-4 ${star <= rating ? 'text-[#ff6600] fill-[#ff6600]' : 'text-[#ffcc99]/30'}`}
-          />
+          <span key={star} style={{ color: star <= rating ? STAR_FILLED : STAR_EMPTY }}>
+            {star <= rating ? '★' : '☆'}
+          </span>
         ))}
-      </div>
+      </span>
     );
   };
 
@@ -264,130 +277,119 @@ export default function ReviewsPage() {
             </p>
           </div>
 
-          {/* Analytics Cards */}
-          {analytics && (
-            <div className="px-4 py-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-4">
-                <p className="text-[#ffcc99] text-sm mb-2">Total Reviews</p>
-                <p className="text-white text-2xl font-bold">{analytics.totalReviews}</p>
-              </div>
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-4">
-                <p className="text-[#ffcc99] text-sm mb-2">Average Rating</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-white text-2xl font-bold">{analytics.averageRating.toFixed(1)}</p>
-                  {renderStars(Math.round(analytics.averageRating))}
-                </div>
-              </div>
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-4">
-                <p className="text-[#ffcc99] text-sm mb-2">5 Star Reviews</p>
-                <p className="text-white text-2xl font-bold">{analytics.ratingDistribution[5]}</p>
-              </div>
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-4">
-                <p className="text-[#ffcc99] text-sm mb-2">Rating Distribution</p>
-                <div className="flex items-center gap-1 mt-2">
-                  {[5, 4, 3, 2, 1].map((rating) => (
-                    <div key={rating} className="flex flex-col items-center">
-                      <span className="text-white text-xs font-medium">{analytics.ratingDistribution[rating as keyof typeof analytics.ratingDistribution]}</span>
-                      <Star className={`w-3 h-3 ${rating <= 3 ? 'text-[#ff6600] fill-[#ff6600]' : 'text-[#ffcc99]/30'}`} />
-                    </div>
-                  ))}
-                </div>
-              </div>
+          {/* Stat Cards */}
+          <div className="px-4 py-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Reviews */}
+            <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-4">
+              <p className="text-white text-3xl font-bold" style={{ fontFamily: "'DM Mono', monospace" }}>
+                {analytics?.totalReviews ?? 0}
+              </p>
+              <p className="text-[#A0A0A0] text-sm mt-1">reviews</p>
             </div>
-          )}
+            {/* Average Rating */}
+            <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-4">
+              <p className="text-white text-3xl font-bold" style={{ fontFamily: "'DM Mono', monospace" }}>
+                {analytics?.averageRating != null ? analytics.averageRating.toFixed(1) : '0.0'}
+              </p>
+              <div className="flex items-center gap-0.5 mt-2">
+                {[1, 2, 3, 4, 5].map((star) => {
+                  const filled = star <= (analytics?.averageRating ?? 0);
+                  return (
+                    <span key={star} style={{ color: filled ? STAR_FILLED : STAR_EMPTY }}>
+                      {filled ? '★' : '☆'}
+                    </span>
+                  );
+                })}
+              </div>
+              <p className="text-[#A0A0A0] text-sm mt-1">out of 5</p>
+            </div>
+            {/* 5 Star Reviews */}
+            <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-4">
+              <p className="text-white text-3xl font-bold" style={{ fontFamily: "'DM Mono', monospace" }}>
+                {analytics?.ratingDistribution?.[5] ?? 0}
+              </p>
+              <p className="text-[#A0A0A0] text-sm mt-1">5★ reviews</p>
+            </div>
+            {/* Rating Distribution */}
+            <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-4">
+              <p className="text-[#A0A0A0] text-sm mb-3">Rating Distribution</p>
+              {[5, 4, 3, 2, 1].map((rating) => {
+                const count = analytics?.ratingDistribution?.[rating as keyof typeof analytics.ratingDistribution] ?? 0;
+                const total = analytics?.totalReviews ?? 1;
+                const pct = total > 0 ? (count / total) * 100 : 0;
+                return (
+                  <div key={rating} className="flex items-center gap-2 mb-2 last:mb-0">
+                    <span className="text-[#A0A0A0] text-xs w-8">{rating}★</span>
+                    <div className="flex-1 h-2 rounded-full bg-[#2A2A2A] overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, backgroundColor: STAR_FILLED }}
+                      />
+                    </div>
+                    <span className="text-white text-xs w-6 text-right" style={{ fontFamily: "'DM Mono', monospace" }}>
+                      {count}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
-          {/* Filters */}
-          <div className="px-4 py-3 space-y-3">
-            {/* Rating Filter */}
-            <div className="flex gap-2 flex-wrap">
-              <span className="text-[#ffcc99] text-sm font-medium self-center">Rating:</span>
+          {/* Filter Row: Rating pills + Date range */}
+          <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[#A0A0A0] text-sm font-medium">Rating:</span>
               {[
                 { value: 'all', label: 'All Ratings' },
-                { value: '5', label: '5 Stars' },
-                { value: '4', label: '4 Stars' },
-                { value: '3', label: '3 Stars' },
-                { value: '2', label: '2 Stars' },
-                { value: '1', label: '1 Star' },
+                { value: '5', label: '5★' },
+                { value: '4', label: '4★' },
+                { value: '3', label: '3★' },
+                { value: '2', label: '2★' },
+                { value: '1', label: '1★' },
               ].map((filter) => (
                 <button
                   key={filter.value}
                   onClick={() => setRatingFilter(filter.value)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                     ratingFilter === filter.value
-                      ? 'bg-[#ff6600] text-black'
-                      : 'bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] hover:bg-[#ff6600]/10'
+                      ? 'bg-[#FF6B00] text-black'
+                      : 'bg-[#1a1a1a] border border-[#ff6600]/30 text-[#A0A0A0] hover:bg-[#ff6600]/10'
                   }`}
                 >
                   {filter.label}
                 </button>
               ))}
             </div>
-
-            {/* Product Filter */}
-            {uniqueProducts.length > 0 && (
-              <div className="flex gap-2 flex-wrap">
-                <span className="text-[#ffcc99] text-sm font-medium self-center">Product:</span>
-                <select
-                  value={productFilter}
-                  onChange={(e) => setProductFilter(e.target.value)}
-                  className="px-4 py-2 rounded-xl text-sm font-medium bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] focus:outline-none focus:border-[#ff6600]"
-                >
-                  <option value="all">All Products</option>
-                  {uniqueProducts.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Date Range */}
-            <div className="flex gap-2 flex-wrap items-center">
-              <span className="text-[#ffcc99] text-sm font-medium">Date Range:</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[#A0A0A0] text-sm">From</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="px-4 py-2 rounded-xl text-sm bg-[#1a1a1a] border border-[#ff6600]/30 text-white focus:outline-none focus:border-[#ff6600]"
+                className="px-3 py-1.5 rounded-lg text-sm bg-[#1a1a1a] border border-[#ff6600]/30 text-white focus:outline-none focus:border-[#FF6B00]"
               />
-              <span className="text-[#ffcc99]">to</span>
+              <span className="text-[#A0A0A0] text-sm">To</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="px-4 py-2 rounded-xl text-sm bg-[#1a1a1a] border border-[#ff6600]/30 text-white focus:outline-none focus:border-[#ff6600]"
+                className="px-3 py-1.5 rounded-lg text-sm bg-[#1a1a1a] border border-[#ff6600]/30 text-white focus:outline-none focus:border-[#FF6B00]"
               />
-              {(startDate || endDate) && (
-                <button
-                  onClick={() => {
-                    setStartDate('');
-                    setEndDate('');
-                  }}
-                  className="px-4 py-2 rounded-xl text-sm font-medium bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] hover:bg-[#ff6600]/10"
-                >
-                  Clear
-                </button>
-              )}
             </div>
           </div>
 
           {/* Search Bar */}
-          <div className="px-4 py-3">
-            <label className="flex flex-col min-w-40 h-12 w-full">
-              <div className="flex w-full flex-1 items-stretch rounded-xl h-full">
-                <div className="text-[#ffcc99] flex border-none bg-[#1a1a1a] items-center justify-center pl-4 rounded-l-xl border-r-0">
-                  <Search className="w-5 h-5" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search reviews by product, customer, or comment..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border-none bg-[#1a1a1a] focus:border-none h-full placeholder:text-[#ffcc99] px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal"
-                />
-              </div>
-            </label>
+          <div className="px-4 py-2">
+            <div className="flex w-full items-center rounded-xl bg-[#1a1a1a] border border-[#ff6600]/30">
+              <Search className="w-5 h-5 text-[#A0A0A0] ml-4 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search by product, customer or comment..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 px-3 py-3 bg-transparent text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-0 border-none"
+              />
+            </div>
           </div>
 
           {/* Reviews List */}
@@ -398,154 +400,175 @@ export default function ReviewsPage() {
                 <p className="text-[#ffcc99]">Loading reviews...</p>
               </div>
             ) : filteredReviews.length === 0 ? (
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-8 text-center">
-                <MessageSquare className="w-12 h-12 text-[#ff6600]/30 mx-auto mb-4" />
-                <p className="text-white text-lg font-medium mb-2">No reviews found</p>
-                <p className="text-[#ffcc99]">
-                  {searchQuery || ratingFilter !== 'all' || productFilter !== 'all' || startDate || endDate
-                    ? 'No reviews match your current filters'
-                    : 'You have no reviews yet'}
+              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-12 text-center">
+                <span className="text-[40px] leading-none block mb-4" style={{ color: STAR_FILLED }}>★</span>
+                <h3 className="text-white text-[18px] font-bold mb-2">No reviews yet</h3>
+                <p className="text-[#A0A0A0] text-sm max-w-md mx-auto">
+                  Reviews from buyers will appear here once your first order is delivered
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredReviews.map((review) => (
-                  <div
-                    key={review.id}
-                    className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6"
-                  >
-                    <div className="flex gap-4">
-                      {/* Product Image */}
-                      {review.productImage && (
-                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-[#0d0d0d] shrink-0">
-                          <Image
-                            src={review.productImage}
-                            alt={review.productTitle}
-                            width={80}
-                            height={80}
-                            className="w-full h-full object-cover"
-                          />
+                {filteredReviews.map((review) => {
+                  const isExpanded = expandedReviewId === review.id;
+                  const isLongComment = review.comment.length > 150;
+
+                  return (
+                    <div
+                      key={review.id}
+                      className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6"
+                    >
+                      {/* Top row: avatar + buyer name + product link */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <div
+                          className="w-10 h-10 rounded-full bg-[#2A2A2A] flex items-center justify-center text-white text-sm font-medium shrink-0"
+                          aria-hidden
+                        >
+                          {getInitials(review.userName)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-white font-medium">{review.userName}</span>
+                          <span className="text-[#A0A0A0] mx-2">·</span>
+                          <Link
+                            href={`/seller/products/${review.productId}`}
+                            className="text-[#FF6B00] hover:underline truncate inline-block max-w-[200px] align-baseline"
+                          >
+                            {review.productTitle}
+                          </Link>
+                        </div>
+                      </div>
+
+                      {/* Star rating */}
+                      <div className="mb-3">{renderStars(review.rating)}</div>
+
+                      {/* Review text: 14px #CCCCCC, max 3 lines + Read more */}
+                      <div className="mb-4">
+                        <p
+                          className={`text-[#CCCCCC] text-[14px] leading-relaxed whitespace-pre-wrap ${!isExpanded ? 'line-clamp-3' : ''}`}
+                        >
+                          {review.comment}
+                        </p>
+                        {isLongComment && !isExpanded && (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedReviewId(review.id)}
+                            className="text-[#FF6B00] text-sm font-medium mt-1 hover:underline"
+                          >
+                            Read more
+                          </button>
+                        )}
+                        {isLongComment && isExpanded && (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedReviewId(null)}
+                            className="text-[#FF6B00] text-sm font-medium mt-1 hover:underline"
+                          >
+                            Show less
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Bottom row: date right, Helpful left, reply button right */}
+                      <div className="flex items-center justify-between gap-4 flex-wrap">
+                        <span className="text-[#A0A0A0] text-sm">
+                          Helpful? 👍 {review.helpfulCount ?? 0}
+                        </span>
+                        <div className="flex items-center gap-3 ml-auto">
+                          <span className="text-[#A0A0A0] text-sm">{formatDate(review.createdAt)}</span>
+                          <button
+                            type="button"
+                            onClick={() => setReplyingTo(replyingTo === review.id ? null : review.id)}
+                            className="px-4 py-2 rounded-lg text-sm font-medium border border-[#ff6600]/50 text-[#FF6B00] hover:bg-[#FF6B00]/10 transition"
+                          >
+                            {review.replies && review.replies.length > 0 ? 'Add Reply' : 'Reply to review'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Seller reply bubble */}
+                      {review.replies && review.replies.length > 0 && (
+                        <div className="mt-4 pl-4 border-l-2 border-[#FF6B00]">
+                          <p className="text-[#FF6B00] font-semibold text-sm mb-1">Your response</p>
+                          {review.replies.map((reply) => (
+                            <p key={reply.id} className="text-[#CCCCCC] text-[14px] leading-relaxed">
+                              {reply.comment}
+                            </p>
+                          ))}
                         </div>
                       )}
 
-                      <div className="flex-1">
-                        {/* Product Title */}
-                        <Link
-                          href={`/seller/products/${review.productId}`}
-                          className="text-[#ff6600] hover:text-[#cc5200] font-semibold text-lg mb-2 block"
-                        >
-                          {review.productTitle}
-                        </Link>
-
-                        {/* Rating and Date */}
-                        <div className="flex items-center gap-4 mb-3">
-                          {renderStars(review.rating)}
-                          <span className="text-[#ffcc99] text-sm">{formatDate(review.createdAt)}</span>
-                        </div>
-
-                        {/* Customer Info */}
-                        <div className="mb-3">
-                          <p className="text-white font-medium text-sm">{review.userName}</p>
-                          <p className="text-[#ffcc99]/60 text-xs">{review.userEmail}</p>
-                        </div>
-
-                        {/* Review Comment */}
-                        <p className="text-[#ffcc99] text-sm leading-relaxed mb-4">{review.comment}</p>
-
-                        {/* Existing Replies */}
-                        {review.replies && review.replies.length > 0 && (
-                          <div className="mt-4 space-y-3 pl-4 border-l-2 border-[#ff6600]/30">
-                            {review.replies.map((reply) => (
-                              <div key={reply.id} className="bg-[#0d0d0d] rounded-xl p-4">
-                                <div className="flex items-start justify-between mb-2">
-                                  <div>
-                                    <p className="text-[#ff6600] font-semibold text-sm">
-                                      {reply.sellerBusinessName}
-                                    </p>
-                                    <p className="text-[#ffcc99]/60 text-xs">
-                                      {formatDateTime(reply.createdAt)}
-                                    </p>
-                                  </div>
-                                </div>
-                                <p className="text-[#ffcc99] text-sm leading-relaxed">
-                                  {reply.comment}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Reply Section */}
-                        {replyingTo === review.id ? (
-                          <div className="mt-4 bg-[#0d0d0d] rounded-xl p-4">
+                      {/* Reply section (expandable) */}
+                      {replyingTo === review.id && (
+                        <div className="mt-4 pt-4 border-t border-[#2A2A2A]">
+                          <div className="relative group">
                             <textarea
                               value={replyText[review.id] || ''}
                               onChange={(e) =>
                                 setReplyText((prev) => ({
                                   ...prev,
-                                  [review.id]: e.target.value,
+                                  [review.id]: e.target.value.slice(0, 500),
                                 }))
                               }
-                              placeholder="Write your reply..."
+                              placeholder="Thank the customer or address their feedback publicly..."
                               rows={3}
-                              className="w-full px-4 py-2 rounded-xl text-sm bg-[#1a1a1a] border border-[#ff6600]/30 text-white focus:outline-none focus:border-[#ff6600] resize-none mb-3"
-                              maxLength={2000}
+                              className="w-full px-4 py-3 rounded-xl text-sm bg-[#0d0d0d] border border-[#ff6600]/30 text-white focus:outline-none focus:border-[#FF6B00] resize-none mb-3"
+                              maxLength={500}
                             />
-                            <div className="flex items-center justify-between">
-                              <span className="text-[#ffcc99]/60 text-xs">
-                                {(replyText[review.id] || '').length}/2000 characters
-                              </span>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => {
-                                    setReplyingTo(null);
-                                    setReplyText((prev) => {
-                                      const updated = { ...prev };
-                                      delete updated[review.id];
-                                      return updated;
-                                    });
-                                  }}
-                                  className="px-4 py-2 rounded-xl text-sm font-medium bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] hover:bg-[#ff6600]/10 transition"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => handleCreateReply(review.id)}
-                                  disabled={submittingReply === review.id || !replyText[review.id]?.trim()}
-                                  className="px-4 py-2 rounded-xl text-sm font-medium bg-[#ff6600] text-white hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
-                                >
-                                  {submittingReply === review.id ? (
-                                    <>
-                                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                      Posting...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Send className="w-4 h-4" />
-                                      Post Reply
-                                    </>
-                                  )}
-                                </button>
-                              </div>
+                            <span
+                              className="absolute top-2 right-2 text-[#A0A0A0] text-xs"
+                              title="Public replies build trust with future buyers"
+                            >
+                              {(replyText[review.id] || '').length}/500
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3 flex-wrap">
+                            <span
+                              className="flex items-center gap-1.5 text-[#A0A0A0] text-xs"
+                              title="Public replies build trust with future buyers"
+                            >
+                              <HelpCircle className="w-4 h-4" />
+                              Public replies build trust with future buyers
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setReplyingTo(null);
+                                  setReplyText((prev) => {
+                                    const updated = { ...prev };
+                                    delete updated[review.id];
+                                    return updated;
+                                  });
+                                }}
+                                className="px-4 py-2 rounded-lg text-sm font-medium bg-transparent border border-[#2A2A2A] text-[#A0A0A0] hover:border-[#ff6600]/30 transition"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleCreateReply(review.id)}
+                                disabled={submittingReply === review.id || !replyText[review.id]?.trim()}
+                                className="px-4 py-2 rounded-lg text-sm font-medium bg-[#FF6B00] text-black hover:bg-[#e55f00] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
+                              >
+                                {submittingReply === review.id ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                    Posting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Send className="w-4 h-4" />
+                                    Submit
+                                  </>
+                                )}
+                              </button>
                             </div>
                           </div>
-                        ) : (
-                          <div className="mt-4">
-                            <button
-                              onClick={() => setReplyingTo(review.id)}
-                              className="px-4 py-2 rounded-xl text-sm font-medium bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] hover:bg-[#ff6600]/10 transition flex items-center gap-2"
-                            >
-                              <MessageSquare className="w-4 h-4" />
-                              {review.replies && review.replies.length > 0
-                                ? 'Add Reply'
-                                : 'Reply'}
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

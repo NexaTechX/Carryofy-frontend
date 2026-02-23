@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager, userManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
-import { User, Building2, Shield, Bell, LogOut, Save, Eye, EyeOff, CheckCircle2, XCircle, Clock, CreditCard, Plus, Trash2, ShieldCheck, Upload, AlertCircle } from 'lucide-react';
+import { User, Building2, Shield, Bell, Save, Eye, EyeOff, CheckCircle2, XCircle, Clock, CreditCard, Plus, Trash2, ShieldCheck, Upload, AlertCircle, Lock, Loader2 } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -44,11 +44,22 @@ export default function SettingsPage() {
   const [profileForm, setProfileForm] = useState({
     name: '',
     phone: '',
+    countryCode: '+234',
   });
+  const [initialProfileForm, setInitialProfileForm] = useState({
+    name: '',
+    phone: '',
+    countryCode: '+234',
+  });
+  const [profileSaveStatus, setProfileSaveStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   // Business state
   const [businessForm, setBusinessForm] = useState({
     businessName: '',
+    businessType: 'Individual',
+    cacNumber: '',
+    businessAddress: '',
+    businessDescription: '',
     logo: '',
   });
   const [logoUploading, setLogoUploading] = useState(false);
@@ -81,6 +92,7 @@ export default function SettingsPage() {
     new: false,
     confirm: false,
   });
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
   // KYC state
   const [kycStatus, setKycStatus] = useState<string>('NOT_SUBMITTED');
@@ -102,22 +114,14 @@ export default function SettingsPage() {
     addressProofImage: false,
   });
 
-  // Notification preferences state
-  const [notificationPreferences, setNotificationPreferences] = useState({
-    email: {
-      orders: true,
-      products: true,
-      payouts: true,
-      system: true,
-      kyc: true,
-    },
-    push: {
-      orders: true,
-      products: true,
-      payouts: true,
-      system: false,
-      kyc: true,
-    },
+  // Notification preferences state (new structure per spec)
+  type NotifPref = { email: boolean; push?: boolean };
+  const [notificationPreferences, setNotificationPreferences] = useState<Record<string, NotifPref>>({
+    newOrderReceived: { email: true, push: true },
+    quoteRequest: { email: true, push: true },
+    paymentReceived: { email: true, push: true },
+    lowStockAlert: { email: true, push: true },
+    marketingUpdates: { email: true }, // email only - push toggle hidden
   });
   const [loadingPreferences, setLoadingPreferences] = useState(false);
   const [savingPreferences, setSavingPreferences] = useState(false);
@@ -196,10 +200,17 @@ export default function SettingsPage() {
       if (userRes.status === 'fulfilled') {
         const userData = userRes.value.data.data || userRes.value.data;
         setUserProfile(userData);
-        setProfileForm({
+        const phoneStr = userData.phone || '';
+        const match = phoneStr.match(/^(\+\d{1,4})(.*)$/);
+        const cc = match ? match[1] : '+234';
+        const num = match ? match[2].replace(/\D/g, '') : phoneStr.replace(/\D/g, '');
+        const formData = {
           name: userData.name || '',
-          phone: userData.phone || '',
-        });
+          phone: num,
+          countryCode: cc,
+        };
+        setProfileForm(formData);
+        setInitialProfileForm(formData);
       }
 
       // Handle Seller Profile
@@ -209,6 +220,10 @@ export default function SettingsPage() {
         setSellerNotOnboarded(false);
         setBusinessForm({
           businessName: sellerData.businessName || '',
+          businessType: sellerData.businessType || 'Individual',
+          cacNumber: sellerData.cacNumber || '',
+          businessAddress: sellerData.businessAddress || '',
+          businessDescription: sellerData.businessDescription || '',
           logo: sellerData.logo || '',
         });
       } else if (sellerRes.reason?.response?.status === 404) {
@@ -266,30 +281,39 @@ export default function SettingsPage() {
   }, [isAuthenticated, activeTab]);
 
   /**
-   * Normalize phone to international format.
-   * Converts Nigerian local: 0XXXXXXXXXX → +234XXXXXXXXXX
+   * Build full phone from country code and number.
    */
-  const normalizePhone = (phone: string): string => {
-    let cleaned = phone.replace(/[\s\-().]/g, '');
-    if (/^0\d{10}$/.test(cleaned)) {
-      cleaned = '+234' + cleaned.slice(1);
-    }
-    return cleaned;
+  const buildPhone = (countryCode: string, num: string): string => {
+    const digits = num.replace(/\D/g, '');
+    if (!digits) return '';
+    const cc = countryCode.replace(/\D/g, '');
+    return `+${cc}${digits}`;
+  };
+
+  const profileFormDirty =
+    profileForm.name !== initialProfileForm.name ||
+    profileForm.phone !== initialProfileForm.phone ||
+    profileForm.countryCode !== initialProfileForm.countryCode;
+
+  const formatPhoneInput = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 11)}`;
   };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
+    setProfileSaveStatus('loading');
 
     try {
       const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
-      // Normalize phone before sending
       const payload = {
-        ...profileForm,
-        phone: profileForm.phone ? normalizePhone(profileForm.phone) : profileForm.phone,
+        name: profileForm.name,
+        phone: buildPhone(profileForm.countryCode, profileForm.phone) || undefined,
       };
 
       const response = await fetch(`${apiUrl}/users/me`, {
@@ -309,17 +333,44 @@ export default function SettingsPage() {
         if (currentUser) {
           userManager.setUser({ ...currentUser, name: updatedData.name });
         }
-        toast.success('Profile updated successfully!');
+        const phoneStr = updatedData.phone || '';
+        const match = phoneStr.match(/^(\+\d{1,4})(.*)$/);
+        const cc = match ? match[1] : '+234';
+        const num = match ? match[2].replace(/\D/g, '') : phoneStr.replace(/\D/g, '');
+        const newInitial = {
+          name: updatedData.name || '',
+          phone: num,
+          countryCode: cc,
+        };
+        setInitialProfileForm(newInitial);
+        setProfileForm(newInitial);
+        setProfileSaveStatus('success');
+        setTimeout(() => setProfileSaveStatus('idle'), 2000);
       } else {
         const error = await response.json();
-        toast.error(`Failed to update profile: ${error.message || 'Unknown error'}`);
+        toast.error(error.message || 'Failed to update profile');
+        setProfileSaveStatus('error');
       }
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error('Failed to update profile. Please try again.');
-    } finally {
-      setSaving(false);
+      setProfileSaveStatus('error');
     }
+  };
+
+  const getPasswordStrength = (pwd: string): { level: 'weak' | 'fair' | 'strong' | 'very strong'; percent: number } => {
+    if (!pwd) return { level: 'weak', percent: 0 };
+    let score = 0;
+    if (pwd.length >= 6) score += 20;
+    if (pwd.length >= 8) score += 10;
+    if (pwd.length >= 12) score += 10;
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score += 20;
+    if (/\d/.test(pwd)) score += 20;
+    if (/[^a-zA-Z0-9]/.test(pwd)) score += 20;
+    if (score <= 20) return { level: 'weak', percent: 25 };
+    if (score <= 50) return { level: 'fair', percent: 50 };
+    if (score <= 80) return { level: 'strong', percent: 75 };
+    return { level: 'very strong', percent: 100 };
   };
 
   const handleBusinessUpdate = async (e: React.FormEvent) => {
@@ -331,13 +382,22 @@ export default function SettingsPage() {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
+      const payload = {
+        businessName: businessForm.businessName,
+        businessType: businessForm.businessType,
+        cacNumber: businessForm.cacNumber || undefined,
+        businessAddress: businessForm.businessAddress || undefined,
+        businessDescription: businessForm.businessDescription || undefined,
+        logo: businessForm.logo || undefined,
+      };
+
       const response = await fetch(`${apiUrl}/sellers/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(businessForm),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
@@ -406,12 +466,6 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleLogout = () => {
-    tokenManager.clearTokens();
-    userManager.clearUser();
-    router.push('/auth/login');
   };
 
   const getKycStatusBadge = (status: string) => {
@@ -728,8 +782,8 @@ export default function SettingsPage() {
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'business', label: 'Business', icon: Building2 },
-    { id: 'kyc', label: 'Identity Verification', icon: ShieldCheck },
-    { id: 'payout', label: 'Payout Account', icon: CreditCard },
+    { id: 'kyc', label: 'Identity', icon: ShieldCheck },
+    { id: 'payout', label: 'Payout', icon: CreditCard },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'notifications', label: 'Notifications', icon: Bell },
   ];
@@ -891,23 +945,15 @@ export default function SettingsPage() {
 
       if (response.ok) {
         const result = await response.json();
-        const preferencesData = result.data || result;
-        if (preferencesData) {
+        const pref = result.data || result;
+        if (pref) {
+          // Map API format to new structure if needed
           setNotificationPreferences({
-            email: preferencesData.email || {
-              orders: true,
-              products: true,
-              payouts: true,
-              system: true,
-              kyc: true,
-            },
-            push: preferencesData.push || {
-              orders: true,
-              products: true,
-              payouts: true,
-              system: false,
-              kyc: true,
-            },
+            newOrderReceived: pref.newOrderReceived || { email: pref.email?.orders ?? true, push: pref.push?.orders ?? true },
+            quoteRequest: pref.quoteRequest || { email: pref.email?.products ?? true, push: pref.push?.products ?? true },
+            paymentReceived: pref.paymentReceived || { email: pref.email?.payouts ?? true, push: pref.push?.payouts ?? true },
+            lowStockAlert: pref.lowStockAlert || { email: pref.email?.system ?? true, push: pref.push?.system ?? true },
+            marketingUpdates: pref.marketingUpdates || { email: pref.email?.kyc ?? false },
           });
         }
       }
@@ -933,13 +979,32 @@ export default function SettingsPage() {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
+      // Map new structure to API format for backward compatibility
+      const payload = {
+        ...notificationPreferences,
+        email: {
+          orders: notificationPreferences.newOrderReceived.email,
+          products: notificationPreferences.quoteRequest.email,
+          payouts: notificationPreferences.paymentReceived.email,
+          system: notificationPreferences.lowStockAlert.email,
+          kyc: notificationPreferences.marketingUpdates.email,
+        },
+        push: {
+          orders: notificationPreferences.newOrderReceived.push,
+          products: notificationPreferences.quoteRequest.push,
+          payouts: notificationPreferences.paymentReceived.push,
+          system: notificationPreferences.lowStockAlert.push,
+          kyc: false,
+        },
+      };
+
       const response = await fetch(`${apiUrl}/notifications/preferences`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(notificationPreferences),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
@@ -999,46 +1064,43 @@ export default function SettingsPage() {
           </div>
 
           <div className="px-4 py-3">
-            <div className="flex flex-col lg:flex-row gap-6">
-              {/* Sidebar Navigation */}
-              <div className="w-full lg:w-64">
-                <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-4 space-y-2">
-                  {tabs.map((tab) => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive
-                          ? 'bg-[#ff6600] text-black'
-                          : 'text-[#ffcc99] hover:bg-[#ff6600]/10 hover:text-white'
-                          }`}
-                      >
-                        <Icon className="w-5 h-5" />
-                        <span>{tab.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Logout Button */}
-                <button
-                  onClick={handleLogout}
-                  className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-[#1a1a1a] border border-red-500/30 text-red-400 rounded-xl text-sm font-medium hover:bg-red-500/10 transition-colors"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span>Logout</span>
-                </button>
+            {/* Content Card with Horizontal Tabs */}
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
+            >
+              {/* Horizontal Tab Bar - flush with content card top */}
+              <div className="flex overflow-x-auto border-b border-[#2A2A2A]">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={`flex items-center gap-2 px-5 py-4 text-sm font-medium transition-colors shrink-0 whitespace-nowrap ${
+                        isActive
+                          ? 'text-white border-b-[3px] border-[#FF6B00] -mb-[1px]'
+                          : 'text-[#A0A0A0] hover:text-white'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Main Content Area */}
-              <div className="flex-1">
+              <div className="p-6">
                 {loading && (
-                  <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-12">
+                  <div
+                    className="rounded-xl p-12"
+                    style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
+                  >
                     <div className="flex flex-col items-center justify-center">
-                      <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mb-4"></div>
-                      <p className="text-[#ffcc99] text-sm">Loading settings...</p>
+                      <div className="w-12 h-12 border-4 border-[#2A2A2A] border-t-[#FF6B00] rounded-full animate-spin mb-4"></div>
+                      <p className="text-[#A0A0A0] text-sm">Loading settings...</p>
                     </div>
                   </div>
                 )}
@@ -1046,59 +1108,114 @@ export default function SettingsPage() {
                   <>
                     {/* Profile Settings */}
                     {activeTab === 'profile' && (
-                      <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
-                        <h2 className="text-white text-xl font-bold mb-6">Profile Settings</h2>
+                      <div
+                        className="rounded-xl p-6"
+                        style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
+                      >
+                        <h2
+                          className="text-white font-bold mb-5 pb-4 border-b"
+                          style={{ fontSize: '14px', borderColor: '#2A2A2A' }}
+                        >
+                          Profile Settings
+                        </h2>
                         <form onSubmit={handleProfileUpdate} className="space-y-6">
                           <div>
-                            <label className="block text-[#ffcc99] text-sm font-medium mb-2">
+                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">
                               Full Name
                             </label>
                             <input
                               type="text"
                               value={profileForm.name}
                               onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                              className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                              className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
                               placeholder="Enter your full name"
                               required
                             />
                           </div>
 
                           <div>
-                            <label className="block text-[#ffcc99] text-sm font-medium mb-2">
+                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">
                               Email
                             </label>
-                            <input
-                              type="email"
-                              value={userProfile?.email || ''}
-                              disabled
-                              className="w-full px-4 py-3 rounded-xl bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] cursor-not-allowed"
-                              placeholder="Email address"
-                            />
-                            <p className="text-[#ffcc99] text-xs mt-1">Email cannot be changed</p>
+                            <div className="relative">
+                              <input
+                                type="email"
+                                value={userProfile?.email || ''}
+                                readOnly
+                                className="w-full px-4 py-3 pr-12 rounded-lg border text-[#A0A0A0] cursor-not-allowed"
+                                style={{ backgroundColor: '#111111', border: '1px solid #1A1A1A' }}
+                                placeholder="Email address"
+                              />
+                              <Lock
+                                className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4"
+                                style={{ color: '#A0A0A0' }}
+                              />
+                            </div>
+                            <p className="text-[#A0A0A0] text-xs mt-1">
+                              Email cannot be changed — contact support to update
+                            </p>
                           </div>
 
                           <div>
-                            <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                              Phone Number *
+                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">
+                              Phone Number
                             </label>
-                            <input
-                              type="tel"
-                              value={profileForm.phone}
-                              onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                              className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
-                              placeholder="08012345678 or +2348012345678"
-                              required
-                            />
-                            <p className="text-xs text-[#ffcc99]/70 mt-1">Required for seller accounts. Local format (e.g. 08012345678) is auto-converted.</p>
+                            <div className="flex">
+                              <div
+                                className="flex items-center gap-2 px-4 py-3 rounded-l-lg border border-r-0"
+                                style={{ backgroundColor: '#111111', borderColor: '#2A2A2A' }}
+                              >
+                                <span className="text-white text-sm">+234</span>
+                                <span className="text-lg" role="img" aria-label="Nigeria">🇳🇬</span>
+                              </div>
+                              <input
+                                type="tel"
+                                value={formatPhoneInput(profileForm.phone)}
+                                onChange={(e) => {
+                                  const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                                  setProfileForm({ ...profileForm, phone: digits });
+                                }}
+                                className="flex-1 px-4 py-3 rounded-r-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                                placeholder="801 234 5678"
+                                required
+                              />
+                            </div>
+                            <p className="text-xs text-[#A0A0A0] mt-1">
+                              Required for seller accounts. Auto-formats as you type.
+                            </p>
                           </div>
 
                           <button
                             type="submit"
-                            disabled={saving}
-                            className="flex items-center justify-center gap-2 px-6 py-3 bg-[#ff6600] text-black text-sm font-bold rounded-xl hover:bg-[#cc5200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!profileFormDirty || profileSaveStatus === 'loading'}
+                            className={`flex items-center justify-center gap-2 w-full h-11 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                              profileSaveStatus === 'success'
+                                ? 'bg-[#22C55E] text-white'
+                                : profileSaveStatus === 'error'
+                                  ? 'bg-red-600 text-white'
+                                  : profileSaveStatus === 'loading'
+                                    ? 'bg-[#FF6B00] text-black'
+                                    : 'bg-[#FF6B00] text-black hover:bg-[#E65100]'
+                            }`}
                           >
-                            <Save className="w-4 h-4" />
-                            {saving ? 'Saving...' : 'Save Changes'}
+                            {profileSaveStatus === 'loading' ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Saving...
+                              </>
+                            ) : profileSaveStatus === 'success' ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4" />
+                                Saved!
+                              </>
+                            ) : profileSaveStatus === 'error' ? (
+                              'Failed to save — try again'
+                            ) : (
+                              <>
+                                <Save className="w-4 h-4" />
+                                Save Changes
+                              </>
+                            )}
                           </button>
                         </form>
                       </div>
@@ -1106,42 +1223,43 @@ export default function SettingsPage() {
 
                     {/* Business Settings */}
                     {activeTab === 'business' && (
-                      <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
-                        <h2 className="text-white text-xl font-bold mb-6">Business Information</h2>
+                      <div
+                        className="rounded-xl p-6"
+                        style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
+                      >
+                        <h2
+                          className="text-white font-bold mb-5 pb-4 border-b"
+                          style={{ fontSize: '14px', borderColor: '#2A2A2A' }}
+                        >
+                          Business Information
+                        </h2>
 
                         {sellerProfile && (
-                          <div className="mb-6 p-4 bg-black rounded-xl border border-[#ff6600]/30">
+                          <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: '#111111', border: '1px solid #2A2A2A' }}>
                             <div className="flex items-center justify-between">
                               <div>
-                                <p className="text-[#ffcc99] text-sm font-medium mb-1">KYC Status</p>
+                                <p className="text-[#A0A0A0] text-sm font-medium mb-1">KYC Status</p>
                                 {getKycStatusBadge(kycStatus || sellerProfile.kycStatus?.toString().toUpperCase() || 'NOT_SUBMITTED')}
                               </div>
                             </div>
                             {kycStatus === 'PENDING' && (
-                              <p className="text-[#ffcc99] text-xs mt-3">
+                              <p className="text-[#A0A0A0] text-xs mt-3">
                                 Your KYC application is under review. You'll be notified once it's approved.
                               </p>
                             )}
                             {kycStatus === 'NOT_SUBMITTED' && (
-                              <p className="text-[#ffcc99] text-xs mt-3">
-                                Please complete your KYC verification to start selling. Go to the Identity Verification tab to get started.
+                              <p className="text-[#A0A0A0] text-xs mt-3">
+                                Please complete your KYC verification to start selling. Go to the Identity tab to get started.
                               </p>
                             )}
                             {kycStatus === 'REJECTED' && (
                               <div className="mt-3">
-                                <p className="text-red-400 text-xs mb-2">
-                                  Your KYC application was rejected.
-                                </p>
+                                <p className="text-red-400 text-xs mb-2">Your KYC application was rejected.</p>
                                 {sellerProfile.kyc?.rejectionReason && (
-                                  <div className="p-3 bg-red-900/20 border border-red-800/30 rounded-lg">
+                                  <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(127,29,29,0.2)', border: '1px solid rgba(185,28,28,0.3)' }}>
                                     <p className="text-xs font-semibold text-red-300 mb-1">Rejection Reason:</p>
                                     <p className="text-xs text-red-400">{sellerProfile.kyc.rejectionReason}</p>
                                   </div>
-                                )}
-                                {!sellerProfile.kyc?.rejectionReason && (
-                                  <p className="text-red-400 text-xs">
-                                    Please contact support for more information.
-                                  </p>
                                 )}
                               </div>
                             )}
@@ -1149,41 +1267,93 @@ export default function SettingsPage() {
                         )}
 
                         <form onSubmit={handleBusinessUpdate} className="space-y-6">
-                          {/* Logo Upload Section */}
                           <div>
-                            <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                              Business Logo
-                            </label>
+                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Business Name</label>
+                            <input
+                              type="text"
+                              value={businessForm.businessName}
+                              onChange={(e) => setBusinessForm({ ...businessForm, businessName: e.target.value })}
+                              className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                              placeholder="Enter your business name"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Business Type</label>
+                            <select
+                              value={businessForm.businessType}
+                              onChange={(e) => setBusinessForm({ ...businessForm, businessType: e.target.value })}
+                              className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                            >
+                              <option value="Individual">Individual</option>
+                              <option value="Sole Proprietorship">Sole Proprietorship</option>
+                              <option value="Partnership">Partnership</option>
+                              <option value="LLC">LLC</option>
+                              <option value="Registered Business">Registered Business</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">CAC Number</label>
+                            <input
+                              type="text"
+                              value={businessForm.cacNumber}
+                              onChange={(e) => setBusinessForm({ ...businessForm, cacNumber: e.target.value })}
+                              className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                              placeholder="Enter CAC registration number (if applicable)"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Business Address</label>
+                            <input
+                              type="text"
+                              value={businessForm.businessAddress}
+                              onChange={(e) => setBusinessForm({ ...businessForm, businessAddress: e.target.value })}
+                              className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                              placeholder="Enter your business address"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Business Description</label>
+                            <textarea
+                              value={businessForm.businessDescription}
+                              onChange={(e) => setBusinessForm({ ...businessForm, businessDescription: e.target.value })}
+                              rows={4}
+                              className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent resize-none"
+                              placeholder="Describe your business..."
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Business Logo</label>
                             <div className="flex items-start gap-6">
-                              {/* Logo Preview */}
-                              <div className="relative">
-                                <div className="w-24 h-24 rounded-xl border-2 border-dashed border-[#ff6600]/30 bg-black flex items-center justify-center overflow-hidden">
-                                  {businessForm.logo ? (
-                                    <img
-                                      src={businessForm.logo}
-                                      alt="Business Logo"
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="text-center p-2">
-                                      <Building2 className="w-8 h-8 text-[#ffcc99]/50 mx-auto mb-1" />
-                                      <span className="text-[#ffcc99]/50 text-xs">No Logo</span>
-                                    </div>
-                                  )}
-                                </div>
+                              <div className="relative w-[200px] h-[200px] shrink-0 rounded-xl overflow-hidden border-2 border-dashed border-[#2A2A2A] bg-black flex items-center justify-center">
+                                {businessForm.logo ? (
+                                  <img
+                                    src={businessForm.logo}
+                                    alt="Business Logo"
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="text-center p-2">
+                                    <Building2 className="w-10 h-10 text-[#A0A0A0]/50 mx-auto mb-1" />
+                                    <span className="text-[#A0A0A0]/50 text-xs">200×200</span>
+                                  </div>
+                                )}
                                 {businessForm.logo && (
                                   <button
                                     type="button"
                                     onClick={handleRemoveLogo}
-                                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                                    className="absolute top-2 right-2 w-7 h-7 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-500 transition-colors"
                                     title="Remove logo"
                                   >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 )}
                               </div>
-
-                              {/* Upload Button */}
                               <div className="flex-1">
                                 <input
                                   type="file"
@@ -1198,46 +1368,20 @@ export default function SettingsPage() {
                                 />
                                 <label
                                   htmlFor="logoUpload"
-                                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-colors ${logoUploading
-                                    ? 'bg-[#ff6600]/50 text-black cursor-wait'
-                                    : 'bg-[#ff6600] text-black hover:bg-[#cc5200]'
-                                    }`}
+                                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors ${logoUploading ? 'bg-[#FF6B00]/50 text-black cursor-wait' : 'bg-[#FF6B00] text-black hover:bg-[#E65100]'}`}
                                 >
                                   <Upload className="w-4 h-4" />
                                   {logoUploading ? 'Uploading...' : businessForm.logo ? 'Change Logo' : 'Upload Logo'}
                                 </label>
-                                <p className="text-[#ffcc99] text-xs mt-2">
-                                  Recommended: Square image, at least 200x200px
-                                </p>
-                                <p className="text-[#ffcc99]/70 text-xs">
-                                  JPG, PNG, or WebP • Max 2MB
-                                </p>
+                                <p className="text-[#A0A0A0] text-xs mt-2">200×200px crop • JPG, PNG, WebP • Max 2MB</p>
                               </div>
                             </div>
-                          </div>
-
-                          {/* Business Name */}
-                          <div>
-                            <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                              Business Name
-                            </label>
-                            <input
-                              type="text"
-                              value={businessForm.businessName}
-                              onChange={(e) => setBusinessForm({ ...businessForm, businessName: e.target.value })}
-                              className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
-                              placeholder="Enter your business name"
-                              required
-                            />
-                            <p className="text-[#ffcc99] text-xs mt-1">
-                              This name will be displayed to customers
-                            </p>
                           </div>
 
                           <button
                             type="submit"
                             disabled={saving || logoUploading}
-                            className="flex items-center justify-center gap-2 px-6 py-3 bg-[#ff6600] text-black text-sm font-bold rounded-xl hover:bg-[#cc5200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center justify-center gap-2 w-full h-11 rounded-lg bg-[#FF6B00] text-black text-sm font-bold hover:bg-[#E65100] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Save className="w-4 h-4" />
                             {saving ? 'Saving...' : 'Save Changes'}
@@ -1248,8 +1392,16 @@ export default function SettingsPage() {
 
                     {/* KYC Settings */}
                     {activeTab === 'kyc' && (
-                      <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
-                        <h2 className="text-white text-xl font-bold mb-6">Identity Verification (KYC)</h2>
+                      <div
+                        className="rounded-xl p-6"
+                        style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
+                      >
+                        <h2
+                          className="text-white font-bold mb-5 pb-4 border-b"
+                          style={{ fontSize: '14px', borderColor: '#2A2A2A' }}
+                        >
+                          Identity Verification (KYC)
+                        </h2>
                         <p className="text-[#ffcc99] text-sm mb-6">
                           To ensure the safety of our platform, we require all sellers to verify their identity.
                         </p>
@@ -1553,8 +1705,16 @@ export default function SettingsPage() {
 
                     {/* Payout Account Settings */}
                     {activeTab === 'payout' && (
-                      <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
-                        <h2 className="text-white text-xl font-bold mb-6">Payout Account</h2>
+                      <div
+                        className="rounded-xl p-6"
+                        style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
+                      >
+                        <h2
+                          className="text-white font-bold mb-5 pb-4 border-b"
+                          style={{ fontSize: '14px', borderColor: '#2A2A2A' }}
+                        >
+                          Payout Account
+                        </h2>
                         <p className="text-[#ffcc99] text-sm mb-6">
                           Link your bank account to receive payouts from your earnings. This information is encrypted and secure.
                         </p>
@@ -1733,26 +1893,34 @@ export default function SettingsPage() {
 
                     {/* Security Settings */}
                     {activeTab === 'security' && (
-                      <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
-                        <h2 className="text-white text-xl font-bold mb-6">Security Settings</h2>
-                        <form onSubmit={handlePasswordChange} className="space-y-6">
+                      <div
+                        className="rounded-xl p-6"
+                        style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
+                      >
+                        <h2
+                          className="text-white font-bold mb-5 pb-4 border-b"
+                          style={{ fontSize: '14px', borderColor: '#2A2A2A' }}
+                        >
+                          Security Settings
+                        </h2>
+
+                        <form onSubmit={handlePasswordChange} className="space-y-6 mb-8">
+                          <h3 className="text-white font-semibold text-sm mb-4">Change Password</h3>
                           <div>
-                            <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                              Current Password
-                            </label>
+                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Current Password</label>
                             <div className="relative">
                               <input
                                 type={showPasswords.current ? 'text' : 'password'}
                                 value={passwordForm.currentPassword}
                                 onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                                className="w-full px-4 py-3 pr-12 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                                className="w-full px-4 py-3 pr-12 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
                                 placeholder="Enter current password"
                                 required
                               />
                               <button
                                 type="button"
                                 onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#ffcc99] hover:text-white"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0A0] hover:text-white"
                               >
                                 {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                               </button>
@@ -1760,15 +1928,13 @@ export default function SettingsPage() {
                           </div>
 
                           <div>
-                            <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                              New Password
-                            </label>
+                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">New Password</label>
                             <div className="relative">
                               <input
                                 type={showPasswords.new ? 'text' : 'password'}
                                 value={passwordForm.newPassword}
                                 onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                                className="w-full px-4 py-3 pr-12 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                                className="w-full px-4 py-3 pr-12 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
                                 placeholder="Enter new password"
                                 required
                                 minLength={6}
@@ -1776,24 +1942,59 @@ export default function SettingsPage() {
                               <button
                                 type="button"
                                 onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#ffcc99] hover:text-white"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0A0] hover:text-white"
                               >
                                 {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                               </button>
                             </div>
-                            <p className="text-[#ffcc99] text-xs mt-1">Minimum 6 characters</p>
+                            {passwordForm.newPassword && (
+                              <div className="mt-2">
+                                <div
+                                  className="h-1.5 rounded-full overflow-hidden"
+                                  style={{ backgroundColor: '#2A2A2A' }}
+                                >
+                                  <div
+                                    className="h-full rounded-full transition-all"
+                                    style={{
+                                      width: `${getPasswordStrength(passwordForm.newPassword).percent}%`,
+                                      backgroundColor:
+                                        getPasswordStrength(passwordForm.newPassword).level === 'weak'
+                                          ? '#EF4444'
+                                          : getPasswordStrength(passwordForm.newPassword).level === 'fair'
+                                            ? '#F59E0B'
+                                            : getPasswordStrength(passwordForm.newPassword).level === 'strong'
+                                              ? '#22C55E'
+                                              : '#10B981',
+                                    }}
+                                  />
+                                </div>
+                                <p
+                                  className="text-xs mt-1"
+                                  style={{
+                                    color:
+                                      getPasswordStrength(passwordForm.newPassword).level === 'weak'
+                                        ? '#EF4444'
+                                        : getPasswordStrength(passwordForm.newPassword).level === 'fair'
+                                          ? '#F59E0B'
+                                          : getPasswordStrength(passwordForm.newPassword).level === 'strong'
+                                            ? '#22C55E'
+                                            : '#10B981',
+                                  }}
+                                >
+                                  {getPasswordStrength(passwordForm.newPassword).level}
+                                </p>
+                              </div>
+                            )}
                           </div>
 
                           <div>
-                            <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                              Confirm New Password
-                            </label>
+                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Confirm New Password</label>
                             <div className="relative">
                               <input
                                 type={showPasswords.confirm ? 'text' : 'password'}
                                 value={passwordForm.confirmPassword}
                                 onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                                className="w-full px-4 py-3 pr-12 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                                className="w-full px-4 py-3 pr-12 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
                                 placeholder="Confirm new password"
                                 required
                                 minLength={6}
@@ -1801,7 +2002,7 @@ export default function SettingsPage() {
                               <button
                                 type="button"
                                 onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#ffcc99] hover:text-white"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0A0] hover:text-white"
                               >
                                 {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                               </button>
@@ -1811,89 +2012,182 @@ export default function SettingsPage() {
                           <button
                             type="submit"
                             disabled={saving}
-                            className="flex items-center justify-center gap-2 px-6 py-3 bg-[#ff6600] text-black text-sm font-bold rounded-xl hover:bg-[#cc5200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center justify-center gap-2 w-full h-11 rounded-lg bg-[#FF6B00] text-black text-sm font-bold hover:bg-[#E65100] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Save className="w-4 h-4" />
                             {saving ? 'Updating...' : 'Update Password'}
                           </button>
                         </form>
+
+                        <div className="pt-6 border-t" style={{ borderColor: '#2A2A2A' }}>
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h3 className="text-white font-semibold text-sm mb-1">Enable 2FA via SMS</h3>
+                              <p className="text-[#A0A0A0] text-sm">
+                                Get a code sent to your phone for each login
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={twoFactorEnabled}
+                              onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
+                              className={`relative w-14 h-8 rounded-full shrink-0 transition-colors ${
+                                twoFactorEnabled ? 'bg-[#FF6B00]' : 'bg-[#2A2A2A]'
+                              }`}
+                            >
+                              <span
+                                className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${
+                                  twoFactorEnabled ? 'translate-x-6' : 'translate-x-0'
+                                }`}
+                              />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     )}
 
                     {/* Notifications Settings */}
                     {activeTab === 'notifications' && (
-                      <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
-                        <h2 className="text-white text-xl font-bold mb-6">Notification Preferences</h2>
-                        <p className="text-[#ffcc99] text-sm mb-6">
-                          Manage your email and push notification preferences for different types of updates.
+                      <div
+                        className="rounded-xl p-6"
+                        style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
+                      >
+                        <h2
+                          className="text-white font-bold mb-5 pb-4 border-b"
+                          style={{ fontSize: '14px', borderColor: '#2A2A2A' }}
+                        >
+                          Notification Preferences
+                        </h2>
+                        <p className="text-[#A0A0A0] text-sm mb-6">
+                          Manage your email and push notification preferences.
                         </p>
 
                         {loadingPreferences ? (
                           <div className="flex items-center justify-center py-12">
-                            <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin"></div>
+                            <div className="w-12 h-12 border-4 border-[#2A2A2A] border-t-[#FF6B00] rounded-full animate-spin"></div>
                           </div>
                         ) : (
                           <form onSubmit={handleSaveNotificationPreferences} className="space-y-6">
-                            {/* Email Notifications */}
-                            <div>
-                              <h3 className="text-white font-semibold mb-4">Email Notifications</h3>
-                              <div className="space-y-3">
-                                {(['orders', 'products', 'payouts', 'system', 'kyc'] as const).map((type) => (
-                                  <div key={type} className="flex items-center justify-between p-3 bg-black rounded-xl border border-[#ff6600]/30">
-                                    <label className="text-[#ffcc99] text-sm capitalize cursor-pointer flex-1">
-                                      {type === 'kyc' ? 'KYC' : type}
-                                    </label>
+                            {[
+                              {
+                                key: 'newOrderReceived',
+                                label: 'New order received',
+                                desc: 'When a customer places an order',
+                                hasPush: true,
+                              },
+                              {
+                                key: 'quoteRequest',
+                                label: 'Quote request from buyer',
+                                desc: 'When a buyer requests a quote',
+                                hasPush: true,
+                              },
+                              {
+                                key: 'paymentReceived',
+                                label: 'Payment received',
+                                desc: 'When payment is confirmed',
+                                hasPush: true,
+                              },
+                              {
+                                key: 'lowStockAlert',
+                                label: 'Low stock alert',
+                                desc: 'When inventory runs low',
+                                hasPush: true,
+                              },
+                              {
+                                key: 'marketingUpdates',
+                                label: 'Marketing updates',
+                                desc: 'News, tips, and promotions',
+                                hasPush: false,
+                              },
+                            ].map(({ key, label, desc, hasPush }) => (
+                              <div
+                                key={key}
+                                className="flex flex-wrap items-center justify-between gap-4 py-4 border-b"
+                                style={{ borderColor: '#2A2A2A' }}
+                              >
+                                <div className="flex-1 min-w-[200px]">
+                                  <p className="text-white font-bold text-sm">{label}</p>
+                                  <p className="text-[#A0A0A0] text-xs mt-0.5">{desc}</p>
+                                </div>
+                                <div className="flex items-center gap-6">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[#A0A0A0] text-xs">Email</span>
                                     <button
                                       type="button"
-                                      onClick={() => setNotificationPreferences({
-                                        ...notificationPreferences,
-                                        email: { ...notificationPreferences.email, [type]: !notificationPreferences.email[type] }
-                                      })}
-                                      className={`relative w-12 h-6 rounded-full transition-colors ${notificationPreferences.email[type] ? 'bg-[#ff6600]' : 'bg-[#1a1a1a] border border-[#ff6600]/30'
-                                        }`}
+                                      role="switch"
+                                      aria-checked={notificationPreferences[key as keyof typeof notificationPreferences].email}
+                                      onClick={() =>
+                                        setNotificationPreferences({
+                                          ...notificationPreferences,
+                                          [key]: {
+                                            ...notificationPreferences[key as keyof typeof notificationPreferences],
+                                            email: !notificationPreferences[key as keyof typeof notificationPreferences].email,
+                                          },
+                                        })
+                                      }
+                                      className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 ${
+                                        notificationPreferences[key as keyof typeof notificationPreferences].email
+                                          ? 'bg-[#FF6B00]'
+                                          : 'bg-[#2A2A2A]'
+                                      }`}
                                     >
                                       <span
-                                        className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${notificationPreferences.email[type] ? 'translate-x-6' : 'translate-x-0'
-                                          }`}
+                                        className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                                          notificationPreferences[key as keyof typeof notificationPreferences].email
+                                            ? 'translate-x-5'
+                                            : 'translate-x-0'
+                                        }`}
                                       />
                                     </button>
                                   </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Push Notifications */}
-                            <div>
-                              <h3 className="text-white font-semibold mb-4">Push Notifications</h3>
-                              <div className="space-y-3">
-                                {(['orders', 'products', 'payouts', 'system', 'kyc'] as const).map((type) => (
-                                  <div key={type} className="flex items-center justify-between p-3 bg-black rounded-xl border border-[#ff6600]/30">
-                                    <label className="text-[#ffcc99] text-sm capitalize cursor-pointer flex-1">
-                                      {type === 'kyc' ? 'KYC' : type}
-                                    </label>
-                                    <button
-                                      type="button"
-                                      onClick={() => setNotificationPreferences({
-                                        ...notificationPreferences,
-                                        push: { ...notificationPreferences.push, [type]: !notificationPreferences.push[type] }
-                                      })}
-                                      className={`relative w-12 h-6 rounded-full transition-colors ${notificationPreferences.push[type] ? 'bg-[#ff6600]' : 'bg-[#1a1a1a] border border-[#ff6600]/30'
+                                  {hasPush && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[#A0A0A0] text-xs">Push</span>
+                                      <button
+                                        type="button"
+                                        role="switch"
+                                        aria-checked={
+                                          'push' in notificationPreferences[key as keyof typeof notificationPreferences] &&
+                                          notificationPreferences[key as keyof typeof notificationPreferences].push
+                                        }
+                                        onClick={() =>
+                                          setNotificationPreferences({
+                                            ...notificationPreferences,
+                                            [key]: {
+                                              ...notificationPreferences[key as keyof typeof notificationPreferences],
+                                              push: !('push' in notificationPreferences[key as keyof typeof notificationPreferences]
+                                                ? notificationPreferences[key as keyof typeof notificationPreferences].push
+                                                : false),
+                                            },
+                                          })
+                                        }
+                                        className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 ${
+                                          'push' in notificationPreferences[key as keyof typeof notificationPreferences] &&
+                                          notificationPreferences[key as keyof typeof notificationPreferences].push
+                                            ? 'bg-[#FF6B00]'
+                                            : 'bg-[#2A2A2A]'
                                         }`}
-                                    >
-                                      <span
-                                        className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${notificationPreferences.push[type] ? 'translate-x-6' : 'translate-x-0'
+                                      >
+                                        <span
+                                          className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                                            'push' in notificationPreferences[key as keyof typeof notificationPreferences] &&
+                                            notificationPreferences[key as keyof typeof notificationPreferences].push
+                                              ? 'translate-x-5'
+                                              : 'translate-x-0'
                                           }`}
-                                      />
-                                    </button>
-                                  </div>
-                                ))}
+                                        />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
+                            ))}
 
                             <button
                               type="submit"
                               disabled={savingPreferences}
-                              className="flex items-center justify-center gap-2 px-6 py-3 bg-[#ff6600] text-black text-sm font-bold rounded-xl hover:bg-[#cc5200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="flex items-center justify-center gap-2 w-full h-11 rounded-lg bg-[#FF6B00] text-black text-sm font-bold hover:bg-[#E65100] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <Save className="w-4 h-4" />
                               {savingPreferences ? 'Saving...' : 'Save Preferences'}

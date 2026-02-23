@@ -56,7 +56,7 @@ export default function OrderDistribution() {
   };
 
   return (
-    <div className="flex min-w-72 flex-1 flex-col gap-4 rounded-xl border border-[#ff6600]/30 p-6">
+    <div className="flex min-w-72 flex-1 flex-col gap-4 rounded-[12px] border border-[#2A2A2A] bg-[#1A1A1A] p-6">
       <div>
         <p className="text-white text-base font-medium leading-normal mb-2">Order Distribution</p>
         {loading ? (
@@ -82,7 +82,22 @@ export default function OrderDistribution() {
         </div>
       ) : distributionData ? (
         <div className="space-y-4">
-          {distributionData.distribution.map((item, index) => (
+          {distributionData.total === 0 ||
+          !distributionData.distribution?.length ||
+          distributionData.distribution.every((d) => d.count === 0) ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#A0A0A0] font-medium">Awaiting first order</span>
+              </div>
+              <div className="h-3 bg-[#1a1a1a] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#2A2A2A] rounded-full"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          ) : (
+            distributionData.distribution.map((item, index) => (
             <div key={index} className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-white font-medium">{item.status}</span>
@@ -98,7 +113,8 @@ export default function OrderDistribution() {
                 />
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
       ) : (
         <div className="text-center text-[#ffcc99] py-8">

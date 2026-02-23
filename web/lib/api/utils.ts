@@ -49,6 +49,24 @@ export const formatDateTime = (date: string | Date): string => {
 };
 
 /**
+ * Format date as "Feb 23, 2026 · 2:30pm"
+ */
+export const formatDateWithTime = (date: string | Date): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const datePart = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(d);
+  const timePart = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(d);
+  return `${datePart} · ${timePart.toLowerCase()}`;
+};
+
+/**
  * Format a kobo amount as NGN currency string.
  * All money values in the system are stored as integers in kobo.
  */

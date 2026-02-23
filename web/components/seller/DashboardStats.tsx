@@ -1,29 +1,56 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { tokenManager } from '../../lib/auth';
-import { FileText } from 'lucide-react';
+import {
+  Package,
+  ShoppingCart,
+  DollarSign,
+  Wallet,
+  Clock,
+  FileText,
+  Building2,
+  LucideIcon,
+} from 'lucide-react';
 
 interface StatCardProps {
   title: string;
   value: string;
   description?: string;
   loading?: boolean;
+  icon: LucideIcon;
+  isRevenue?: boolean;
+  href?: string;
 }
 
-function StatCard({ title, value, description, loading }: StatCardProps) {
-  return (
-    <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-[#ff6600]/30">
-      <p className="text-white text-base font-medium leading-normal">{title}</p>
+function StatCard({ title, value, description, loading, icon: Icon, isRevenue, href }: StatCardProps) {
+  const cardClass =
+    'flex flex-col gap-2 rounded-[12px] p-[20px] bg-[#1A1A1A] border border-[#2A2A2A] relative overflow-hidden' +
+    (isRevenue ? ' border-l-4 border-l-[#FF6B00]' : '');
+  const content = (
+    <>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FF6B01]/15">
+          <Icon className="h-4 w-4 text-[#FF6B00]" strokeWidth={2} />
+        </div>
+      </div>
       {loading ? (
-        <div className="h-8 w-24 bg-[#1a1a1a] animate-pulse rounded"></div>
+        <div className="h-7 w-20 bg-[#2A2A2A] animate-pulse rounded" />
       ) : (
-        <p className="text-white tracking-light text-2xl font-bold leading-tight">{value}</p>
+        <p className="font-dm-mono text-[28px] font-bold leading-tight text-white">{value}</p>
       )}
-      {description ? (
-        <p className="text-xs text-gray-400 leading-snug">{description}</p>
-      ) : null}
-    </div>
+      <p className="text-[11px] font-medium uppercase tracking-wider text-[#A0A0A0]">{title}</p>
+      {description ? <p className="text-xs text-[#A0A0A0] leading-snug">{description}</p> : null}
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className={`${cardClass} hover:border-[#2A2A2A]/80 transition`}>
+        {content}
+      </Link>
+    );
+  }
+  return <div className={cardClass}>{content}</div>;
 }
 
 interface DashboardKPIs {
@@ -169,55 +196,57 @@ export default function DashboardStats() {
   };
 
   return (
-    <div className="flex flex-wrap gap-4 p-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <StatCard
         title="Total Products"
         value={stats ? stats.totalProducts.toString() : '0'}
         loading={loading}
+        icon={Package}
       />
       <StatCard
         title="Total Orders"
         value={stats ? stats.totalOrders.toString() : '0'}
         loading={loading}
+        icon={ShoppingCart}
       />
       <StatCard
         title="Total Revenue"
         value={stats ? formatPrice(stats.totalRevenue) : '₦0.00'}
         loading={loading}
+        icon={DollarSign}
+        isRevenue
       />
       <StatCard
         title="Available Balance"
         value={stats ? formatPrice(stats.availableBalance) : '₦0.00'}
-        description="Available to request for payout (pending earnings minus refunds). Post‑payout refunds may make balance negative."
+        description="Available to request for payout"
         loading={loading}
+        icon={Wallet}
+        isRevenue
       />
       <StatCard
         title="Pending Requests"
         value={stats ? `${stats.pendingPayoutRequestsCount}` : '0'}
-        description={stats ? `Total pending: ${formatPrice(stats.pendingPayoutRequestsTotal)}` : 'Total pending: ₦0.00'}
+        description={stats ? `Total: ${formatPrice(stats.pendingPayoutRequestsTotal)}` : 'Total: ₦0.00'}
         loading={loading}
+        icon={Clock}
+        isRevenue
       />
-      <Link href="/seller/quotes" className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-[#ff6600]/30 hover:border-[#ff6600]/50 transition">
-        <p className="text-white text-base font-medium leading-normal flex items-center gap-2">
-          <FileText className="w-4 h-4 text-[#ff6600]" />
-          Pending quotes
-        </p>
-        {loading ? (
-          <div className="h-8 w-24 bg-[#1a1a1a] animate-pulse rounded"></div>
-        ) : (
-          <p className="text-white tracking-light text-2xl font-bold leading-tight">{stats?.pendingQuoteRequestsCount ?? 0}</p>
-        )}
-        <p className="text-xs text-gray-400 leading-snug">Awaiting your response</p>
-      </Link>
-      <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-[#ff6600]/30">
-        <p className="text-white text-base font-medium leading-normal">B2B orders</p>
-        {loading ? (
-          <div className="h-8 w-24 bg-[#1a1a1a] animate-pulse rounded"></div>
-        ) : (
-          <p className="text-white tracking-light text-2xl font-bold leading-tight">{stats?.b2bOrdersCount ?? 0}</p>
-        )}
-        <p className="text-xs text-gray-400 leading-snug">Bulk / business orders</p>
-      </div>
+      <StatCard
+        title="Pending Quotes"
+        value={stats ? String(stats.pendingQuoteRequestsCount ?? 0) : '0'}
+        description="Awaiting your response"
+        loading={loading}
+        icon={FileText}
+        href="/seller/quotes"
+      />
+      <StatCard
+        title="B2B Orders"
+        value={stats ? String(stats.b2bOrdersCount ?? 0) : '0'}
+        description="Bulk / business orders"
+        loading={loading}
+        icon={Building2}
+      />
     </div>
   );
 }

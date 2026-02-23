@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { tokenManager } from '../../lib/auth';
+import { TrendingUp } from 'lucide-react';
 
 interface TrendData {
   date: string;
@@ -88,7 +90,7 @@ export default function SalesTrend() {
   };
 
   return (
-    <div className="flex min-w-72 flex-1 flex-col gap-4 rounded-xl border border-[#ff6600]/30 p-6">
+    <div className="flex min-w-72 flex-1 flex-col gap-4 rounded-[12px] border border-[#2A2A2A] bg-[#1A1A1A] p-6">
       <div>
         <p className="text-white text-base font-medium leading-normal mb-2">Sales Trend</p>
         {loading ? (
@@ -112,6 +114,25 @@ export default function SalesTrend() {
 
       {loading ? (
         <div className="h-32 bg-[#1a1a1a] animate-pulse rounded"></div>
+      ) : !trendData || trendData.totalOrders === 0 || trendData.trend.length === 0 ? (
+        <div
+          className="flex flex-col items-center justify-center gap-3 rounded-[12px] border-2 border-dashed border-[#2A2A2A] py-12 px-6"
+          style={{ borderStyle: 'dashed' }}
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FF6B00]/15">
+            <TrendingUp className="h-8 w-8 text-[#FF6B00]" strokeWidth={1.5} />
+          </div>
+          <p className="text-center text-base font-bold text-white">No sales yet</p>
+          <p className="text-center text-sm text-[#A0A0A0] max-w-[280px]">
+            Your sales trend will appear here once you receive your first order
+          </p>
+          <Link
+            href="/seller/products/new"
+            className="mt-2 inline-flex items-center gap-2 rounded-lg bg-[#FF6B00] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#E65100] transition"
+          >
+            Add Your First Product →
+          </Link>
+        </div>
       ) : trendData && trendData.trend.length > 0 ? (
         <div className="relative h-32">
           <svg
@@ -186,11 +207,7 @@ export default function SalesTrend() {
             </span>
           </div>
         </div>
-      ) : (
-        <div className="text-center text-[#ffcc99] py-8">
-          <p>No sales data available</p>
-        </div>
-      )}
+      ) : null}
 
       {!loading && trendData && (
         <div className="flex items-center justify-between text-sm pt-2 border-t border-[#ff6600]/20">

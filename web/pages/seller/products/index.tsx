@@ -1,13 +1,12 @@
 import Head from 'next/head';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
-import { Search, Trash2, Plus, Package, Edit, Eye, MoreVertical, Clock, CheckCircle, XCircle, AlertCircle, CheckSquare, Square, Copy, ShieldAlert, ShieldCheck, ShieldX, Loader2 } from 'lucide-react';
+import { Search, Trash2, Plus, Package, Edit, Eye, Clock, CheckCircle, XCircle, AlertCircle, CheckSquare, Square, Copy, ShieldAlert, ShieldX, X } from 'lucide-react';
 import { useAuth, tokenManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useConfirmation } from '../../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 
@@ -19,7 +18,7 @@ interface Product {
   status: string;
   images: string[];
   createdAt: string;
-  commissionPercentage?: number; // DEPRECATED - not used
+  commissionPercentage?: number;
   categoryRel?: {
     id: string;
     name: string;
@@ -28,44 +27,36 @@ interface Product {
   };
 }
 
-const statusConfig: Record<string, { label: string; color: string; bgColor: string; icon: React.ReactNode }> = {
-  PENDING_APPROVAL: {
-    label: 'Pending Review',
-    color: 'text-yellow-400',
-    bgColor: 'bg-yellow-400/10 border-yellow-400/30',
-    icon: <Clock className="w-3 h-3" />,
-  },
-  ACTIVE: {
-    label: 'Active',
-    color: 'text-green-400',
-    bgColor: 'bg-green-400/10 border-green-400/30',
-    icon: <CheckCircle className="w-3 h-3" />,
-  },
-  INACTIVE: {
-    label: 'Inactive',
-    color: 'text-red-400',
-    bgColor: 'bg-red-400/10 border-red-400/30',
-    icon: <XCircle className="w-3 h-3" />,
-  },
-  REJECTED: {
-    label: 'Rejected',
-    color: 'text-red-400',
-    bgColor: 'bg-red-400/10 border-red-400/30',
-    icon: <XCircle className="w-3 h-3" />,
-  },
-};
+type StatusFilter = 'all' | 'ACTIVE' | 'INACTIVE' | 'PENDING_APPROVAL' | 'REJECTED';
+type SortBy = 'newest' | 'price' | 'stock';
+
+const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'All statuses' },
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'INACTIVE', label: 'Inactive' },
+  { value: 'PENDING_APPROVAL', label: 'Pending Review' },
+  { value: 'REJECTED', label: 'Rejected' },
+];
+
+const SORT_OPTIONS: { value: SortBy; label: string }[] = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'price', label: 'Price' },
+  { value: 'stock', label: 'Stock' },
+];
 
 export default function ProductsPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [sortBy, setSortBy] = useState<SortBy>('newest');
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [duplicating, setDuplicating] = useState<string | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
-  const [bulkAction, setBulkAction] = useState<string | null>(null);
+  const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [kycLoading, setKycLoading] = useState(true);
@@ -168,21 +159,28 @@ export default function ProductsPage() {
   };
 
   const formatPrice = (priceInKobo: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-    }).format(priceInKobo / 100);
+    const naira = priceInKobo / 100;
+    return `₦${naira.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
-  const getStatusConfig = (status: string) => {
-    return statusConfig[status] || statusConfig.PENDING_APPROVAL;
+  const getStockBadge = (quantity: number) => {
+    if (quantity === 0) return { label: 'Out of stock', bg: '#EF444420', color: '#EF4444' };
+    if (quantity <= 5) return { label: `Low: ${quantity}`, bg: '#F59E0B20', color: '#F59E0B' };
+    return { label: `${quantity} in stock`, bg: '#22C55E20', color: '#22C55E' };
   };
 
-  const getStockStatus = (quantity: number) => {
-    if (quantity === 0) return { label: 'Out of Stock', color: 'text-red-400' };
-    if (quantity <= 5) return { label: `Low Stock (${quantity})`, color: 'text-yellow-400' };
-    return { label: `${quantity} in stock`, color: 'text-green-400' };
+  const getStatusPill = (status: string) => {
+    const isActive = status === 'ACTIVE';
+    const labels: Record<string, string> = {
+      ACTIVE: 'Active',
+      INACTIVE: 'Inactive',
+      PENDING_APPROVAL: 'Pending Review',
+      REJECTED: 'Rejected',
+    };
+    return {
+      label: labels[status] ?? status,
+      isActive,
+    };
   };
 
   const handleDeleteClick = (productId: string) => {
@@ -229,9 +227,22 @@ export default function ProductsPage() {
     }
   };
 
-  const filteredProducts = products.filter((product) =>
-    product.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = useMemo(() => {
+    let list = products.filter((p) =>
+      p.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    if (statusFilter !== 'all') {
+      list = list.filter((p) => p.status === statusFilter);
+    }
+    if (sortBy === 'newest') {
+      list = [...list].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else if (sortBy === 'price') {
+      list = [...list].sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'stock') {
+      list = [...list].sort((a, b) => b.quantity - a.quantity);
+    }
+    return list;
+  }, [products, searchQuery, statusFilter, sortBy]);
 
   const handleSelectProduct = (productId: string) => {
     setSelectedProducts((prev) => {
@@ -287,6 +298,7 @@ export default function ProductsPage() {
   const handleBulkStatusChange = async (status: string) => {
     if (selectedProducts.size === 0) return;
 
+    setBulkStatusOpen(false);
     setBulkProcessing(true);
     try {
       const response = await apiClient.post('/products/bulk/status', {
@@ -295,7 +307,6 @@ export default function ProductsPage() {
       });
       toast.success(response.data?.message || `Successfully updated ${response.data?.updated || 0} product(s)`);
       setSelectedProducts(new Set());
-      setBulkAction(null);
       fetchProducts();
     } catch (error: any) {
       console.error('Error bulk updating status:', error);
@@ -327,6 +338,7 @@ export default function ProductsPage() {
         <meta name="description" content="Manage your products on Carryofy." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
+        <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500&display=swap" rel="stylesheet" />
       </Head>
       <SellerLayout>
         <div className="min-h-full">
@@ -416,17 +428,43 @@ export default function ProductsPage() {
             </div>
           )}
 
-          {/* Search */}
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#ffcc99]" />
-              <input
-                type="text"
-                placeholder="Search products by name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
-              />
+          {/* Search bar with filters */}
+          <div className="mb-6 w-full">
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#A0A0A0]" />
+                <input
+                  type="text"
+                  placeholder="Search products by name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-[#1a1a1a] border border-[#2A2A2A] rounded-xl text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                />
+              </div>
+              <div className="flex gap-3 flex-shrink-0">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                  className="px-4 py-3 bg-[#1a1a1a] border border-[#2A2A2A] rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6600] min-w-[140px]"
+                >
+                  {STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      Filter: {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortBy)}
+                  className="px-4 py-3 bg-[#1a1a1a] border border-[#2A2A2A] rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6600] min-w-[140px]"
+                >
+                  {SORT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      Sort: {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -475,12 +513,12 @@ export default function ProductsPage() {
               </div>
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-2xl p-12 text-center">
-              <div className="w-16 h-16 rounded-full bg-[#ff6600]/10 flex items-center justify-center mx-auto mb-4">
-                <Package className="w-8 h-8 text-[#ff6600]" />
+            <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-2xl p-16 text-center flex flex-col items-center justify-center">
+              <div className="w-[48px] h-[48px] rounded-lg bg-[#ff6600]/20 flex items-center justify-center mx-auto mb-5">
+                <Package className="w-12 h-12 text-[#ff6600]" />
               </div>
-              <h3 className="text-white font-semibold text-lg mb-2">No products found</h3>
-              <p className="text-[#ffcc99] text-sm mb-6">
+              <h3 className="text-white font-bold text-xl mb-2">No products yet</h3>
+              <p className="text-[#A0A0A0] text-sm mb-8 max-w-sm">
                 {searchQuery
                   ? 'Try a different search term'
                   : kycStatus !== 'APPROVED'
@@ -492,94 +530,94 @@ export default function ProductsPage() {
               {!searchQuery && kycStatus === 'APPROVED' && !sellerNotFound && (
                 <Link
                   href="/seller/products/new"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff6600] text-black font-medium rounded-xl hover:bg-[#cc5200] transition-colors"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-[#ff6600] text-white font-bold rounded-xl hover:bg-[#cc5200] transition-colors text-base"
                 >
-                  <Plus className="w-5 h-5" />
+                  <Plus className="w-6 h-6" />
                   Add Your First Product
                 </Link>
               )}
               {!searchQuery && kycStatus !== 'APPROVED' && (
                 <Link
                   href="/seller/settings?tab=kyc"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-500 transition-colors"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 transition-colors"
                 >
-                  <ShieldAlert className="w-5 h-5" />
+                  <ShieldAlert className="w-6 h-6" />
                   {kycStatus === 'PENDING' ? 'View KYC Status' : kycStatus === 'REJECTED' ? 'Resubmit KYC' : 'Apply for KYC Verification'}
                 </Link>
               )}
               {!searchQuery && sellerNotFound && kycStatus === 'APPROVED' && (
                 <Link
                   href="/seller/onboard"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff6600] text-black font-medium rounded-xl hover:bg-[#cc5200] transition-colors"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-[#ff6600] text-white font-bold rounded-xl hover:bg-[#cc5200] transition-colors"
                 >
-                  <ShieldAlert className="w-5 h-5" />
+                  <ShieldAlert className="w-6 h-6" />
                   Complete Seller Onboarding
                 </Link>
               )}
             </div>
           ) : (
-            <div className="bg-[#1a1a1a] border border-[#ff6600]/20 rounded-2xl overflow-hidden">
+            <div className="bg-[#1a1a1a] border border-[#2A2A2A] border-l-[3px] border-l-[#ff6600] rounded-r-xl overflow-hidden">
               {/* Desktop Table */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-[#0a0a0a] border-b border-[#ff6600]/20">
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider w-12">
+                    <tr className="bg-[#111111] border-b border-[#2A2A2A]">
+                      <th className="px-6 py-4 text-left w-12">
                         <button
                           onClick={handleSelectAll}
-                          className="p-1 hover:bg-[#ff6600]/10 rounded transition-colors"
+                          className="p-1 hover:bg-[#1A1A1A] rounded transition-colors"
                           title="Select All"
                         >
                           {selectedProducts.size === filteredProducts.length && filteredProducts.length > 0 ? (
                             <CheckSquare className="w-5 h-5 text-[#ff6600]" />
                           ) : (
-                            <Square className="w-5 h-5 text-[#ffcc99]/60" />
+                            <Square className="w-5 h-5 text-[#A0A0A0]" />
                           )}
                         </button>
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-[#A0A0A0]">
                         Product
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
+                      <th className="px-6 py-4 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-[#A0A0A0]">
                         Price
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
+                      <th className="px-6 py-4 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-[#A0A0A0]">
                         Stock
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
+                      <th className="px-6 py-4 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-[#A0A0A0]">
                         Commission
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-[#A0A0A0]">
                         Status
                       </th>
-                      <th className="px-6 py-4 text-right text-xs font-semibold text-[#ffcc99] uppercase tracking-wider">
+                      <th className="px-6 py-4 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-[#A0A0A0]">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#ff6600]/10">
+                  <tbody className="divide-y divide-[#2A2A2A]">
                     {filteredProducts.map((product) => {
-                      const statusCfg = getStatusConfig(product.status);
-                      const stockStatus = getStockStatus(product.quantity);
-
+                      const stockBadge = getStockBadge(product.quantity);
+                      const statusPill = getStatusPill(product.status);
                       const isSelected = selectedProducts.has(product.id);
+
                       return (
-                        <tr key={product.id} className="hover:bg-[#ff6600]/5 transition-colors">
+                        <tr key={product.id} className="hover:bg-[#1A1A1A]/50 transition-colors">
                           <td className="px-6 py-4">
                             <button
                               onClick={() => handleSelectProduct(product.id)}
-                              className="p-1 hover:bg-[#ff6600]/10 rounded transition-colors"
+                              className="p-1 hover:bg-[#1A1A1A] rounded transition-colors"
                             >
                               {isSelected ? (
                                 <CheckSquare className="w-5 h-5 text-[#ff6600]" />
                               ) : (
-                                <Square className="w-5 h-5 text-[#ffcc99]/60" />
+                                <Square className="w-5 h-5 text-[#A0A0A0]" />
                               )}
                             </button>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center gap-4">
-                              <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#0a0a0a] border border-[#ff6600]/20 flex-shrink-0">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#111111] border border-[#2A2A2A] flex-shrink-0">
                                 {product.images?.[0] ? (
                                   <img
                                     src={product.images[0]}
@@ -588,71 +626,86 @@ export default function ProductsPage() {
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center">
-                                    <Package className="w-6 h-6 text-[#ffcc99]/30" />
+                                    <Package className="w-4 h-4 text-[#A0A0A0]" />
                                   </div>
                                 )}
                               </div>
-                              <div>
-                                <p className="text-white font-medium line-clamp-1">{product.title}</p>
-                                <p className="text-[#ffcc99]/60 text-xs mt-0.5">
-                                  ID: {product.id.slice(0, 8)}...
+                              <div className="min-w-0">
+                                <p className="text-white font-bold text-[14px] truncate max-w-[280px]" title={product.title}>
+                                  {product.title.length > 40 ? `${product.title.slice(0, 40)}…` : product.title}
+                                </p>
+                                <p className="text-[#555555] text-[11px] font-mono mt-0.5">
+                                  {product.id}
                                 </p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <p className="text-white font-semibold">{formatPrice(product.price)}</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className={`text-sm font-medium ${stockStatus.color}`}>
-                              {stockStatus.label}
+                          <td className="px-6 py-4 text-right">
+                            <p className="text-white text-[14px]" style={{ fontFamily: "'DM Mono', monospace" }}>
+                              {formatPrice(product.price)}
                             </p>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-col">
-                              <span className="text-white font-semibold text-sm">
+                          <td className="px-6 py-4 text-right">
+                            <span
+                              className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-medium"
+                              style={{ backgroundColor: stockBadge.bg, color: stockBadge.color }}
+                            >
+                              {stockBadge.label}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex flex-col items-end">
+                              <span className="text-[#ff6600] font-bold text-[14px]">
                                 {product.categoryRel?.commissionB2C?.toFixed(1) ?? 'N/A'}%
                               </span>
                               {product.categoryRel?.name && (
-                                <span className="text-[#ffcc99]/60 text-xs">
+                                <span className="text-[#A0A0A0] text-[11px] mt-0.5">
                                   {product.categoryRel.name}
                                 </span>
                               )}
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border ${statusCfg.bgColor} ${statusCfg.color}`}>
-                              {statusCfg.icon}
-                              {statusCfg.label}
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                                statusPill.isActive ? 'bg-[#22C55E15] text-[#22C55E]' : 'bg-[#2A2A2A] text-[#A0A0A0]'
+                              }`}
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                                  statusPill.isActive ? 'bg-[#22C55E]' : 'bg-[#A0A0A0]'
+                                }`}
+                              />
+                              {statusPill.label}
                             </span>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center justify-end gap-2">
                               <Link
                                 href={`/seller/products/${product.id}/edit`}
-                                className="p-2 text-[#ffcc99] hover:text-[#ff6600] hover:bg-[#ff6600]/10 rounded-lg transition-colors"
-                                title="Edit"
+                                className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-[#1A1A1A] text-[#A0A0A0] hover:text-[#ff6600] transition-colors"
+                                title="Edit product"
                               >
                                 <Edit className="w-4 h-4" />
                               </Link>
                               <Link
                                 href={`/seller/products/${product.id}`}
-                                className="p-2 text-[#ffcc99] hover:text-[#ff6600] hover:bg-[#ff6600]/10 rounded-lg transition-colors"
-                                title="View"
+                                className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-[#1A1A1A] text-[#A0A0A0] hover:text-[#3B82F6] transition-colors"
+                                title="Preview listing"
                               >
                                 <Eye className="w-4 h-4" />
                               </Link>
                               <button
                                 onClick={() => handleDuplicate(product.id)}
                                 disabled={duplicating === product.id}
-                                className="p-2 text-[#ffcc99] hover:text-[#ff6600] hover:bg-[#ff6600]/10 rounded-lg transition-colors disabled:opacity-50"
+                                className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-[#1A1A1A] text-[#A0A0A0] hover:text-[#A0A0A0] transition-colors disabled:opacity-50"
                                 title="Duplicate"
                               >
                                 <Copy className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDeleteClick(product.id)}
-                                className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                                className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-[#1A1A1A] text-[#A0A0A0] hover:text-[#EF4444] transition-colors"
                                 title="Delete"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -667,15 +720,15 @@ export default function ProductsPage() {
               </div>
 
               {/* Mobile Cards */}
-              <div className="md:hidden divide-y divide-[#ff6600]/10">
+              <div className="md:hidden divide-y divide-[#2A2A2A]">
                 {filteredProducts.map((product) => {
-                  const statusCfg = getStatusConfig(product.status);
-                  const stockStatus = getStockStatus(product.quantity);
+                  const stockBadge = getStockBadge(product.quantity);
+                  const statusPill = getStatusPill(product.status);
 
                   return (
                     <div key={product.id} className="p-4">
                       <div className="flex gap-4">
-                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-[#0a0a0a] border border-[#ff6600]/20 flex-shrink-0">
+                        <div className="w-14 h-14 rounded-lg overflow-hidden bg-[#111111] border border-[#2A2A2A] flex-shrink-0">
                           {product.images?.[0] ? (
                             <img
                               src={product.images[0]}
@@ -684,37 +737,46 @@ export default function ProductsPage() {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <Package className="w-8 h-8 text-[#ffcc99]/30" />
+                              <Package className="w-5 h-5 text-[#A0A0A0]" />
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-white font-medium line-clamp-2">{product.title}</p>
-                          <p className="text-[#ff6600] font-bold mt-1">{formatPrice(product.price)}</p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${statusCfg.bgColor} ${statusCfg.color}`}>
-                              {statusCfg.icon}
-                              {statusCfg.label}
+                          <p className="text-white font-bold text-sm line-clamp-2">{product.title}</p>
+                          <p className="text-white text-sm mt-1" style={{ fontFamily: "'DM Mono', monospace" }}>
+                            {formatPrice(product.price)}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium"
+                              style={statusPill.isActive ? { backgroundColor: '#22C55E15', color: '#22C55E' } : { backgroundColor: '#2A2A2A', color: '#A0A0A0' }}
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusPill.isActive ? 'bg-[#22C55E]' : 'bg-[#A0A0A0]'}`}
+                              />
+                              {statusPill.label}
                             </span>
-                            <span className={`text-xs ${stockStatus.color}`}>
-                              {stockStatus.label}
+                            <span
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                              style={{ backgroundColor: stockBadge.bg, color: stockBadge.color }}
+                            >
+                              {stockBadge.label}
                             </span>
                           </div>
-                          <div className="mt-2 p-2 bg-[#0a0a0a] rounded-lg border border-[#ff6600]/20">
-                            <p className="text-[#ffcc99] text-xs mb-1">Platform Commission</p>
-                            <p className="text-white font-semibold text-sm">
+                          <div className="mt-2 p-2 bg-[#111111] rounded-lg border border-[#2A2A2A]">
+                            <p className="text-[#ff6600] font-bold text-sm">
                               {product.categoryRel?.commissionB2C?.toFixed(1) ?? 'N/A'}%
                             </p>
                             {product.categoryRel?.name && (
-                              <p className="text-[#ffcc99]/60 text-xs mt-0.5">{product.categoryRel.name}</p>
+                              <p className="text-[#A0A0A0] text-xs mt-0.5">{product.categoryRel.name}</p>
                             )}
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-[#ff6600]/10">
+                      <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-[#2A2A2A]">
                         <Link
                           href={`/seller/products/${product.id}/edit`}
-                          className="flex items-center gap-1 px-3 py-1.5 text-[#ffcc99] hover:text-[#ff6600] text-sm font-medium"
+                          className="flex items-center gap-1 px-3 py-1.5 text-[#A0A0A0] hover:text-[#ff6600] text-sm font-medium"
                         >
                           <Edit className="w-4 h-4" />
                           Edit
@@ -722,14 +784,14 @@ export default function ProductsPage() {
                         <button
                           onClick={() => handleDuplicate(product.id)}
                           disabled={duplicating === product.id}
-                          className="flex items-center gap-1 px-3 py-1.5 text-[#ffcc99] hover:text-[#ff6600] text-sm font-medium disabled:opacity-50"
+                          className="flex items-center gap-1 px-3 py-1.5 text-[#A0A0A0] hover:text-white text-sm font-medium disabled:opacity-50"
                         >
                           <Copy className="w-4 h-4" />
                           {duplicating === product.id ? 'Duplicating...' : 'Duplicate'}
                         </button>
                         <button
                           onClick={() => handleDeleteClick(product.id)}
-                          className="flex items-center gap-1 px-3 py-1.5 text-red-400 hover:text-red-300 text-sm font-medium"
+                          className="flex items-center gap-1 px-3 py-1.5 text-[#A0A0A0] hover:text-[#EF4444] text-sm font-medium"
                         >
                           <Trash2 className="w-4 h-4" />
                           Delete
@@ -742,6 +804,65 @@ export default function ProductsPage() {
             </div>
           )}
         </div>
+
+        {/* Floating bulk action bar */}
+        {selectedProducts.size > 0 && (
+          <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between gap-4 px-4 py-3 bg-[#1a1a1a] border-t border-[#2A2A2A] shadow-lg">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <span className="text-white font-medium whitespace-nowrap">
+                {selectedProducts.size} selected
+              </span>
+              <span className="text-[#A0A0A0] hidden sm:inline">·</span>
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkProcessing}
+                className="text-[#EF4444] hover:text-[#F87171] font-medium text-sm disabled:opacity-50 whitespace-nowrap"
+              >
+                Delete selected
+              </button>
+              <span className="text-[#A0A0A0] hidden sm:inline">·</span>
+              <div className="relative">
+                <button
+                  onClick={() => setBulkStatusOpen((v) => !v)}
+                  className="text-[#A0A0A0] hover:text-white font-medium text-sm py-1 whitespace-nowrap"
+                >
+                  Change status
+                </button>
+                {bulkStatusOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setBulkStatusOpen(false)}
+                    />
+                    <div className="absolute bottom-full left-0 mb-2 py-1 bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg shadow-xl z-50 min-w-[140px]">
+                      <button
+                        onClick={() => handleBulkStatusChange('ACTIVE')}
+                        disabled={bulkProcessing}
+                        className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#2A2A2A] disabled:opacity-50"
+                      >
+                        Set Active
+                      </button>
+                      <button
+                        onClick={() => handleBulkStatusChange('INACTIVE')}
+                        disabled={bulkProcessing}
+                        className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#2A2A2A] disabled:opacity-50"
+                      >
+                        Set Inactive
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => setSelectedProducts(new Set())}
+              className="p-2 text-[#A0A0A0] hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-colors flex-shrink-0"
+              title="Dismiss"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </SellerLayout>
       <ConfirmationDialog
         open={confirmation.open}

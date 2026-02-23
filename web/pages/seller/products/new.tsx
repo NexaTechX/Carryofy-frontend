@@ -28,7 +28,10 @@ import {
   Clock,
   ShieldCheck,
   Image as ImageIcon,
-  Upload
+  Upload,
+  Users,
+  Building2,
+  ShoppingBag,
 } from 'lucide-react';
 
 type SellingMode = 'B2C_ONLY' | 'B2B_ONLY' | 'B2C_AND_B2B';
@@ -127,6 +130,8 @@ export default function AddProductPage() {
   });
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [aiGeneratingField, setAiGeneratingField] = useState<'description' | 'keyFeatures' | 'material' | 'careInfo' | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [draftKeyFeature, setDraftKeyFeature] = useState('');
 
   // 2. Function declarations (helpers - hoisted but kept here for clarity)
   async function fetchKycStatus() {
@@ -232,13 +237,16 @@ export default function AddProductPage() {
   };
 
   const handleAddKeyFeature = () => {
+    const trimmed = draftKeyFeature.trim();
+    if (!trimmed) return;
     const currentFeatures = formData.keyFeatures || [];
-    if (currentFeatures.length < 3) {
-      setFormData((prev) => ({
-        ...prev,
-        keyFeatures: [...(prev.keyFeatures || []), ''],
-      }));
-    }
+    if (currentFeatures.length >= 3 || trimmed.length > 30) return;
+    setFormData((prev) => ({
+      ...prev,
+      keyFeatures: [...(prev.keyFeatures || []), trimmed],
+    }));
+    setDraftKeyFeature('');
+    setErrors((prev) => ({ ...prev, keyFeatures: undefined }));
   };
 
   const handleRemoveKeyFeature = (index: number) => {
@@ -337,6 +345,26 @@ export default function AddProductPage() {
 
   const handleRemoveImage = (index: number) => {
     setProductImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+    const input = document.getElementById('image-upload') as HTMLInputElement;
+    if (input) {
+      const dt = new DataTransfer();
+      for (let i = 0; i < Math.min(files.length, 5 - productImages.length - pendingImages.length); i++) {
+        dt.items.add(files[i]);
+      }
+      input.files = dt.files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
 
@@ -490,7 +518,8 @@ export default function AddProductPage() {
   const isFormValid = () => {
     return (
       productImages.length > 0 &&
-      formData.title.trim() &&
+      formData.title.trim().length >= 10 &&
+      formData.title.trim().length <= 100 &&
       formData.categoryIds?.length > 0 &&
       formData.price &&
       parseFloat(formData.price) > 0 &&
@@ -499,6 +528,31 @@ export default function AddProductPage() {
       true
     );
   };
+
+  const hasFormChanges = () => {
+    return (
+      productImages.length > 0 ||
+      formData.title.trim() !== '' ||
+      formData.description.trim() !== '' ||
+      (formData.keyFeatures && formData.keyFeatures.some(f => f.trim() !== '')) ||
+      formData.categoryIds?.length > 0 ||
+      formData.price !== '' ||
+      formData.quantity !== '' ||
+      (formData.material && formData.material.trim() !== '') ||
+      (formData.careInfo && formData.careInfo.trim() !== '') ||
+      (formData.sellingMode && formData.sellingMode !== 'B2C_ONLY') ||
+      (formData.moq && formData.moq !== '') ||
+      (formData.leadTimeDays && formData.leadTimeDays !== '') ||
+      !!formData.b2bProductType ||
+      (formData.priceTiers && formData.priceTiers.length > 0)
+    );
+  };
+
+  const step1Complete = productImages.length > 0;
+  const step2Complete = formData.title.trim().length >= 10 && formData.title.trim().length <= 100 && (formData.categoryIds?.length ?? 0) > 0;
+  const step3Complete = formData.price && parseFloat(formData.price) > 0 && formData.quantity && parseInt(formData.quantity) >= 0;
+  const step4Complete = true; // Selling mode always has default
+  const activeStep = step1Complete ? (step2Complete ? (step3Complete ? 4 : 3) : 2) : 1;
 
   if (authLoading || kycLoading) {
     return (
@@ -638,7 +692,52 @@ export default function AddProductPage() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <SellerLayout>
-        <div className="min-h-full pb-8">
+        <div className="min-h-full pb-8 -m-3 sm:-m-4 lg:-m-6 xl:-m-8">
+          {/* Sticky Progress Bar */}
+          <div
+            className="sticky top-0 z-20 h-12 flex items-center px-4 sm:px-6 lg:px-8 border-b border-[#2A2A2A]"
+            style={{ backgroundColor: '#111111', height: '48px' }}
+          >
+            <div className="flex items-center gap-0 w-full max-w-2xl">
+              {[
+                { label: 'Images', done: step1Complete, active: activeStep === 1 },
+                { label: 'Details', done: step2Complete, active: activeStep === 2 },
+                { label: 'Pricing', done: step3Complete, active: activeStep === 3 },
+                { label: 'Selling Mode', done: step4Complete, active: activeStep === 4 },
+              ].map((step, idx) => (
+                <div key={step.label} className="flex items-center flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div
+                      className={`flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0 ${
+                        step.done
+                          ? 'bg-green-500/20 text-green-500'
+                          : step.active
+                            ? 'bg-[#FF6B00]/20 text-[#FF6B00]'
+                            : 'bg-[#2A2A2A] text-[#6B6B6B]'
+                      }`}
+                    >
+                      {step.done ? <Check className="w-3 h-3" /> : <span className="w-1.5 h-1.5 rounded-full bg-current" />}
+                    </div>
+                    <span
+                      className={`text-sm font-medium truncate ${
+                        step.done ? 'text-[#6B6B6B]' : step.active ? 'text-[#FF6B00]' : 'text-[#6B6B6B]'
+                      }`}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                  {idx < 3 && (
+                    <div
+                      className="flex-shrink-0 w-6 h-px mx-1"
+                      style={{ backgroundColor: step.done ? '#22c55e' : '#2A2A2A' }}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-3 sm:p-4 lg:p-6 xl:p-8 pt-6">
           {/* Header */}
           <div className="mb-6">
             <button
@@ -663,123 +762,129 @@ export default function AddProductPage() {
             <div className="space-y-6">
               {/* Form */}
               <div className="space-y-4">
-                {/* Product Images */}
+                {/* Product Images - 5-slot grid */}
                 <div className="bg-[#1a1a1a] rounded-2xl border border-[#ff6600]/20 p-5">
                   <div className="flex items-center gap-2 mb-5">
                     <ImageIcon className="w-5 h-5 text-[#ff6600]" />
                     <h2 className="text-white font-semibold">Product Images</h2>
                   </div>
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                        Upload Images <span className="text-red-400">*</span>
-                      </label>
-                      <p className="text-[#ffcc99]/60 text-xs mb-3">
-                        Upload up to 5 product images (JPG, PNG, or WebP, max 5MB each). High-quality images improve conversion rates.
-                      </p>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    multiple
+                    onChange={handleImageUpload}
+                    disabled={uploadingImages || productImages.length >= 5}
+                    className="hidden"
+                    id="image-upload"
+                  />
 
-                      {/* Image Preview Grid */}
-                      {(productImages.length > 0 || pendingImages.length > 0) && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-4">
-                          {productImages.map((url, index) => (
-                            <div key={`remote-${index}`} className="relative group">
-                              <div className="aspect-square rounded-xl overflow-hidden border-2 border-[#ff6600]/30 bg-black">
-                                <Image
-                                  src={url}
-                                  alt={`Product image ${index + 1}`}
-                                  width={200}
-                                  height={200}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveImage(index)}
-                                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500/90 hover:bg-red-500 border border-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <X className="w-4 h-4 text-white" />
-                              </button>
-                              {index === 0 && (
-                                <div className="absolute bottom-2 left-2 px-2 py-1 bg-[#ff6600] text-white text-xs font-medium rounded">
-                                  Main
-                                </div>
-                              )}
-                            </div>
-                          ))}
-
-                          {/* Pending Images */}
-                          {pendingImages.map((p) => (
-                            <div key={`pending-${p.id}`} className="relative">
-                              <div className="aspect-square rounded-xl overflow-hidden border-2 border-[#ff6600]/10 bg-[#1a1a1a] opacity-60">
-                                <img
-                                  src={p.url}
-                                  alt="Pending upload"
-                                  className="w-full h-full object-cover grayscale blur-[2px]"
-                                />
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <div className="flex flex-col items-center gap-2">
-                                    <Loader2 className="w-6 h-6 text-[#ff6600] animate-spin" />
-                                    <span className="text-[10px] text-[#ffcc99] font-medium">Uploading...</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Upload Button */}
-                      <div className="relative">
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/jpg,image/png,image/webp"
-                          multiple
-                          onChange={handleImageUpload}
-                          disabled={uploadingImages || productImages.length >= 5}
-                          className="hidden"
-                          id="image-upload"
-                        />
+                  <div className="grid grid-cols-4 gap-3" style={{ gridTemplateRows: '240px 80px' }}>
+                    {/* Primary slot (1) - spans 2 rows, 1 col */}
+                    <div
+                      className="row-span-2 col-span-2 flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all cursor-pointer group min-h-[240px]"
+                      style={{
+                        borderColor: productImages[0] ? 'transparent' : '#FF6B00',
+                        backgroundColor: productImages[0] ? 'transparent' : 'transparent',
+                      }}
+                    >
+                      {productImages[0] ? (
                         <label
                           htmlFor="image-upload"
-                          className={`flex items-center justify-center gap-2 px-6 py-4 rounded-xl border-2 border-dashed transition-all cursor-pointer ${uploadingImages || productImages.length >= 5
-                            ? 'border-gray-600 text-gray-500 cursor-not-allowed'
-                            : 'border-[#ff6600]/50 text-[#ffcc99] hover:border-[#ff6600] hover:bg-[#ff6600]/5'
-                            }`}
+                          className="relative w-full h-full rounded-xl overflow-hidden flex items-center justify-center cursor-pointer block group/img"
                         >
-                          {uploadingImages ? (
-                            <>
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                              <span>Uploading...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-5 h-5" />
-                              <span>
-                                {productImages.length === 0
-                                  ? 'Upload Product Images'
-                                  : `Add More Images (${productImages.length}/5)`}
-                              </span>
-                            </>
-                          )}
+                          <Image
+                            src={productImages[0]}
+                            alt="Main product"
+                            width={400}
+                            height={400}
+                            className="w-full h-full object-cover group-hover/img:scale-[1.01] transition-transform duration-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); handleRemoveImage(0); }}
+                            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 hover:bg-red-500 border border-white/20 flex items-center justify-center text-white z-10"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </label>
-                      </div>
-
-                      {productImages.length >= 5 && (
-                        <p className="mt-2 text-yellow-400 text-xs flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          Maximum 5 images reached. Remove an image to add more.
-                        </p>
-                      )}
-
-                      {productImages.length === 0 && (
-                        <p className="mt-2 text-red-400 text-xs flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          At least one product image is required
-                        </p>
+                      ) : (pendingImages.length > 0 && productImages.length === 0) ? (
+                        <div className="w-full h-full rounded-xl overflow-hidden border-2 border-[#FF6B00]/30 bg-[#1a1a1a] flex items-center justify-center">
+                          <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin" />
+                            <span className="text-sm text-[#A0A0A0]">Uploading...</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <label
+                          htmlFor="image-upload"
+                          onDrop={handleDrop}
+                          onDragOver={handleDragOver}
+                          className="w-full h-full flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer hover:bg-[#FF6B0008] hover:scale-[1.01] transition-all duration-200"
+                          style={{ borderColor: '#FF6B00' }}
+                        >
+                          <Upload className="w-8 h-8 text-[#FF6B00] mb-2" style={{ width: 32, height: 32 }} />
+                          <span className="font-bold text-white text-sm">Drop main image here</span>
+                          <span className="text-xs mt-1" style={{ color: '#A0A0A0' }}>JPG, PNG, WebP · max 5MB</span>
+                        </label>
                       )}
                     </div>
+
+                    {/* Secondary slots 2, 3, 4, 5 - 80x80 each */}
+                    {[1, 2, 3, 4].map((idx) => (
+                      <div
+                        key={idx}
+                        className="w-full rounded-xl border-2 border-dashed flex items-center justify-center transition-all min-h-[80px]"
+                        style={{
+                          borderColor: productImages[idx] ? 'transparent' : '#2A2A2A',
+                          height: 80,
+                        }}
+                      >
+                        {productImages[idx] ? (
+                          <label
+                            htmlFor="image-upload"
+                            className="relative w-full h-full rounded-xl overflow-hidden flex items-center justify-center cursor-pointer block group/img"
+                          >
+                            <Image
+                              src={productImages[idx]}
+                              alt={`Product ${idx + 1}`}
+                              width={80}
+                              height={80}
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => { e.preventDefault(); handleRemoveImage(idx); }}
+                              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 hover:bg-red-500 flex items-center justify-center text-white opacity-0 group-hover/img:opacity-100 transition-opacity z-10"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </label>
+                        ) : (pendingImages[idx - productImages.length]) ? (
+                          <div className="w-full h-full rounded-xl overflow-hidden border border-[#2A2A2A] bg-[#1a1a1a] flex items-center justify-center">
+                            <Loader2 className="w-5 h-5 text-[#FF6B00] animate-spin" />
+                          </div>
+                        ) : (
+                          <label
+                            htmlFor="image-upload"
+                            onDrop={handleDrop}
+                            onDragOver={handleDragOver}
+                            className="w-full h-full flex items-center justify-center rounded-xl border-2 border-dashed cursor-pointer hover:bg-[#222] transition-colors"
+                            style={{ borderColor: '#2A2A2A' }}
+                          >
+                            <span className="text-sm font-medium" style={{ color: '#A0A0A0' }}>{idx + 1}</span>
+                          </label>
+                        )}
+                      </div>
+                    ))}
                   </div>
+
+                  {productImages.length === 0 && (
+                    <p className="mt-3 text-red-400 text-xs flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      At least one product image is required
+                    </p>
+                  )}
                 </div>
 
                 {/* Basic Information */}
@@ -792,27 +897,41 @@ export default function AddProductPage() {
                   <div className="space-y-4">
                     {/* Product Title */}
                     <div>
-                      <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                        Product Title <span className="text-red-400">*</span>
-                      </label>
-                      <input
-                        name="title"
-                        type="text"
-                        placeholder="e.g., Premium Wireless Bluetooth Headphones"
-                        value={formData.title}
-                        onChange={handleInputChange}
-                        className={`w-full px-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${errors.title ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-[#ffcc99] text-sm font-medium">
+                          Product Title <span className="text-red-400">*</span>
+                        </label>
+                        <span
+                          className={`text-xs tabular-nums ${
+                            formData.title.length > 80 ? 'text-[#FF6B00]' : 'text-[#A0A0A0]'
                           }`}
-                      />
+                        >
+                          {formData.title.length}/100
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <input
+                          name="title"
+                          type="text"
+                          placeholder="e.g., Premium Wireless Bluetooth Headphones"
+                          value={formData.title}
+                          onChange={handleInputChange}
+                          maxLength={100}
+                          className={`w-full px-4 py-3 pr-10 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${errors.title ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
+                            }`}
+                        />
+                        {formData.title.length >= 10 && formData.title.length <= 100 && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
+                            <Check className="w-5 h-5" />
+                          </div>
+                        )}
+                      </div>
                       {errors.title && (
                         <p className="mt-1 text-red-400 text-xs flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
                           {errors.title}
                         </p>
                       )}
-                      <p className="mt-1 text-[#ffcc99]/60 text-xs">
-                        {formData.title.length}/100 characters
-                      </p>
                     </div>
 
                     {/* AI hint: per-field buttons are next to each section below */}
@@ -823,60 +942,51 @@ export default function AddProductPage() {
 
                     {/* Key Features */}
                     <div>
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <label className="block text-[#ffcc99] text-sm font-medium">
-                          Key Features
-                        </label>
-                        {/* AI Generate Button - Commented out (no API key yet) */}
-                        {/* <button
-                          type="button"
-                          onClick={() => handleGenerateAIField('keyFeatures')}
-                          disabled={!!aiGeneratingField || !formData.title.trim()}
-                          className="px-3 py-1.5 rounded-lg bg-[#ff6600]/20 border border-[#ff6600]/40 text-[#ff6600] text-xs font-medium hover:bg-[#ff6600]/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
-                        >
-                          {aiGeneratingField === 'keyFeatures' ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Wand2 className="w-3.5 h-3.5" />
-                          )}
-                          <span>Generate with AI</span>
-                        </button> */}
-                      </div>
+                      <label className="block text-[#ffcc99] text-sm font-medium mb-2">
+                        Key Features
+                      </label>
                       <p className="text-[#ffcc99]/60 text-xs mb-3">
                         Highlight 1-3 key features that appear in the product headline
                       </p>
 
-                      <div className="space-y-2">
-                        {(formData.keyFeatures || []).map((feature, index) => (
-                          <div key={index} className="flex items-center gap-2">
+                      <div className="space-y-3">
+                        {/* Tag chips */}
+                        <div className="flex flex-wrap gap-2">
+                          {(formData.keyFeatures || []).map((feature, index) =>
+                            feature.trim() ? (
+                              <span
+                                key={index}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#FF6B00]/30 text-[#FF6B00] text-sm font-medium bg-[#FF6B00]/5"
+                              >
+                                {feature}
+                                <button type="button" onClick={() => handleRemoveKeyFeature(index)} className="p-0.5 rounded hover:bg-[#FF6B00]/20 transition-colors">
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </span>
+                            ) : null
+                          )}
+                        </div>
+
+                        {(formData.keyFeatures || []).filter(f => f.trim()).length < 3 && (
+                          <>
                             <input
                               type="text"
-                              placeholder={`Feature ${index + 1} (e.g., Wireless, Noise Cancelling)`}
-                              value={feature}
-                              onChange={(e) => handleKeyFeatureChange(index, e.target.value)}
+                              placeholder="Type a feature and click Add"
+                              value={draftKeyFeature}
+                              onChange={(e) => setDraftKeyFeature(e.target.value)}
                               maxLength={30}
-                              className={`flex-1 px-4 py-2 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${errors.keyFeatures ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'
-                                }`}
+                              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddKeyFeature())}
+                              className={`w-full px-4 py-2 rounded-lg bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] mb-2 ${errors.keyFeatures ? 'border-red-500' : 'border-[#2A2A2A]'}`}
                             />
                             <button
                               type="button"
-                              onClick={() => handleRemoveKeyFeature(index)}
-                              className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 hover:border-red-500/50 transition-all flex items-center justify-center"
+                              onClick={handleAddKeyFeature}
+                              className="w-full px-4 py-3 rounded-lg border border-[#2A2A2A] text-[#ffcc99] hover:bg-[#222] hover:border-[#444444] transition-all flex items-center justify-center gap-2"
                             >
-                              <X className="w-4 h-4" />
+                              <Plus className="w-4 h-4" />
+                              <span className="text-sm">Add Key Feature</span>
                             </button>
-                          </div>
-                        ))}
-
-                        {(formData.keyFeatures || []).length < 3 && (
-                          <button
-                            type="button"
-                            onClick={handleAddKeyFeature}
-                            className="w-full px-4 py-2 rounded-xl border-2 border-dashed border-[#ff6600]/30 text-[#ffcc99] hover:border-[#ff6600]/60 hover:bg-[#ff6600]/5 transition-all flex items-center justify-center gap-2"
-                          >
-                            <Plus className="w-4 h-4" />
-                            <span className="text-sm">Add Key Feature</span>
-                          </button>
+                          </>
                         )}
                       </div>
 
@@ -885,25 +995,6 @@ export default function AddProductPage() {
                           <AlertCircle className="w-3 h-3" />
                           {errors.keyFeatures}
                         </p>
-                      )}
-
-                      {(formData.keyFeatures || []).length > 0 && !errors.keyFeatures && (
-                        <div className="mt-3 p-3 bg-[#ff6600]/5 rounded-lg border border-[#ff6600]/10">
-                          <p className="text-[#ff6600] text-xs font-medium mb-2 flex items-center gap-1">
-                            <Sparkles className="w-3 h-3" />
-                            Preview: These features will appear as badges in the product headline
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {(formData.keyFeatures || []).filter(f => f.trim()).map((feature, index) => (
-                              <span
-                                key={index}
-                                className="px-3 py-1 bg-[#ff6600]/20 text-[#ff6600] rounded-full text-xs font-medium"
-                              >
-                                {feature}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
                       )}
                     </div>
 
@@ -1100,22 +1191,18 @@ export default function AddProductPage() {
                                     });
                                     setErrors(prev => ({ ...prev, categoryIds: undefined }));
                                   }}
-                                  className={`relative p-4 rounded-xl border text-center transition-all ${isSelected
-                                    ? 'bg-[#ff6600] border-[#ff6600] text-black shadow-lg shadow-[#ff6600]/30'
-                                    : formData.categoryIds?.length >= 10 ? 'opacity-60 cursor-not-allowed bg-black border-[#ff6600]/20 text-[#ffcc99]/60'
-                                    : 'bg-black border-[#ff6600]/30 text-[#ffcc99] hover:border-[#ff6600]/60 hover:bg-[#1a1a1a]'
-                                    } ${errors.categoryIds ? 'border-red-500' : ''}`}
+                                  className={`relative p-4 rounded-xl border text-center transition-all flex items-center gap-2 justify-center ${
+                                    isSelected
+                                      ? 'bg-[#FF6B0020] border-[#FF6B00] text-[#FF6B00]'
+                                      : (formData.categoryIds?.length ?? 0) >= 10
+                                        ? 'opacity-60 cursor-not-allowed bg-[#1A1A1A] border-[#2A2A2A] text-[#A0A0A0]'
+                                        : 'bg-[#1A1A1A] border-[#2A2A2A] text-[#A0A0A0] hover:bg-[#222] hover:border-[#444444]'
+                                  } ${errors.categoryIds ? 'border-red-500' : ''}`}
                                   disabled={!formData.categoryIds.includes(cat.id) && (formData.categoryIds?.length ?? 0) >= 10}
                                 >
-                                  {cat.icon && (
-                                    <span className="text-2xl block mb-2">{cat.icon}</span>
-                                  )}
+                                  {isSelected && <Check className="w-4 h-4 flex-shrink-0" />}
+                                  {cat.icon && <span className="text-2xl block">{cat.icon}</span>}
                                   <span className="text-sm font-medium block">{cat.name}</span>
-                                  {isSelected && (
-                                    <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center">
-                                      <Check className="w-3 h-3" />
-                                    </span>
-                                  )}
                                 </button>
                               );
                             })}
@@ -1160,7 +1247,7 @@ export default function AddProductPage() {
                     <h2 className="text-white font-semibold">Pricing & Inventory</h2>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Price */}
                     <div>
                       <label className="block text-[#ffcc99] text-sm font-medium mb-2">
@@ -1180,6 +1267,9 @@ export default function AddProductPage() {
                             }`}
                         />
                       </div>
+                      <p className="mt-1 text-[#A0A0A0] text-xs">
+                        Platform commission: 8–15% depending on category
+                      </p>
                       {errors.price && (
                         <p className="mt-1 text-red-400 text-xs flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
@@ -1223,12 +1313,19 @@ export default function AddProductPage() {
                     </div>
                   </div>
 
-                  {/* Price Preview */}
+                  {/* Estimated Earnings */}
                   {formData.price && parseFloat(formData.price) > 0 && (
-                    <div className="mt-4 p-4 bg-[#ff6600]/5 rounded-xl border border-[#ff6600]/20">
-                      <p className="text-[#ffcc99] text-xs mb-1">Preview</p>
-                      <p className="text-white text-2xl font-bold">
-                        ₦{parseFloat(formData.price).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                    <div className="mt-4 p-4 bg-[#FF6B00]/10 rounded-xl border border-[#FF6B00]/20">
+                      <p className="text-[#ffcc99] text-xs mb-1">Estimated earnings per sale</p>
+                      <p className="text-white text-xl font-bold">
+                        You&apos;ll earn approx ₦
+                        {(() => {
+                          const price = parseFloat(formData.price) || 0;
+                          const commission = (getSelectedCategory() as Category & { commissionB2C?: number })?.commissionB2C ?? 12;
+                          const rate = 1 - commission / 100;
+                          return (price * rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        })()}
+                        {' '}per sale
                       </p>
                     </div>
                   )}
@@ -1242,17 +1339,43 @@ export default function AddProductPage() {
                   </div>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-[#ffcc99] text-sm font-medium mb-2">Selling mode</label>
-                      <select
-                        name="sellingMode"
-                        value={formData.sellingMode || 'B2C_ONLY'}
-                        onChange={(e) => setFormData(prev => ({ ...prev, sellingMode: e.target.value as SellingMode }))}
-                        className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
-                      >
-                        <option value="B2C_ONLY">B2C only (consumers)</option>
-                        <option value="B2B_ONLY">B2B only (buyer business details required)</option>
-                        <option value="B2C_AND_B2B">B2C + B2B</option>
-                      </select>
+                      <label className="block text-[#ffcc99] text-sm font-medium mb-3">Selling mode</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {[
+                          { value: 'B2C_ONLY' as const, icon: Users, label: 'B2C Only', desc: 'Sell directly to individual buyers' },
+                          { value: 'B2B_ONLY' as const, icon: Building2, label: 'B2B Only', desc: 'Sell in bulk to businesses, get quote requests' },
+                          { value: 'B2C_AND_B2B' as const, icon: ShoppingBag, label: 'Both B2C & B2B', desc: 'Reach all buyer types', recommended: true },
+                        ].map((opt) => {
+                          const Icon = opt.icon;
+                          const isSelected = (formData.sellingMode || 'B2C_ONLY') === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, sellingMode: opt.value }))}
+                              className={`relative p-4 rounded-xl border text-left transition-all ${
+                                isSelected
+                                  ? 'bg-[#FF6B0010] border-[#FF6B00]'
+                                  : 'bg-[#1A1A1A] border-[#2A2A2A] hover:bg-[#222] hover:border-[#444444]'
+                              }`}
+                              style={isSelected ? { borderWidth: '1.5px' } : undefined}
+                            >
+                              {opt.recommended && (
+                                <span className="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold bg-[#FF6B00] text-black">Recommended</span>
+                              )}
+                              <div className="flex items-start gap-3">
+                                <div className={`p-2 rounded-lg ${isSelected ? 'bg-[#FF6B00]/20' : 'bg-[#2A2A2A]'}`}>
+                                  <Icon className={`w-5 h-5 ${isSelected ? 'text-[#FF6B00]' : 'text-[#A0A0A0]'}`} />
+                                </div>
+                                <div>
+                                  <p className={`font-semibold text-sm ${isSelected ? 'text-[#FF6B00]' : 'text-white'}`}>{opt.label}</p>
+                                  <p className="text-xs mt-0.5 text-[#A0A0A0]">{opt.desc}</p>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                     {(formData.sellingMode === 'B2B_ONLY' || formData.sellingMode === 'B2C_AND_B2B') && (
                       <>
@@ -1379,53 +1502,74 @@ export default function AddProductPage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => router.push('/seller/products')}
+                    onClick={() => {
+                      if (hasFormChanges()) setShowCancelConfirm(true);
+                      else router.push('/seller/products');
+                    }}
                     disabled={loading}
-                    className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] font-medium hover:bg-[#ff6600]/10 hover:border-[#ff6600] transition-all disabled:opacity-50"
+                    className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-[#1a1a1a] border border-[#2A2A2A] text-[#ffcc99] font-medium hover:bg-[#222] hover:border-[#444444] transition-all disabled:opacity-50"
                   >
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    disabled={loading || !isFormValid()}
-                    className="flex-1 px-6 py-3 rounded-xl bg-linear-to-r from-[#ff6600] to-[#cc5200] text-white font-bold hover:from-[#cc5200] hover:to-[#ff6600] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        Creating Product...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-5 h-5" />
-                        Add Product
-                      </>
+                  <div className="flex-1 relative group/submit">
+                    <button
+                      type="submit"
+                      disabled={loading || !isFormValid()}
+                      className="w-full h-[52px] rounded-xl bg-gradient-to-r from-[#FF6B00] to-[#cc5200] text-white font-bold hover:from-[#cc5200] hover:to-[#FF6B00] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Creating Product...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-5 h-5" />
+                          Add Product
+                        </>
+                      )}
+                    </button>
+                    {!loading && !isFormValid() && (
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#222] border border-[#2A2A2A] rounded-lg text-xs text-[#ffcc99] whitespace-nowrap opacity-0 group-hover/submit:opacity-100 pointer-events-none transition-opacity z-10">
+                        Complete required fields to continue
+                      </div>
                     )}
-                  </button>
+                  </div>
                 </div>
 
-                {/* Form Completion Indicator */}
-                <div className="bg-[#1a1a1a] rounded-xl border border-[#ff6600]/20 p-4">
-                  <p className="text-[#ffcc99] text-xs mb-3">Form Completion</p>
-                  <div className="flex gap-2">
-                    <div className={`flex-1 h-1.5 rounded-full ${productImages.length > 0 ? 'bg-[#ff6600]' : 'bg-[#ff6600]/20'}`}></div>
-                    <div className={`flex-1 h-1.5 rounded-full ${formData.title.trim() ? 'bg-[#ff6600]' : 'bg-[#ff6600]/20'}`}></div>
-                    <div className={`flex-1 h-1.5 rounded-full ${formData.price && parseFloat(formData.price) > 0 ? 'bg-[#ff6600]' : 'bg-[#ff6600]/20'}`}></div>
-                    <div className={`flex-1 h-1.5 rounded-full ${formData.quantity && parseInt(formData.quantity) >= 0 ? 'bg-[#ff6600]' : 'bg-[#ff6600]/20'}`}></div>
+                {/* Cancel confirmation dialog */}
+                {showCancelConfirm && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70" onClick={() => setShowCancelConfirm(false)}>
+                    <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-6 max-w-sm w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                      <p className="text-white font-medium mb-4">Discard changes?</p>
+                      <p className="text-[#A0A0A0] text-sm mb-6">Your product details will be lost.</p>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowCancelConfirm(false)}
+                          className="flex-1 px-4 py-3 rounded-lg border border-[#2A2A2A] text-[#ffcc99] hover:bg-[#222] font-medium"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setShowCancelConfirm(false); router.push('/seller/products'); }}
+                          className="flex-1 px-4 py-3 rounded-lg bg-red-600 text-white hover:bg-red-500 font-medium"
+                        >
+                          Discard
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-[10px] text-[#ffcc99]/60 mt-1">
-                    <span>Images</span>
-                    <span>Title</span>
-                    <span>Price</span>
-                    <span>Stock</span>
-                  </div>
-                </div>
+                )}
+
               </div>
             </div>
           </form>
+          </div>
         </div>
       </SellerLayout>
     </>

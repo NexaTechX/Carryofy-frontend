@@ -5,15 +5,20 @@ import SellerLayout from '../../components/seller/SellerLayout';
 import DashboardStats from '../../components/seller/DashboardStats';
 import SalesTrend from '../../components/seller/SalesTrend';
 import OrderDistribution from '../../components/seller/OrderDistribution';
-import { Plus } from 'lucide-react';
+import { Plus, Share2, Eye, X } from 'lucide-react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import { useAuth, tokenManager } from '../../lib/auth';
+
+const KYC_BANNER_DISMISSED_KEY = 'seller-kyc-banner-dismissed';
 
 export default function SellerDashboard() {
   const router = useRouter();
   const { user, isLoading, isAuthenticated } = useAuth();
 
   const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const [kycBannerDismissed, setKycBannerDismissed] = useState(false);
+  const [sellerId, setSellerId] = useState<string | null>(null);
 
   useEffect(() => {
     // Wait for auth to finish loading before checking
@@ -30,8 +35,12 @@ export default function SellerDashboard() {
       return;
     }
 
-    // Fetch KYC status
+    // Fetch KYC status and seller profile
     fetchKycStatus();
+    fetchSellerProfile();
+    if (typeof window !== 'undefined') {
+      setKycBannerDismissed(!!sessionStorage.getItem(KYC_BANNER_DISMISSED_KEY));
+    }
   }, [router, isLoading, isAuthenticated, user]);
 
   const fetchKycStatus = async () => {
@@ -51,6 +60,44 @@ export default function SellerDashboard() {
       }
     } catch (error) {
       console.error('Error fetching KYC status:', error);
+    }
+  };
+
+  const fetchSellerProfile = async () => {
+    try {
+      const token = tokenManager.getAccessToken();
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+
+      const response = await fetch(`${apiUrl}/sellers/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const seller = result.data || result;
+        setSellerId(seller?.id ?? null);
+      }
+    } catch (error) {
+      console.error('Error fetching seller profile:', error);
+    }
+  };
+
+  const dismissKycBanner = () => {
+    setKycBannerDismissed(true);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(KYC_BANNER_DISMISSED_KEY, '1');
+    }
+  };
+
+  const handleShareStore = async () => {
+    if (!sellerId) return;
+    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/buyer/products?seller=${sellerId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Store link copied!');
+    } catch {
+      window.open(url, '_blank');
     }
   };
 
@@ -83,83 +130,90 @@ export default function SellerDashboard() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <SellerLayout>
-        <div>
-          <div className="flex flex-wrap justify-between gap-3 p-4">
-            <p className="text-white tracking-light text-[32px] font-bold leading-tight min-w-72">
-              Dashboard
-            </p>
-          </div>
-
-          {/* KYC Status Widget */}
-          {kycStatus && (
-            <div className={`mx-4 mb-6 p-4 rounded-xl flex items-center justify-between ${kycStatus === 'APPROVED'
-                ? 'bg-green-900/30 border border-green-500/30'
-                : kycStatus === 'PENDING'
-                  ? 'bg-yellow-900/30 border border-yellow-500/30'
-                  : kycStatus === 'REJECTED'
-                    ? 'bg-red-900/30 border border-red-500/30'
-                    : 'bg-blue-900/30 border border-blue-500/30'
-              }`}>
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${kycStatus === 'APPROVED' ? 'bg-green-500/20'
-                    : kycStatus === 'PENDING' ? 'bg-yellow-500/20'
-                      : kycStatus === 'REJECTED' ? 'bg-red-500/20'
-                        : 'bg-blue-500/20'
-                  }`}>
-                  <svg className={`w-6 h-6 ${kycStatus === 'APPROVED' ? 'text-green-400'
-                      : kycStatus === 'PENDING' ? 'text-yellow-400'
-                        : kycStatus === 'REJECTED' ? 'text-red-400'
-                          : 'text-blue-400'
-                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-white font-bold">
-                    {kycStatus === 'APPROVED'
-                      ? 'Identity Verified'
+        <div className="mx-auto max-w-[1200px] px-8 flex flex-col gap-6">
+          {/* KYC Status Toast — slim 40px dismissible bar */}
+          {kycStatus && !kycBannerDismissed && (
+            <div
+              className={`h-10 flex items-center justify-between gap-3 rounded-lg px-4 ${
+                kycStatus === 'APPROVED'
+                  ? 'bg-green-900/40 border border-green-500/30'
+                  : kycStatus === 'PENDING'
+                    ? 'bg-yellow-900/40 border border-yellow-500/30'
+                    : kycStatus === 'REJECTED'
+                      ? 'bg-red-900/40 border border-red-500/30'
+                      : 'bg-blue-900/40 border border-blue-500/30'
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <span className="text-white text-sm font-medium truncate">
+                  {kycStatus === 'APPROVED'
+                    ? 'Identity Verified — Your account is fully verified'
+                    : kycStatus === 'PENDING'
+                      ? 'Verification Under Review'
+                      : kycStatus === 'REJECTED'
+                        ? 'Verification Rejected — Please resubmit'
+                        : 'Complete your KYC verification to start selling'}
+                </span>
+                <Link
+                  href="/seller/settings?tab=kyc"
+                  className={`shrink-0 text-xs font-bold px-3 py-1 rounded-md transition ${
+                    kycStatus === 'APPROVED'
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
                       : kycStatus === 'PENDING'
-                        ? 'Verification Under Review'
+                        ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
                         : kycStatus === 'REJECTED'
-                          ? 'Verification Rejected'
-                          : 'Identity Verification Required'}
-                  </h3>
-                  <p className={`text-sm ${kycStatus === 'APPROVED' ? 'text-green-200'
-                      : kycStatus === 'PENDING' ? 'text-yellow-200'
-                        : kycStatus === 'REJECTED' ? 'text-red-200'
-                          : 'text-blue-200'
-                    }`}>
-                    {kycStatus === 'APPROVED'
-                      ? 'Your account is fully verified. Your KYC never expires.'
-                      : kycStatus === 'PENDING'
-                        ? 'Your verification is under review. You will be able to upload products once approved.'
-                        : kycStatus === 'REJECTED'
-                          ? 'Your KYC was rejected. Please resubmit with corrected documents.'
-                          : 'Complete your KYC verification to start selling on Carryofy.'}
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/seller/settings?tab=kyc"
-                className={`px-4 py-2 text-white text-sm font-bold rounded-lg transition ${kycStatus === 'APPROVED' ? 'bg-green-600 hover:bg-green-700'
-                    : kycStatus === 'PENDING' ? 'bg-yellow-600 hover:bg-yellow-700'
-                      : kycStatus === 'REJECTED' ? 'bg-red-600 hover:bg-red-700'
-                        : 'bg-blue-600 hover:bg-blue-700'
+                          ? 'bg-red-600 hover:bg-red-700 text-white'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
                   }`}
+                >
+                  {kycStatus === 'REJECTED' ? 'Resubmit' : 'View'}
+                </Link>
+              </div>
+              <button
+                onClick={dismissKycBanner}
+                className="shrink-0 p-1 rounded hover:bg-white/10 text-white/80 hover:text-white transition"
+                aria-label="Dismiss"
               >
-                {kycStatus === 'APPROVED' ? 'View Status'
-                  : kycStatus === 'PENDING' ? 'View Status'
-                    : kycStatus === 'REJECTED' ? 'Resubmit KYC'
-                      : 'Verify Now'}
-              </Link>
+                <X className="w-4 h-4" />
+              </button>
             </div>
           )}
+
+          <p className="text-white tracking-light text-[32px] font-bold leading-tight">Dashboard</p>
 
           {/* Stats Cards */}
           <DashboardStats />
 
+          {/* Quick Actions */}
+          <div className="flex items-center gap-3 h-10 px-4 rounded-[12px] bg-[#1A1A1A] border border-[#2A2A2A]">
+            <Link
+              href="/seller/products/new"
+              className="flex items-center gap-2 text-[#FF6B00] hover:text-[#FF6B00]/80 transition"
+            >
+              <Plus className="h-4 w-4 shrink-0" />
+              <span className="text-[13px] font-medium text-white">Add Product</span>
+            </Link>
+            <span className="w-px h-5 bg-[#2A2A2A]" />
+            <button
+              onClick={handleShareStore}
+              disabled={!sellerId}
+              className="flex items-center gap-2 text-[#FF6B00] hover:text-[#FF6B00]/80 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Share2 className="h-4 w-4 shrink-0" />
+              <span className="text-[13px] font-medium text-white">Share Store Link</span>
+            </button>
+            <span className="w-px h-5 bg-[#2A2A2A]" />
+            <Link
+              href={sellerId ? `/buyer/products?seller=${sellerId}` : '#'}
+              className={`flex items-center gap-2 ${sellerId ? 'text-[#FF6B00] hover:text-[#FF6B00]/80' : 'text-[#A0A0A0] cursor-not-allowed pointer-events-none'} transition`}
+            >
+              <Eye className="h-4 w-4 shrink-0" />
+              <span className="text-[13px] font-medium text-white">View Store</span>
+            </Link>
+          </div>
+
           {/* Charts */}
-          <div className="flex flex-wrap gap-4 px-4 py-6">
+          <div className="flex flex-wrap gap-6">
             <SalesTrend />
             <OrderDistribution />
           </div>

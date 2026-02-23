@@ -23,7 +23,6 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuth, tokenManager } from '../../lib/auth';
-import OnboardingBanner from '../ai-onboarding/OnboardingBanner';
 
 interface Notification {
   id: string;
@@ -251,7 +250,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
-      <OnboardingBanner />
+      {/* Seller onboarding is separate at /seller/onboard; no buyer AI onboarding banner here */}
       {/* Top Header - fixed height so fixed sidebar aligns below it */}
       <header className="bg-black border-b border-primary/30 sticky top-0 z-50 safe-top h-14 sm:h-16 shrink-0 flex items-center">
         <div className="flex items-center justify-between w-full px-3 sm:px-4 lg:px-8 py-3 sm:py-4">

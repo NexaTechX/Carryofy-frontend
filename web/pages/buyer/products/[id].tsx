@@ -444,15 +444,21 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
       <SEO
         title={product ? `${product.title} - Buy Online in Nigeria | Carryofy` : 'Product | Carryofy'}
         description={product
-          ? `Buy ${product.title} online in Nigeria at ${formatPrice(product.price)}. ${product.description?.slice(0, 120) || ''} Same-day delivery in Lagos. Sold by ${product.seller?.businessName || 'verified seller'} on Carryofy.`
+          ? `Buy ${product.title} online in Nigeria at ${formatPrice(product.price)}. ${product.description?.slice(0, 120) || ''} Same-day delivery in Lagos. Sold by ${product.seller?.businessName || 'verified seller'}. Buy now on Carryofy.`
           : 'Shop quality products online at Carryofy. Same-day delivery in Lagos, Nigeria.'
         }
         keywords={productKeywords}
         canonical={product ? `https://carryofy.com/buyer/products/${product.id}` : undefined}
         ogType="product"
-        ogImage={product?.images?.[0] || 'https://carryofy.com/og/product.png'}
+        ogImage={
+          product?.images?.[0]
+            ? product.images[0].startsWith('http')
+              ? product.images[0]
+              : `${process.env.NEXT_PUBLIC_SITE_URL || 'https://carryofy.com'}${product.images[0].startsWith('/') ? '' : '/'}${product.images[0]}`
+            : 'https://carryofy.com/og/product.png'
+        }
         ogImageAlt={product?.title || 'Product on Carryofy'}
-        productPrice={product?.price}
+        productPrice={product != null ? product.price / 100 : undefined}
         productCurrency="NGN"
         productAvailability={product?.quantity && product.quantity > 0 ? 'in stock' : 'out of stock'}
         productCondition="new"
@@ -868,7 +874,13 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                       <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current text-[#FF6B00]' : ''}`} />
                       <span className="text-sm font-medium">Save to List</span>
                     </button>
-                    <ShareButton productId={product.id} productTitle={product.title} variant="ghost" />
+                    <ShareButton
+                      productId={product.id}
+                      productTitle={product.title}
+                      productImage={product.images?.[0]}
+                      productPriceKobo={product.price}
+                      variant="ghost"
+                    />
                   </div>
                 </div>
 

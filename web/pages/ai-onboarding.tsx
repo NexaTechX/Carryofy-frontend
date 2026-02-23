@@ -24,6 +24,11 @@ export default function AIOnboardingPage() {
       router.push('/auth/login?redirect=/ai-onboarding');
       return;
     }
+    // Sellers use seller onboarding at /seller/onboard; keep them in seller experience
+    if (user.role === 'SELLER' && router.query.edit !== 'true') {
+      router.replace('/seller');
+      return;
+    }
   }, [router, authLoading, isAuthenticated, user]);
 
   if (authLoading || !isAuthenticated) {

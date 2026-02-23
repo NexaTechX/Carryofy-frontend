@@ -5,6 +5,8 @@ import ShareModal from './ShareModal';
 interface ShareButtonProps {
   productId: string;
   productTitle: string;
+  productImage?: string;
+  productPriceKobo?: number;
   className?: string;
   variant?: 'default' | 'ghost';
 }
@@ -12,6 +14,8 @@ interface ShareButtonProps {
 export default function ShareButton({
   productId,
   productTitle,
+  productImage,
+  productPriceKobo,
   className = '',
   variant = 'default',
 }: ShareButtonProps) {
@@ -36,6 +40,8 @@ export default function ShareButton({
         <ShareModal
           productId={productId}
           productTitle={productTitle}
+          productImage={productImage}
+          productPriceKobo={productPriceKobo}
           onClose={() => setIsModalOpen(false)}
         />
       )}

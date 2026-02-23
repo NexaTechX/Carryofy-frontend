@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { aiOnboardingApi, AIOnboardingPreferences, UpdateAIOnboardingDto } from '../../lib/api/ai-onboarding';
 import { refreshAccessTokenBeforeRedirect } from '../../lib/api/client';
+import { useAuth } from '../../lib/auth';
+import { getRoleRedirect } from '../../lib/auth/utils';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
 import BrandSelector from './BrandSelector';
 
@@ -726,6 +728,7 @@ function Step9Consent({ preferences, updatePreferences, onComplete, isLoading }:
 
 export default function AIOnboardingWizard() {
   const router = useRouter();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -734,6 +737,7 @@ export default function AIOnboardingWizard() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isOffline, setIsOffline] = useState(false);
+  const [alreadyCompletedRedirect, setAlreadyCompletedRedirect] = useState(false);
   const isEditMode = router.query.edit === 'true';
   const getStepsToShow = (role?: string) => {
     const userRole = role || preferences.userRole;
@@ -780,14 +784,21 @@ export default function AIOnboardingWizard() {
     loadPreferences();
   }, []);
 
+  // Redirect to role-appropriate dashboard when already completed (only once user is available so sellers go to /seller)
+  useEffect(() => {
+    if (!alreadyCompletedRedirect || !user) return;
+    const destination = getRoleRedirect(user.role) || '/buyer';
+    router.push(destination);
+  }, [alreadyCompletedRedirect, user, router]);
+
   const loadPreferences = async () => {
     try {
       const data = await aiOnboardingApi.getPreferences();
       if (data) {
         setPreferences(data);
-        // If already completed and not in edit mode, redirect
+        // If already completed and not in edit mode, mark for role-based redirect (after user is available)
         if (data.completedAt && !isEditMode) {
-          router.push('/buyer');
+          setAlreadyCompletedRedirect(true);
           return;
         }
         // Resume from last step if draft exists
@@ -1035,7 +1046,8 @@ export default function AIOnboardingWizard() {
       }
 
       toast.success('Shopping preferences saved!');
-      router.push('/buyer');
+      const destination = getRoleRedirect(user?.role) || '/buyer';
+      router.push(destination);
     } catch (error: any) {
       console.error('Failed to save preferences:', error);
       console.error('Error response:', error?.response?.data);

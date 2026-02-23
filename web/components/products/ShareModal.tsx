@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Check, Share2, MessageCircle, Twitter, Facebook, Instagram } from 'lucide-react';
+import Link from 'next/link';
+import { X, Copy, Check, Share2, MessageCircle, Twitter, Facebook, Instagram, ShoppingCart } from 'lucide-react';
 import { shareProduct } from '../../lib/api/sharing';
 import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
 import { useAuth } from '../../lib/auth';
@@ -7,12 +8,20 @@ import { useAuth } from '../../lib/auth';
 interface ShareModalProps {
   productId: string;
   productTitle: string;
+  productImage?: string;
+  productPriceKobo?: number;
   onClose: () => void;
+}
+
+function formatPrice(priceKobo: number) {
+  return `₦${(priceKobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default function ShareModal({
   productId,
   productTitle,
+  productImage,
+  productPriceKobo,
   onClose,
 }: ShareModalProps) {
   const { isAuthenticated } = useAuth();
@@ -63,13 +72,18 @@ export default function ShareModal({
     window.open(shareUrl, '_blank', 'noopener,noreferrer');
   };
 
+  const shareSummary =
+    productPriceKobo != null
+      ? `Buy now – ${formatPrice(productPriceKobo)} – ${productTitle} on Carryofy`
+      : `Check out ${productTitle} on Carryofy`;
+
   const getWhatsAppUrl = () => {
-    const text = encodeURIComponent(`Check out ${productTitle} on Carryofy: ${shareUrl}`);
+    const text = encodeURIComponent(`${shareSummary}: ${shareUrl}`);
     return `https://wa.me/?text=${text}`;
   };
 
   const getTwitterUrl = () => {
-    const text = encodeURIComponent(productTitle);
+    const text = encodeURIComponent(productPriceKobo != null ? `${productTitle} – ${formatPrice(productPriceKobo)} – Buy now on Carryofy` : productTitle);
     const url = encodeURIComponent(shareUrl);
     return `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
   };
@@ -110,8 +124,43 @@ export default function ShareModal({
           </button>
         </div>
 
-        {/* Product Title */}
-        <p className="text-white/80 text-sm mb-6 line-clamp-2">{productTitle}</p>
+        {/* Share preview card: image, price, Buy now */}
+        {(productImage || productPriceKobo != null) && (
+          <div className="mb-6 rounded-xl border border-[#ff6600]/20 overflow-hidden bg-[#0a0a0a]">
+            <div className="flex gap-4 p-4">
+              {productImage && (
+                <div className="relative w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-[#1a1a1a]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={productImage}
+                    alt={productTitle}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="min-w-0 flex-1 flex flex-col justify-center">
+                <p className="text-white/90 text-sm font-medium line-clamp-2">{productTitle}</p>
+                {productPriceKobo != null && (
+                  <p className="text-[#FF6B00] font-bold text-lg mt-1">
+                    {formatPrice(productPriceKobo)}
+                  </p>
+                )}
+                <Link
+                  href={`/buyer/products/${productId}?ref=share`}
+                  onClick={onClose}
+                  className="mt-2 inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2.5 bg-[#ff6600] text-black font-semibold rounded-lg hover:bg-[#cc5200] transition text-sm"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  Buy now
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!(productImage || productPriceKobo != null) && (
+          <p className="text-white/80 text-sm mb-6 line-clamp-2">{productTitle}</p>
+        )}
 
         {/* Share URL */}
         <div className="mb-6">
@@ -196,7 +245,7 @@ export default function ShareModal({
                 try {
                   await navigator.share({
                     title: productTitle,
-                    text: `Check out ${productTitle} on Carryofy`,
+                    text: productPriceKobo != null ? `${shareSummary}\n${shareUrl}` : `Check out ${productTitle} on Carryofy\n${shareUrl}`,
                     url: shareUrl,
                   });
                   

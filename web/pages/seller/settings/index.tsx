@@ -979,9 +979,8 @@ export default function SettingsPage() {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
-      // Map new structure to API format for backward compatibility
+      // Send only the shape the API expects (email + push); do not send newOrderReceived, quoteRequest, etc.
       const payload = {
-        ...notificationPreferences,
         email: {
           orders: notificationPreferences.newOrderReceived.email,
           products: notificationPreferences.quoteRequest.email,

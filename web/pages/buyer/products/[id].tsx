@@ -435,59 +435,65 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
     'fast delivery Nigeria',
   ].join(', ') : '';
 
-  if (!mounted) {
+  // Render meta tags (SEO, ProductSchema) whenever we have product data so crawlers get rich previews.
+  // Only gate the full UI on mounted to avoid hydration issues; never hide head when we have initialProduct.
+  if (!mounted && !initialProduct) {
     return null;
   }
+
+  const productForMeta = product ?? initialProduct;
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.carryofy.com';
+  const productUrl = productForMeta ? `${siteUrl}/buyer/products/${productForMeta.id}` : undefined;
+  const ogImageUrl = productForMeta?.images?.[0]
+    ? productForMeta.images[0].startsWith('http')
+      ? productForMeta.images[0]
+      : `${siteUrl}${productForMeta.images[0].startsWith('/') ? '' : '/'}${productForMeta.images[0]}`
+    : `${siteUrl}/og/product.png`;
 
   return (
     <>
       <SEO
-        title={product ? `${product.title} - Buy Online in Nigeria | Carryofy` : 'Product | Carryofy'}
-        description={product
-          ? `Buy ${product.title} online in Nigeria at ${formatPrice(product.price)}. ${product.description?.slice(0, 120) || ''} Same-day delivery in Lagos. Sold by ${product.seller?.businessName || 'verified seller'}. Buy now on Carryofy.`
+        title={productForMeta ? `${productForMeta.title} - Buy Online in Nigeria | Carryofy` : 'Product | Carryofy'}
+        description={productForMeta
+          ? `Buy ${productForMeta.title} online in Nigeria at ${formatPrice(productForMeta.price)}. ${productForMeta.description?.slice(0, 120) || ''} Same-day delivery in Lagos. Sold by ${productForMeta.seller?.businessName || 'verified seller'}. Buy now on Carryofy.`
           : 'Shop quality products online at Carryofy. Same-day delivery in Lagos, Nigeria.'
         }
         keywords={productKeywords}
-        canonical={product ? `https://carryofy.com/buyer/products/${product.id}` : undefined}
+        canonical={productUrl}
         ogType="product"
-        ogImage={
-          product?.images?.[0]
-            ? product.images[0].startsWith('http')
-              ? product.images[0]
-              : `${process.env.NEXT_PUBLIC_SITE_URL || 'https://carryofy.com'}${product.images[0].startsWith('/') ? '' : '/'}${product.images[0]}`
-            : 'https://carryofy.com/og/product.png'
-        }
-        ogImageAlt={product?.title || 'Product on Carryofy'}
-        productPrice={product != null ? product.price / 100 : undefined}
+        ogImage={ogImageUrl}
+        ogImageAlt={productForMeta?.title || 'Product on Carryofy'}
+        productPrice={productForMeta != null ? productForMeta.price / 100 : undefined}
         productCurrency="NGN"
-        productAvailability={product?.quantity && product.quantity > 0 ? 'in stock' : 'out of stock'}
+        productAvailability={productForMeta?.quantity && productForMeta.quantity > 0 ? 'in stock' : 'out of stock'}
         productCondition="new"
       />
 
-      {product && (
+      {productForMeta && (
         <>
           <ProductSchema
-            name={product.title}
-            description={product.description || `Buy ${product.title} online at Carryofy`}
-            image={product.images || []}
-            price={product.price}
+            name={productForMeta.title}
+            description={productForMeta.description || `Buy ${productForMeta.title} online at Carryofy`}
+            image={productForMeta.images || []}
+            price={productForMeta.price}
             currency="NGN"
-            availability={product.quantity > 0 ? 'InStock' : 'OutOfStock'}
-            sku={product.id}
-            category={getCategoryName(product.category)}
+            availability={(productForMeta.quantity ?? 0) > 0 ? 'InStock' : 'OutOfStock'}
+            sku={productForMeta.id}
+            category={getCategoryName(productForMeta.category)}
             seller={{
-              name: product.seller?.businessName || 'Carryofy Seller',
-              url: `https://carryofy.com/seller/${product.seller?.id}`,
+              name: productForMeta.seller?.businessName || 'Carryofy Seller',
+              url: `${siteUrl}/seller/${productForMeta.seller?.id}`,
             }}
             rating={reviews.length > 0 ? { value: averageRating, count: reviews.length } : undefined}
-            url={`https://carryofy.com/buyer/products/${product.id}`}
+            url={productUrl ?? `${siteUrl}/buyer/products/${productForMeta.id}`}
           />
           <BreadcrumbSchema
             items={[
               { name: 'Home', url: '/' },
               { name: 'Products', url: '/buyer/products' },
-              ...(product.category ? [{ name: getCategoryName(product.category), url: `/buyer/products?category=${product.category}` }] : []),
-              { name: product.title, url: `/buyer/products/${product.id}` },
+              ...(productForMeta.category ? [{ name: getCategoryName(productForMeta.category), url: `/buyer/products?category=${productForMeta.category}` }] : []),
+              { name: productForMeta.title, url: `/buyer/products/${productForMeta.id}` },
             ]}
           />
         </>

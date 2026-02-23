@@ -70,10 +70,9 @@ const NOTIFICATION_OPTIONS = [
   { id: 'none', label: 'No Notifications', description: 'I\'ll check manually' },
 ];
 
-const ROLE_OPTIONS = [
+// Buyer onboarding only; sellers use /seller/onboard with completely different questions
+const ROLE_OPTIONS_BUYER_ONLY = [
   { id: 'buyer', label: 'I am a Buyer', description: 'I want to shop for products', icon: '🛍️' },
-  { id: 'seller', label: 'I am a Seller', description: 'I want to sell my products', icon: '🏪' },
-  { id: 'both', label: 'I am Both', description: 'I want to shop and sell', icon: '✨' },
 ];
 
 const SPECIAL_INTERESTS = [
@@ -86,7 +85,13 @@ const SPECIAL_INTERESTS = [
 ];
 
 function Step0Role({ preferences, updatePreferences }: StepProps) {
-  const [selectedRole, setSelectedRole] = useState<string | undefined>(preferences.userRole);
+  const [selectedRole, setSelectedRole] = useState<string | undefined>(preferences.userRole || 'buyer');
+
+  useEffect(() => {
+    if (!preferences.userRole) {
+      updatePreferences({ userRole: 'buyer' });
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -94,11 +99,11 @@ function Step0Role({ preferences, updatePreferences }: StepProps) {
         <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
           <Sparkles className="w-8 h-8 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">How do you want to use Carryofy?</h2>
-        <p className="text-gray-600">Tell us your primary role to customize your AI assistant</p>
+        <h2 className="text-2xl font-bold mb-2">Shopping on Carryofy</h2>
+        <p className="text-gray-600">Tell us your preferences so we can personalize your experience</p>
       </div>
-      <div className="grid md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-        {ROLE_OPTIONS.map((role) => (
+      <div className="grid md:grid-cols-1 gap-4 max-w-md mx-auto">
+        {ROLE_OPTIONS_BUYER_ONLY.map((role) => (
           <button
             key={role.id}
             onClick={() => {
@@ -739,12 +744,11 @@ export default function AIOnboardingWizard() {
   const [isOffline, setIsOffline] = useState(false);
   const [alreadyCompletedRedirect, setAlreadyCompletedRedirect] = useState(false);
   const isEditMode = router.query.edit === 'true';
+  // Buyer onboarding only: sellers are redirected at page level. Only show buyer steps so questions are totally different from seller onboarding.
   const getStepsToShow = (role?: string) => {
     const userRole = role || preferences.userRole;
-    if (userRole === 'seller') return [1, 2, 3, 7, 10, 12];
-    if (userRole === 'buyer') return [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
-    // Both or undefined
-    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    if (userRole === 'seller') return [1, 2, 3, 7, 10, 12]; // Not used here; sellers never reach this page
+    return [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12]; // Buyer-only flow (no "both" mix)
   };
 
   const stepsToShow = getStepsToShow();
@@ -795,7 +799,11 @@ export default function AIOnboardingWizard() {
     try {
       const data = await aiOnboardingApi.getPreferences();
       if (data) {
-        setPreferences(data);
+        const prefs = { ...data };
+        if (!prefs.userRole || prefs.userRole === 'seller' || prefs.userRole === 'both') {
+          prefs.userRole = 'buyer';
+        }
+        setPreferences(prefs);
         // If already completed and not in edit mode, mark for role-based redirect (after user is available)
         if (data.completedAt && !isEditMode) {
           setAlreadyCompletedRedirect(true);
@@ -893,7 +901,8 @@ export default function AIOnboardingWizard() {
 
     switch (step) {
       case 1:
-        if (!preferences.userRole) {
+        const role = preferences.userRole || 'buyer';
+        if (role !== 'buyer' && role !== 'seller' && role !== 'both') {
           errors[1] = 'Please select your role';
           setValidationErrors(errors);
           return false;
@@ -1046,7 +1055,21 @@ export default function AIOnboardingWizard() {
       }
 
       toast.success('Shopping preferences saved!');
-      const destination = getRoleRedirect(user?.role) || '/buyer';
+      // Sellers must stay in seller experience; check role and seller profile so we never send them to buyer
+      let destination = getRoleRedirect(user?.role) || '/buyer';
+      if (user?.role === 'SELLER') {
+        destination = '/seller';
+      } else {
+        try {
+          const token = (await import('../../lib/auth')).tokenManager.getAccessToken();
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+          const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+          const res = await fetch(`${apiUrl}/sellers/me`, { headers: { Authorization: `Bearer ${token}` } });
+          if (res.ok) destination = '/seller';
+        } catch {
+          // keep destination as buyer
+        }
+      }
       router.push(destination);
     } catch (error: any) {
       console.error('Failed to save preferences:', error);

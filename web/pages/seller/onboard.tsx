@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import { useAuth, tokenManager } from '../../lib/auth';
 import { refreshAccessTokenBeforeRedirect } from '../../lib/api/client';
-import { Building2, CheckCircle, Phone, AlertTriangle } from 'lucide-react';
+import { Building2, CheckCircle, Phone, AlertTriangle, ArrowLeft, ArrowRight, Store, Package } from 'lucide-react';
 
 /**
  * Normalize phone to international format.
@@ -23,6 +23,25 @@ function isValidPhone(phone: string): boolean {
   return /^\+[1-9]\d{9,14}$/.test(normalizePhone(phone));
 }
 
+const SELLER_BUSINESS_TYPES = [
+  { id: 'retail', label: 'Retail', description: 'Sell directly to individual customers' },
+  { id: 'wholesale', label: 'Wholesale', description: 'Sell in bulk to businesses' },
+  { id: 'both', label: 'Both', description: 'Retail and wholesale' },
+];
+
+const SELLER_PLANNED_CATEGORIES = [
+  'Electronics & Gadgets',
+  'Fashion & Apparel',
+  'Home & Living',
+  'Health & Beauty',
+  'Groceries & Food',
+  'Sports & Outdoors',
+  'Baby & Kids',
+  'Books & Stationery',
+  'Automotive',
+  'Other',
+];
+
 export default function SellerOnboardingPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -31,11 +50,21 @@ export default function SellerOnboardingPage() {
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [alreadyOnboarded, setAlreadyOnboarded] = useState(false);
   const [businessName, setBusinessName] = useState('');
+  const [step, setStep] = useState(1);
+  const [businessType, setBusinessType] = useState<string>('');
+  const [plannedCategories, setPlannedCategories] = useState<string[]>([]);
 
   // Phone state — shown when user's saved phone is missing/invalid
   const [currentPhone, setCurrentPhone] = useState('');
   const [phoneInput, setPhoneInput] = useState('');
   const [needsPhoneUpdate, setNeedsPhoneUpdate] = useState(false);
+
+  const totalSteps = 4;
+  const togglePlannedCategory = (cat: string) => {
+    setPlannedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -101,26 +130,37 @@ export default function SellerOnboardingPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const canProceedFromStep1 = () => {
     if (!businessName.trim()) {
       toast.error('Please enter your business name');
-      return;
+      return false;
     }
-
-    // Validate phone if it needs updating
     if (needsPhoneUpdate) {
       if (!phoneInput.trim()) {
         toast.error('Phone number is required for seller accounts');
-        return;
+        return false;
       }
       const normalized = normalizePhone(phoneInput.trim());
       if (!isValidPhone(normalized)) {
         toast.error('Please enter a valid phone number (e.g. 08012345678 or +2348012345678)');
-        return;
+        return false;
       }
     }
+    return true;
+  };
+
+  const handleNextStep = () => {
+    if (step === 1 && !canProceedFromStep1()) return;
+    if (step === 2 && !businessType) {
+      toast.error('Please select your business type');
+      return;
+    }
+    if (step < totalSteps) setStep(step + 1);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canProceedFromStep1()) return;
 
     setLoading(true);
     try {
@@ -160,7 +200,7 @@ export default function SellerOnboardingPage() {
       });
 
       if (response.ok) {
-        toast.success('Successfully onboarded! Redirecting to dashboard...');
+        toast.success('Successfully onboarded! Redirecting to your seller dashboard...');
         refreshAccessTokenBeforeRedirect().finally(() => {
           setTimeout(() => router.push('/seller'), 2000);
         });
@@ -225,92 +265,200 @@ export default function SellerOnboardingPage() {
             </p>
           </div>
 
-          {/* Onboarding Form */}
-          <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-8">
-            <h2 className="text-white text-2xl font-bold mb-6">Business Information</h2>
+          {/* Progress */}
+          <div className="mb-8">
+            <div className="flex justify-between mb-2">
+              {[1, 2, 3, 4].map((s) => (
+                <span
+                  key={s}
+                  className={`text-sm font-medium ${step >= s ? 'text-[#ff6600]' : 'text-[#ffcc99]/50'}`}
+                >
+                  Step {s}
+                </span>
+              ))}
+            </div>
+            <div className="h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden flex">
+              {[1, 2, 3, 4].map((s) => (
+                <div
+                  key={s}
+                  className={`h-full flex-1 ${step >= s ? 'bg-[#ff6600]' : 'bg-white/5'}`}
+                />
+              ))}
+            </div>
+          </div>
 
-            {/* Phone warning banner */}
-            {needsPhoneUpdate && (
-              <div className="mb-6 p-4 bg-amber-900/20 border border-amber-500/40 rounded-xl flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-amber-400 font-semibold text-sm mb-1">Phone Number Required</p>
-                  <p className="text-amber-300 text-xs">
-                    Your account needs a valid phone number to complete seller onboarding.
-                    You can enter it below — local format like <strong>08012345678</strong> is accepted.
-                  </p>
+          {/* Onboarding steps */}
+          <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-8">
+            {step === 1 && (
+              <>
+                <h2 className="text-white text-2xl font-bold mb-6">Business details</h2>
+                {needsPhoneUpdate && (
+                  <div className="mb-6 p-4 bg-amber-900/20 border border-amber-500/40 rounded-xl flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-amber-400 font-semibold text-sm mb-1">Phone Number Required</p>
+                      <p className="text-amber-300 text-xs">
+                        Your account needs a valid phone number. Local format like <strong>08012345678</strong> is accepted.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-white text-sm font-medium mb-2">
+                      Business Name <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      placeholder="Enter your business name"
+                      className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-black focus:border-[#ff6600] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
+                    />
+                    <p className="text-[#ffcc99] text-xs mt-2">
+                      This will be visible to customers when they view your products
+                    </p>
+                  </div>
+                  {needsPhoneUpdate && (
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">
+                        <span className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-[#ff6600]" />
+                          Phone Number <span className="text-red-400">*</span>
+                        </span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={phoneInput}
+                        onChange={(e) => setPhoneInput(e.target.value)}
+                        placeholder="08012345678 or +2348012345678"
+                        className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-black focus:border-[#ff6600] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
+                      />
+                    </div>
+                  )}
                 </div>
-              </div>
+              </>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Business Name */}
-              <div>
-                <label className="block text-white text-sm font-medium mb-2">
-                  Business Name <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="Enter your business name"
-                  required
-                  className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-black focus:border-[#ff6600] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
-                />
-                <p className="text-[#ffcc99] text-xs mt-2">
-                  This will be visible to customers when they view your products
-                </p>
-              </div>
-
-              {/* Phone Number — only shown when profile phone is missing or invalid */}
-              {needsPhoneUpdate && (
-                <div>
-                  <label className="block text-white text-sm font-medium mb-2">
-                    <span className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-[#ff6600]" />
-                      Phone Number <span className="text-red-400">*</span>
-                    </span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={phoneInput}
-                    onChange={(e) => setPhoneInput(e.target.value)}
-                    placeholder="08012345678 or +2348012345678"
-                    required
-                    className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-black focus:border-[#ff6600] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
-                  />
-                  <p className="text-[#ffcc99] text-xs mt-2">
-                    Enter your Nigerian number (e.g. 08012345678) — we&apos;ll convert it automatically
-                  </p>
+            {step === 2 && (
+              <>
+                <h2 className="text-white text-2xl font-bold mb-2">How do you sell?</h2>
+                <p className="text-[#ffcc99] text-sm mb-6">Select your business type so we can tailor your seller experience.</p>
+                <div className="grid gap-4">
+                  {SELLER_BUSINESS_TYPES.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setBusinessType(opt.id)}
+                      className={`p-4 rounded-xl border-2 text-left transition-all ${
+                        businessType === opt.id
+                          ? 'border-[#ff6600] bg-[#ff6600]/10'
+                          : 'border-white/10 hover:border-[#ff6600]/50 bg-black/50'
+                      }`}
+                    >
+                      <span className="text-white font-semibold block">{opt.label}</span>
+                      <span className="text-[#ffcc99]/80 text-sm">{opt.description}</span>
+                    </button>
+                  ))}
                 </div>
-              )}
+              </>
+            )}
 
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-                <h3 className="text-white font-semibold mb-2">What happens next?</h3>
-                <ul className="text-[#ffcc99] text-sm space-y-2">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#ff6600] mt-0.5">•</span>
-                    <span>Your application will be reviewed by our team</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#ff6600] mt-0.5">•</span>
-                    <span>You'll be able to add products once approved</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#ff6600] mt-0.5">•</span>
-                    <span>We'll notify you via email about your KYC status</span>
-                  </li>
-                </ul>
+            {step === 3 && (
+              <>
+                <h2 className="text-white text-2xl font-bold mb-2">What do you plan to sell?</h2>
+                <p className="text-[#ffcc99] text-sm mb-6">Select the categories you want to list products in (you can add more later).</p>
+                <div className="flex flex-wrap gap-2">
+                  {SELLER_PLANNED_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => togglePlannedCategory(cat)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                        plannedCategories.includes(cat)
+                          ? 'bg-[#ff6600] text-black'
+                          : 'bg-white/10 text-[#ffcc99] hover:bg-white/20'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {step === 4 && (
+              <>
+                <h2 className="text-white text-2xl font-bold mb-6">Review & submit</h2>
+                <div className="space-y-4 mb-6">
+                  <div className="p-4 rounded-xl bg-black/50 border border-white/10">
+                    <p className="text-[#ffcc99] text-xs uppercase tracking-wide mb-1">Business name</p>
+                    <p className="text-white font-semibold">{businessName || '—'}</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-black/50 border border-white/10">
+                    <p className="text-[#ffcc99] text-xs uppercase tracking-wide mb-1">Business type</p>
+                    <p className="text-white font-semibold">
+                      {SELLER_BUSINESS_TYPES.find((t) => t.id === businessType)?.label ?? '—'}
+                    </p>
+                  </div>
+                  {plannedCategories.length > 0 && (
+                    <div className="p-4 rounded-xl bg-black/50 border border-white/10">
+                      <p className="text-[#ffcc99] text-xs uppercase tracking-wide mb-1">Planned categories</p>
+                      <p className="text-white font-medium">{plannedCategories.join(', ')}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
+                  <h3 className="text-white font-semibold mb-2">What happens next?</h3>
+                  <ul className="text-[#ffcc99] text-sm space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#ff6600] mt-0.5">•</span>
+                      <span>Your application will be reviewed by our team</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#ff6600] mt-0.5">•</span>
+                      <span>You&apos;ll be able to add products once approved</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#ff6600] mt-0.5">•</span>
+                      <span>We&apos;ll notify you via email about your KYC status</span>
+                    </li>
+                  </ul>
+                </div>
+                <form onSubmit={handleSubmit}>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-[#ff6600] hover:bg-[#cc5200] disabled:bg-[#ff6600]/50 disabled:cursor-not-allowed text-black px-6 py-4 rounded-xl font-bold text-lg transition"
+                  >
+                    {loading ? 'Submitting...' : 'Complete seller onboarding'}
+                  </button>
+                </form>
+              </>
+            )}
+
+            {/* Navigation (steps 1–3) */}
+            {step < 4 && (
+              <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setStep((s) => Math.max(1, s - 1))}
+                  disabled={step === 1}
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl border border-white/20 text-[#ffcc99] hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextStep}
+                  className="flex items-center gap-2 px-6 py-3 bg-[#ff6600] hover:bg-[#cc5200] text-black font-semibold rounded-xl transition"
+                >
+                  Next
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-[#ff6600] hover:bg-[#cc5200] disabled:bg-[#ff6600]/50 disabled:cursor-not-allowed text-black px-6 py-4 rounded-xl font-bold text-lg transition"
-              >
-                {loading ? 'Submitting...' : 'Complete Onboarding'}
-              </button>
-            </form>
+            )}
           </div>
 
           {/* Additional Info */}

@@ -93,7 +93,12 @@ export default function BroadcastPreview({ payload, products = [] }: BroadcastPr
     <div className="sticky top-4 h-[calc(100vh-2rem)] flex flex-col rounded-xl border border-white/[0.08] bg-[#0e1117]">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/[0.06] p-4">
-        <h3 className="text-sm font-semibold text-white">Preview</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-white">Preview</h3>
+          <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 ring-1 ring-emerald-500/30">
+            Live
+          </span>
+        </div>
         <div className="flex gap-2">
           <button
             type="button"

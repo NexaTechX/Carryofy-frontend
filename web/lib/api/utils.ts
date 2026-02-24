@@ -81,6 +81,20 @@ export const isYesterday = (date: string | Date): boolean => {
 };
 
 /**
+ * Format a date as relative time (e.g. "2h ago", "5m ago", "3d ago").
+ */
+export const formatRelativeTime = (date: string | Date): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  const diffSeconds = Math.floor((now.getTime() - d.getTime()) / 1000);
+  if (diffSeconds < 60) return 'Just now';
+  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}m ago`;
+  if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}h ago`;
+  if (diffSeconds < 604800) return `${Math.floor(diffSeconds / 86400)}d ago`;
+  return new Intl.DateTimeFormat('en-NG', { month: 'short', day: 'numeric' }).format(d);
+};
+
+/**
  * Format date as "Feb 23, 2026 · 2:30pm"
  */
 export const formatDateWithTime = (date: string | Date): string => {
@@ -102,16 +116,22 @@ export const formatDateWithTime = (date: string | Date): string => {
  * Format a kobo amount as NGN currency string.
  * All money values in the system are stored as integers in kobo.
  */
+/**
+ * Format a kobo amount as NGN. Safe for null/undefined/NaN to avoid "₦NO" or invalid display.
+ */
 export const formatNgnFromKobo = (
-  koboAmount: number,
+  koboAmount: number | null | undefined,
   options: { maximumFractionDigits?: number } = {},
 ): string => {
   const { maximumFractionDigits = 0 } = options;
+  const num = Number(koboAmount);
+  const safeKobo = typeof num === 'number' && Number.isFinite(num) ? num : 0;
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency: 'NGN',
+    minimumFractionDigits: 0,
     maximumFractionDigits,
-  }).format((koboAmount || 0) / 100);
+  }).format(safeKobo / 100);
 };
 
 /**

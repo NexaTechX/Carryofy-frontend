@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useForm } from 'react-hook-form';
@@ -10,6 +9,10 @@ import { authService, tokenManager, useAuth, getRoleRedirect } from '../../lib/a
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
 import SEO from '../../components/seo/SEO';
 import { BreadcrumbSchema } from '../../components/seo/JsonLd';
+
+// Use existing asset so missing /logo.png does not break the page
+const LOGO_SRC = '/logo.png';
+const LOGO_FALLBACK = '/vercel.svg';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -162,12 +165,17 @@ export default function Login() {
         <header className="bg-white shadow-sm">
           <nav className="container mx-auto px-4 py-4">
             <Link href="/" className="flex items-center space-x-2">
-              <Image 
-                src="/logo.png" 
-                alt="Carryofy Logo" 
-                width={32} 
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={LOGO_SRC}
+                alt="Carryofy Logo"
+                width={32}
                 height={32}
-                className="w-8 h-8"
+                className="w-8 h-8 object-contain"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (target.src !== LOGO_FALLBACK) target.src = LOGO_FALLBACK;
+                }}
               />
               <span className="text-2xl font-bold text-black">Carryofy</span>
             </Link>

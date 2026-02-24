@@ -48,6 +48,7 @@ export function useAdminRiderRatings(query: UseAdminRiderRatingsQuery) {
 
   return useQuery<AdminRiderRatingsResponse>({
     queryKey: ['admin', 'rider-ratings', query],
+    refetchInterval: 30_000, // near-real-time
     queryFn: async () => {
       const queryString = params.toString();
       const url = `/admin/rider-ratings${queryString ? `?${queryString}` : ''}`;

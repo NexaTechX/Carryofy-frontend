@@ -16,8 +16,34 @@ export interface AdminRefund {
   customerName?: string;
   customerEmail?: string;
   orderAmount?: number;
+  sellerName?: string;
+  order?: {
+    id: string;
+    amount: number;
+    status: string;
+    createdAt: string;
+    paystackReference?: string | null;
+    items?: Array<{
+      productId: string;
+      price: number;
+      quantity: number;
+      product?: { title?: string; images?: string[]; seller?: { businessName: string } };
+    }>;
+  };
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RefundStats {
+  total: number;
+  totalTrend: number;
+  pending: number;
+  pendingTrend: number;
+  approved: number;
+  approvedTrend: number;
+  totalRefundedKobo: number;
+  totalRefundedTrend: number;
+  avgResolutionHours: number | null;
 }
 
 export interface RefundsQueryParams {
@@ -37,6 +63,16 @@ export interface RefundsResponse {
 
 const REFUNDS_CACHE_KEY = 'admin-refunds';
 
+export function useRefundStats() {
+  return useQuery<RefundStats>({
+    queryKey: [REFUNDS_CACHE_KEY, 'stats'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/refunds/admin/stats');
+      return data;
+    },
+  });
+}
+
 export function useAdminRefunds(params: RefundsQueryParams = {}) {
   return useQuery<RefundsResponse>({
     queryKey: [REFUNDS_CACHE_KEY, params],
@@ -44,6 +80,7 @@ export function useAdminRefunds(params: RefundsQueryParams = {}) {
       const { data } = await apiClient.get('/refunds/admin/all', { params });
       return data;
     },
+    refetchInterval: 30_000, // near-real-time
   });
 }
 
@@ -88,6 +125,26 @@ export function useUpdateRefundStatus() {
     onError: (error: any) => {
       toast.error(
         error.response?.data?.message || 'Failed to update refund status'
+      );
+    },
+  });
+}
+
+export function useBulkApproveRefunds() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params?: { thresholdKobo?: number }) => {
+      const { data } = await apiClient.post('/refunds/admin/bulk-approve', params ?? {});
+      return data as { approved: number; failed: number; total: number };
+    },
+    onSuccess: (data) => {
+      toast.success(`Bulk approve: ${data.approved} approved, ${data.failed} failed (${data.total} under threshold).`);
+      queryClient.invalidateQueries({ queryKey: [REFUNDS_CACHE_KEY] });
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.message || 'Bulk approve failed'
       );
     },
   });

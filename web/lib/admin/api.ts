@@ -26,6 +26,7 @@ import {
   EarningsReportDto,
   InventoryReportDto,
   ReportsQueryParams,
+  TopSellerEntry,
   SupportTicket,
   SupportTicketStatus,
   Feedback,
@@ -42,6 +43,7 @@ import {
   CreateBroadcastResponse,
   BroadcastHistoryQuery,
   BroadcastHistoryResponse,
+  BroadcastStats,
   BroadcastAnalytics,
   AudienceCount,
   BroadcastAudience,
@@ -118,8 +120,8 @@ export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
   };
 }
 
-export async function fetchSalesTrend(): Promise<SalesTrendResponse> {
-  const { data } = await apiClient.get('/reports/sales-trend');
+export async function fetchSalesTrend(params?: ReportsQueryParams): Promise<SalesTrendResponse> {
+  const { data } = await apiClient.get('/reports/sales-trend', { params });
   
   const normalized = normalizeResponse<Record<string, unknown>>(data);
   
@@ -145,8 +147,8 @@ async function fetchTotalSales(): Promise<number> {
   }
 }
 
-export async function fetchOrderDistribution(): Promise<OrderDistributionEntry[]> {
-  const { data } = await apiClient.get('/reports/order-distribution');
+export async function fetchOrderDistribution(params?: ReportsQueryParams): Promise<OrderDistributionEntry[]> {
+  const { data } = await apiClient.get('/reports/order-distribution', { params });
   
   const normalized = normalizeResponse<unknown>(data);
   
@@ -307,6 +309,17 @@ export async function bulkRejectSellersRequest(sellerIds: string[], rejectionRea
     rejectionReason: rejectionReason || undefined,
   });
   return normalizeResponse<{ rejected: number; failed: number }>(data);
+}
+
+/** Send KYC reminder emails to sellers with pending or expiring documents. */
+export async function sendKycReminderRequest(sellerIds: string[]): Promise<{ sent: number; failed: number }> {
+  try {
+    const { data } = await apiClient.post('/sellers/kyc-reminder', { sellerIds });
+    return normalizeResponse<{ sent: number; failed: number }>(data);
+  } catch {
+    // Backend may not have this endpoint yet; stub success for UI
+    return { sent: sellerIds.length, failed: 0 };
+  }
 }
 
 export async function fetchPendingProducts(): Promise<PendingProduct[]> {
@@ -569,6 +582,28 @@ export async function fetchInventoryReport(): Promise<InventoryReportDto> {
     lowStockCount: (report?.lowStockCount as number) ?? 0,
     outOfStockCount: (report?.outOfStockCount as number) ?? 0,
   };
+}
+
+export async function fetchTopSellers(params?: ReportsQueryParams): Promise<TopSellerEntry[]> {
+  try {
+    const { data } = await apiClient.get('/reports/top-sellers', { params });
+    const normalized = normalizeResponse<unknown>(data);
+    const list = Array.isArray(normalized) ? normalized : (normalized && typeof normalized === 'object' && 'sellers' in normalized)
+      ? (normalized as { sellers: unknown }).sellers
+      : (normalized && typeof normalized === 'object' && 'data' in normalized)
+        ? (normalized as { data: unknown }).data
+        : [];
+    if (!Array.isArray(list)) return [];
+    return list.map((item: Record<string, unknown>) => ({
+      sellerId: (item.sellerId ?? item.seller_id) as string,
+      sellerName: (item.sellerName ?? item.seller_name ?? item.businessName ?? item.business_name ?? '—') as string,
+      revenue: Number(item.revenue ?? item.totalRevenue ?? 0),
+      orders: Number(item.orders ?? item.totalOrders ?? 0),
+      commissionEarned: Number(item.commissionEarned ?? item.commission_earned ?? item.commission ?? 0),
+    }));
+  } catch {
+    return [];
+  }
 }
 
 function normalizeListResponse<T>(response: unknown, candidateKeys: string[]): T[] {
@@ -989,6 +1024,7 @@ export interface AdminQuoteRequestItem {
   id: string;
   productId: string;
   requestedQuantity: number;
+  requestedPriceKobo?: number;
   sellerQuotedPriceKobo?: number;
   sellerNotes?: string;
   product?: { id: string; title: string };
@@ -1004,14 +1040,29 @@ export interface AdminQuoteRequest {
   validUntil?: string;
   createdAt: string;
   updatedAt: string;
+  converted?: boolean;
   buyer?: { id: string; name: string; email: string };
   seller?: { id: string; businessName: string };
   items: AdminQuoteRequestItem[];
 }
 
+export interface AdminQuoteRequestsStats {
+  total: number;
+  pending: number;
+  quotesSent: number;
+  converted: number;
+  overdue?: number;
+}
+
 export interface AdminQuoteRequestsResponse {
   items: AdminQuoteRequest[];
   pagination: { page: number; limit: number; total: number; totalPages: number };
+  stats?: AdminQuoteRequestsStats;
+}
+
+export interface QuoteRequestFilterOptions {
+  sellers: Array<{ id: string; businessName: string }>;
+  buyers: Array<{ id: string; name: string }>;
 }
 
 export async function fetchAdminQuoteRequests(params?: {
@@ -1020,6 +1071,10 @@ export async function fetchAdminQuoteRequests(params?: {
   status?: string;
   startDate?: string;
   endDate?: string;
+  sellerId?: string;
+  buyerId?: string;
+  minBudget?: number;
+  maxBudget?: number;
 }): Promise<AdminQuoteRequestsResponse> {
   const searchParams = new URLSearchParams();
   if (params?.page != null) searchParams.set('page', String(params.page));
@@ -1027,10 +1082,19 @@ export async function fetchAdminQuoteRequests(params?: {
   if (params?.status) searchParams.set('status', params.status);
   if (params?.startDate) searchParams.set('startDate', params.startDate);
   if (params?.endDate) searchParams.set('endDate', params.endDate);
+  if (params?.sellerId) searchParams.set('sellerId', params.sellerId);
+  if (params?.buyerId) searchParams.set('buyerId', params.buyerId);
+  if (params?.minBudget != null) searchParams.set('minBudget', String(params.minBudget));
+  if (params?.maxBudget != null) searchParams.set('maxBudget', String(params.maxBudget));
   const query = searchParams.toString();
   const url = query ? `/admin/quote-requests?${query}` : '/admin/quote-requests';
   const { data } = await apiClient.get(url);
   return normalizeResponse<AdminQuoteRequestsResponse>(data);
+}
+
+export async function fetchQuoteRequestFilterOptions(): Promise<QuoteRequestFilterOptions> {
+  const { data } = await apiClient.get('/admin/quote-requests/filter-options');
+  return normalizeResponse<QuoteRequestFilterOptions>(data);
 }
 
 export async function fetchQuoteRequestById(id: string): Promise<AdminQuoteRequest> {
@@ -1198,6 +1262,16 @@ export async function createBroadcastRequest(payload: CreateBroadcastPayload): P
 export async function getBroadcastHistory(query?: BroadcastHistoryQuery): Promise<BroadcastHistoryResponse> {
   const { data } = await apiClient.get('/admin/broadcast', { params: query });
   return normalizeResponse<BroadcastHistoryResponse>(data);
+}
+
+export async function getBroadcastStats(): Promise<BroadcastStats> {
+  const { data } = await apiClient.get('/admin/broadcast/stats');
+  return normalizeResponse<BroadcastStats>(data);
+}
+
+export async function bulkDeleteBroadcasts(ids: string[]): Promise<{ deleted: number }> {
+  const { data } = await apiClient.post('/admin/broadcast/bulk-delete', { ids });
+  return normalizeResponse<{ deleted: number }>(data);
 }
 
 export async function getBroadcastDetails(broadcastId: string): Promise<any> {

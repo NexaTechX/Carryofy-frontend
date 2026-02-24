@@ -15,18 +15,28 @@ import {
   DataTableHead,
   LoadingState,
   StatusBadge,
+  AdminTableToolbar,
+  useColumnVisibility,
+  buildCSV,
+  downloadBlob,
 } from '../../components/admin/ui';
+import type { AdminCardTrend } from '../../components/admin/ui';
 import {
   useAdminRefunds,
   useRefundDetail,
+  useRefundStats,
   useUpdateRefundStatus,
-  type AdminRefund,
+  useBulkApproveRefunds,
   type RefundStatus,
 } from '../../lib/admin/hooks/useRefunds';
 import { useAdminPayouts } from '../../lib/admin/hooks/usePayouts';
+import { usePlatformSettings } from '../../lib/admin/hooks/useSettings';
+import { useTableKeyboardNav } from '../../lib/admin/hooks/useTableKeyboardNav';
+import { getStatusTone } from '../../lib/admin/statusTones';
 import apiClient from '../../lib/api/client';
 import { toast } from 'react-hot-toast';
 import { formatNgnFromKobo } from '../../lib/api/utils';
+import clsx from 'clsx';
 
 const REFUND_FILTERS: Array<'ALL' | RefundStatus> = [
   'ALL',
@@ -37,13 +47,17 @@ const REFUND_FILTERS: Array<'ALL' | RefundStatus> = [
   'REJECTED',
 ];
 
-const STATUS_TONE: Record<RefundStatus, 'warning' | 'info' | 'success' | 'danger'> = {
-  REQUESTED: 'warning',
-  APPROVED: 'info',
-  PROCESSING: 'info',
-  COMPLETED: 'success',
-  REJECTED: 'danger',
-};
+const REFUND_TABLE_COLUMNS = [
+  { id: 'refundId', label: 'Refund ID' },
+  { id: 'orderId', label: 'Order ID' },
+  { id: 'customer', label: 'Customer' },
+  { id: 'seller', label: 'Seller' },
+  { id: 'amount', label: 'Amount (₦)' },
+  { id: 'reason', label: 'Reason' },
+  { id: 'dateRequested', label: 'Date Requested' },
+  { id: 'status', label: 'Status' },
+  { id: 'actions', label: 'Actions' },
+];
 
 const STATUS_LABEL: Record<RefundStatus, string> = {
   REQUESTED: 'Requested',
@@ -67,10 +81,48 @@ export default function AdminRefunds() {
     status: statusFilter !== 'ALL' ? statusFilter : undefined,
   };
 
-  const { data, isLoading, isError, error, refetch } = useAdminRefunds(queryParams);
+  const { data, isLoading, isError, error, refetch, dataUpdatedAt } = useAdminRefunds(queryParams);
+  const [tableColumns, setTableColumns] = useColumnVisibility(REFUND_TABLE_COLUMNS);
+  const [selectedRowIndex, setSelectedRowIndex] = useState(0);
+  const { data: stats } = useRefundStats();
   const { data: refundDetail } = useRefundDetail(selectedRefundId);
   const updateStatus = useUpdateRefundStatus();
+  const bulkApprove = useBulkApproveRefunds();
+  const { data: platformSettings } = usePlatformSettings();
   const { data: payoutRequests } = useAdminPayouts();
+
+  const refunds = data?.refunds || [];
+  const visibleCols = tableColumns.filter((c) => c.visible);
+  const openDrawer = (refundId: string) => {
+    setSelectedRefundId(refundId);
+    setAdminNotes('');
+  };
+  const { getRowProps } = useTableKeyboardNav({
+    rowCount: refunds.length,
+    selectedIndex: selectedRowIndex,
+    onSelectIndex: setSelectedRowIndex,
+    onOpenRow: (index) => openDrawer(refunds[index]?.id ?? ''),
+    enabled: refunds.length > 0,
+  });
+
+  const handleExportRefundsCSV = () => {
+    const cols = visibleCols.filter((c) => c.id !== 'actions').map((c) => ({ id: c.id, label: c.label }));
+    const rows = refunds.map((r) => ({
+      refundId: r.id,
+      orderId: r.orderId,
+      customer: r.customerName ?? '',
+      seller: r.sellerName ?? '—',
+      amount: formatNgnFromKobo(r.amount),
+      reason: r.reason,
+      dateRequested: new Date(r.createdAt).toLocaleDateString(),
+      status: STATUS_LABEL[r.status],
+    }));
+    const csv = buildCSV(cols, rows);
+    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `refunds-${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
+  const refundThresholdKobo = platformSettings?.refundAutoApproveThresholdKobo ?? 50000;
+  const refundThresholdNaira = refundThresholdKobo / 100;
 
   const paidOrderIds = useMemo(() => {
     const set = new Set<string>();
@@ -93,7 +145,6 @@ export default function AdminRefunds() {
     enabled: Boolean(refundDetail?.orderId),
   });
 
-  const refunds = data?.refunds || [];
   const pagination = data
     ? {
         total: data.total,
@@ -103,15 +154,11 @@ export default function AdminRefunds() {
       }
     : undefined;
 
-  // Calculate stats
-  const totalRefunds = pagination?.total || 0;
-  const pendingRefunds = refunds.filter((r) => r.status === 'REQUESTED').length;
-  const approvedRefunds = refunds.filter((r) => r.status === 'APPROVED').length;
-  const totalRefundedAmount = refunds
-    .filter((r) => r.status === 'COMPLETED')
-    .reduce((sum, r) => sum + r.amount, 0);
-
   const handleStatusUpdate = (refundId: string, status: RefundStatus, notes?: string) => {
+    if ((status === 'APPROVED' || status === 'REJECTED') && !(notes || adminNotes).trim()) {
+      toast.error('Please add notes before approving or rejecting.');
+      return;
+    }
     updateStatus.mutate(
       {
         refundId,
@@ -129,6 +176,13 @@ export default function AdminRefunds() {
     );
   };
 
+  const formatResolutionTime = (hours: number | null) => {
+    if (hours == null) return '—';
+    if (hours < 1) return `${Math.round(hours * 60)}m`;
+    if (hours < 24) return `${hours.toFixed(1)}h`;
+    return `${(hours / 24).toFixed(1)}d`;
+  };
+
   return (
     <AdminLayout>
       <div className="min-h-screen bg-[#090c11]">
@@ -139,26 +193,80 @@ export default function AdminRefunds() {
             subtitle="Review refund requests, approve or reject claims, and track payment processing."
           />
 
-          {/* Stats Cards */}
-          <section className="mb-10 grid gap-4 sm:grid-cols-4">
-            <AdminCard title="Total Refunds" description="All refund requests">
-              <p className="text-3xl font-semibold text-white">{totalRefunds}</p>
+          {/* Stats Cards — 5 cards with trends; Pending has amber pulse when > 0 */}
+          <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <AdminCard
+              title="Total Refunds"
+              description="Last 30 days"
+              trend={
+                stats
+                  ? ({
+                      change: stats.totalTrend,
+                      positiveIsGood: true,
+                      suffix: '%',
+                    } satisfies AdminCardTrend)
+                  : undefined
+              }
+            >
+              <p className="text-3xl font-semibold text-white">{stats?.total ?? '—'}</p>
             </AdminCard>
-            <AdminCard title="Pending Review" description="Awaiting approval">
-              <p className="text-3xl font-semibold text-[#ffb955]">{pendingRefunds}</p>
+            <AdminCard
+              title="Pending Review"
+              description="Awaiting approval"
+              pulseBorder={Boolean(stats && stats.pending > 0)}
+              trend={
+                stats
+                  ? ({
+                      change: stats.pendingTrend,
+                      positiveIsGood: false,
+                      suffix: '%',
+                    } satisfies AdminCardTrend)
+                  : undefined
+              }
+            >
+              <p className="text-3xl font-semibold text-[#ffb955]">{stats?.pending ?? '—'}</p>
             </AdminCard>
-            <AdminCard title="Approved" description="Ready for processing">
-              <p className="text-3xl font-semibold text-primary">{approvedRefunds}</p>
+            <AdminCard
+              title="Approved"
+              description="Ready for processing"
+              trend={
+                stats
+                  ? ({
+                      change: stats.approvedTrend,
+                      positiveIsGood: true,
+                      suffix: '%',
+                    } satisfies AdminCardTrend)
+                  : undefined
+              }
+            >
+              <p className="text-3xl font-semibold text-primary">{stats?.approved ?? '—'}</p>
             </AdminCard>
-            <AdminCard title="Total Refunded" description="Completed refunds">
+            <AdminCard
+              title="Total Refunded"
+              description="Completed (30d)"
+              trend={
+                stats
+                  ? ({
+                      change: stats.totalRefundedTrend,
+                      positiveIsGood: false,
+                      suffix: '%',
+                    } satisfies AdminCardTrend)
+                  : undefined
+              }
+            >
               <p className="text-3xl font-semibold text-green-500">
-                {formatNgnFromKobo(totalRefundedAmount)}
+                {stats != null ? formatNgnFromKobo(stats.totalRefundedKobo) : '—'}
+              </p>
+            </AdminCard>
+            <AdminCard title="Avg. Resolution Time" description="Request to completion">
+              <p className="text-3xl font-semibold text-white">
+                {stats != null ? formatResolutionTime(stats.avgResolutionHours) : '—'}
               </p>
             </AdminCard>
           </section>
 
-          {/* Filters and Search */}
-          <AdminToolbar className="mb-6 flex-wrap gap-4 justify-between">
+          {/* Filter tabs */}
+          <AdminToolbar className="mb-4 flex-wrap gap-4 justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Status:</span>
               {REFUND_FILTERS.map((status) => (
@@ -171,14 +279,28 @@ export default function AdminRefunds() {
                 </AdminFilterChip>
               ))}
             </div>
+          </AdminToolbar>
+
+          {/* Search: Order ID, Customer, Seller, or Amount (₦) */}
+          <div className="mb-6 flex flex-wrap items-center gap-4">
             <input
               type="search"
-              placeholder="Search by order ID or customer..."
+              placeholder="Search by Order ID, Customer name, Seller name, or refund amount (₦)"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-64 rounded-full border border-[#1f2432] bg-[#0e131d] px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
+              className="w-full max-w-xl rounded-full border border-[#1f2432] bg-[#0e131d] px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
             />
-          </AdminToolbar>
+            {statusFilter === 'REQUESTED' && (
+              <button
+                type="button"
+                onClick={() => bulkApprove.mutate({ thresholdKobo: refundThresholdKobo })}
+                disabled={bulkApprove.isPending}
+                className="rounded-full border border-amber-500/50 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50"
+              >
+                {bulkApprove.isPending ? 'Approving…' : `Bulk approve under ₦${refundThresholdNaira.toLocaleString()}`}
+              </button>
+            )}
+          </div>
 
           {/* Refunds Table */}
           {isLoading ? (
@@ -204,65 +326,117 @@ export default function AdminRefunds() {
             />
           ) : (
             <>
+              <AdminTableToolbar
+                columns={tableColumns}
+                onColumnsChange={setTableColumns}
+                onExportCSV={handleExportRefundsCSV}
+                lastUpdatedAt={dataUpdatedAt}
+                onRefresh={() => refetch()}
+                isRefreshing={isLoading}
+                className="mb-4"
+              />
               <DataTableContainer>
                 <DataTable>
                   <DataTableHead>
                     <tr>
-                      <th className="px-6 py-4 text-left text-white">Order</th>
-                      <th className="px-6 py-4 text-left text-white">Customer</th>
-                      <th className="px-6 py-4 text-left text-white">Amount</th>
-                      <th className="px-6 py-4 text-left text-white">Reason</th>
-                      <th className="px-6 py-4 text-left text-white">Status</th>
-                      <th className="px-6 py-4 text-left text-white">Impact</th>
-                      <th className="px-6 py-4 text-right text-gray-500">Actions</th>
+                      {visibleCols.map((c) => (
+                        <th
+                          key={c.id}
+                          className={c.id === 'actions' ? 'px-6 py-4 text-right text-gray-500' : 'px-6 py-4 text-left text-white'}
+                        >
+                          {c.label}
+                        </th>
+                      ))}
                     </tr>
                   </DataTableHead>
                   <DataTableBody>
-                    {refunds.map((refund) => (
-                      <tr key={refund.id} className="transition hover:bg-[#10151d]">
-                        <DataTableCell>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-white">
-                              #{refund.orderId.slice(0, 8)}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {new Date(refund.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </DataTableCell>
-                        <DataTableCell>
-                          <div className="flex flex-col">
-                            <span className="text-sm text-gray-200">{refund.customerName}</span>
-                            <span className="text-xs text-gray-500">{refund.customerEmail}</span>
-                          </div>
-                        </DataTableCell>
-                        <DataTableCell>
-                          <span className="text-sm font-semibold text-primary">
-                            {formatNgnFromKobo(refund.amount)}
-                          </span>
-                        </DataTableCell>
-                        <DataTableCell>
-                          <p className="line-clamp-2 max-w-xs text-sm text-gray-300">{refund.reason}</p>
-                        </DataTableCell>
-                        <DataTableCell>
-                          <StatusBadge
-                            tone={STATUS_TONE[refund.status]}
-                            label={STATUS_LABEL[refund.status]}
-                          />
-                        </DataTableCell>
-                        <DataTableCell>
-                          {refund.status === 'COMPLETED' ? (
-                            paidOrderIds.has(refund.orderId) ? (
-                              <StatusBadge tone="danger" label="Reversal" />
-                            ) : (
-                              <StatusBadge tone="info" label="Adjusts earnings" />
-                            )
-                          ) : (
-                            <span className="text-xs text-gray-500">—</span>
+                    {refunds.map((refund, index) => {
+                      const rowProps = getRowProps(index);
+                      const isSelected = rowProps['data-selected'];
+                      return (
+                        <tr
+                          key={refund.id}
+                          {...rowProps}
+                          onClick={() => {
+                            setSelectedRowIndex(index);
+                            openDrawer(refund.id);
+                          }}
+                          className={clsx(
+                            'cursor-pointer transition hover:bg-[#10151d]',
+                            isSelected && 'bg-[#10151d] ring-1 ring-inset ring-primary/50'
                           )}
-                        </DataTableCell>
-                        <DataTableCell className="text-right">
+                        >
+                          {visibleCols.some((c) => c.id === 'refundId') && (
+                            <DataTableCell>
+                              <span className="font-mono text-sm text-gray-300">
+                                #{refund.id.slice(0, 8)}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'orderId') && (
+                            <DataTableCell>
+                              <span className="font-mono text-sm text-white">
+                                #{refund.orderId.slice(0, 8)}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'customer') && (
+                            <DataTableCell>
+                              <div className="flex flex-col">
+                                <span className="text-sm text-gray-200">{refund.customerName}</span>
+                                <span className="text-xs text-gray-500">{refund.customerEmail}</span>
+                              </div>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'seller') && (
+                            <DataTableCell>
+                              <span className="text-sm text-gray-300">
+                                {refund.sellerName ?? '—'}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'amount') && (
+                            <DataTableCell>
+                              <span className="text-sm font-semibold text-primary">
+                                {formatNgnFromKobo(refund.amount)}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'reason') && (
+                            <DataTableCell>
+                              <p
+                                title={refund.reason}
+                                className="line-clamp-2 max-w-[200px] cursor-help text-sm text-gray-300"
+                              >
+                                {refund.reason}
+                              </p>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'dateRequested') && (
+                            <DataTableCell>
+                              <span className="text-sm text-gray-400">
+                                {new Date(refund.createdAt).toLocaleDateString()}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'status') && (
+                            <DataTableCell>
+                              <StatusBadge
+                                tone={getStatusTone(refund.status)}
+                                label={STATUS_LABEL[refund.status]}
+                              />
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'actions') && (
+                            <DataTableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openDrawer(refund.id)}
+                              className="rounded-full border border-gray-700 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary"
+                            >
+                              Review
+                            </button>
                             {refund.status === 'REQUESTED' && (
                               <>
                                 <button
@@ -303,22 +477,16 @@ export default function AdminRefunds() {
                                 Mark Completed
                               </button>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => setSelectedRefundId(refund.id)}
-                              className="rounded-full border border-gray-700 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary"
-                            >
-                              View
-                            </button>
                           </div>
-                        </DataTableCell>
-                      </tr>
-                    ))}
+                            </DataTableCell>
+                          )}
+                        </tr>
+                      );
+                    })}
                   </DataTableBody>
                 </DataTable>
               </DataTableContainer>
 
-              {/* Pagination */}
               {pagination && pagination.totalPages > 1 && (
                 <div className="mt-6 flex items-center justify-between">
                   <p className="text-sm text-gray-400">
@@ -348,7 +516,7 @@ export default function AdminRefunds() {
         </div>
       </div>
 
-      {/* Refund Detail Drawer */}
+      {/* Refund Detail Drawer: order details, buyer reason + evidence, seller response, mandatory notes, actions */}
       <AdminDrawer
         open={Boolean(selectedRefundId)}
         onClose={() => {
@@ -363,7 +531,7 @@ export default function AdminRefunds() {
               <button
                 type="button"
                 onClick={() => handleStatusUpdate(refundDetail.id, 'REJECTED', adminNotes)}
-                disabled={updateStatus.isPending}
+                disabled={updateStatus.isPending || !adminNotes.trim()}
                 className="rounded-full border border-[#3a1f1f] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Reject
@@ -371,7 +539,7 @@ export default function AdminRefunds() {
               <button
                 type="button"
                 onClick={() => handleStatusUpdate(refundDetail.id, 'APPROVED', adminNotes)}
-                disabled={updateStatus.isPending}
+                disabled={updateStatus.isPending || !adminNotes.trim()}
                 className="rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Approve Refund
@@ -382,33 +550,65 @@ export default function AdminRefunds() {
       >
         {refundDetail ? (
           <div className="space-y-6 text-sm text-gray-300">
-            {/* Refund Info */}
+            {/* Original order details */}
             <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Status</p>
-              <StatusBadge
-                tone={STATUS_TONE[refundDetail.status]}
-                label={STATUS_LABEL[refundDetail.status]}
-                className="mt-2"
-              />
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                Original Order
+              </p>
+              <div className="mt-2 space-y-2">
+                <p className="font-mono text-sm text-white">Order ID: {refundDetail.orderId}</p>
+                <p className="text-white">
+                  Amount: {refundDetail.orderAmount != null ? formatNgnFromKobo(refundDetail.orderAmount) : '—'}
+                </p>
+                {refundDetail.order?.items?.length ? (
+                  <ul className="mt-2 space-y-1">
+                    {refundDetail.order.items.map((item: any, idx: number) => (
+                      <li key={idx} className="flex items-center gap-2 text-gray-200">
+                        <span className="flex-1">{item.product?.title ?? 'Product'}</span>
+                        <span className="text-gray-400">×{item.quantity}</span>
+                        <span className="text-primary">{formatNgnFromKobo(item.price * item.quantity)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
             </div>
 
-            {/* Amount Details */}
+            {/* Buyer reason + evidence photos placeholder */}
+            <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                Buyer&apos;s Reason
+              </p>
+              <p className="mt-2 text-gray-200">{refundDetail.reason}</p>
+              {/* Evidence photos: schema doesn't have yet — placeholder */}
+              <p className="mt-2 text-xs text-gray-500">Evidence photos (when supported) will appear here.</p>
+            </div>
+
+            {/* Seller response placeholder */}
+            <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                Seller Response
+              </p>
+              <p className="mt-2 text-gray-500 italic">
+                {refundDetail.sellerName ? 'No seller response yet.' : 'N/A'}
+              </p>
+            </div>
+
+            {/* Status & amounts */}
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                  Refund Amount
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Refund Amount</p>
                 <p className="mt-2 text-2xl font-bold text-primary">
                   {formatNgnFromKobo(refundDetail.amount)}
                 </p>
               </div>
               <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                  Order Amount
-                </p>
-                <p className="mt-2 text-2xl font-bold text-white">
-                  {refundDetail.orderAmount ? formatNgnFromKobo(refundDetail.orderAmount) : '—'}
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Status</p>
+                <StatusBadge
+                  tone={getStatusTone(refundDetail.status)}
+                  label={STATUS_LABEL[refundDetail.status]}
+                  className="mt-2"
+                />
               </div>
             </div>
 
@@ -431,47 +631,32 @@ export default function AdminRefunds() {
               </div>
             </div>
 
-            {/* Customer Info */}
+            {/* Customer */}
             <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Customer</p>
               <p className="mt-2 text-sm font-semibold text-white">{refundDetail.customerName}</p>
               <p className="text-xs text-gray-400">{refundDetail.customerEmail}</p>
             </div>
 
-            {/* Order ID */}
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Order ID</p>
-              <p className="mt-1 font-mono text-sm text-white">{refundDetail.orderId}</p>
-            </div>
-
-            {/* Reason */}
-            <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                Customer Reason
-              </p>
-              <p className="mt-2 text-sm text-gray-200">{refundDetail.reason}</p>
-            </div>
-
-            {/* Admin Notes */}
+            {/* Mandatory admin notes before Approve/Reject */}
             <div>
               <label className="flex flex-col gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                  Admin Notes
+                  Admin Notes <span className="text-amber-400">(required to approve or reject)</span>
                 </span>
                 <textarea
-                  value={adminNotes || refundDetail.adminNotes || ''}
+                  value={adminNotes || (refundDetail.status !== 'REQUESTED' ? refundDetail.adminNotes || '' : '')}
                   onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Add internal notes..."
+                  placeholder="Add notes before approving or rejecting..."
                   disabled={refundDetail.status === 'COMPLETED' || refundDetail.status === 'REJECTED'}
                   className="min-h-[100px] rounded-lg border border-gray-700 bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none disabled:opacity-50"
                 />
               </label>
             </div>
 
-            {/* Timestamps */}
             <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
               <div>
-                <span className="font-semibold uppercase tracking-[0.16em]">Created</span>
+                <span className="font-semibold uppercase tracking-[0.16em]">Requested</span>
                 <p className="mt-1 text-sm text-white">
                   {new Date(refundDetail.createdAt).toLocaleString()}
                 </p>
@@ -491,4 +676,3 @@ export default function AdminRefunds() {
     </AdminLayout>
   );
 }
-

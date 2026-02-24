@@ -22,10 +22,13 @@ const warehouseKeys = {
   lowStock: (threshold: number) => ['admin', 'warehouse', 'low-stock', threshold] as const,
 };
 
+const isClient = typeof window !== 'undefined';
+
 export function useWarehouseStock() {
   return useQuery<WarehouseStockItem[]>({
     queryKey: warehouseKeys.stock,
     queryFn: fetchWarehouseStock,
+    enabled: isClient,
   });
 }
 
@@ -33,6 +36,7 @@ export function useWarehouseMovements() {
   return useQuery<StockMovement[]>({
     queryKey: warehouseKeys.movements,
     queryFn: fetchWarehouseMovements,
+    enabled: isClient,
   });
 }
 
@@ -40,6 +44,7 @@ export function useLowStock(threshold = 10) {
   return useQuery({
     queryKey: warehouseKeys.lowStock(threshold),
     queryFn: () => fetchLowStock(threshold),
+    enabled: isClient,
   });
 }
 

@@ -5,6 +5,7 @@ import {
   fetchOrderDistribution,
   fetchSalesReport,
   fetchSalesTrend,
+  fetchTopSellers,
 } from '../../admin/api';
 import {
   EarningsReportDto,
@@ -13,14 +14,16 @@ import {
   ReportsQueryParams,
   SalesReportDto,
   SalesTrendResponse,
+  TopSellerEntry,
 } from '../../admin/types';
 
 const reportKeys = {
   sales: (params: ReportsQueryParams | undefined) => ['admin', 'reports', 'sales', params] as const,
   earnings: (params: ReportsQueryParams | undefined) => ['admin', 'reports', 'earnings', params] as const,
   inventory: ['admin', 'reports', 'inventory'] as const,
-  salesTrend: ['admin', 'reports', 'sales-trend'] as const,
-  orderDistribution: ['admin', 'reports', 'order-distribution'] as const,
+  salesTrend: (params: ReportsQueryParams | undefined) => ['admin', 'reports', 'sales-trend', params] as const,
+  orderDistribution: (params: ReportsQueryParams | undefined) => ['admin', 'reports', 'order-distribution', params] as const,
+  topSellers: (params: ReportsQueryParams | undefined) => ['admin', 'reports', 'top-sellers', params] as const,
 };
 
 export function useSalesReport(params?: ReportsQueryParams) {
@@ -44,17 +47,24 @@ export function useInventoryReport() {
   });
 }
 
-export function useSalesTrendReport() {
+export function useSalesTrendReport(params?: ReportsQueryParams) {
   return useQuery<SalesTrendResponse>({
-    queryKey: reportKeys.salesTrend,
-    queryFn: fetchSalesTrend,
+    queryKey: reportKeys.salesTrend(params),
+    queryFn: () => fetchSalesTrend(params),
   });
 }
 
-export function useOrderDistributionReport() {
+export function useOrderDistributionReport(params?: ReportsQueryParams) {
   return useQuery<OrderDistributionEntry[]>({
-    queryKey: reportKeys.orderDistribution,
-    queryFn: fetchOrderDistribution,
+    queryKey: reportKeys.orderDistribution(params),
+    queryFn: () => fetchOrderDistribution(params),
+  });
+}
+
+export function useTopSellersReport(params?: ReportsQueryParams) {
+  return useQuery<TopSellerEntry[]>({
+    queryKey: reportKeys.topSellers(params),
+    queryFn: () => fetchTopSellers(params),
   });
 }
 

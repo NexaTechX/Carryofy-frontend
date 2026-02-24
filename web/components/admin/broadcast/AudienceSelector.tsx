@@ -93,6 +93,27 @@ export default function AudienceSelector({
     });
   };
 
+  const getSegmentPreview = (audience: BroadcastAudience): string => {
+    const label = AUDIENCE_CONFIG[audience].label;
+    const roleKey = audience === 'BUYER' ? 'buyer' : audience === 'SELLER' ? 'seller' : 'rider';
+    const roleFilters = filters[roleKey];
+    const count = counts?.[audience] ?? 0;
+    if (!roleFilters || Object.keys(roleFilters).length === 0) {
+      return `${label}: ${count.toLocaleString()} recipients`;
+    }
+    const parts: string[] = [];
+    const r = roleFilters as Record<string, unknown>;
+    if (r.newUsers) parts.push('New users');
+    if (r.activeBuyers) parts.push('Active buyers');
+    if (r.b2bBuyers) parts.push('B2B');
+    if (r.verified) parts.push('Verified');
+    if (r.activeOnly) parts.push('Active only');
+    if (r.onlineLast7Days) parts.push('Online (7d)');
+    if (r.city) parts.push(`City: ${r.city}`);
+    if (r.state) parts.push(`State: ${r.state}`);
+    return `${label}: ${count.toLocaleString()} • ${parts.join(', ')}`;
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
@@ -102,16 +123,17 @@ export default function AudienceSelector({
           const isSelected = selected.includes(audience);
           const count = counts?.[audience] ?? 0;
           const isExpanded = expanded[audience];
+          const segmentPreview = getSegmentPreview(audience);
 
           return (
-            <div key={audience}>
+            <div key={audience} className="relative group/card">
               <button
                 type="button"
                 onClick={() => toggleAudience(audience)}
                 className={`group w-full flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-all ${
                   isSelected
-                    ? `${config.borderColor} ${config.bgColor} ring-1 ring-primary/20`
-                    : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]'
+                    ? `border-[var(--color-primary)]/50 shadow-[0_0_0_1px_var(--color-primary)] ${config.borderColor} ${config.bgColor}`
+                    : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]'
                 }`}
               >
                 <div className="flex w-full items-center justify-between">
@@ -141,6 +163,10 @@ export default function AudienceSelector({
                   </p>
                 </div>
               </button>
+              {/* Segment preview on hover */}
+              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-48 -translate-x-1/2 rounded-lg border border-white/[0.12] bg-[#0e1117] px-3 py-2 text-xs text-gray-300 shadow-xl opacity-0 transition-opacity duration-150 group-hover/card:opacity-100">
+                {segmentPreview}
+              </div>
 
               {/* Sub-filters */}
               {isSelected && (

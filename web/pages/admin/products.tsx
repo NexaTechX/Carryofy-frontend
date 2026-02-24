@@ -30,7 +30,8 @@ import { toast } from 'react-hot-toast';
 import { Check, X, Trash2, MoreVertical } from 'lucide-react';
 import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
-import { formatNgnFromKobo } from '../../lib/api/utils';
+import { formatNgnFromKobo, formatDate } from '../../lib/api/utils';
+import Link from 'next/link';
 
 const productStatusLabel: Record<string, string> = {
   PENDING_APPROVAL: 'Pending Approval',
@@ -46,7 +47,9 @@ const productStatusTone: Record<string, 'warning' | 'success' | 'danger' | 'neut
   ARCHIVED: 'danger',
 };
 
-type FilterTab = 'all' | 'pending' | 'active' | 'inactive';
+const LOW_STOCK_THRESHOLD = 10;
+
+type FilterTab = 'all' | 'pending' | 'active' | 'inactive' | 'flagged';
 
 export default function AdminProducts() {
   const { data: allProducts, isLoading, isError, error, refetch } = useAllProducts();
@@ -59,6 +62,11 @@ export default function AdminProducts() {
 
   const [filterTab, setFilterTab] = useState<FilterTab>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [sellerFilter, setSellerFilter] = useState('');
+  const [priceMinNgn, setPriceMinNgn] = useState<string>('');
+  const [priceMaxNgn, setPriceMaxNgn] = useState<string>('');
+  const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'in' | 'low' | 'out'>('all');
   const [focusedProduct, setFocusedProduct] = useState<PendingProduct | null>(null);
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [showBulkActions, setShowBulkActions] = useState(false);
@@ -69,44 +77,99 @@ export default function AdminProducts() {
   const [productToApprove, setProductToApprove] = useState<PendingProduct | null>(null);
   const confirmation = useConfirmation();
 
-  // Filter products based on active tab
+  // Unique categories and sellers from all products
+  const categories = useMemo(() => {
+    if (!allProducts) return [];
+    const set = new Set<string>();
+    allProducts.forEach((p) => {
+      if (p.category?.trim()) set.add(p.category.trim());
+    });
+    return Array.from(set).sort();
+  }, [allProducts]);
+
+  const sellers = useMemo(() => {
+    if (!allProducts) return [];
+    const map = new Map<string, string>();
+    allProducts.forEach((p) => {
+      if (p.sellerId && (p.seller?.businessName ?? '')) {
+        map.set(p.sellerId, p.seller!.businessName!);
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allProducts]);
+
+  // Filter products based on active tab and filters
   const filteredProducts = useMemo(() => {
     if (!allProducts) return [];
 
     let filtered = allProducts;
 
-    // Filter by status
+    // Filter by status tab
     if (filterTab === 'pending') {
       filtered = filtered.filter((p) => p.status === 'PENDING_APPROVAL');
     } else if (filterTab === 'active') {
       filtered = filtered.filter((p) => p.status === 'ACTIVE');
     } else if (filterTab === 'inactive') {
       filtered = filtered.filter((p) => p.status === 'INACTIVE' || p.status === 'ARCHIVED');
+    } else if (filterTab === 'flagged') {
+      filtered = filtered.filter((p) => p.flaggedAt != null && p.flaggedAt !== '');
     }
 
-    // Filter by search query
+    // Category
+    if (categoryFilter) {
+      filtered = filtered.filter((p) => (p.category ?? '').trim() === categoryFilter);
+    }
+    // Seller
+    if (sellerFilter) {
+      filtered = filtered.filter((p) => p.sellerId === sellerFilter);
+    }
+    // Price range (₦ → kobo: * 100)
+    const minKobo = priceMinNgn.trim() ? Math.round(parseFloat(priceMinNgn) * 100) : null;
+    const maxKobo = priceMaxNgn.trim() ? Math.round(parseFloat(priceMaxNgn) * 100) : null;
+    if (minKobo != null && !Number.isNaN(minKobo)) {
+      filtered = filtered.filter((p) => p.price >= minKobo);
+    }
+    if (maxKobo != null && !Number.isNaN(maxKobo)) {
+      filtered = filtered.filter((p) => p.price <= maxKobo);
+    }
+    // Stock status
+    if (stockStatusFilter === 'in') {
+      filtered = filtered.filter((p) => (p.quantity ?? 0) > LOW_STOCK_THRESHOLD);
+    } else if (stockStatusFilter === 'low') {
+      filtered = filtered.filter((p) => {
+        const q = p.quantity ?? 0;
+        return q > 0 && q <= LOW_STOCK_THRESHOLD;
+      });
+    } else if (stockStatusFilter === 'out') {
+      filtered = filtered.filter((p) => (p.quantity ?? 0) === 0);
+    }
+
+    // Search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (p) =>
           p.title.toLowerCase().includes(query) ||
           p.id.toLowerCase().includes(query) ||
-          p.seller?.businessName?.toLowerCase().includes(query)
+          p.seller?.businessName?.toLowerCase().includes(query) ||
+          (p.category ?? '').toLowerCase().includes(query)
       );
     }
 
     return filtered;
-  }, [allProducts, filterTab, searchQuery]);
+  }, [allProducts, filterTab, searchQuery, categoryFilter, sellerFilter, priceMinNgn, priceMaxNgn, stockStatusFilter]);
 
   // Calculate counts
   const counts = useMemo(() => {
-    if (!allProducts) return { all: 0, pending: 0, active: 0, inactive: 0 };
+    if (!allProducts) return { all: 0, pending: 0, active: 0, inactive: 0, outOfStock: 0, flagged: 0 };
 
     return {
       all: allProducts.length,
       pending: allProducts.filter((p) => p.status === 'PENDING_APPROVAL').length,
       active: allProducts.filter((p) => p.status === 'ACTIVE').length,
       inactive: allProducts.filter((p) => p.status === 'INACTIVE' || p.status === 'ARCHIVED').length,
+      outOfStock: allProducts.filter((p) => (p.quantity ?? 0) === 0).length,
+      flagged: allProducts.filter((p) => p.flaggedAt != null && p.flaggedAt !== '').length,
     };
   }, [allProducts]);
 
@@ -218,6 +281,24 @@ export default function AdminProducts() {
     refetch();
   };
 
+  const handleBulkDeactivate = async () => {
+    if (selectedProductIds.size === 0) return;
+    const confirmed = await confirmation.confirm({
+      title: 'Deactivate Products',
+      message: `Deactivate ${selectedProductIds.size} product(s)? They will no longer be visible on the marketplace.`,
+      confirmText: 'Deactivate',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    confirmation.setLoading(true);
+    try {
+      await handleBulkStatusChange('INACTIVE');
+    } finally {
+      confirmation.setLoading(false);
+    }
+  };
+
   // Update showBulkActions based on selection
   useEffect(() => {
     setShowBulkActions(selectedProductIds.size > 0);
@@ -235,7 +316,7 @@ export default function AdminProducts() {
           />
 
           {/* Stats Cards */}
-          <section className="mb-10 grid gap-4 sm:grid-cols-4">
+          <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <AdminCard
               title="Total Products"
               description="All marketplace listings"
@@ -247,6 +328,7 @@ export default function AdminProducts() {
               title="Pending Approval"
               description="Awaiting review"
               className="border-[#3a2a1f] bg-[#15100d]"
+              pulseBorder={counts.pending > 0}
             >
               <p className="text-3xl font-semibold text-primary">{counts.pending}</p>
             </AdminCard>
@@ -264,16 +346,26 @@ export default function AdminProducts() {
             >
               <p className="text-3xl font-semibold text-gray-400">{counts.inactive}</p>
             </AdminCard>
+            <Link href="/admin/warehouse?stock=out" className="rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-[#090c11]">
+              <AdminCard
+                title="Out of Stock"
+                description="Zero quantity — view in warehouse"
+                className="border-red-500/30 bg-red-950/20"
+                accent="red"
+              >
+                <p className="text-3xl font-semibold text-red-400">{counts.outOfStock}</p>
+              </AdminCard>
+            </Link>
           </section>
 
           {/* Bulk Actions Bar */}
           {showBulkActions && selectedProductIds.size > 0 && (
             <div className="mb-4 rounded-lg border border-primary/30 bg-primary/10 p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <span className="text-sm font-semibold text-white">
                   {selectedProductIds.size} product(s) selected
                 </span>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {filterTab === 'pending' && (
                     <button
                       onClick={handleBulkApprove}
@@ -294,6 +386,13 @@ export default function AdminProducts() {
                       Reject Selected
                     </button>
                   )}
+                  <button
+                    onClick={handleBulkDeactivate}
+                    disabled={bulkStatusChange.isPending}
+                    className="flex items-center gap-2 rounded-full border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50"
+                  >
+                    Deactivate Selected
+                  </button>
                   <button
                     onClick={() => setBulkStatusModalOpen(true)}
                     disabled={bulkStatusChange.isPending}
@@ -321,51 +420,31 @@ export default function AdminProducts() {
             </div>
           )}
 
-          {/* Filter Tabs & Search */}
-          <AdminToolbar className="mb-6 justify-between">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setFilterTab('all')}
-                className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                  filterTab === 'all'
-                    ? 'bg-primary text-black'
-                    : 'border border-[#2a2a2a] bg-[#151515] text-gray-400 hover:border-primary hover:text-primary'
-                }`}
-              >
-                All ({counts.all})
-              </button>
-              <button
-                onClick={() => setFilterTab('pending')}
-                className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                  filterTab === 'pending'
-                    ? 'bg-primary text-black'
-                    : 'border border-[#2a2a2a] bg-[#151515] text-gray-400 hover:border-primary hover:text-primary'
-                }`}
-              >
-                Pending ({counts.pending})
-              </button>
-              <button
-                onClick={() => setFilterTab('active')}
-                className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                  filterTab === 'active'
-                    ? 'bg-primary text-black'
-                    : 'border border-[#2a2a2a] bg-[#151515] text-gray-400 hover:border-primary hover:text-primary'
-                }`}
-              >
-                Active ({counts.active})
-              </button>
-              <button
-                onClick={() => setFilterTab('inactive')}
-                className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                  filterTab === 'inactive'
-                    ? 'bg-primary text-black'
-                    : 'border border-[#2a2a2a] bg-[#151515] text-gray-400 hover:border-primary hover:text-primary'
-                }`}
-              >
-                Inactive ({counts.inactive})
-              </button>
+          {/* Filter Tabs */}
+          <AdminToolbar className="mb-4 justify-between">
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ['all', 'All', counts.all],
+                  ['pending', 'Pending', counts.pending],
+                  ['active', 'Active', counts.active],
+                  ['inactive', 'Inactive', counts.inactive],
+                  ['flagged', 'Recently Flagged', counts.flagged],
+                ] as const
+              ).map(([tab, label, count]) => (
+                <button
+                  key={tab}
+                  onClick={() => setFilterTab(tab)}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+                    filterTab === tab
+                      ? 'bg-primary text-black'
+                      : 'border border-[#2a2a2a] bg-[#151515] text-gray-400 hover:border-primary hover:text-primary'
+                  }`}
+                >
+                  {label} ({count})
+                </button>
+              ))}
             </div>
-
             <input
               type="search"
               placeholder="Search products..."
@@ -374,6 +453,62 @@ export default function AdminProducts() {
               className="w-64 rounded-full border border-[#1f2432] bg-[#0e131d] px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
             />
           </AdminToolbar>
+
+          {/* Additional filters */}
+          <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-[#1f2534] bg-[#0f1524] px-4 py-3">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+            >
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <select
+              value={sellerFilter}
+              onChange={(e) => setSellerFilter(e.target.value)}
+              className="rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+            >
+              <option value="">All sellers</option>
+              {sellers.map(({ id, name }) => (
+                <option key={id} value={id}>{name}</option>
+              ))}
+            </select>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Price (₦)</span>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                placeholder="Min"
+                value={priceMinNgn}
+                onChange={(e) => setPriceMinNgn(e.target.value)}
+                className="w-24 rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
+              />
+              <span className="text-gray-500">–</span>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                placeholder="Max"
+                value={priceMaxNgn}
+                onChange={(e) => setPriceMaxNgn(e.target.value)}
+                className="w-24 rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
+              />
+            </div>
+            <select
+              value={stockStatusFilter}
+              onChange={(e) => setStockStatusFilter(e.target.value as 'all' | 'in' | 'low' | 'out')}
+              className="rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+            >
+              <option value="all">Stock: All</option>
+              <option value="in">In Stock</option>
+              <option value="low">Low Stock</option>
+              <option value="out">Out of Stock</option>
+            </select>
+          </div>
 
           {/* Products Table */}
           {isLoading ? (
@@ -402,7 +537,7 @@ export default function AdminProducts() {
               <DataTable>
                 <DataTableHead>
                   <tr>
-                    <th className="px-6 py-4 text-left">
+                    <th className="px-4 py-4 text-left w-12">
                       <input
                         type="checkbox"
                         checked={selectedProductIds.size === filteredProducts.length && filteredProducts.length > 0}
@@ -410,87 +545,124 @@ export default function AdminProducts() {
                         className="h-4 w-4 rounded border-gray-600 bg-[#0e131d] text-primary focus:ring-primary"
                       />
                     </th>
-                    <th className="px-6 py-4 text-left text-white">Product</th>
-                    <th className="px-6 py-4 text-left text-white">Seller</th>
-                    <th className="px-6 py-4 text-left text-white">Status</th>
-                    <th className="px-6 py-4 text-left text-white">Price</th>
-                    <th className="px-6 py-4 text-left text-white">Stock</th>
-                    <th className="px-6 py-4 text-right text-gray-500">Actions</th>
+                    <th className="px-4 py-4 text-left text-white w-16">Image</th>
+                    <th className="px-4 py-4 text-left text-white">Product</th>
+                    <th className="px-4 py-4 text-left text-white">Seller</th>
+                    <th className="px-4 py-4 text-left text-white">Category</th>
+                    <th className="px-4 py-4 text-left text-white">Stock</th>
+                    <th className="px-4 py-4 text-left text-white">Date Added</th>
+                    <th className="px-4 py-4 text-left text-white">B2B</th>
+                    <th className="px-4 py-4 text-left text-white">Status</th>
+                    <th className="px-4 py-4 text-left text-white">Price</th>
+                    <th className="px-4 py-4 text-right text-gray-500">Actions</th>
                   </tr>
                 </DataTableHead>
                 <DataTableBody>
-                  {filteredProducts.map((product) => (
-                    <tr key={product.id} className="transition hover:bg-[#10151d]">
-                      <DataTableCell>
-                        <input
-                          type="checkbox"
-                          checked={selectedProductIds.has(product.id)}
-                          onChange={() => toggleProductSelection(product.id)}
-                          className="h-4 w-4 rounded border-gray-600 bg-[#0e131d] text-primary focus:ring-primary"
-                        />
-                      </DataTableCell>
-                      <DataTableCell>
-                        <div className="flex flex-col">
-                          <button
-                            type="button"
-                            onClick={() => setFocusedProduct(product)}
-                            className="text-left text-sm font-semibold text-white hover:text-primary"
-                          >
-                            {product.title}
-                          </button>
-                          <span className="text-xs uppercase tracking-[0.16em] text-gray-500">
-                            #{product.id.slice(0, 8)}
+                  {filteredProducts.map((product) => {
+                    const qty = product.quantity ?? 0;
+                    const stockLabel = qty === 0 ? 'Out' : qty <= LOW_STOCK_THRESHOLD ? 'Low' : 'OK';
+                    return (
+                      <tr
+                        key={product.id}
+                        className="transition hover:bg-[#10151d] cursor-pointer"
+                        onClick={() => setFocusedProduct(product)}
+                      >
+                        <DataTableCell className="w-12" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedProductIds.has(product.id)}
+                            onChange={() => toggleProductSelection(product.id)}
+                            className="h-4 w-4 rounded border-gray-600 bg-[#0e131d] text-primary focus:ring-primary"
+                          />
+                        </DataTableCell>
+                        <DataTableCell className="w-16" onClick={(e) => e.stopPropagation()}>
+                          <div className="h-12 w-12 rounded-lg border border-[#2a2a2a] bg-[#151515] overflow-hidden flex items-center justify-center shrink-0">
+                            {product.images?.[0] ? (
+                              <img src={product.images[0]} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="text-lg text-gray-500" aria-hidden>📦</span>
+                            )}
+                          </div>
+                        </DataTableCell>
+                        <DataTableCell>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-white">{product.title}</span>
+                            <span className="text-xs uppercase tracking-[0.16em] text-gray-500">
+                              #{product.id.slice(0, 8)}
+                            </span>
+                          </div>
+                        </DataTableCell>
+                        <DataTableCell>
+                          <span className="text-sm text-gray-300">
+                            {product.seller?.businessName ?? 'Unknown seller'}
                           </span>
-                        </div>
-                      </DataTableCell>
-                      <DataTableCell>
-                        <span className="text-sm text-gray-300">
-                          {product.seller?.businessName ?? 'Unknown seller'}
-                        </span>
-                      </DataTableCell>
-                      <DataTableCell>
-                        <StatusBadge
-                          tone={productStatusTone[product.status] ?? 'neutral'}
-                          label={productStatusLabel[product.status] ?? product.status}
-                        />
-                      </DataTableCell>
-                      <DataTableCell>{formatNgnFromKobo(product.price)}</DataTableCell>
-                      <DataTableCell>
-                        <span className="text-sm text-gray-300">{product.quantity}</span>
-                      </DataTableCell>
-                      <DataTableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {product.status === 'PENDING_APPROVAL' && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleApproveSingleClick(product)}
-                                disabled={approveProduct.isPending}
-                                className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:opacity-50"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRejectSingle(product)}
-                                disabled={rejectProduct.isPending}
-                                className="rounded-full border border-[#3a1f1f] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6] disabled:opacity-50"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => setFocusedProduct(product)}
-                            className="text-xs font-semibold text-primary transition hover:text-primary-light"
+                        </DataTableCell>
+                        <DataTableCell>
+                          <span className="text-sm text-gray-400">{product.category ?? '—'}</span>
+                        </DataTableCell>
+                        <DataTableCell>
+                          <span
+                            className={`text-sm font-medium ${
+                              qty === 0 ? 'text-red-400' : qty <= LOW_STOCK_THRESHOLD ? 'text-amber-400' : 'text-gray-300'
+                            }`}
                           >
-                            View
-                          </button>
-                        </div>
-                      </DataTableCell>
-                    </tr>
-                  ))}
+                            {qty.toLocaleString()}
+                            <span className="ml-1 text-xs text-gray-500">({stockLabel})</span>
+                          </span>
+                        </DataTableCell>
+                        <DataTableCell>
+                          <span className="text-sm text-gray-400">{product.createdAt ? formatDate(product.createdAt) : '—'}</span>
+                        </DataTableCell>
+                        <DataTableCell>
+                          {product.b2bEligible ? (
+                            <span className="inline-flex rounded-full bg-primary/20 px-2 py-0.5 text-xs font-semibold text-primary">
+                              B2B Eligible
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-500">—</span>
+                          )}
+                        </DataTableCell>
+                        <DataTableCell>
+                          <StatusBadge
+                            tone={productStatusTone[product.status] ?? 'neutral'}
+                            label={productStatusLabel[product.status] ?? product.status}
+                          />
+                        </DataTableCell>
+                        <DataTableCell>{formatNgnFromKobo(product.price)}</DataTableCell>
+                        <DataTableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-end gap-2">
+                            {product.status === 'PENDING_APPROVAL' && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleApproveSingleClick(product); }}
+                                  disabled={approveProduct.isPending}
+                                  className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:opacity-50"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleRejectSingle(product); }}
+                                  disabled={rejectProduct.isPending}
+                                  className="rounded-full border border-[#3a1f1f] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6] disabled:opacity-50"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setFocusedProduct(product); }}
+                              className="text-xs font-semibold text-primary transition hover:text-primary-light"
+                            >
+                              View
+                            </button>
+                          </div>
+                        </DataTableCell>
+                      </tr>
+                    );
+                  })}
                 </DataTableBody>
               </DataTable>
             </DataTableContainer>
@@ -504,6 +676,7 @@ export default function AdminProducts() {
         onClose={() => setFocusedProduct(null)}
         title={focusedProduct?.title}
         description={focusedProduct?.seller?.businessName}
+        className="max-w-lg"
         footer={
           focusedProduct && focusedProduct.status === 'PENDING_APPROVAL' ? (
             <div className="space-y-4">
@@ -536,33 +709,33 @@ export default function AdminProducts() {
           <div className="space-y-6 text-sm text-gray-300">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                  Product ID
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Product ID</p>
                 <p className="mt-1 font-mono text-sm text-white">{focusedProduct.id}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                  Status
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Status</p>
                 <StatusBadge
                   tone={productStatusTone[focusedProduct.status] ?? 'neutral'}
                   label={productStatusLabel[focusedProduct.status] ?? focusedProduct.status}
                   className="mt-2"
                 />
               </div>
+              {focusedProduct.category && (
+                <div className="col-span-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Category</p>
+                  <p className="mt-1 text-white">{focusedProduct.category}</p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                Gallery
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Image gallery</p>
               {focusedProduct.images && focusedProduct.images.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3">
-                  {focusedProduct.images.slice(0, 4).map((src) => (
+                  {focusedProduct.images.map((src, i) => (
                     <div
-                      key={src}
-                      className="h-28 overflow-hidden rounded-xl border border-[#1f1f1f] bg-[#10151d]"
+                      key={src + i}
+                      className="aspect-square overflow-hidden rounded-xl border border-[#1f1f1f] bg-[#10151d]"
                       style={{ backgroundImage: `url(${src})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                     />
                   ))}
@@ -576,28 +749,52 @@ export default function AdminProducts() {
 
             {focusedProduct.description ? (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                  Description
-                </p>
-                <p className="mt-2 leading-relaxed text-gray-300">{focusedProduct.description}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Description</p>
+                <p className="mt-2 leading-relaxed text-gray-300 whitespace-pre-wrap">{focusedProduct.description}</p>
               </div>
             ) : null}
 
+            <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Seller</p>
+              <p className="text-white font-medium">{focusedProduct.seller?.businessName ?? 'Unknown seller'}</p>
+              <p className="font-mono text-xs text-gray-500">ID: {focusedProduct.sellerId}</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                  Price
-                </p>
-                <p className="mt-2 text-lg font-semibold text-white">
-                  {formatNgnFromKobo(focusedProduct.price)}
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Price</p>
+                <p className="mt-2 text-lg font-semibold text-white">{formatNgnFromKobo(focusedProduct.price)}</p>
               </div>
               <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                  Stock
-                </p>
-                <p className="mt-2 text-lg font-semibold text-white">{focusedProduct.quantity}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Stock</p>
+                <p className="mt-2 text-lg font-semibold text-white">{focusedProduct.quantity ?? 0}</p>
               </div>
+            </div>
+
+            {focusedProduct.b2bEligible && (
+              <div>
+                <span className="inline-flex rounded-full bg-primary/20 px-3 py-1 text-xs font-semibold text-primary">B2B Eligible</span>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Moderation history</p>
+              {focusedProduct.moderationHistory && focusedProduct.moderationHistory.length > 0 ? (
+                <ul className="space-y-2 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                  {focusedProduct.moderationHistory.map((entry, i) => (
+                    <li key={i} className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="font-semibold text-white">{entry.action}</span>
+                      {entry.by && <span className="text-gray-500">by {entry.by}</span>}
+                      <span className="text-gray-500">{formatDate(entry.at)}</span>
+                      {entry.reason && <span className="text-gray-400">— {entry.reason}</span>}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="rounded-xl border border-dashed border-gray-700 bg-[#10151d] p-4 text-center text-xs text-gray-500">
+                  No moderation history recorded.
+                </p>
+              )}
             </div>
           </div>
         ) : null}

@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
+import { ChevronDown, ChevronRight, MessageSquare, Send } from 'lucide-react';
+import toast from 'react-hot-toast';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
-  AdminCard,
   AdminEmptyState,
   AdminPageHeader,
   AdminToolbar,
@@ -24,8 +25,9 @@ import {
   SupportTicket,
   SupportTicketPriority,
   SupportTicketStatus,
+  SupportTicketUserType,
 } from '../../lib/admin/types';
-import { formatDateTime } from '../../lib/api/utils';
+import { formatDateTime, formatRelativeTime } from '../../lib/api/utils';
 
 const SUPPORT_FILTERS: Array<{ id: 'all' | SupportTicketStatus | 'pending'; label: string }> = [
   { id: 'all', label: 'All Tickets' },
@@ -50,12 +52,33 @@ const SUPPORT_STATUS_TONE: Record<SupportTicketStatus, 'warning' | 'info' | 'suc
   CLOSED: 'neutral',
 };
 
+/** Priority tag for list: Urgent=red, Normal=yellow, Low=grey */
+const PRIORITY_TAG: Record<SupportTicketPriority, { label: string; className: string }> = {
+  URGENT: { label: 'Urgent', className: 'border-red-500/50 bg-red-500/15 text-red-400' },
+  HIGH: { label: 'High', className: 'border-amber-500/50 bg-amber-500/15 text-amber-400' },
+  MEDIUM: { label: 'Normal', className: 'border-yellow-500/50 bg-yellow-500/15 text-yellow-400' },
+  LOW: { label: 'Low', className: 'border-[#2a2a2a] bg-[#1a1a1a] text-gray-400' },
+};
+
 const PRIORITY_TONE: Record<SupportTicketPriority, 'neutral' | 'warning' | 'danger' | 'success' | 'info'> = {
   LOW: 'neutral',
   MEDIUM: 'info',
   HIGH: 'warning',
   URGENT: 'danger',
 };
+
+const USER_TYPE_LABEL: Record<SupportTicketUserType, string> = {
+  BUYER: 'Buyer',
+  SELLER: 'Seller',
+  RIDER: 'Rider',
+};
+
+const QUICK_REPLY_TEMPLATES = [
+  { label: 'Acknowledged', text: 'Thank you for reaching out. We have received your request and will look into it shortly.' },
+  { label: 'Need more info', text: 'To help you further, could you please provide more details about your issue?' },
+  { label: 'Resolved', text: 'We believe this issue has been resolved. If you need anything else, please reply to this ticket.' },
+  { label: 'Escalated', text: 'Your ticket has been escalated to our specialist team. You will hear back within 24 hours.' },
+];
 
 const NOTIFICATION_TYPE_LABEL: Record<NotificationType, string> = {
   ORDER: 'Order',
@@ -82,6 +105,9 @@ export default function AdminSupport() {
   const [search, setSearch] = useState('');
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState('');
+  const [quickReplyOpen, setQuickReplyOpen] = useState(false);
+  const [inboxFilter, setInboxFilter] = useState<'all' | 'admin' | 'system'>('all');
+  const [sendNotificationOpen, setSendNotificationOpen] = useState(false);
 
   const { data: tickets, isLoading: ticketsLoading, isError: ticketsError, error: ticketsErrorObj, refetch: refetchTickets } =
     useSupportTickets();
@@ -156,6 +182,13 @@ export default function AdminSupport() {
 
   const unreadNotificationIds = notifications?.filter((notification) => !notification.read).map((notification) => notification.id) ?? [];
 
+  const filteredNotifications = useMemo(() => {
+    if (!notifications) return [];
+    if (inboxFilter === 'all') return notifications;
+    if (inboxFilter === 'system') return notifications.filter((n) => n.type === 'SYSTEM');
+    return notifications.filter((n) => n.type !== 'SYSTEM');
+  }, [notifications, inboxFilter]);
+
   return (
     <AdminLayout>
       <div className="min-h-screen bg-[#090c11]">
@@ -211,37 +244,74 @@ export default function AdminSupport() {
               ) : filteredTickets.length === 0 ? (
                 <AdminEmptyState
                   title="No tickets match"
-                  description="Adjust your filters or wait for new submissions."
+                  description="Try adjusting filters or add a test ticket to get started."
+                  action={
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearch('');
+                          setActiveFilter('all');
+                          toast.success('Filters cleared.');
+                        }}
+                        className="rounded-full border border-[#2a2a2a] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary"
+                      >
+                        Check filters
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toast('Create-ticket API can be wired here when available.', { icon: '🎫' })}
+                        className="rounded-full border border-primary bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary transition hover:bg-primary hover:text-black"
+                      >
+                        Create a test ticket
+                      </button>
+                    </div>
+                  }
                 />
               ) : (
                 <div className="space-y-3 overflow-y-auto">
-                  {filteredTickets.map((ticket) => (
-                    <button
-                      key={ticket.id}
-                      onClick={() => {
-                        setSelectedTicketId(ticket.id);
-                        setNoteDraft(ticket.adminNotes ?? '');
-                      }}
-                      className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-                        selectedTicket?.id === ticket.id
-                          ? 'border-primary/40 bg-[#151515]'
-                          : 'border-[#1f1f1f] bg-[#111111] hover:border-primary/30'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-white">{ticket.subject}</p>
-                        <StatusBadge
-                          tone={SUPPORT_STATUS_TONE[ticket.status]}
-                          label={SUPPORT_STATUS_LABEL[ticket.status]}
-                        />
-                      </div>
-                      <p className="mt-2 line-clamp-2 text-xs text-gray-400">{ticket.message}</p>
-                      <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                        <span>{ticket.priority} priority</span>
-                        <span>{formatDateTime(ticket.createdAt)}</span>
-                      </div>
-                    </button>
-                  ))}
+                  {filteredTickets.map((ticket) => {
+                    const priorityTag = PRIORITY_TAG[ticket.priority];
+                    return (
+                      <button
+                        key={ticket.id}
+                        onClick={() => {
+                          setSelectedTicketId(ticket.id);
+                          setNoteDraft(ticket.adminNotes ?? '');
+                        }}
+                        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                          selectedTicket?.id === ticket.id
+                            ? 'border-primary/40 bg-[#151515]'
+                            : 'border-[#1f1f1f] bg-[#111111] hover:border-primary/30'
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${priorityTag.className}`}
+                          >
+                            {priorityTag.label}
+                          </span>
+                          {ticket.userType ? (
+                            <span className="inline-flex rounded-full border border-[#2a2a2a] bg-[#151515] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-300">
+                              {USER_TYPE_LABEL[ticket.userType]}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-white line-clamp-1">{ticket.subject}</p>
+                          <StatusBadge
+                            tone={SUPPORT_STATUS_TONE[ticket.status]}
+                            label={SUPPORT_STATUS_LABEL[ticket.status]}
+                          />
+                        </div>
+                        <p className="mt-2 line-clamp-2 text-xs text-gray-400">{ticket.message}</p>
+                        <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                          <span>{formatRelativeTime(ticket.createdAt)}</span>
+                          <span>{formatDateTime(ticket.createdAt)}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -274,6 +344,40 @@ export default function AdminSupport() {
                   <div className="rounded-2xl border border-[#1f1f1f] bg-[#151515] p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Customer message</p>
                     <p className="mt-2 text-sm text-gray-200">{selectedTicket.message}</p>
+                  </div>
+
+                  <div className="rounded-2xl border border-[#1f1f1f] bg-[#151515] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setQuickReplyOpen((o) => !o)}
+                      className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-white hover:bg-[#1a1a1a] transition"
+                    >
+                      <span className="flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-gray-400" />
+                        Quick-reply templates
+                      </span>
+                      {quickReplyOpen ? (
+                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                    {quickReplyOpen ? (
+                      <div className="border-t border-[#1f1f1f] p-3 space-y-2">
+                        {QUICK_REPLY_TEMPLATES.map((tpl) => (
+                          <button
+                            key={tpl.label}
+                            type="button"
+                            onClick={() => {
+                              setNoteDraft((prev) => (prev ? `${prev}\n\n${tpl.text}` : tpl.text));
+                            }}
+                            className="w-full rounded-lg border border-[#2a2a2a] bg-[#111111] px-3 py-2 text-left text-xs text-gray-300 hover:border-primary/40 hover:text-white transition"
+                          >
+                            {tpl.label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="space-y-3">
@@ -315,28 +419,106 @@ export default function AdminSupport() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#1f1f1f] bg-[#111111] p-6">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Notifications</p>
-                <h2 className="text-2xl font-semibold text-white">Inbox</h2>
-                <p className="text-xs text-gray-500">Unread: {unreadCount ?? 0}</p>
+          <section className="mb-10 rounded-2xl border border-[#1f1f1f] bg-[#111111] p-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-2xl font-semibold text-white">
+                  Inbox
+                  {(unreadCount ?? 0) > 0 ? (
+                    <span className="ml-2 inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-primary px-2 text-xs font-bold text-black">
+                      {unreadCount}
+                    </span>
+                  ) : null}
+                </h2>
+                <div className="flex rounded-full border border-[#2a2a2a] bg-[#151515] p-0.5">
+                  {(['all', 'admin', 'system'] as const).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setInboxFilter(f)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                        inboxFilter === f
+                          ? 'bg-primary text-black'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      {f === 'all' ? 'All' : f === 'admin' ? 'Admin only' : 'System'}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => markAllNotificationsRead.mutate(unreadNotificationIds.length ? unreadNotificationIds : undefined)}
-                  disabled={unreadNotificationIds.length === 0}
-                  className="rounded-full border border-[#2a2a2a] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Mark all read
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => markAllNotificationsRead.mutate(unreadNotificationIds.length ? unreadNotificationIds : undefined)}
+                disabled={unreadNotificationIds.length === 0}
+                className="rounded-full border border-[#2a2a2a] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Mark all read
+              </button>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
+            <div className="space-y-3">
+              {notificationsLoading ? (
+                <LoadingState />
+              ) : filteredNotifications.length === 0 ? (
+                <AdminEmptyState title="No notifications" description="You haven't received any notifications yet." />
+              ) : (
+                filteredNotifications.map((notification: AdminNotification) => (
+                  <div
+                    key={notification.id}
+                    className={`rounded-2xl border px-4 py-3 ${notification.read ? 'border-[#1f1f1f] bg-[#151515]' : 'border-primary/40 bg-[#181818]'}`}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-semibold text-white">{notification.title}</h3>
+                          <StatusBadge tone={NOTIFICATION_TONE[notification.type]} label={NOTIFICATION_TYPE_LABEL[notification.type]} />
+                        </div>
+                        <p className="text-xs text-gray-400">{notification.message}</p>
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">{formatDateTime(notification.createdAt)}</p>
+                        {notification.link ? (
+                          <p className="text-xs text-primary">Link: {notification.link}</p>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                        {!notification.read ? (
+                          <button
+                            type="button"
+                            onClick={() => markNotificationRead.mutate(notification.id)}
+                            className="rounded-full border border-[#2a2a2a] px-3 py-1 transition hover:border-primary hover:text-primary"
+                          >
+                            Mark read
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => deleteNotification.mutate(notification.id)}
+                          className="rounded-full border border-[#3a1f1f] px-3 py-1 text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6]"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-[#1f1f1f] bg-[#111111] p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Send notification</h2>
+              <button
+                type="button"
+                onClick={() => setSendNotificationOpen((o) => !o)}
+                className="flex items-center gap-2 rounded-full border border-[#2a2a2a] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary"
+              >
+                <Send className="h-4 w-4" />
+                {sendNotificationOpen ? 'Hide form' : 'Compose'}
+              </button>
+            </div>
+            {sendNotificationOpen ? (
               <form className="space-y-3" onSubmit={handleSendNotification}>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Send notification</p>
                 <select
                   value={notificationForm.type}
                   onChange={(event) => setNotificationForm((prev) => ({ ...prev, type: event.target.value as NotificationType }))}
@@ -381,54 +563,7 @@ export default function AdminSupport() {
                   Send notification
                 </button>
               </form>
-
-              <div className="space-y-3">
-                {notificationsLoading ? (
-                  <LoadingState />
-                ) : !notifications || notifications.length === 0 ? (
-                  <AdminEmptyState title="No notifications" description="You haven’t received any notifications yet." />
-                ) : (
-                  notifications.map((notification: AdminNotification) => (
-                    <div
-                      key={notification.id}
-                      className={`rounded-2xl border px-4 py-3 ${notification.read ? 'border-[#1f1f1f] bg-[#151515]' : 'border-primary/40 bg-[#181818]'}`}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-semibold text-white">{notification.title}</h3>
-                            <StatusBadge tone={NOTIFICATION_TONE[notification.type]} label={NOTIFICATION_TYPE_LABEL[notification.type]} />
-                          </div>
-                          <p className="text-xs text-gray-400">{notification.message}</p>
-                          <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">{formatDateTime(notification.createdAt)}</p>
-                          {notification.link ? (
-                            <p className="text-xs text-primary">Link: {notification.link}</p>
-                          ) : null}
-                        </div>
-                        <div className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
-                          {!notification.read ? (
-                            <button
-                              type="button"
-                              onClick={() => markNotificationRead.mutate(notification.id)}
-                              className="rounded-full border border-[#2a2a2a] px-3 py-1 transition hover:border-primary hover:text-primary"
-                            >
-                              Mark read
-                            </button>
-                          ) : null}
-                          <button
-                            type="button"
-                            onClick={() => deleteNotification.mutate(notification.id)}
-                            className="rounded-full border border-[#3a1f1f] px-3 py-1 text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6]"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+            ) : null}
           </section>
         </div>
       </div>

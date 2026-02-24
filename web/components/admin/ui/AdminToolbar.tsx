@@ -21,23 +21,34 @@ export function AdminToolbar({ children, className }: AdminToolbarProps) {
 
 interface AdminFilterChipProps {
   active?: boolean;
+  count?: number;
   children: ReactNode;
   onClick?: () => void;
 }
 
-export function AdminFilterChip({ active = false, children, onClick }: AdminFilterChipProps) {
+export function AdminFilterChip({ active = false, count, children, onClick }: AdminFilterChipProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={clsx(
-        'rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] transition',
+        'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] transition',
         active
           ? 'border-primary bg-primary text-black'
           : 'border-gray-700 bg-[#151515] text-gray-300 hover:border-primary hover:text-primary'
       )}
     >
-      {children}
+      <span>{children}</span>
+      {count !== undefined && (
+        <span
+          className={clsx(
+            'min-w-5 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+            active ? 'bg-black/20 text-black' : 'bg-[#2a2a2a] text-gray-400'
+          )}
+        >
+          {count}
+        </span>
+      )}
     </button>
   );
 }

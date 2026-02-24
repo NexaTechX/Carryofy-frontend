@@ -51,7 +51,16 @@ export interface AdminCustomerDetail extends AdminCustomer {
     status: string;
     deliveredAt?: string;
   }>;
+  /** Number of reviews written by this user (buyer/seller). */
+  reviewsWritten?: number;
+  /** Number of support tickets raised. */
+  supportTicketsRaised?: number;
+  /** Account activity log entries for the drawer. */
+  activityLog?: Array<{ id: string; action: string; at: string; meta?: string }>;
 }
+
+/** Last active filter: active in last N days, or inactive (no recent activity). */
+export type LastActiveFilter = '7' | '30' | '90' | 'inactive';
 
 export interface CustomersQueryParams {
   page?: number;
@@ -59,6 +68,12 @@ export interface CustomersQueryParams {
   search?: string;
   role?: UserRole;
   status?: UserStatus;
+  /** ISO date string; filter users joined on or after. */
+  joinedFrom?: string;
+  /** ISO date string; filter users joined on or before. */
+  joinedTo?: string;
+  /** 7 | 30 | 90 = active in last N days; 'inactive' = no activity in last 90 days. */
+  lastActive?: LastActiveFilter;
 }
 
 export interface CustomersResponse {
@@ -108,6 +123,48 @@ export function useCustomerDetail(customerId: string | null) {
     enabled: !!customerId,
     retry: 1, // Only retry once on failure
     retryOnMount: false, // Don't retry when component remounts
+  });
+}
+
+export interface CustomerStats {
+  total: number;
+  buyers: number;
+  sellers: number;
+  riders: number;
+  unverified: number;
+  suspended: number;
+}
+
+/** Fetches counts for dashboard stat cards. Uses parallel list requests with limit=1. */
+export function useCustomerStats() {
+  return useQuery<CustomerStats>({
+    queryKey: [CUSTOMERS_CACHE_KEY, 'stats'],
+    queryFn: async () => {
+      const unwrap = async (params: Record<string, unknown>) => {
+        const { data } = await apiClient.get('/users/admin/all', {
+          params: { ...params, limit: 1, page: 1 },
+        });
+        const raw = data?.data ?? data;
+        const pagination = raw?.pagination;
+        return pagination?.total ?? 0;
+      };
+      const [total, buyers, sellers, riders, suspended, unverifiedRes] = await Promise.all([
+        unwrap({}),
+        unwrap({ role: 'BUYER' }),
+        unwrap({ role: 'SELLER' }),
+        unwrap({ role: 'RIDER' }),
+        unwrap({ status: 'SUSPENDED' }),
+        // Unverified: backend may support ?verified=false; otherwise we return 0
+        apiClient.get('/users/admin/all', { params: { status: 'ACTIVE', limit: 100, page: 1 } })
+          .then((res) => {
+            const raw = res.data?.data ?? res.data;
+            const users = raw?.users ?? [];
+            return Array.isArray(users) ? (users as { verified?: boolean }[]).filter((u) => !u.verified).length : 0;
+          })
+          .catch(() => 0),
+      ]);
+      return { total, buyers, sellers, riders, suspended, unverified: typeof unverifiedRes === 'number' ? unverifiedRes : 0 };
+    },
   });
 }
 

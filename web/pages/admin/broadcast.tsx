@@ -24,11 +24,10 @@ import {
   Users,
   FileText,
   Send,
-  CheckCircle2,
-  X,
   ChevronRight,
   ChevronLeft,
   AlertCircle,
+  Clock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AudienceSelector from '../../components/admin/broadcast/AudienceSelector';
@@ -38,7 +37,15 @@ import ProductSelector from '../../components/admin/broadcast/ProductSelector';
 import SchedulingPanel from '../../components/admin/broadcast/SchedulingPanel';
 import BroadcastPreview from '../../components/admin/broadcast/BroadcastPreview';
 import ReviewModal from '../../components/admin/broadcast/ReviewModal';
+import BroadcastProgressBar, { type StepCompletion } from '../../components/admin/broadcast/BroadcastProgressBar';
 import { validateBroadcastPayload, checkSpamRisk, validateCtaLink } from '../../lib/admin/broadcast-validation';
+import {
+  getBroadcastTypeUsage,
+  getRecommendedBroadcastType,
+  recordBroadcastTypeUsage,
+  getLastBroadcastPayloadByType,
+  setLastBroadcastPayloadByType,
+} from '../../lib/admin/broadcast-usage';
 
 const STEPS = [
   { id: 1, label: 'Audience', icon: Users },
@@ -65,6 +72,7 @@ export default function AdminBroadcastPage() {
   const [rateLimit, setRateLimit] = useState<RateLimit>({});
   const [internalNote, setInternalNote] = useState('');
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [usageVersion, setUsageVersion] = useState(0);
 
   // Fetch audience counts
   const { data: audienceCounts } = useQuery<AudienceCount>({
@@ -82,7 +90,9 @@ export default function AdminBroadcastPage() {
 
   const createBroadcast = useMutation({
     mutationFn: (payload: CreateBroadcastPayload) => createBroadcastRequest(payload),
-    onSuccess: (result) => {
+    onSuccess: (result, payload) => {
+      recordBroadcastTypeUsage(payload.type);
+      setLastBroadcastPayloadByType(payload.type, payload as unknown as Record<string, unknown>);
       toast.success(
         `Broadcast ${result.status === 'SENT' ? 'sent' : 'scheduled'} successfully!`
       );
@@ -103,6 +113,7 @@ export default function AdminBroadcastPage() {
       setRateLimit({});
       setInternalNote('');
       setShowReviewModal(false);
+      setUsageVersion((v) => v + 1);
     },
     onError: (err: any) => {
       const message = err?.response?.data?.message || err?.message || 'Failed to create broadcast';
@@ -224,6 +235,75 @@ export default function AdminBroadcastPage() {
 
   const isBuyerSelected = audience.includes('BUYER');
 
+  // Step completion % for progress bar (0–100 per step)
+  const stepCompletions: StepCompletion[] = useMemo(() => {
+    const list: StepCompletion[] = [];
+    list.push({
+      stepId: 1,
+      percent: (broadcastType ? 50 : 0) + (audience.length > 0 ? 50 : 0),
+    });
+    list.push({ stepId: 2, percent: 100 });
+    const channelsFilled = channels.email || channels.inApp;
+    const subjectFilled = !channels.email || subject.trim().length > 0;
+    list.push({
+      stepId: 3,
+      percent: (channelsFilled ? 50 : 0) + (subjectFilled ? 50 : 0),
+    });
+    list.push({ stepId: 4, percent: body.trim() ? 100 : 0 });
+    list.push({ stepId: 5, percent: 100 });
+    return list;
+  }, [broadcastType, audience.length, channels, subject, body]);
+
+  const goToStep = (stepId: number) => {
+    if (stepId >= 1 && stepId <= STEPS.length && stepId < currentStep) {
+      setCurrentStep(stepId);
+    }
+  };
+
+  const broadcastUsage = useMemo(() => getBroadcastTypeUsage(), [usageVersion]);
+  const lastUsedAt = useMemo(
+    () =>
+      Object.fromEntries(
+        (Object.keys(broadcastUsage) as (keyof typeof broadcastUsage)[]).map((k) => [
+          k,
+          broadcastUsage[k]?.lastUsedAt ?? null,
+        ])
+      ) as Record<BroadcastType, string | null>,
+    [broadcastUsage]
+  );
+  const recommendedType = useMemo(() => getRecommendedBroadcastType(), [usageVersion]);
+
+  const handleQuickSend = (type: BroadcastType) => {
+    const saved = getLastBroadcastPayloadByType(type);
+    if (!saved || typeof saved !== 'object') {
+      toast.error('No previous broadcast found for this type');
+      return;
+    }
+    setBroadcastType(type);
+    if (Array.isArray(saved.audience)) setAudience(saved.audience as BroadcastAudience[]);
+    if (saved.audienceFilters && typeof saved.audienceFilters === 'object')
+      setAudienceFilters(saved.audienceFilters as AudienceFilters);
+    if (saved.channels && typeof saved.channels === 'object') setChannels(saved.channels as { email: boolean; inApp: boolean });
+    if (typeof saved.subject === 'string') setSubject(saved.subject);
+    if (typeof saved.body === 'string') setBody(saved.body);
+    if (saved.roleSpecificMessages && typeof saved.roleSpecificMessages === 'object')
+      setRoleSpecificMessages(saved.roleSpecificMessages as RoleSpecificMessages);
+    if (typeof saved.ctaLabel === 'string') setCtaLabel(saved.ctaLabel);
+    if (typeof saved.ctaLink === 'string') setCtaLink(saved.ctaLink);
+    if (Array.isArray(saved.productIds)) setProductIds(saved.productIds as string[]);
+    if (saved.scheduling && typeof saved.scheduling === 'object') {
+      const s = saved.scheduling as { sendNow?: boolean; scheduledFor?: string; timezone?: string };
+      setScheduling({
+        sendNow: s.sendNow !== false,
+        scheduledFor: s.scheduledFor,
+        timezone: s.timezone,
+      });
+    }
+    if (saved.rateLimit && typeof saved.rateLimit === 'object')
+      setRateLimit(saved.rateLimit as RateLimit);
+    toast.success('Previous broadcast restored. Review and send.');
+  };
+
   return (
     <AdminLayout>
       <div className="min-h-screen bg-[#090c11]">
@@ -233,53 +313,11 @@ export default function AdminBroadcastPage() {
             subtitle="Send notifications and emails to buyers, sellers, or riders."
           />
 
-          {/* Progress indicator */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              {STEPS.map((step, index) => {
-                const Icon = step.icon;
-                const isActive = currentStep === step.id;
-                const isCompleted = currentStep > step.id;
-                const isLast = index === STEPS.length - 1;
-
-                return (
-                  <div key={step.id} className="flex items-center flex-1">
-                    <div className="flex flex-col items-center flex-1">
-                      <div
-                        className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${
-                          isActive
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : isCompleted
-                            ? 'border-primary bg-primary text-white'
-                            : 'border-white/[0.08] bg-white/[0.02] text-gray-500'
-                        }`}
-                      >
-                        {isCompleted ? (
-                          <CheckCircle2 className="h-5 w-5" />
-                        ) : (
-                          <Icon className="h-5 w-5" />
-                        )}
-                      </div>
-                      <span
-                        className={`mt-2 text-xs font-medium ${
-                          isActive ? 'text-white' : isCompleted ? 'text-primary' : 'text-gray-500'
-                        }`}
-                      >
-                        {step.label}
-                      </span>
-                    </div>
-                    {!isLast && (
-                      <div
-                        className={`h-0.5 flex-1 mx-2 -mt-5 ${
-                          isCompleted ? 'bg-primary' : 'bg-white/[0.08]'
-                        }`}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <BroadcastProgressBar
+            currentStep={currentStep}
+            stepCompletions={stepCompletions}
+            onStepClick={goToStep}
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main form */}
@@ -287,12 +325,18 @@ export default function AdminBroadcastPage() {
               {/* Step 1: Audience & Type */}
               {currentStep === 1 && (
                 <div className="space-y-6">
-                  <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+                  <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 transition-shadow [--glow:rgba(255,107,0,0.25)] hover:border-white/[0.1]">
                     <h2 className="mb-4 text-base font-semibold text-white">Broadcast Type</h2>
-                    <BroadcastTypeSelector selected={broadcastType} onSelect={setBroadcastType} />
+                    <BroadcastTypeSelector
+                      selected={broadcastType}
+                      onSelect={setBroadcastType}
+                      lastUsedAt={lastUsedAt}
+                      recommendedType={recommendedType}
+                      onQuickSend={handleQuickSend}
+                    />
                   </section>
 
-                  <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+                  <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 transition-shadow hover:border-white/[0.1]">
                     <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-white">
                       <Users className="h-5 w-5 text-primary" />
                       Audience
@@ -309,7 +353,7 @@ export default function AdminBroadcastPage() {
 
               {/* Step 2: Targeting Rules */}
               {currentStep === 2 && (
-                <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+                <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 shadow-[0_0_0_1px_rgba(255,107,0,0.06)] hover:border-white/[0.1]">
                   <h2 className="mb-4 text-base font-semibold text-white">Targeting Rules</h2>
                   <p className="mb-4 text-sm text-gray-500">
                     Advanced filters are already configured in the Audience step. Review and adjust if needed.
@@ -325,7 +369,7 @@ export default function AdminBroadcastPage() {
 
               {/* Step 3: Channels */}
               {currentStep === 3 && (
-                <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+                <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 hover:border-white/[0.1]">
                   <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-white">
                     <Mail className="h-5 w-5 text-primary" />
                     Channels
@@ -335,8 +379,8 @@ export default function AdminBroadcastPage() {
                       <label
                         className={`flex cursor-pointer items-center gap-3 rounded-xl border px-5 py-3 transition-all ${
                           channels.email
-                            ? 'border-primary/40 bg-primary/[0.06]'
-                            : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]'
+                            ? 'border-[var(--color-primary)]/50 bg-[var(--color-primary)]/[0.06] shadow-[0_0_0_1px_var(--color-primary)]'
+                            : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.12]'
                         }`}
                       >
                         <input
@@ -353,8 +397,8 @@ export default function AdminBroadcastPage() {
                       <label
                         className={`flex cursor-pointer items-center gap-3 rounded-xl border px-5 py-3 transition-all ${
                           channels.inApp
-                            ? 'border-primary/40 bg-primary/[0.06]'
-                            : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]'
+                            ? 'border-[var(--color-primary)]/50 bg-[var(--color-primary)]/[0.06] shadow-[0_0_0_1px_var(--color-primary)]'
+                            : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.12]'
                         }`}
                       >
                         <input
@@ -458,7 +502,7 @@ export default function AdminBroadcastPage() {
                   </section>
 
                   {isBuyerSelected && (
-                    <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+                    <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 hover:border-white/[0.1]">
                       <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-white">
                         <Users className="h-5 w-5 text-primary" />
                         Attach Products
@@ -476,7 +520,7 @@ export default function AdminBroadcastPage() {
 
               {/* Step 5: Review */}
               {currentStep === 5 && (
-                <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+                <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 hover:border-white/[0.1]">
                   <h2 className="mb-4 text-base font-semibold text-white">Review & Send</h2>
                   <div className="space-y-4 text-sm">
                     <div className="grid grid-cols-2 gap-4">
@@ -506,7 +550,7 @@ export default function AdminBroadcastPage() {
               )}
 
               {/* Navigation */}
-              <div className="flex items-center justify-between pt-6">
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-6">
                 <button
                   type="button"
                   onClick={handlePrevious}
@@ -516,26 +560,45 @@ export default function AdminBroadcastPage() {
                   <ChevronLeft className="h-4 w-4" />
                   Previous
                 </button>
-                {currentStep < STEPS.length ? (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={createBroadcast.isPending}
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
-                  >
-                    <Send className="h-4 w-4" />
-                    Review & Send
-                  </button>
-                )}
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-2 text-sm text-gray-300 transition hover:border-white/[0.12]">
+                    <Clock className="h-4 w-4 text-gray-400" />
+                    <span className="whitespace-nowrap">Schedule for later</span>
+                    <input
+                      type="checkbox"
+                      checked={!scheduling.sendNow}
+                      onChange={(e) =>
+                        setScheduling((s) => ({
+                          ...s,
+                          sendNow: !e.target.checked,
+                          scheduledFor: e.target.checked ? s.scheduledFor : undefined,
+                          timezone: e.target.checked ? s.timezone || 'Africa/Lagos' : undefined,
+                        }))
+                      }
+                      className="h-4 w-4 rounded border-white/[0.2] text-primary focus:ring-primary/30"
+                    />
+                  </label>
+                  {currentStep < STEPS.length ? (
+                    <button
+                      type="button"
+                      onClick={handleNext}
+                      className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSubmit}
+                      disabled={createBroadcast.isPending}
+                      className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
+                    >
+                      <Send className="h-4 w-4" />
+                      Review & Send
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { DeliveryMapModal } from '../../components/admin/DeliveryMapModal';
+import { IssueResolutionModal } from '../../components/admin/IssueResolutionModal';
 import {
   AdminCard,
   AdminDrawer,
@@ -14,27 +16,42 @@ import {
   DataTableHead,
   LoadingState,
   StatusBadge,
+  AdminTableToolbar,
+  useColumnVisibility,
+  buildCSV,
+  downloadBlob,
 } from '../../components/admin/ui';
 import {
   useActiveDeliveries,
   useAssignDeliveryMutation,
   useAvailableRiders,
+  useDeliveryByOrder,
+  useDeliveryStatusMutation,
 } from '../../lib/admin/hooks/useAdminDeliveries';
 import { useAdminOrderDetail } from '../../lib/admin/hooks/useAdminOrders';
+import { useTableKeyboardNav } from '../../lib/admin/hooks/useTableKeyboardNav';
+import { getStatusTone } from '../../lib/admin/statusTones';
 import { AdminDelivery } from '../../lib/admin/types';
+import type { AvailableRider } from '../../lib/admin/api';
 import { toast } from 'react-hot-toast';
 import { formatNgnFromKobo } from '../../lib/api/utils';
+import { MapPin, AlertTriangle, RefreshCw } from 'lucide-react';
+import clsx from 'clsx';
 
 const DELIVERY_FILTERS = ['ALL', 'PREPARING', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'ISSUE'] as const;
 type DeliveryFilter = (typeof DELIVERY_FILTERS)[number];
 
-const DELIVERY_TONE: Record<string, 'info' | 'warning' | 'success' | 'danger'> = {
-  PREPARING: 'info',
-  PICKED_UP: 'warning',
-  IN_TRANSIT: 'warning',
-  DELIVERED: 'success',
-  ISSUE: 'danger',
-};
+const DELIVERY_TABLE_COLUMNS = [
+  { id: 'deliveryId', label: 'Delivery ID' },
+  { id: 'orderId', label: 'Order ID' },
+  { id: 'rider', label: 'Rider' },
+  { id: 'pickup', label: 'Pickup' },
+  { id: 'dropoff', label: 'Drop-off' },
+  { id: 'status', label: 'Status' },
+  { id: 'assigned', label: 'Assigned' },
+  { id: 'eta', label: 'ETA' },
+  { id: 'actions', label: 'Actions' },
+];
 
 const DELIVERY_LABEL: Record<string, string> = {
   PREPARING: 'Preparing',
@@ -44,10 +61,59 @@ const DELIVERY_LABEL: Record<string, string> = {
   ISSUE: 'Issue',
 };
 
-// Admins cannot set delivery status to Delivered — only the buyer confirms receipt
-const DELIVERY_STATUS_OPTIONS_ADMIN_EDIT = DELIVERY_FILTERS.filter(
-  (s) => s !== 'ALL' && s !== 'DELIVERED',
-);
+// Default pickup (e.g. warehouse) for proximity sort — Lagos
+const DEFAULT_PICKUP_LAT = 6.5244;
+const DEFAULT_PICKUP_LNG = 3.3792;
+
+function haversineKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function getRiderDisplayName(
+  delivery: AdminDelivery,
+  riders: AvailableRider[] | undefined
+): string {
+  if (!delivery.riderId) return 'Unassigned';
+  const r = riders?.find((x) => x.id === delivery.riderId);
+  if (r) return r.name;
+  if (typeof delivery.rider === 'string') return delivery.rider;
+  return delivery.rider?.name ?? 'Unknown Rider';
+}
+
+function RiderAvatar({ name }: { name: string }) {
+  const initial = name ? name.charAt(0).toUpperCase() : '?';
+  return (
+    <span
+      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-sm font-semibold text-primary"
+      aria-hidden
+    >
+      {initial}
+    </span>
+  );
+}
+
+function getDropoffLabel(d: AdminDelivery): string {
+  if (d.deliveryAddressInfo) {
+    const a = d.deliveryAddressInfo;
+    return [a.line1, a.city, a.state].filter(Boolean).join(', ') || a.fullAddress || '—';
+  }
+  return d.deliveryAddress || '—';
+}
 
 export default function AdminDeliveries() {
   const [filter, setFilter] = useState<DeliveryFilter>('ALL');
@@ -55,20 +121,86 @@ export default function AdminDeliveries() {
   const [assignOrderId, setAssignOrderId] = useState('');
   const [assignRider, setAssignRider] = useState('');
   const [assignEta, setAssignEta] = useState('');
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [mapModalDelivery, setMapModalDelivery] = useState<AdminDelivery | null>(null);
+  const [issueResolutionDelivery, setIssueResolutionDelivery] = useState<AdminDelivery | null>(null);
 
-  const { data: deliveries, isLoading, isError, error, refetch } = useActiveDeliveries();
+  const { data: deliveries, isLoading, isError, error, refetch, dataUpdatedAt } = useActiveDeliveries({
+    refetchInterval: autoRefresh ? 30000 : 30_000, // near-real-time: 30s when not in manual-only mode
+  });
+  const [tableColumns, setTableColumns] = useColumnVisibility(DELIVERY_TABLE_COLUMNS);
+  const [selectedRowIndex, setSelectedRowIndex] = useState(0);
   const assignDelivery = useAssignDeliveryMutation();
+  const updateStatus = useDeliveryStatusMutation();
   const { data: availableRiders, isLoading: loadingRiders } = useAvailableRiders();
+  const deliveryForAssignOrder = useDeliveryByOrder(assignOrderId.trim() || null);
 
   const filteredDeliveries = useMemo(() => {
     if (!deliveries) return [];
     if (filter === 'ALL') return deliveries;
-    return deliveries.filter((delivery) => delivery.status === filter);
+    return deliveries.filter((d) => d.status === filter);
   }, [deliveries, filter]);
 
-  const inTransit = deliveries?.filter((delivery) => delivery.status === 'IN_TRANSIT').length ?? 0;
-  const preparing = deliveries?.filter((delivery) => delivery.status === 'PREPARING').length ?? 0;
-  const deliveredToday = deliveries?.filter((delivery) => delivery.status === 'DELIVERED').length ?? 0;
+  const visibleCols = tableColumns.filter((c) => c.visible);
+  const { getRowProps } = useTableKeyboardNav({
+    rowCount: filteredDeliveries.length,
+    selectedIndex: selectedRowIndex,
+    onSelectIndex: setSelectedRowIndex,
+    onOpenRow: (index) => setSelectedDelivery(filteredDeliveries[index] ?? null),
+    enabled: filteredDeliveries.length > 0,
+  });
+
+  const handleExportDeliveriesCSV = () => {
+    const cols = visibleCols.filter((c) => c.id !== 'actions').map((c) => ({ id: c.id, label: c.label }));
+    const rows = filteredDeliveries.map((d) => ({
+      deliveryId: d.id,
+      orderId: d.orderId,
+      rider: getRiderDisplayName(d, availableRiders),
+      pickup: 'Warehouse',
+      dropoff: getDropoffLabel(d),
+      status: DELIVERY_LABEL[d.status] ?? d.status,
+      assigned: new Date(d.createdAt).toLocaleString(),
+      eta: d.eta ? new Date(d.eta).toLocaleString() : '—',
+    }));
+    const csv = buildCSV(cols, rows);
+    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `deliveries-${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
+  const inTransit = deliveries?.filter((d) => d.status === 'IN_TRANSIT').length ?? 0;
+  const preparing = deliveries?.filter((d) => d.status === 'PREPARING').length ?? 0;
+  const deliveredToday = deliveries?.filter((d) => d.status === 'DELIVERED').length ?? 0;
+  const issueCount = deliveries?.filter((d) => d.status === 'ISSUE').length ?? 0;
+
+  const filterCounts = useMemo(() => {
+    const counts: Record<DeliveryFilter, number> = {
+      ALL: deliveries?.length ?? 0,
+      PREPARING: preparing,
+      PICKED_UP: deliveries?.filter((d) => d.status === 'PICKED_UP').length ?? 0,
+      IN_TRANSIT: inTransit,
+      DELIVERED: deliveredToday,
+      ISSUE: issueCount,
+    };
+    return counts;
+  }, [deliveries, preparing, inTransit, deliveredToday, issueCount]);
+
+  const ridersByProximity = useMemo(() => {
+    if (!availableRiders?.length) return [];
+    return [...availableRiders].sort((a, b) => {
+      const latA = a.riderProfile?.currentLat;
+      const lngA = a.riderProfile?.currentLng;
+      const latB = b.riderProfile?.currentLat;
+      const lngB = b.riderProfile?.currentLng;
+      const hasA = latA != null && lngA != null;
+      const hasB = latB != null && lngB != null;
+      if (!hasA && !hasB) return 0;
+      if (!hasA) return 1;
+      if (!hasB) return -1;
+      const kmA = haversineKm(DEFAULT_PICKUP_LAT, DEFAULT_PICKUP_LNG, latA!, lngA!);
+      const kmB = haversineKm(DEFAULT_PICKUP_LAT, DEFAULT_PICKUP_LNG, latB!, lngB!);
+      return kmA - kmB;
+    });
+  }, [availableRiders]);
 
   const detailOrderId = selectedDelivery?.orderId ?? null;
   const { data: orderDetail } = useAdminOrderDetail(detailOrderId);
@@ -79,18 +211,54 @@ export default function AdminDeliveries() {
       toast.error('Order ID is required.');
       return;
     }
-
     await assignDelivery.mutateAsync({
       orderId: assignOrderId.trim(),
       riderId: assignRider.trim() || undefined,
       eta: assignEta ? new Date(assignEta).toISOString() : undefined,
     });
-
-    toast.success('Delivery assignment created.');
     setAssignOrderId('');
     setAssignRider('');
     setAssignEta('');
   };
+
+  const mapPickup = useMemo(
+    () => ({ lat: DEFAULT_PICKUP_LAT, lng: DEFAULT_PICKUP_LNG, label: 'Pickup (warehouse)' }),
+    []
+  );
+  const mapDropoff = useMemo(() => {
+    const d = mapModalDelivery;
+    if (!d?.deliveryAddressInfo) return null;
+    return {
+      lat: DEFAULT_PICKUP_LAT + 0.02,
+      lng: DEFAULT_PICKUP_LNG + 0.01,
+      label: d.deliveryAddressInfo.line1 || 'Drop-off',
+    };
+  }, [mapModalDelivery]);
+
+  const handleMarkFailed = useCallback(() => {
+    if (!issueResolutionDelivery) return;
+    updateStatus.mutate(
+      { deliveryId: issueResolutionDelivery.id, status: 'ISSUE' },
+      {
+        onSuccess: () => {
+          setIssueResolutionDelivery(null);
+          toast.success('Marked as failed / issue.');
+        },
+      }
+    );
+  }, [issueResolutionDelivery, updateStatus]);
+
+  const handleContactRider = useCallback(() => {
+    if (!issueResolutionDelivery) return;
+    const rider = availableRiders?.find((r) => r.id === issueResolutionDelivery.riderId);
+    const phone = rider?.phone;
+    if (phone) {
+      window.open(`tel:${phone}`, '_blank');
+      toast.success('Opening phone dialer.');
+    } else {
+      toast.error('Rider phone not available.');
+    }
+  }, [issueResolutionDelivery, availableRiders]);
 
   return (
     <AdminLayout>
@@ -102,52 +270,93 @@ export default function AdminDeliveries() {
             subtitle="Monitor dispatch performance and keep riders accountable for every hand-off."
           />
 
-          <section className="mb-8 grid gap-4 sm:grid-cols-3">
-            <AdminCard title="On the road" description="Riders currently in motion.">
+          <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <AdminCard
+              title="On the road"
+              description="Riders currently in motion."
+              onClick={() => setFilter('IN_TRANSIT')}
+            >
               <p className="text-3xl font-semibold text-primary">{inTransit}</p>
             </AdminCard>
-            <AdminCard title="Preparing" description="Packages ready for pick-up.">
+            <AdminCard
+              title="Preparing"
+              description="Packages ready for pick-up."
+              onClick={() => setFilter('PREPARING')}
+            >
               <p className="text-3xl font-semibold text-[#76e4f7]">{preparing}</p>
             </AdminCard>
-            <AdminCard title="Delivered today" description="Completed confirmations today.">
+            <AdminCard
+              title="Delivered today"
+              description="Completed confirmations today."
+              onClick={() => setFilter('DELIVERED')}
+            >
               <p className="text-3xl font-semibold text-[#6ce7a2]">{deliveredToday}</p>
+            </AdminCard>
+            <AdminCard
+              title="Issue / Failed deliveries"
+              description="Triage and resolve problems."
+              onClick={() => setFilter('ISSUE')}
+              accent="red"
+            >
+              <p className="text-3xl font-semibold text-red-400">{issueCount}</p>
             </AdminCard>
           </section>
 
           <section className="mb-8 rounded-2xl border border-[#1f1f1f] bg-[#111111] p-6">
             <h2 className="text-lg font-semibold text-white">Quick assignment</h2>
             <p className="mt-1 text-sm text-gray-400">
-              Assign a rider to an order that just cleared payment.
+              Assign a rider to an order that just cleared payment. Riders are suggested by proximity to pickup.
             </p>
             <form
-              className="mt-4 grid gap-4 sm:grid-cols-[1.5fr_repeat(2,1fr)_auto]"
+              className="mt-4 grid gap-4 sm:grid-cols-[1.5fr_repeat(2,1fr)_auto_auto]"
               onSubmit={handleAssign}
             >
               <input
                 value={assignOrderId}
-                onChange={(event) => setAssignOrderId(event.target.value)}
+                onChange={(e) => setAssignOrderId(e.target.value)}
                 placeholder="Order ID"
                 className="rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
               />
               <select
                 value={assignRider}
-                onChange={(event) => setAssignRider(event.target.value)}
+                onChange={(e) => setAssignRider(e.target.value)}
                 className="rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
                 disabled={loadingRiders}
               >
                 <option value="">Select Rider</option>
-                {availableRiders?.map((rider) => (
-                  <option key={rider.id} value={rider.id}>
-                    {rider.name} {rider.riderProfile?.vehicleNumber ? `(${rider.riderProfile.vehicleNumber})` : ''}
-                  </option>
-                ))}
+                {ridersByProximity.map((rider) => {
+                  const lat = rider.riderProfile?.currentLat;
+                  const lng = rider.riderProfile?.currentLng;
+                  const hasLoc = lat != null && lng != null;
+                  const km = hasLoc
+                    ? haversineKm(DEFAULT_PICKUP_LAT, DEFAULT_PICKUP_LNG, lat, lng).toFixed(1)
+                    : '—';
+                  const status = rider.riderProfile?.isAvailable ? 'Available' : 'Busy';
+                  return (
+                    <option key={rider.id} value={rider.id}>
+                      {rider.name} · {status} · {km} km
+                    </option>
+                  );
+                })}
               </select>
               <input
                 type="datetime-local"
                 value={assignEta}
-                onChange={(event) => setAssignEta(event.target.value)}
+                onChange={(e) => setAssignEta(e.target.value)}
                 className="rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
               />
+              <button
+                type="button"
+                onClick={() => {
+                  setMapModalDelivery(deliveryForAssignOrder.data ?? null);
+                  setMapModalOpen(true);
+                }}
+                disabled={!assignOrderId.trim()}
+                className="flex items-center justify-center gap-2 rounded-full border border-[#2a2a2a] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary disabled:opacity-50"
+              >
+                <MapPin className="h-4 w-4" />
+                View on Map
+              </button>
               <button
                 type="submit"
                 className="rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light"
@@ -157,16 +366,32 @@ export default function AdminDeliveries() {
             </form>
           </section>
 
-          <AdminToolbar className="mb-6 flex-wrap gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-              Filter
-            </span>
-            <div className="flex flex-wrap gap-2">
+          <AdminToolbar className="mb-6 flex flex-wrap items-center gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                Filter
+              </span>
               {DELIVERY_FILTERS.map((item) => (
-                <AdminFilterChip key={item} active={filter === item} onClick={() => setFilter(item)}>
+                <AdminFilterChip
+                  key={item}
+                  active={filter === item}
+                  count={filterCounts[item]}
+                  onClick={() => setFilter(item)}
+                >
                   {item === 'ALL' ? 'All deliveries' : DELIVERY_LABEL[item] ?? item}
                 </AdminFilterChip>
               ))}
+            </div>
+            <div className="ml-auto flex items-center gap-3">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={autoRefresh}
+                  onChange={(e) => setAutoRefresh(e.target.checked)}
+                  className="rounded border-[#2a2a2a] bg-[#151515] text-primary focus:ring-primary"
+                />
+                <span>Auto-refresh (30s)</span>
+              </label>
             </div>
           </AdminToolbar>
 
@@ -192,64 +417,143 @@ export default function AdminDeliveries() {
               description="Switch filters or come back once new dispatches start."
             />
           ) : (
-            <DataTableContainer>
-              <DataTable>
-                <DataTableHead>
-                  <tr>
-                    <th className="px-6 py-4 text-white">Order</th>
-                    <th className="px-6 py-4 text-white">Rider</th>
-                    <th className="px-6 py-4 text-white">ETA</th>
-                    <th className="px-6 py-4 text-white">Status</th>
-                    <th className="px-6 py-4 text-right text-gray-500">Actions</th>
-                  </tr>
-                </DataTableHead>
-                <DataTableBody>
-                  {filteredDeliveries.map((delivery) => (
-                    <tr key={delivery.id} className="transition hover:bg-[#10151d]">
-                      <DataTableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-white">
-                            #{delivery.orderId.slice(0, 8)}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            Updated {new Date(delivery.updatedAt).toLocaleString()}
-                          </span>
-                        </div>
-                      </DataTableCell>
-                      <DataTableCell>
-                        <span className="text-sm text-gray-200">
-                          {delivery.riderId
-                            ? (availableRiders?.find(r => r.id === delivery.riderId)?.name || 
-                               (typeof delivery.rider === 'string' ? delivery.rider : delivery.rider?.name) || 
-                               'Unknown Rider')
-                            : 'Unassigned'}
-                        </span>
-                      </DataTableCell>
-                      <DataTableCell>
-                        <span className="text-sm text-gray-300">
-                          {delivery.eta ? new Date(delivery.eta).toLocaleString() : '—'}
-                        </span>
-                      </DataTableCell>
-                      <DataTableCell>
-                        <StatusBadge
-                          tone={DELIVERY_TONE[delivery.status] ?? 'info'}
-                          label={DELIVERY_LABEL[delivery.status] ?? delivery.status}
-                        />
-                      </DataTableCell>
-                      <DataTableCell className="text-right">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedDelivery(delivery)}
-                          className="rounded-full border border-[#2a2a2a] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary"
+            <>
+              <AdminTableToolbar
+                columns={tableColumns}
+                onColumnsChange={setTableColumns}
+                onExportCSV={handleExportDeliveriesCSV}
+                lastUpdatedAt={dataUpdatedAt}
+                onRefresh={() => refetch()}
+                isRefreshing={isLoading}
+                className="mb-4"
+              />
+              <DataTableContainer className="mt-6">
+                <DataTable>
+                  <DataTableHead>
+                    <tr>
+                      {visibleCols.map((c) => (
+                        <th
+                          key={c.id}
+                          className={c.id === 'actions' ? 'px-6 py-4 text-right text-gray-500' : 'px-6 py-4 text-white'}
                         >
-                          View
-                        </button>
-                      </DataTableCell>
+                          {c.label}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </DataTableBody>
-              </DataTable>
-            </DataTableContainer>
+                  </DataTableHead>
+                  <DataTableBody>
+                    {filteredDeliveries.map((delivery, index) => {
+                      const riderName = getRiderDisplayName(delivery, availableRiders);
+                      const rowProps = getRowProps(index);
+                      const isSelected = rowProps['data-selected'];
+                      return (
+                        <tr
+                          key={delivery.id}
+                          {...rowProps}
+                          onClick={() => {
+                            setSelectedRowIndex(index);
+                            setSelectedDelivery(delivery);
+                          }}
+                          className={clsx(
+                            'cursor-pointer transition hover:bg-[#10151d]',
+                            isSelected && 'bg-[#10151d] ring-1 ring-inset ring-primary/50'
+                          )}
+                        >
+                          {visibleCols.some((c) => c.id === 'deliveryId') && (
+                            <DataTableCell>
+                              <span className="font-mono text-xs text-gray-400">
+                                {delivery.id.slice(0, 8)}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'orderId') && (
+                            <DataTableCell>
+                              <span className="font-mono text-sm font-semibold text-white">
+                                #{delivery.orderId.slice(0, 8)}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'rider') && (
+                            <DataTableCell>
+                              <div className="flex items-center gap-2">
+                                <RiderAvatar name={riderName} />
+                                <span className="text-sm text-gray-200">{riderName}</span>
+                              </div>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'pickup') && (
+                            <DataTableCell>
+                              <span className="text-sm text-gray-400">Warehouse</span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'dropoff') && (
+                            <DataTableCell>
+                              <span className="max-w-[160px] truncate text-sm text-gray-300" title={getDropoffLabel(delivery)}>
+                                {getDropoffLabel(delivery)}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'status') && (
+                            <DataTableCell>
+                              <StatusBadge
+                                tone={getStatusTone(delivery.status)}
+                                label={DELIVERY_LABEL[delivery.status] ?? delivery.status}
+                              />
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'assigned') && (
+                            <DataTableCell>
+                              <span className="text-sm text-gray-300">
+                                {new Date(delivery.createdAt).toLocaleString()}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'eta') && (
+                            <DataTableCell>
+                              <span className="text-sm text-gray-300">
+                                {delivery.eta ? new Date(delivery.eta).toLocaleString() : '—'}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'actions') && (
+                            <DataTableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setMapModalDelivery(delivery);
+                                    setMapModalOpen(true);
+                                  }}
+                                  className="rounded-full border border-[#2a2a2a] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary"
+                                >
+                                  Map
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedDelivery(delivery)}
+                                  className="rounded-full border border-[#2a2a2a] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary"
+                                >
+                                  View
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setIssueResolutionDelivery(delivery)}
+                                  className="flex items-center gap-1 rounded-full border border-red-500/50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-red-400 transition hover:bg-red-500/10"
+                                  title="Report issue / quick resolution"
+                                >
+                                  <AlertTriangle className="h-3.5 w-3.5" />
+                                  Issue
+                                </button>
+                              </div>
+                            </DataTableCell>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </DataTableBody>
+                </DataTable>
+              </DataTableContainer>
+            </>
           )}
         </div>
       </div>
@@ -265,7 +569,7 @@ export default function AdminDeliveries() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <StatusBadge
-                  tone={DELIVERY_TONE[selectedDelivery.status] ?? 'info'}
+                  tone={getStatusTone(selectedDelivery.status)}
                   label={DELIVERY_LABEL[selectedDelivery.status] ?? selectedDelivery.status}
                 />
                 <span className="text-xs text-gray-500 uppercase tracking-[0.16em]">Status (from rider)</span>
@@ -449,6 +753,29 @@ export default function AdminDeliveries() {
           <LoadingState label="Fetching delivery…" />
         )}
       </AdminDrawer>
+
+      <DeliveryMapModal
+        open={mapModalOpen}
+        onClose={() => {
+          setMapModalOpen(false);
+          setMapModalDelivery(null);
+        }}
+        pickup={mapPickup}
+        dropoff={mapDropoff}
+        title="View on Map"
+      />
+
+      <IssueResolutionModal
+        open={Boolean(issueResolutionDelivery)}
+        onClose={() => setIssueResolutionDelivery(null)}
+        delivery={issueResolutionDelivery}
+        riderName={issueResolutionDelivery ? getRiderDisplayName(issueResolutionDelivery, availableRiders) : ''}
+        onReassign={() => {
+          if (issueResolutionDelivery) setSelectedDelivery(issueResolutionDelivery);
+        }}
+        onMarkFailed={handleMarkFailed}
+        onContactRider={handleContactRider}
+      />
     </AdminLayout>
   );
 }

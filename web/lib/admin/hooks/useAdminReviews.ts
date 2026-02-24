@@ -40,6 +40,10 @@ export interface UseAdminReviewsQuery {
   flaggedOnly?: boolean;
   productId?: string;
   rating?: number;
+  /** Filter by seller (product's sellerId); backend may support later */
+  sellerId?: string;
+  /** Search by reviewer name or product title; backend may support later, else client filter */
+  search?: string;
 }
 
 export function useAdminReviews(query: UseAdminReviewsQuery) {
@@ -62,6 +66,12 @@ export function useAdminReviews(query: UseAdminReviewsQuery) {
   if (query.rating !== undefined && query.rating !== null) {
     params.append('rating', query.rating.toString());
   }
+  if (query.sellerId) {
+    params.append('sellerId', query.sellerId);
+  }
+  if (query.search && query.search.trim()) {
+    params.append('search', query.search.trim());
+  }
 
   return useQuery<AdminReviewsResponse>({
     queryKey: ['admin', 'reviews', query],
@@ -71,6 +81,22 @@ export function useAdminReviews(query: UseAdminReviewsQuery) {
       const response = await apiClient.get<{ data?: AdminReviewsResponse } & AdminReviewsResponse>(url);
       const res = response.data;
       return (res?.data ?? res) as AdminReviewsResponse;
+    },
+    refetchInterval: 30_000, // near-real-time
+  });
+}
+
+/** Returns total count of flagged reviews for stats. */
+export function useAdminReviewFlaggedCount() {
+  return useQuery<{ total: number }>({
+    queryKey: ['admin', 'reviews', 'flagged-count'],
+    queryFn: async () => {
+      const response = await apiClient.get<{ data?: AdminReviewsResponse } & AdminReviewsResponse>(
+        '/reviews/admin/all?page=1&limit=1&flaggedOnly=true'
+      );
+      const res = response.data;
+      const data = (res?.data ?? res) as AdminReviewsResponse;
+      return { total: data?.pagination?.total ?? 0 };
     },
   });
 }

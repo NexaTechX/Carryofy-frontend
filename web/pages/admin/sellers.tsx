@@ -21,28 +21,68 @@ import {
   useRejectSellerMutation,
 } from '../../lib/admin/hooks/useAdminSellers';
 import { useKycAuditLog } from '../../lib/admin/hooks/useKycAuditLog';
-import { AdminSeller } from '../../lib/admin/types';
+import { AdminSeller, SellerRiskScore } from '../../lib/admin/types';
 import { toast } from 'react-hot-toast';
 import DocumentViewer from '../../components/admin/DocumentViewer';
 import KycAuditLog from '../../components/admin/KycAuditLog';
-import { Clock, User, FileText, Download } from 'lucide-react';
-import { bulkApproveSellersRequest, bulkRejectSellersRequest } from '../../lib/admin/api';
+import { Download, ChevronDown, ChevronRight, MoreVertical, Send, Eye, CheckCircle, PauseCircle, MessageSquare } from 'lucide-react';
+import { bulkApproveSellersRequest, bulkRejectSellersRequest, sendKycReminderRequest } from '../../lib/admin/api';
 import { formatDate } from '../../lib/api/utils';
 
-const SELLER_FILTERS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const;
+const SELLER_FILTERS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'KYC_EXPIRING'] as const;
 type SellerFilter = (typeof SELLER_FILTERS)[number];
 
 const statusTone: Record<string, 'neutral' | 'success' | 'warning' | 'danger'> = {
   PENDING: 'warning',
   APPROVED: 'success',
   REJECTED: 'danger',
+  EXPIRED: 'danger',
 };
 
 const statusLabel: Record<string, string> = {
-  PENDING: 'Pending Review',
-  APPROVED: 'Approved',
+  PENDING: 'Pending',
+  APPROVED: 'Verified',
   REJECTED: 'Rejected',
+  EXPIRED: 'Expired',
 };
+
+/** KYC expires within this many days = "expiring soon" */
+const KYC_EXPIRING_DAYS = 30;
+
+/** Derive risk score when backend does not provide it (e.g. from status). */
+function getRiskScore(seller: AdminSeller): SellerRiskScore {
+  if (seller.riskScore) return seller.riskScore;
+  if (seller.kycStatus === 'REJECTED') return 'High';
+  if (seller.kycStatus === 'PENDING') return 'Medium';
+  return 'Low';
+}
+
+/** Whether seller's KYC expires within the next 30 days. */
+function isKycExpiringSoon(expiresAt: string | null | undefined): boolean {
+  if (!expiresAt) return false;
+  const exp = new Date(expiresAt);
+  const now = new Date();
+  const days = (exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+  return days >= 0 && days <= KYC_EXPIRING_DAYS;
+}
+
+/** Format revenue from minor units to ₦ display. */
+function formatRevenue(minorUnits: number | null | undefined): string {
+  if (minorUnits == null) return '—';
+  const naira = minorUnits / 100;
+  if (naira >= 1_000_000) return `₦${(naira / 1_000_000).toFixed(1)}M`;
+  if (naira >= 1_000) return `₦${(naira / 1_000).toFixed(1)}K`;
+  return `₦${naira.toLocaleString()}`;
+}
+
+/** Business type display (map backend values to Individual / LLC / Enterprise). */
+function businessTypeBadge(businessType: string | undefined): string {
+  if (!businessType) return '—';
+  const t = businessType.toLowerCase();
+  if (t.includes('company') || t.includes('enterprise')) return 'Enterprise';
+  if (t.includes('business') || t.includes('llc')) return 'LLC';
+  return 'Individual';
+}
 
 export default function AdminSellers() {
   const [filter, setFilter] = useState<SellerFilter>('PENDING');
@@ -73,6 +113,9 @@ export default function AdminSellers() {
   const [businessTypeFilter, setBusinessTypeFilter] = useState<string>('');
   const [expirationStartDate, setExpirationStartDate] = useState('');
   const [expirationEndDate, setExpirationEndDate] = useState('');
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
+  const [complianceNotes, setComplianceNotes] = useState<Record<string, string>>({});
+  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
 
   const { data: sellers, isLoading, isError, error, refetch } = useAdminSellers();
   const approveSeller = useApproveSellerMutation();
@@ -82,13 +125,17 @@ export default function AdminSellers() {
   const pendingCount = sellers?.filter((seller) => seller.kycStatus === 'PENDING').length ?? 0;
   const approvedCount = sellers?.filter((seller) => seller.kycStatus === 'APPROVED').length ?? 0;
   const rejectedCount = sellers?.filter((seller) => seller.kycStatus === 'REJECTED').length ?? 0;
+  const expiringSoonCount =
+    sellers?.filter((s) => isKycExpiringSoon(s.kycExpiresAt ?? undefined)).length ?? 0;
 
   const filteredSellers = useMemo(() => {
     if (!sellers) return [];
     let filtered = sellers;
 
     // Filter by status
-    if (filter !== 'ALL') {
+    if (filter === 'KYC_EXPIRING') {
+      filtered = filtered.filter((s) => isKycExpiringSoon(s.kycExpiresAt ?? undefined));
+    } else if (filter !== 'ALL') {
       filtered = filtered.filter((seller) => seller.kycStatus === filter);
     }
 
@@ -202,6 +249,38 @@ export default function AdminSellers() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast.success('CSV exported successfully');
+  };
+
+  const handleSendKycReminder = async () => {
+    const eligible = filteredSellers.filter(
+      (s) =>
+        selectedSellerIds.has(s.id) &&
+        (s.kycStatus === 'PENDING' || isKycExpiringSoon(s.kycExpiresAt ?? undefined))
+    );
+    if (eligible.length === 0) {
+      toast.error('Select sellers with pending or expiring KYC to send reminders.');
+      return;
+    }
+    try {
+      const result = await sendKycReminderRequest(eligible.map((s) => s.id));
+      toast.success(`KYC reminder sent to ${result.sent} seller(s).`);
+      if (result.failed > 0) toast.error(`${result.failed} failed to send.`);
+      setSelectedSellerIds(new Set());
+      refetch();
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to send KYC reminders.');
+    }
+  };
+
+  const handleSuspend = (seller: AdminSeller) => {
+    setActionMenuOpen(null);
+    toast.success(`Suspend action requested for ${seller.businessName}. Backend integration pending.`);
+  };
+
+  const handleRequestMoreInfo = (seller: AdminSeller) => {
+    setActionMenuOpen(null);
+    toast.success(`Request more info sent to ${seller.businessName}. Backend integration pending.`);
   };
 
   const handleBulkResetSubmissionCount = async () => {
@@ -419,11 +498,13 @@ export default function AdminSellers() {
             subtitle="Review incoming KYC submissions, manage existing merchants, and keep the marketplace compliant."
           />
 
-          <section className="mb-10 grid gap-4 sm:grid-cols-3">
+          <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <AdminCard
               title="Awaiting Review"
               description="New sellers requiring an approval decision."
               className="border-[#3a2a1f] bg-[#15100d]"
+              pulseBorder={pendingCount > 0}
+              onClick={() => setFilter('PENDING')}
             >
               <p className="text-3xl font-semibold text-primary">{pendingCount}</p>
             </AdminCard>
@@ -431,6 +512,7 @@ export default function AdminSellers() {
               title="Approved Sellers"
               description="Trusted sellers actively listing products."
               className="border-[#1f2f21] bg-[#0f1811]"
+              onClick={() => setFilter('APPROVED')}
             >
               <p className="text-3xl font-semibold text-[#6ef2a1]">{approvedCount}</p>
             </AdminCard>
@@ -438,8 +520,17 @@ export default function AdminSellers() {
               title="Rejected / On Hold"
               description="Applications requiring follow-up."
               className="border-[#3a1f1f] bg-[#181010]"
+              onClick={() => setFilter('REJECTED')}
             >
               <p className="text-3xl font-semibold text-[#ff9aa8]">{rejectedCount}</p>
+            </AdminCard>
+            <AdminCard
+              title="KYC Expiring Soon"
+              description="Verification documents expire within 30 days."
+              className="border-amber-500/40 bg-amber-950/20"
+              onClick={() => setFilter('KYC_EXPIRING')}
+            >
+              <p className="text-3xl font-semibold text-amber-400">{expiringSoonCount}</p>
             </AdminCard>
           </section>
 
@@ -456,7 +547,11 @@ export default function AdminSellers() {
                       active={filter === item}
                       onClick={() => setFilter(item)}
                     >
-                      {item === 'ALL' ? 'All Sellers' : statusLabel[item]}
+                      {item === 'ALL'
+                        ? 'All Sellers'
+                        : item === 'KYC_EXPIRING'
+                          ? 'KYC Expiring Soon'
+                          : statusLabel[item]}
                     </AdminFilterChip>
                   ))}
                 </div>
@@ -469,52 +564,64 @@ export default function AdminSellers() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="px-3 py-1.5 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary flex-1 min-w-[200px]"
                 />
-                <select
-                  value={businessTypeFilter}
-                  onChange={(e) => setBusinessTypeFilter(e.target.value)}
-                  className="px-3 py-1.5 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                <button
+                  type="button"
+                  onClick={() => setAdvancedFiltersOpen((o) => !o)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-gray-400 text-sm hover:text-white transition"
                 >
-                  <option value="">All Business Types</option>
-                  <option value="Individual">Individual</option>
-                  <option value="Business Name">Business Name</option>
-                  <option value="Company">Company</option>
-                </select>
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <span>Submission:</span>
-                  <input
-                    type="date"
-                    placeholder="Start Date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="px-2 py-1 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                  <span>-</span>
-                  <input
-                    type="date"
-                    placeholder="End Date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="px-2 py-1 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <span>Expiration:</span>
-                  <input
-                    type="date"
-                    placeholder="Start Date"
-                    value={expirationStartDate}
-                    onChange={(e) => setExpirationStartDate(e.target.value)}
-                    className="px-2 py-1 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                  <span>-</span>
-                  <input
-                    type="date"
-                    placeholder="End Date"
-                    value={expirationEndDate}
-                    onChange={(e) => setExpirationEndDate(e.target.value)}
-                    className="px-2 py-1 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
+                  {advancedFiltersOpen ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4" />
+                  )}
+                  Advanced Filters
+                </button>
+                {advancedFiltersOpen && (
+                  <div className="flex flex-wrap items-center gap-3 w-full py-3 pl-2 border-l-2 border-[#2a2a2a]">
+                    <select
+                      value={businessTypeFilter}
+                      onChange={(e) => setBusinessTypeFilter(e.target.value)}
+                      className="px-3 py-1.5 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">All Business Types</option>
+                      <option value="Individual">Individual</option>
+                      <option value="Business Name">Business Name</option>
+                      <option value="Company">Company</option>
+                    </select>
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <span>Submission:</span>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="px-2 py-1 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <span>-</span>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="px-2 py-1 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <span>Expiration:</span>
+                      <input
+                        type="date"
+                        value={expirationStartDate}
+                        onChange={(e) => setExpirationStartDate(e.target.value)}
+                        className="px-2 py-1 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <span>-</span>
+                      <input
+                        type="date"
+                        value={expirationEndDate}
+                        onChange={(e) => setExpirationEndDate(e.target.value)}
+                        className="px-2 py-1 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+                )}
                 {hasActiveFilters && (
                   <button
                     type="button"
@@ -577,6 +684,14 @@ export default function AdminSellers() {
                       >
                         Reset Submission Count
                       </button>
+                      <button
+                        type="button"
+                        onClick={handleSendKycReminder}
+                        className="px-4 py-1.5 border border-amber-500/60 text-amber-400 text-xs font-semibold rounded-lg hover:bg-amber-500/10 transition flex items-center gap-2"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        Send KYC Reminder
+                      </button>
                     </>
                   )}
                 </div>
@@ -616,75 +731,171 @@ export default function AdminSellers() {
                         checked={selectedSellerIds.size === filteredSellers.length && filteredSellers.length > 0}
                         onChange={toggleSelectAll}
                         className="rounded border-[#2a2a2a] bg-[#0f1419] text-primary focus:ring-primary"
+                        onClick={(e) => e.stopPropagation()}
                       />
                     </th>
                     <th className="px-6 py-4 text-white">Business</th>
-                    <th className="px-6 py-4 text-white">Status</th>
-                    <th className="px-6 py-4 text-white">Created</th>
-                    <th className="px-6 py-4 text-white">Updated</th>
-                    <th className="px-6 py-4 text-right text-gray-500">Actions</th>
+                    <th className="px-6 py-4 text-white">Business Type</th>
+                    <th className="px-6 py-4 text-white">KYC Status</th>
+                    <th className="px-6 py-4 text-white">Revenue</th>
+                    <th className="px-6 py-4 text-white">Products</th>
+                    <th className="px-6 py-4 text-white">Joined</th>
+                    <th className="px-6 py-4 text-white">Risk</th>
+                    <th className="px-6 py-4 text-right text-gray-500 w-32">Actions</th>
                   </tr>
                 </DataTableHead>
                 <DataTableBody>
-                  {filteredSellers.map((seller) => (
-                    <tr
-                      key={seller.id}
-                      className="transition hover:bg-[#10151d]"
-                    >
-                      <DataTableCell>
-                        <input
-                          type="checkbox"
-                          checked={selectedSellerIds.has(seller.id)}
-                          onChange={() => toggleSellerSelection(seller.id)}
-                          className="rounded border-[#2a2a2a] bg-[#0f1419] text-primary focus:ring-primary"
-                        />
-                      </DataTableCell>
-                      <DataTableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-white">{seller.businessName}</span>
-                          <span className="text-xs uppercase tracking-[0.16em] text-gray-500">
-                            Seller ID: {seller.id.slice(0, 8)}…
-                          </span>
-                        </div>
-                      </DataTableCell>
-                      <DataTableCell>
-                        <StatusBadge tone={statusTone[seller.kycStatus]} label={statusLabel[seller.kycStatus]} />
-                      </DataTableCell>
-                      <DataTableCell>{formatDate(seller.createdAt)}</DataTableCell>
-                      <DataTableCell>{formatDate(seller.updatedAt)}</DataTableCell>
-                      <DataTableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {seller.kycStatus && seller.kycStatus.toUpperCase() === 'PENDING' ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleApprove(seller)}
-                                disabled={approveSeller.isPending}
-                                className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleReject(seller)}
-                                disabled={rejectSeller.isPending}
-                                className="rounded-full border border-[#3a1f1f] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6] disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          ) : null}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedSeller(seller)}
-                            className="rounded-full border border-[#2a2a2a] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary"
+                  {filteredSellers.map((seller) => {
+                    const kycDisplayStatus =
+                      seller.kycExpiresAt && new Date(seller.kycExpiresAt) < new Date()
+                        ? 'EXPIRED'
+                        : seller.kycStatus;
+                    const risk = getRiskScore(seller);
+                    return (
+                      <tr
+                        key={seller.id}
+                        className="transition hover:bg-[#10151d] cursor-pointer"
+                        onClick={() => setSelectedSeller(seller)}
+                      >
+                        <DataTableCell onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedSellerIds.has(seller.id)}
+                            onChange={() => toggleSellerSelection(seller.id)}
+                            className="rounded border-[#2a2a2a] bg-[#0f1419] text-primary focus:ring-primary"
+                          />
+                        </DataTableCell>
+                        <DataTableCell>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-white">{seller.businessName}</span>
+                            <span className="text-xs uppercase tracking-[0.16em] text-gray-500">
+                              {seller.id.slice(0, 8)}…
+                            </span>
+                          </div>
+                        </DataTableCell>
+                        <DataTableCell>
+                          <span
+                            className={`
+                              inline-flex rounded-full px-2 py-0.5 text-xs font-medium
+                              ${seller.kyc?.businessType === 'Company' ? 'bg-violet-500/20 text-violet-300' : ''}
+                              ${seller.kyc?.businessType === 'Business Name' ? 'bg-blue-500/20 text-blue-300' : ''}
+                              ${!seller.kyc?.businessType || seller.kyc.businessType === 'Individual' ? 'bg-gray-500/20 text-gray-300' : ''}
+                            `}
                           >
-                            View
-                          </button>
-                        </div>
-                      </DataTableCell>
-                    </tr>
-                  ))}
+                            {businessTypeBadge(seller.kyc?.businessType)}
+                          </span>
+                        </DataTableCell>
+                        <DataTableCell>
+                          <StatusBadge
+                            tone={statusTone[kycDisplayStatus]}
+                            label={statusLabel[kycDisplayStatus]}
+                          />
+                        </DataTableCell>
+                        <DataTableCell className="font-mono text-gray-300">
+                          {formatRevenue(seller.totalRevenue)}
+                        </DataTableCell>
+                        <DataTableCell className="text-gray-300">
+                          {seller.activeProductsCount != null ? seller.activeProductsCount : '—'}
+                        </DataTableCell>
+                        <DataTableCell className="text-gray-400 text-xs">
+                          {formatDate(seller.createdAt)}
+                        </DataTableCell>
+                        <DataTableCell>
+                          <span
+                            className={`
+                              inline-flex rounded px-2 py-0.5 text-xs font-medium
+                              ${risk === 'High' ? 'bg-red-500/20 text-red-300' : ''}
+                              ${risk === 'Medium' ? 'bg-amber-500/20 text-amber-300' : ''}
+                              ${risk === 'Low' ? 'bg-emerald-500/20 text-emerald-300' : ''}
+                            `}
+                          >
+                            {risk}
+                          </span>
+                        </DataTableCell>
+                        <DataTableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="relative flex justify-end">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActionMenuOpen(actionMenuOpen === seller.id ? null : seller.id);
+                              }}
+                              className="rounded border border-[#2a2a2a] p-1.5 text-gray-400 hover:border-primary hover:text-primary hover:bg-[#0f1419] transition"
+                              title="Actions"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                            {actionMenuOpen === seller.id && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-10"
+                                  aria-hidden
+                                  onClick={() => setActionMenuOpen(null)}
+                                />
+                                <div className="absolute right-0 top-full z-20 mt-1 w-52 rounded-lg border border-[#2a2a2a] bg-[#0f1419] py-1 shadow-xl">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedSeller(seller);
+                                      setActionMenuOpen(null);
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-300 hover:bg-[#1a1f2e] hover:text-white"
+                                  >
+                                    <Eye className="w-4 h-4" /> View
+                                  </button>
+                                  {seller.kycStatus === 'PENDING' && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleApprove(seller);
+                                          setActionMenuOpen(null);
+                                        }}
+                                        disabled={approveSeller.isPending}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-emerald-400 hover:bg-[#1a1f2e] disabled:opacity-50"
+                                      >
+                                        <CheckCircle className="w-4 h-4" /> Approve
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleReject(seller);
+                                          setActionMenuOpen(null);
+                                        }}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[#ff9aa8] hover:bg-[#1a1f2e]"
+                                      >
+                                        Reject
+                                      </button>
+                                    </>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleSuspend(seller);
+                                      setActionMenuOpen(null);
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-300 hover:bg-[#1a1f2e] hover:text-white"
+                                  >
+                                    <PauseCircle className="w-4 h-4" /> Suspend
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleRequestMoreInfo(seller);
+                                      setActionMenuOpen(null);
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-300 hover:bg-[#1a1f2e] hover:text-white"
+                                  >
+                                    <MessageSquare className="w-4 h-4" /> Request More Info
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </DataTableCell>
+                      </tr>
+                    );
+                  })}
                 </DataTableBody>
               </DataTable>
             </DataTableContainer>
@@ -696,23 +907,55 @@ export default function AdminSellers() {
         open={Boolean(selectedSeller)}
         onClose={() => setSelectedSeller(null)}
         title={selectedSeller?.businessName}
-        description={selectedSeller ? statusLabel[selectedSeller.kycStatus] : undefined}
+        description={
+          selectedSeller
+            ? `${statusLabel[selectedSeller.kycExpiresAt && new Date(selectedSeller.kycExpiresAt) < new Date() ? 'EXPIRED' : selectedSeller.kycStatus]} · ${businessTypeBadge(selectedSeller.kyc?.businessType)}`
+            : undefined
+        }
+        className="max-w-2xl"
         footer={
-          selectedSeller?.kycStatus && selectedSeller.kycStatus.toUpperCase() === 'PENDING' ? (
-            <div className="flex justify-between gap-3">
+          selectedSeller ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex gap-2">
+                {selectedSeller.kycStatus === 'PENDING' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleReject(selectedSeller)}
+                      className="rounded-full border border-[#3a1f1f] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6]"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApprove(selectedSeller)}
+                      className="rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light"
+                    >
+                      Approve
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleSuspend(selectedSeller)}
+                  className="rounded-full border border-[#2a2a2a] px-4 py-2 text-xs font-semibold text-gray-300 transition hover:border-amber-500/50 hover:text-amber-400"
+                >
+                  Suspend
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRequestMoreInfo(selectedSeller)}
+                  className="rounded-full border border-[#2a2a2a] px-4 py-2 text-xs font-semibold text-gray-300 transition hover:border-primary hover:text-primary"
+                >
+                  Request More Info
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => selectedSeller && handleReject(selectedSeller)}
-                className="rounded-full border border-[#3a1f1f] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6]"
+                onClick={() => setSelectedSeller(null)}
+                className="text-xs text-gray-500 hover:text-white"
               >
-                Reject
-              </button>
-              <button
-                type="button"
-                onClick={() => selectedSeller && handleApprove(selectedSeller)}
-                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light"
-              >
-                Approve Seller
+                Close
               </button>
             </div>
           ) : null
@@ -720,59 +963,65 @@ export default function AdminSellers() {
       >
         {selectedSeller ? (
           <div className="space-y-6 text-sm text-gray-300">
-            {/* Seller Basic Info */}
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                Seller ID
+            {/* Business details */}
+            <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 mb-3">
+                Business details
               </p>
-              <p className="mt-1 font-mono text-sm text-white">{selectedSeller.id}</p>
-            </div>
-
-            {selectedSeller.user && (
-              <div className="grid gap-2 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+              <div className="space-y-2">
+                <p className="font-mono text-xs text-gray-500">Seller ID: {selectedSeller.id}</p>
+                <p className="text-white font-medium">{selectedSeller.businessName}</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <StatusBadge
+                    tone={statusTone[selectedSeller.kycExpiresAt && new Date(selectedSeller.kycExpiresAt) < new Date() ? 'EXPIRED' : selectedSeller.kycStatus]}
+                    label={statusLabel[selectedSeller.kycExpiresAt && new Date(selectedSeller.kycExpiresAt) < new Date() ? 'EXPIRED' : selectedSeller.kycStatus]}
+                  />
+                  <span className="rounded px-2 py-0.5 text-xs bg-gray-500/20 text-gray-300">
+                    {businessTypeBadge(selectedSeller.kyc?.businessType)}
+                  </span>
+                  <span className="rounded px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-300">
+                    Risk: {getRiskScore(selectedSeller)}
+                  </span>
+                </div>
+              </div>
+              {selectedSeller.user && (
+                <div className="mt-4 pt-4 border-t border-[#2a2a2a] space-y-1 text-sm">
+                  <p className="text-white">Name: {selectedSeller.user.name}</p>
+                  <p className="text-white">Email: {selectedSeller.user.email}</p>
+                  {selectedSeller.user.phone && (
+                    <p className="text-white">Phone: {selectedSeller.user.phone}</p>
+                  )}
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4 mt-4 text-xs">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 mb-2">
-                    Contact Information
+                  <span className="text-gray-500">Joined</span>
+                  <p className="text-white">{formatDate(selectedSeller.createdAt)}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">KYC expires</span>
+                  <p className="text-white">
+                    {selectedSeller.kycExpiresAt
+                      ? formatDate(selectedSeller.kycExpiresAt)
+                      : '—'}
                   </p>
-                  <div className="space-y-1 text-sm">
-                    <p className="text-white">Name: {selectedSeller.user.name}</p>
-                    <p className="text-white">Email: {selectedSeller.user.email}</p>
-                    {selectedSeller.user.phone && (
-                      <p className="text-white">Phone: {selectedSeller.user.phone}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="grid gap-4 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                  Current Status
-                </p>
-                <StatusBadge
-                  tone={statusTone[selectedSeller.kycStatus]}
-                  label={statusLabel[selectedSeller.kycStatus]}
-                  className="mt-2"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-xs text-gray-400">
-                <div>
-                  <span className="font-semibold uppercase tracking-[0.16em] text-gray-500">
-                    Created
-                  </span>
-                  <p className="mt-1 text-sm text-white">{formatDate(selectedSeller.createdAt)}</p>
                 </div>
                 <div>
-                  <span className="font-semibold uppercase tracking-[0.16em] text-gray-500">
-                    Updated
-                  </span>
-                  <p className="mt-1 text-sm text-white">{formatDate(selectedSeller.updatedAt)}</p>
+                  <span className="text-gray-500">Total revenue</span>
+                  <p className="text-white">{formatRevenue(selectedSeller.totalRevenue)}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">Active products</span>
+                  <p className="text-white">
+                    {selectedSeller.activeProductsCount != null
+                      ? selectedSeller.activeProductsCount
+                      : '—'}
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* KYC Documents Viewer */}
+            {/* Uploaded documents with preview */}
             {selectedSeller.kyc && (
               <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
                 <DocumentViewer
@@ -796,13 +1045,59 @@ export default function AdminSellers() {
               </div>
             )}
 
-            {/* Submission Count Info */}
+            {/* Verification timeline */}
+            <KycAuditLog logs={auditLogs || []} isLoading={auditLogsLoading} />
+
+            {/* Product listings (placeholder when no API) */}
+            <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 mb-2">
+                Product listings
+              </p>
+              {selectedSeller.activeProductsCount != null && selectedSeller.activeProductsCount > 0 ? (
+                <p className="text-sm text-gray-400">
+                  {selectedSeller.activeProductsCount} active product(s). Full list available from products admin.
+                </p>
+              ) : (
+                <p className="text-sm text-gray-500">No active products.</p>
+              )}
+            </div>
+
+            {/* Order history summary (placeholder when no API) */}
+            <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 mb-2">
+                Order history summary
+              </p>
+              <p className="text-sm text-gray-400">
+                Total revenue: {formatRevenue(selectedSeller.totalRevenue)}. Detailed orders available from orders admin.
+              </p>
+            </div>
+
+            {/* Compliance notes */}
+            <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 mb-2">
+                Compliance notes
+              </p>
+              <textarea
+                value={complianceNotes[selectedSeller.id] ?? ''}
+                onChange={(e) =>
+                  setComplianceNotes((prev) => ({
+                    ...prev,
+                    [selectedSeller.id]: e.target.value,
+                  }))
+                }
+                placeholder="Add internal notes about this seller (e.g. verification follow-up, risk flags)..."
+                className="w-full min-h-[80px] rounded-lg border border-[#2a2a2a] bg-[#0f1419] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary"
+                rows={3}
+              />
+            </div>
+
+            {/* Submission count */}
             {selectedSeller.kyc && selectedSeller.kyc.submissionCount !== undefined && (
               <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 mb-1">
-                      Submission Count
+                      Submission count
                     </p>
                     <p className="text-sm text-white">
                       {selectedSeller.kyc.submissionCount} / 3 submissions
@@ -842,15 +1137,12 @@ export default function AdminSellers() {
                       }}
                       className="rounded-lg border border-yellow-600 px-3 py-1.5 text-xs font-semibold text-yellow-400 transition hover:bg-yellow-600/10"
                     >
-                      Reset Count
+                      Reset count
                     </button>
                   )}
                 </div>
               </div>
             )}
-
-            {/* Audit Log */}
-            <KycAuditLog logs={auditLogs || []} isLoading={auditLogsLoading} />
           </div>
         ) : null}
       </AdminDrawer>

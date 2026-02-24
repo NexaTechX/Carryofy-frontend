@@ -108,6 +108,8 @@ export interface AdminProfile {
 
 export type SellerKycStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
+export type SellerRiskScore = 'Low' | 'Medium' | 'High';
+
 export interface AdminSeller {
   id: string;
   userId: string;
@@ -116,6 +118,12 @@ export interface AdminSeller {
   kycExpiresAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Total revenue in minor units (e.g. kobo). Optional; backend may provide. */
+  totalRevenue?: number | null;
+  /** Count of active product listings. Optional; backend may provide. */
+  activeProductsCount?: number | null;
+  /** Risk based on refund rate and dispute history. Optional; backend may provide. */
+  riskScore?: SellerRiskScore | null;
   kyc?: {
     id: string;
     businessType: string;
@@ -142,6 +150,14 @@ export interface AdminSeller {
 
 export type AdminProductStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
 
+/** Single entry in product moderation/approval history. */
+export interface ProductModerationEntry {
+  action: 'APPROVED' | 'REJECTED' | 'FLAGGED' | 'EDITED';
+  by?: string;
+  at: string;
+  reason?: string;
+}
+
 export interface PendingProduct {
   id: string;
   title: string;
@@ -160,6 +176,12 @@ export interface PendingProduct {
   };
   createdAt: string;
   updatedAt: string;
+  /** Shown as B2B Eligible badge in catalog. */
+  b2bEligible?: boolean;
+  /** When set, product appears in "Recently Flagged" (reported by buyers). */
+  flaggedAt?: string | null;
+  /** Moderation/approval history for detail drawer. */
+  moderationHistory?: ProductModerationEntry[];
 }
 
 export type AdminOrderStatus =
@@ -209,6 +231,9 @@ export interface AdminDelivery {
   updatedAt: string;
 }
 
+/** When present, used for B2B/B2C badge in Order Control Center. */
+export type AdminOrderCustomerType = 'B2B' | 'B2C';
+
 export interface AdminOrder {
   id: string;
   userId: string;
@@ -217,6 +242,8 @@ export interface AdminOrder {
   paymentRef?: string;
   createdAt: string;
   updatedAt: string;
+  /** Optional: B2B or B2C for fulfillment display; defaults to B2C when absent. */
+  customerType?: AdminOrderCustomerType | null;
   items: AdminOrderItem[];
   delivery?: AdminDelivery | null;
   address?: {
@@ -243,6 +270,8 @@ export interface WarehouseStockItem {
   quantity: number;
   sellerId: string;
   sellerName: string;
+  /** Product image URL for inventory table thumbnail (optional) */
+  imageUrl?: string | null;
 }
 
 export interface StockMovement {
@@ -354,6 +383,20 @@ export interface InventoryReportDto {
   outOfStockCount: number;
 }
 
+/** Optional trend vs previous period (e.g. +5.2 or -2.1). Used for summary cards. */
+export interface ReportTrendDto {
+  changePercent?: number;
+  previousValue?: number;
+}
+
+export interface TopSellerEntry {
+  sellerId: string;
+  sellerName: string;
+  revenue: number; // kobo
+  orders: number;
+  commissionEarned: number; // kobo
+}
+
 export type NotificationType = 'ORDER' | 'PRODUCT' | 'PAYOUT' | 'SYSTEM' | 'KYC';
 
 export interface AdminNotification {
@@ -396,6 +439,8 @@ export interface PlatformSettings {
   riderBaseFeeKobo: number;
   riderPerKmFeeKobo: number;
   allowBankTransfer: boolean;
+  refundAutoApproveEnabled?: boolean;
+  refundAutoApproveThresholdKobo?: number;
 }
 
 export interface PaymentGatewaySettings {
@@ -409,6 +454,8 @@ export interface TeamMember {
   email: string;
   role: 'Admin' | 'Support' | 'Finance';
   createdAt: string;
+  /** Last time the member was active in the admin panel (ISO string). Shown in Settings when available. */
+  lastActiveAt?: string;
 }
 
 export interface CreateTeamMemberPayload {
@@ -426,6 +473,8 @@ export interface UpdateTeamMemberPayload {
 export type SupportTicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 export type SupportTicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
+export type SupportTicketUserType = 'BUYER' | 'SELLER' | 'RIDER';
+
 export interface SupportTicket {
   id: string;
   userId: string;
@@ -438,6 +487,8 @@ export interface SupportTicket {
   resolvedAt?: string;
   createdAt: string;
   updatedAt: string;
+  /** When present, shows Buyer/Seller/Rider badge on the ticket */
+  userType?: SupportTicketUserType;
 }
 
 export interface Feedback {
@@ -601,8 +652,17 @@ export interface BroadcastHistoryQuery {
   type?: BroadcastType;
   startDate?: string;
   endDate?: string;
+  audience?: string; // BUYER | SELLER | RIDER
+  search?: string;
   page?: number;
   limit?: number;
+}
+
+export interface BroadcastStats {
+  totalBroadcasts: number;
+  averageOpenRate: number;
+  deliverySuccessRate: number;
+  lastBroadcastAt: string | null;
 }
 
 export interface BroadcastAnalytics {
@@ -647,6 +707,10 @@ export interface LocationPoint {
   lng: number;
   lastUpdated?: string | null;
   label?: string;
+  /** Phone number for side panel display */
+  phone?: string | null;
+  /** Current order summary when entity is on an active delivery */
+  currentOrder?: { id: string; status?: string; destination?: string } | null;
 }
 
 export interface AdminLocationsResponse {

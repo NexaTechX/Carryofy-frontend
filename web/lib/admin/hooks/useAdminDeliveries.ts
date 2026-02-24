@@ -15,10 +15,11 @@ const deliveryKeys = {
   order: (orderId: string) => ['admin', 'deliveries', 'orders', orderId] as const,
 };
 
-export function useActiveDeliveries() {
+export function useActiveDeliveries(options?: { refetchInterval?: number | false }) {
   return useQuery<AdminDelivery[]>({
     queryKey: deliveryKeys.active,
     queryFn: fetchActiveDeliveries,
+    refetchInterval: options?.refetchInterval ?? false,
   });
 }
 

@@ -65,14 +65,14 @@ function normalizeResponse<T>(response: unknown): T {
   if (!response || typeof response !== 'object') {
     return response as T;
   }
-  
+
   const dataObj = response as Record<string, unknown>;
-  
+
   // Check if response is wrapped in a 'data' property (TransformInterceptor pattern)
   if ('data' in dataObj && dataObj.data !== undefined) {
     return dataObj.data as T;
   }
-  
+
   // Return the response as-is if not wrapped
   return response as T;
 }
@@ -97,11 +97,11 @@ function transformProducts<T extends { title?: string; name?: string; quantity?:
 
 export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
   const { data } = await apiClient.get('/reports/dashboard');
-  
+
   // Normalize response - handle wrapped or unwrapped
   const normalized = normalizeResponse<Record<string, unknown>>(data);
   const metrics = (normalized?.metrics || normalized) as Record<string, unknown>;
-  
+
   return {
     totalUsers: (metrics?.totalUsers as number) ?? 0,
     totalSellers: (metrics?.totalSellers as number) ?? 0,
@@ -122,9 +122,9 @@ export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
 
 export async function fetchSalesTrend(params?: ReportsQueryParams): Promise<SalesTrendResponse> {
   const { data } = await apiClient.get('/reports/sales-trend', { params });
-  
+
   const normalized = normalizeResponse<Record<string, unknown>>(data);
-  
+
   return {
     trend: Array.isArray(normalized?.trend) ? normalized.trend : [],
     totalSales: (normalized?.totalSales as number) ?? 0,
@@ -149,14 +149,14 @@ async function fetchTotalSales(): Promise<number> {
 
 export async function fetchOrderDistribution(params?: ReportsQueryParams): Promise<OrderDistributionEntry[]> {
   const { data } = await apiClient.get('/reports/order-distribution', { params });
-  
+
   const normalized = normalizeResponse<unknown>(data);
-  
+
   // If it's already an array, return it
   if (Array.isArray(normalized)) {
     return normalized;
   }
-  
+
   // If it has a distribution property, use that
   if (normalized && typeof normalized === 'object' && 'distribution' in normalized) {
     const responseData = normalized as { distribution: unknown };
@@ -164,7 +164,7 @@ export async function fetchOrderDistribution(params?: ReportsQueryParams): Promi
       return responseData.distribution;
     }
   }
-  
+
   // Otherwise return empty array
   return [];
 }
@@ -172,9 +172,9 @@ export async function fetchOrderDistribution(params?: ReportsQueryParams): Promi
 export async function fetchTopCategories(): Promise<TopCategoriesResponse> {
   try {
     const { data } = await apiClient.get('/reports/top-categories');
-    
+
     const normalized = normalizeResponse<Record<string, unknown>>(data);
-    
+
     return {
       categories: normalizeListResponse(normalized?.categories, ['categories', 'items', 'data']),
       total: (normalized?.total as number) ?? 0,
@@ -250,9 +250,9 @@ async function fetchUsersCount(role?: 'BUYER' | 'SELLER' | 'RIDER' | 'ADMIN'): P
 export async function fetchCommissionRevenue(): Promise<CommissionRevenueResponse> {
   try {
     const { data } = await apiClient.get('/reports/commission-revenue');
-    
+
     const normalized = normalizeResponse<Record<string, unknown>>(data);
-    
+
     return {
       periods: normalizeListResponse(normalized?.periods, ['periods', 'items', 'data']),
       totalRevenue: (normalized?.totalRevenue as number) ?? 0,
@@ -415,11 +415,11 @@ export async function fetchAvailableRiders(): Promise<AvailableRider[]> {
   try {
     const { data } = await apiClient.get('/delivery/riders/available');
     const normalized = normalizeResponse<unknown>(data);
-    
+
     if (Array.isArray(normalized)) {
       return normalized as AvailableRider[];
     }
-    
+
     return [];
   } catch (error: any) {
     return [];
@@ -539,10 +539,10 @@ export async function fetchSalesReport(
   params?: ReportsQueryParams
 ): Promise<SalesReportDto> {
   const { data } = await apiClient.get('/reports/sales', { params });
-  
+
   const normalized = normalizeResponse<Record<string, unknown>>(data);
   const report = (normalized?.report || normalized) as Record<string, unknown>;
-  
+
   return {
     totalSales: (report?.totalSales as number) ?? 0,
     totalOrders: (report?.totalOrders as number) ?? 0,
@@ -556,10 +556,10 @@ export async function fetchEarningsReport(
   params?: ReportsQueryParams
 ): Promise<EarningsReportDto> {
   const { data } = await apiClient.get('/reports/earnings', { params });
-  
+
   const normalized = normalizeResponse<Record<string, unknown>>(data);
   const report = (normalized?.report || normalized) as Record<string, unknown>;
-  
+
   return {
     totalGross: (report?.totalGross as number) ?? 0,
     totalCommission: (report?.totalCommission as number) ?? 0,
@@ -572,10 +572,10 @@ export async function fetchEarningsReport(
 
 export async function fetchInventoryReport(): Promise<InventoryReportDto> {
   const { data } = await apiClient.get('/reports/inventory');
-  
+
   const normalized = normalizeResponse<Record<string, unknown>>(data);
   const report = (normalized?.report || normalized) as Record<string, unknown>;
-  
+
   return {
     totalProducts: (report?.totalProducts as number) ?? 0,
     totalQuantity: (report?.totalQuantity as number) ?? 0,
@@ -714,19 +714,19 @@ export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
   try {
     // Use the unified admin dashboard endpoint that returns all data in one call
     const response = await apiClient.get('/admin/dashboard');
-    
+
     // Log response in development for debugging
     if (process.env.NODE_ENV === 'development') {
       console.log('Admin dashboard response:', response.data);
     }
-    
+
     const normalized = normalizeResponse<Record<string, unknown>>(response.data);
-    
+
     // Log normalized data in development
     if (process.env.NODE_ENV === 'development') {
       console.log('Normalized admin dashboard data:', normalized);
     }
-    
+
     // Backend may return metrics in .metrics or as top-level (e.g. /reports/dashboard returns flat KPIs)
     const rawMetrics = (normalized?.metrics ?? normalized) as Record<string, unknown> | undefined;
     const defaultMetrics = {
@@ -806,7 +806,7 @@ export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
       activeCustomersThisMonth,
       customerRetentionRate,
     };
-    
+
     // Fallback: fetch commission revenue from dedicated endpoint when dashboard returns empty
     const defaultCommissionRevenue: CommissionRevenueResponse = {
       periods: [],
@@ -855,12 +855,12 @@ export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
       pendingQuoteRequestsCount: typeof normalized?.pendingQuoteRequestsCount === 'number' ? normalized.pendingQuoteRequestsCount : 0,
       b2bOrdersCount: typeof normalized?.b2bOrdersCount === 'number' ? normalized.b2bOrdersCount : 0,
     };
-    
+
     // Log final result in development
     if (process.env.NODE_ENV === 'development') {
       console.log('Final admin dashboard result:', result);
     }
-    
+
     return result;
   } catch (error: any) {
     const status = error?.response?.status;
@@ -1136,9 +1136,9 @@ export async function globalSearch(query: string): Promise<GlobalSearchResult> {
   const { data } = await apiClient.get('/admin/search', {
     params: { q: query },
   });
-  
+
   const normalized = normalizeResponse<Record<string, unknown>>(data);
-  
+
   return {
     sellers: normalizeListResponse(normalized?.sellers, ['sellers', 'items', 'data']),
     orders: normalizeListResponse(normalized?.orders, ['orders', 'items', 'data']),
@@ -1161,17 +1161,20 @@ export async function fetchPlatformSettings(): Promise<PlatformSettings> {
         baseFee: 1500,
         perMileFee: 350,
         shippingCalculationMode: 'WEIGHT',
-        baseFeeKobo: 1500,
-        perKgFeeKobo: 200,
+        platformBaseFeeKobo: 110000,
+        perKmCustomerFeeKobo: 22000,
+        weightPerKgFeeKobo: 25000,
         defaultWeightKg: 1,
         standardMultiplier: 1,
         expressMultiplier: 1.5,
+        scheduledMultiplier: 0.9,
         shippingVersion: 0,
         smsEnabled: true,
         emailEnabled: true,
         pushEnabled: false,
-        riderBaseFeeKobo: 50000,
-        riderPerKmFeeKobo: 5000,
+        riderBaseFeeKoboV4: 110000,
+        riderPerKmFeeKoboV4: 15000,
+        minimumMarginMultiplier: 1.30,
         allowBankTransfer: false,
       };
     }
@@ -1237,12 +1240,12 @@ export async function fetchFeedbacks(): Promise<Feedback[]> {
   try {
     const { data } = await apiClient.get('/feedback');
     const normalized = normalizeResponse<unknown>(data);
-    
+
     // Handle direct array response or wrapped response (TransformInterceptor)
     if (Array.isArray(normalized)) {
       return normalized as Feedback[];
     }
-    
+
     return normalizeListResponse<Feedback>(normalized, ['feedbacks', 'items', 'data', 'results']) ?? [];
   } catch (error) {
     throw error;

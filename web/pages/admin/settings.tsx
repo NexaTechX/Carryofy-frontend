@@ -27,16 +27,35 @@ type SortDir = 'asc' | 'desc';
 const inputClass =
   'w-full rounded-xl border border-[#1f1f1f] bg-[#131313] px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:border-primary focus:outline-none disabled:opacity-50';
 
-// --- Helpers: shipping fee calculation (mirrors backend logic for preview)
-function computeShippingFeeNaira(
+// --- Helpers: shipping fee calculation (mirrors backend v4 logic for preview)
+function computeShippingFeeBreakdown(
   mode: 'FLAT' | 'WEIGHT',
-  baseFeeNaira: number,
-  perKgFeeNaira: number,
+  platformBaseFeeNaira: number,
+  perKmCustomerFeeNaira: number,
+  weightPerKgFeeNaira: number,
+  riderBaseFeeNaira: number,
+  riderPerKmFeeNaira: number,
+  methodMultiplier: number,
+  minMarginMultiplier: number,
   testWeightKg: number,
-  standardMultiplier: number
-): number {
-  const base = mode === 'FLAT' ? baseFeeNaira : baseFeeNaira + testWeightKg * perKgFeeNaira;
-  return base * standardMultiplier;
+  testDistanceKm: number,
+): { shippingFee: number; riderCost: number; margin: number } {
+  if (mode === 'FLAT') {
+    const fee = platformBaseFeeNaira * methodMultiplier;
+    return { shippingFee: fee, riderCost: 0, margin: fee };
+  }
+
+  const riderCost = riderBaseFeeNaira + (riderPerKmFeeNaira * testDistanceKm);
+  const marginFloor = riderCost * minMarginMultiplier;
+
+  const rawFee = (platformBaseFeeNaira + (perKmCustomerFeeNaira * testDistanceKm) + (weightPerKgFeeNaira * testWeightKg)) * methodMultiplier;
+  const shippingFee = Math.max(rawFee, marginFloor);
+
+  return {
+    shippingFee,
+    riderCost,
+    margin: shippingFee - riderCost,
+  };
 }
 
 function formatLastActive(iso?: string): string {
@@ -66,24 +85,33 @@ export default function AdminSettings() {
   const updateTeam = useUpdateTeamMember();
   const deleteTeam = useDeleteTeamMember();
 
-  // Form state (platform)
-  const [deliveryCalculation, setDeliveryCalculation] = useState<'flat' | 'distance'>('distance');
-  const [baseFee, setBaseFee] = useState(1500);
-  const [perMileFee, setPerMileFee] = useState(350);
+  // Form state (platform v4)
   const [shippingCalculationMode, setShippingCalculationMode] = useState<'FLAT' | 'WEIGHT'>('WEIGHT');
-  const [baseFeeNaira, setBaseFeeNaira] = useState(15);
-  const [perKgFeeNaira, setPerKgFeeNaira] = useState(2);
+  const [platformBaseFeeNaira, setPlatformBaseFeeNaira] = useState(1100);
+  const [perKmCustomerFeeNaira, setPerKmCustomerFeeNaira] = useState(220);
+  const [weightPerKgFeeNaira, setWeightPerKgFeeNaira] = useState(250);
+  const [riderBaseFeeNaira, setRiderBaseFeeNaira] = useState(1100);
+  const [riderPerKmFeeNaira, setRiderPerKmFeeNaira] = useState(150);
+  const [minimumMarginMultiplier, setMinimumMarginMultiplier] = useState(1.30);
+  const [fudgeFactor, setFudgeFactor] = useState(1.3);
+  const [maxDeliveryRadiusKm, setMaxDeliveryRadiusKm] = useState(25);
+  const [maxBikeWeightKg, setMaxBikeWeightKg] = useState(20);
+  const [fallbackDistanceKm, setFallbackDistanceKm] = useState(7);
   const [defaultWeightKg, setDefaultWeightKg] = useState(1);
   const [standardMultiplier, setStandardMultiplier] = useState(1);
   const [expressMultiplier, setExpressMultiplier] = useState(1.5);
+  const [scheduledMultiplier, setScheduledMultiplier] = useState(0.9);
+
   const [smsEnabled, setSmsEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [refundAutoApproveEnabled, setRefundAutoApproveEnabled] = useState(false);
   const [refundThresholdNaira, setRefundThresholdNaira] = useState(500);
+  const [commissionPercentage, setCommissionPercentage] = useState(15);
 
-  // Live calculator: test weight (kg)
+  // Live calculator: test params
   const [testWeightKg, setTestWeightKg] = useState(1);
+  const [testDistanceKm, setTestDistanceKm] = useState(5);
 
   // Collapsible sections (default open)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -111,15 +139,23 @@ export default function AdminSettings() {
   // Load settings into form
   useEffect(() => {
     if (platformSettings) {
-      setDeliveryCalculation(platformSettings.deliveryCalculation);
-      setBaseFee(platformSettings.baseFee);
-      setPerMileFee(platformSettings.perMileFee);
       setShippingCalculationMode(platformSettings.shippingCalculationMode ?? 'WEIGHT');
-      setBaseFeeNaira((platformSettings.baseFeeKobo ?? 1500) / 100);
-      setPerKgFeeNaira((platformSettings.perKgFeeKobo ?? 200) / 100);
+      setPlatformBaseFeeNaira((platformSettings.platformBaseFeeKobo ?? 110000) / 100);
+      setPerKmCustomerFeeNaira((platformSettings.perKmCustomerFeeKobo ?? 22000) / 100);
+      setWeightPerKgFeeNaira((platformSettings.weightPerKgFeeKobo ?? 25000) / 100);
+      setRiderBaseFeeNaira((platformSettings.riderBaseFeeKoboV4 ?? 110000) / 100);
+      setRiderPerKmFeeNaira((platformSettings.riderPerKmFeeKoboV4 ?? 15000) / 100);
+      setMinimumMarginMultiplier(platformSettings.minimumMarginMultiplier ?? 1.30);
+      setFudgeFactor(platformSettings.fudgeFactor ?? 1.30);
+      setMaxDeliveryRadiusKm(platformSettings.maxDeliveryRadiusKm ?? 25);
+      setMaxBikeWeightKg(platformSettings.maxBikeWeightKg ?? 20);
+      setFallbackDistanceKm(platformSettings.fallbackDistanceKm ?? 7);
       setDefaultWeightKg(platformSettings.defaultWeightKg ?? 1);
       setStandardMultiplier(platformSettings.standardMultiplier ?? 1);
       setExpressMultiplier(platformSettings.expressMultiplier ?? 1.5);
+      setScheduledMultiplier(platformSettings.scheduledMultiplier ?? 0.9);
+
+      setCommissionPercentage(platformSettings.commissionPercentage ?? 15);
       setSmsEnabled(platformSettings.smsEnabled);
       setEmailEnabled(platformSettings.emailEnabled);
       setPushEnabled(platformSettings.pushEnabled);
@@ -132,41 +168,55 @@ export default function AdminSettings() {
   const hasUnsavedChanges = useMemo(() => {
     if (!platformSettings) return false;
     return (
-      deliveryCalculation !== platformSettings.deliveryCalculation ||
-      baseFee !== platformSettings.baseFee ||
-      perMileFee !== platformSettings.perMileFee ||
+      commissionPercentage !== platformSettings.commissionPercentage ||
       shippingCalculationMode !== (platformSettings.shippingCalculationMode ?? 'WEIGHT') ||
-      baseFeeNaira !== (platformSettings.baseFeeKobo ?? 1500) / 100 ||
-      perKgFeeNaira !== (platformSettings.perKgFeeKobo ?? 200) / 100 ||
+      platformBaseFeeNaira !== (platformSettings.platformBaseFeeKobo ?? 110000) / 100 ||
+      perKmCustomerFeeNaira !== (platformSettings.perKmCustomerFeeKobo ?? 22000) / 100 ||
+      weightPerKgFeeNaira !== (platformSettings.weightPerKgFeeKobo ?? 25000) / 100 ||
+      riderBaseFeeNaira !== (platformSettings.riderBaseFeeKoboV4 ?? 110000) / 100 ||
+      riderPerKmFeeNaira !== (platformSettings.riderPerKmFeeKoboV4 ?? 15000) / 100 ||
+      minimumMarginMultiplier !== (platformSettings.minimumMarginMultiplier ?? 1.30) ||
+      fudgeFactor !== (platformSettings.fudgeFactor ?? 1.30) ||
+      maxDeliveryRadiusKm !== (platformSettings.maxDeliveryRadiusKm ?? 25) ||
+      maxBikeWeightKg !== (platformSettings.maxBikeWeightKg ?? 20) ||
+      fallbackDistanceKm !== (platformSettings.fallbackDistanceKm ?? 7) ||
       defaultWeightKg !== (platformSettings.defaultWeightKg ?? 1) ||
       standardMultiplier !== (platformSettings.standardMultiplier ?? 1) ||
       expressMultiplier !== (platformSettings.expressMultiplier ?? 1.5) ||
+      scheduledMultiplier !== (platformSettings.scheduledMultiplier ?? 0.9) ||
       smsEnabled !== platformSettings.smsEnabled ||
       emailEnabled !== platformSettings.emailEnabled ||
       pushEnabled !== platformSettings.pushEnabled ||
       refundAutoApproveEnabled !== (platformSettings.refundAutoApproveEnabled ?? false) ||
       refundThresholdNaira !== (platformSettings.refundAutoApproveThresholdKobo ?? 50000) / 100
     );
-  }, [platformSettings, deliveryCalculation, baseFee, perMileFee, shippingCalculationMode, baseFeeNaira, perKgFeeNaira, defaultWeightKg, standardMultiplier, expressMultiplier, smsEnabled, emailEnabled, pushEnabled, refundAutoApproveEnabled, refundThresholdNaira]);
+  }, [platformSettings, commissionPercentage, shippingCalculationMode, platformBaseFeeNaira, perKmCustomerFeeNaira, weightPerKgFeeNaira, riderBaseFeeNaira, riderPerKmFeeNaira, minimumMarginMultiplier, fudgeFactor, maxDeliveryRadiusKm, maxBikeWeightKg, fallbackDistanceKm, defaultWeightKg, standardMultiplier, expressMultiplier, scheduledMultiplier, smsEnabled, emailEnabled, pushEnabled, refundAutoApproveEnabled, refundThresholdNaira]);
 
-  const liveFeeNaira = useMemo(
+  const liveFeeBreakdown = useMemo(
     () =>
-      computeShippingFeeNaira(
+      computeShippingFeeBreakdown(
         shippingCalculationMode,
-        baseFeeNaira,
-        perKgFeeNaira,
+        platformBaseFeeNaira,
+        perKmCustomerFeeNaira,
+        weightPerKgFeeNaira,
+        riderBaseFeeNaira,
+        riderPerKmFeeNaira,
+        standardMultiplier,
+        minimumMarginMultiplier,
         Math.max(0, testWeightKg),
-        standardMultiplier
+        Math.max(0, testDistanceKm),
       ),
-    [shippingCalculationMode, baseFeeNaira, perKgFeeNaira, testWeightKg, standardMultiplier]
+    [shippingCalculationMode, platformBaseFeeNaira, perKmCustomerFeeNaira, weightPerKgFeeNaira, riderBaseFeeNaira, riderPerKmFeeNaira, standardMultiplier, minimumMarginMultiplier, testWeightKg, testDistanceKm]
   );
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (baseFee < 0) newErrors.baseFee = 'Base fee cannot be negative';
-    if (perMileFee < 0) newErrors.perMileFee = 'Per mile fee cannot be negative';
-    if (baseFeeNaira < 0) newErrors.baseFeeNaira = 'Base fee cannot be negative';
-    if (perKgFeeNaira < 0) newErrors.perKgFeeNaira = 'Per kg fee cannot be negative';
+    if (platformBaseFeeNaira < 0) newErrors.platformBaseFeeNaira = 'Base fee cannot be negative';
+    if (perKmCustomerFeeNaira < 0) newErrors.perKmCustomerFeeNaira = 'Per KM fee cannot be negative';
+    if (weightPerKgFeeNaira < 0) newErrors.weightPerKgFeeNaira = 'Per KG fee cannot be negative';
+    if (riderBaseFeeNaira < 0) newErrors.riderBaseFeeNaira = 'Rider base fee cannot be negative';
+    if (riderPerKmFeeNaira < 0) newErrors.riderPerKmFeeNaira = 'Rider per KM fee cannot be negative';
+    if (minimumMarginMultiplier < 1.0) newErrors.minimumMarginMultiplier = 'Floor multiplier must be >= 1.0';
     if (defaultWeightKg < 0) newErrors.defaultWeightKg = 'Default weight cannot be negative';
     if (standardMultiplier < 0) newErrors.standardMultiplier = 'Standard multiplier cannot be negative';
     if (expressMultiplier < 0) newErrors.expressMultiplier = 'Express multiplier cannot be negative';
@@ -186,16 +236,22 @@ export default function AdminSettings() {
     }
     try {
       await updatePlatform.mutateAsync({
-        commissionPercentage: platformSettings?.commissionPercentage ?? 15,
-        deliveryCalculation,
-        baseFee,
-        perMileFee,
+        commissionPercentage,
         shippingCalculationMode,
-        baseFeeKobo: Math.round(baseFeeNaira * 100),
-        perKgFeeKobo: Math.round(perKgFeeNaira * 100),
+        platformBaseFeeKobo: Math.round(platformBaseFeeNaira * 100),
+        perKmCustomerFeeKobo: Math.round(perKmCustomerFeeNaira * 100),
+        weightPerKgFeeKobo: Math.round(weightPerKgFeeNaira * 100),
+        riderBaseFeeKoboV4: Math.round(riderBaseFeeNaira * 100),
+        riderPerKmFeeKoboV4: Math.round(riderPerKmFeeNaira * 100),
+        minimumMarginMultiplier,
+        fudgeFactor,
+        maxDeliveryRadiusKm,
+        maxBikeWeightKg,
+        fallbackDistanceKm,
         defaultWeightKg,
         standardMultiplier,
         expressMultiplier,
+        scheduledMultiplier,
         smsEnabled,
         emailEnabled,
         pushEnabled,
@@ -281,15 +337,22 @@ export default function AdminSettings() {
 
   const handleDiscard = () => {
     if (!platformSettings) return;
-    setDeliveryCalculation(platformSettings.deliveryCalculation);
-    setBaseFee(platformSettings.baseFee);
-    setPerMileFee(platformSettings.perMileFee);
     setShippingCalculationMode(platformSettings.shippingCalculationMode ?? 'WEIGHT');
-    setBaseFeeNaira((platformSettings.baseFeeKobo ?? 1500) / 100);
-    setPerKgFeeNaira((platformSettings.perKgFeeKobo ?? 200) / 100);
+    setPlatformBaseFeeNaira((platformSettings.platformBaseFeeKobo ?? 110000) / 100);
+    setPerKmCustomerFeeNaira((platformSettings.perKmCustomerFeeKobo ?? 22000) / 100);
+    setWeightPerKgFeeNaira((platformSettings.weightPerKgFeeKobo ?? 25000) / 100);
+    setRiderBaseFeeNaira((platformSettings.riderBaseFeeKoboV4 ?? 110000) / 100);
+    setRiderPerKmFeeNaira((platformSettings.riderPerKmFeeKoboV4 ?? 15000) / 100);
+    setMinimumMarginMultiplier(platformSettings.minimumMarginMultiplier ?? 1.30);
+    setFudgeFactor(platformSettings.fudgeFactor ?? 1.30);
+    setMaxDeliveryRadiusKm(platformSettings.maxDeliveryRadiusKm ?? 25);
+    setMaxBikeWeightKg(platformSettings.maxBikeWeightKg ?? 20);
+    setFallbackDistanceKm(platformSettings.fallbackDistanceKm ?? 7);
     setDefaultWeightKg(platformSettings.defaultWeightKg ?? 1);
     setStandardMultiplier(platformSettings.standardMultiplier ?? 1);
     setExpressMultiplier(platformSettings.expressMultiplier ?? 1.5);
+    setScheduledMultiplier(platformSettings.scheduledMultiplier ?? 0.9);
+    setCommissionPercentage(platformSettings.commissionPercentage ?? 15);
     setSmsEnabled(platformSettings.smsEnabled);
     setEmailEnabled(platformSettings.emailEnabled);
     setPushEnabled(platformSettings.pushEnabled);
@@ -369,11 +432,10 @@ export default function AdminSettings() {
 
           {toast && (
             <div
-              className={`fixed right-6 top-6 z-50 flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg ${
-                toast.type === 'success'
-                  ? 'border-green-500/20 bg-green-500/10 text-green-500'
-                  : 'border-red-500/20 bg-red-500/10 text-red-500'
-              }`}
+              className={`fixed right-6 top-6 z-50 flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg ${toast.type === 'success'
+                ? 'border-green-500/20 bg-green-500/10 text-green-500'
+                : 'border-red-500/20 bg-red-500/10 text-red-500'
+                }`}
             >
               {toast.type === 'success' ? <Check className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
               <span className="text-sm font-medium">{toast.message}</span>
@@ -384,155 +446,261 @@ export default function AdminSettings() {
           )}
 
           {/* ——— Shipping & Logistics ——— */}
-          <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] shadow-lg overflow-hidden">
+          <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] shadow-xl overflow-hidden backdrop-blur-md bg-opacity-80">
             <button
               type="button"
               onClick={() => toggleSection('shipping')}
-              className="flex w-full items-center gap-3 px-6 py-4 text-left transition hover:bg-[#181818]"
+              className="flex w-full items-center gap-4 px-8 py-6 text-left transition hover:bg-[#181818]"
             >
-              <Truck className="h-6 w-6 shrink-0 text-primary" />
-              <span className="text-lg font-semibold text-white">Shipping & Logistics</span>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-[0_0_20px_rgba(255,102,0,0.15)]">
+                <Truck className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-xl font-bold text-white tracking-tight">Shipping & Logistics</span>
+                <p className="text-sm text-gray-500">v4.1 Adaptive Pricing Engine</p>
+              </div>
               {openSections.shipping ? (
-                <ChevronDown className="ml-auto h-5 w-5 text-gray-400" />
+                <ChevronDown className="ml-auto h-6 w-6 text-gray-600" />
               ) : (
-                <ChevronRight className="ml-auto h-5 w-5 text-gray-400" />
+                <ChevronRight className="ml-auto h-6 w-6 text-gray-600" />
               )}
             </button>
             {openSections.shipping && (
-              <div className="border-t border-[#1f1f1f] p-6">
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <div>
-                    <h3 className="mb-4 text-base font-semibold text-white">Shipping Fee Rules (In-House Logistics)</h3>
-                    <p className="mb-4 text-sm text-gray-400">Control how shipping fees are calculated. All fees are global — no seller overrides.</p>
-
-                    {/* Segmented toggle: Flat vs Weight-based */}
-                    <label className="mb-3 block text-sm font-medium text-gray-300">Calculation mode</label>
-                    <div className="inline-flex rounded-xl border border-[#2a2a2a] bg-[#151515] p-1">
-                      <button
-                        type="button"
-                        onClick={() => setShippingCalculationMode('FLAT')}
-                        className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                          shippingCalculationMode === 'FLAT'
-                            ? 'bg-primary text-black'
-                            : 'text-gray-400 hover:text-white'
-                        }`}
-                      >
-                        Flat rate
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShippingCalculationMode('WEIGHT')}
-                        className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                          shippingCalculationMode === 'WEIGHT'
-                            ? 'bg-primary text-black'
-                            : 'text-gray-400 hover:text-white'
-                        }`}
-                      >
-                        Weight-based
-                      </button>
+              <div className="border-t border-[#1f1f1f] p-8">
+                <div className="grid gap-10 lg:grid-cols-12">
+                  <div className="lg:col-span-8 space-y-8">
+                    {/* Mode Selector */}
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                      <div>
+                        <h3 className="text-base font-semibold text-white">Pricing Model</h3>
+                        <p className="text-sm text-gray-500">Choose how routes are priced.</p>
+                      </div>
+                      <div className="flex ml-auto rounded-2xl border border-[#2a2a2a] bg-black/40 p-1.5 shadow-inner">
+                        <button
+                          type="button"
+                          onClick={() => setShippingCalculationMode('FLAT')}
+                          className={`rounded-xl px-6 py-2.5 text-sm font-bold transition-all duration-300 ${shippingCalculationMode === 'FLAT'
+                            ? 'bg-primary text-black shadow-[0_4px_15px_rgba(255,102,0,0.3)]'
+                            : 'text-gray-500 hover:text-gray-300'
+                            }`}
+                        >
+                          Legacy Flat
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShippingCalculationMode('WEIGHT')}
+                          className={`rounded-xl px-6 py-2.5 text-sm font-bold transition-all duration-300 ${shippingCalculationMode === 'WEIGHT'
+                            ? 'bg-primary text-black shadow-[0_4px_15px_rgba(255,102,0,0.3)]'
+                            : 'text-gray-500 hover:text-gray-300'
+                            }`}
+                        >
+                          V4 Adaptive
+                        </button>
+                      </div>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                      {shippingCalculationMode === 'FLAT' ? 'Fixed fee per order.' : 'Base fee + per kg. Fee × multiplier for standard/express.'}
-                    </p>
 
-                    <div className="mt-4 space-y-4">
-                      <label className="block text-sm font-medium text-gray-300">
-                        Base Fee (₦)
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.01}
-                          value={baseFeeNaira}
-                          onChange={(e) => setBaseFeeNaira(Number(e.target.value))}
-                          className={`${inputClass} mt-2 ${errors.baseFeeNaira ? 'border-red-500' : ''}`}
-                          placeholder="15"
-                        />
-                        {errors.baseFeeNaira && <span className="mt-1 text-xs text-red-500">{errors.baseFeeNaira}</span>}
-                        <span className="mt-1 block text-xs text-gray-500">Fixed base amount (used in WEIGHT mode)</span>
-                      </label>
-                      <label className="block text-sm font-medium text-gray-300">
-                        Per Kg Fee (₦)
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.01}
-                          value={perKgFeeNaira}
-                          onChange={(e) => setPerKgFeeNaira(Number(e.target.value))}
-                          className={`${inputClass} mt-2 ${errors.perKgFeeNaira ? 'border-red-500' : ''}`}
-                          placeholder="2"
-                        />
-                        {errors.perKgFeeNaira && <span className="mt-1 text-xs text-red-500">{errors.perKgFeeNaira}</span>}
-                        <span className="mt-1 block text-xs text-gray-500">Amount per kg (WEIGHT mode)</span>
-                      </label>
-                      <label className="block text-sm font-medium text-gray-300">
-                        Default Product Weight (kg)
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.1}
-                          value={defaultWeightKg}
-                          onChange={(e) => setDefaultWeightKg(Number(e.target.value))}
-                          className={`${inputClass} mt-2 ${errors.defaultWeightKg ? 'border-red-500' : ''}`}
-                          placeholder="1"
-                        />
-                        {errors.defaultWeightKg && <span className="mt-1 text-xs text-red-500">{errors.defaultWeightKg}</span>}
-                        <span className="mt-1 block text-xs text-gray-500">Used when product has no weight set</span>
-                      </label>
-                      <div className="grid grid-cols-2 gap-4">
-                        <label className="block text-sm font-medium text-gray-300">
-                          Standard multiplier
-                          <input
-                            type="number"
-                            min={0}
-                            step={0.1}
-                            value={standardMultiplier}
-                            onChange={(e) => setStandardMultiplier(Number(e.target.value))}
-                            className={`${inputClass} mt-2 ${errors.standardMultiplier ? 'border-red-500' : ''}`}
-                          />
-                          {errors.standardMultiplier && <span className="mt-1 text-xs text-red-500">{errors.standardMultiplier}</span>}
+                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                      {/* Section: Customer Pricing */}
+                      <div className="space-y-5 rounded-2xl border border-[#1f1f1f] bg-black/20 p-6">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-1.5 w-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-blue-500/80">Customer Billing</h4>
+                        </div>
+
+                        <div className="space-y-4">
+                          <label className="block space-y-2">
+                            <span className="text-sm font-medium text-gray-400">Platform Base Fee (₦)</span>
+                            <div className="relative">
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">₦</span>
+                              <input
+                                type="number"
+                                value={platformBaseFeeNaira}
+                                onChange={(e) => setPlatformBaseFeeNaira(Number(e.target.value))}
+                                className={`${inputClass} pl-8 border-blue-500/10 focus:border-blue-500/30`}
+                              />
+                            </div>
+                          </label>
+                          <label className="block space-y-2">
+                            <span className="text-sm font-medium text-gray-400">Per KM Surcharge (₦)</span>
+                            <input
+                              type="number"
+                              value={perKmCustomerFeeNaira}
+                              onChange={(e) => setPerKmCustomerFeeNaira(Number(e.target.value))}
+                              className={`${inputClass} border-blue-500/10 focus:border-blue-500/30`}
+                            />
+                          </label>
+                          <label className="block space-y-2">
+                            <span className="text-sm font-medium text-gray-400">Per KG Weight Fee (₦)</span>
+                            <input
+                              type="number"
+                              value={weightPerKgFeeNaira}
+                              onChange={(e) => setWeightPerKgFeeNaira(Number(e.target.value))}
+                              className={`${inputClass} border-blue-500/10 focus:border-blue-500/30`}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Section: Rider Earnings */}
+                      <div className="space-y-5 rounded-2xl border border-[#1f1f1f] bg-black/20 p-6">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-green-500/80">Rider Compensation</h4>
+                        </div>
+
+                        <div className="space-y-4">
+                          <label className="block space-y-2">
+                            <span className="text-sm font-medium text-gray-400">Rider Drop-off Base (₦)</span>
+                            <div className="relative">
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">₦</span>
+                              <input
+                                type="number"
+                                value={riderBaseFeeNaira}
+                                onChange={(e) => setRiderBaseFeeNaira(Number(e.target.value))}
+                                className={`${inputClass} pl-8 border-green-500/10 focus:border-green-500/30`}
+                              />
+                            </div>
+                          </label>
+                          <label className="block space-y-2">
+                            <span className="text-sm font-medium text-gray-400">Rider Per KM Pay (₦)</span>
+                            <input
+                              type="number"
+                              value={riderPerKmFeeNaira}
+                              onChange={(e) => setRiderPerKmFeeNaira(Number(e.target.value))}
+                              className={`${inputClass} border-green-500/10 focus:border-green-500/30`}
+                            />
+                          </label>
+                          <label className="block space-y-2">
+                            <span className="text-sm font-medium text-gray-400">Min. Margin Multiplier</span>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                step="0.05"
+                                value={minimumMarginMultiplier}
+                                onChange={(e) => setMinimumMarginMultiplier(Number(e.target.value))}
+                                className={`${inputClass} border-green-500/10 focus:border-green-500/30 pr-12`}
+                              />
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-600">X</span>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Operational Limits */}
+                    <div className="space-y-6 rounded-2xl border border-[#1f1f1f] bg-[#141414] p-6">
+                      <h4 className="text-sm font-bold text-white">Advanced Flow Controls</h4>
+                      <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+                        <label className="space-y-2">
+                          <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Fudge Factor</span>
+                          <input type="number" step="0.1" value={fudgeFactor} onChange={(e) => setFudgeFactor(Number(e.target.value))} className={inputClass} />
                         </label>
-                        <label className="block text-sm font-medium text-gray-300">
-                          Express multiplier
-                          <input
-                            type="number"
-                            min={0}
-                            step={0.1}
-                            value={expressMultiplier}
-                            onChange={(e) => setExpressMultiplier(Number(e.target.value))}
-                            className={`${inputClass} mt-2 ${errors.expressMultiplier ? 'border-red-500' : ''}`}
-                          />
-                          {errors.expressMultiplier && <span className="mt-1 text-xs text-red-500">{errors.expressMultiplier}</span>}
+                        <label className="space-y-2">
+                          <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Max Radius (km)</span>
+                          <input type="number" value={maxDeliveryRadiusKm} onChange={(e) => setMaxDeliveryRadiusKm(Number(e.target.value))} className={inputClass} />
+                        </label>
+                        <label className="space-y-2">
+                          <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Max Weight (kg)</span>
+                          <input type="number" value={maxBikeWeightKg} onChange={(e) => setMaxBikeWeightKg(Number(e.target.value))} className={inputClass} />
+                        </label>
+                        <label className="space-y-2">
+                          <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Fallback (km)</span>
+                          <input type="number" value={fallbackDistanceKm} onChange={(e) => setFallbackDistanceKm(Number(e.target.value))} className={inputClass} />
                         </label>
                       </div>
-                      <p className="text-xs text-gray-500">Shipping fee = base fee × multiplier. Pickup = ₦0.</p>
+
+                      <div className="grid grid-cols-2 gap-6 md:grid-cols-4 border-t border-[#1f1f1f] pt-6">
+                        <label className="space-y-2">
+                          <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Standard Mult.</span>
+                          <input type="number" step="0.1" value={standardMultiplier} onChange={(e) => setStandardMultiplier(Number(e.target.value))} className={inputClass} />
+                        </label>
+                        <label className="space-y-2">
+                          <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Express Mult.</span>
+                          <input type="number" step="0.1" value={expressMultiplier} onChange={(e) => setExpressMultiplier(Number(e.target.value))} className={inputClass} />
+                        </label>
+                        <label className="space-y-2">
+                          <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Scheduled Mult.</span>
+                          <input type="number" step="0.1" value={scheduledMultiplier} onChange={(e) => setScheduledMultiplier(Number(e.target.value))} className={inputClass} />
+                        </label>
+                        <label className="space-y-2">
+                          <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Market Comm %</span>
+                          <div className="relative">
+                            <input type="number" value={commissionPercentage} onChange={(e) => setCommissionPercentage(Number(e.target.value))} className={inputClass} />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-600">%</span>
+                          </div>
+                        </label>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Live fee calculator */}
-                  <div className="rounded-2xl border border-[#2a2a2a] bg-[#151515] p-5">
-                    <h4 className="mb-2 text-sm font-semibold text-white">Live fee calculator</h4>
-                    <p className="mb-4 text-xs text-gray-400">Enter a test weight to see the computed shipping fee (standard) before saving.</p>
-                    <label className="block text-sm font-medium text-gray-300">
-                      Test weight (kg)
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.1}
-                        value={testWeightKg}
-                        onChange={(e) => setTestWeightKg(Number(e.target.value))}
-                        className={`${inputClass} mt-2`}
-                        placeholder="1"
-                      />
-                    </label>
-                    <div className="mt-4 rounded-xl bg-[#1a1a1a] px-4 py-3">
-                      <span className="text-xs text-gray-400">Computed shipping fee (standard)</span>
-                      <p className="mt-1 text-2xl font-bold text-primary">₦{liveFeeNaira.toFixed(2)}</p>
+                  {/* Profitability Sandbox */}
+                  <div className="lg:col-span-4">
+                    <div className="sticky top-6 space-y-4 rounded-3xl border border-primary/20 bg-primary/5 p-6 backdrop-blur-xl shadow-[0_20px_40px_rgba(0,0,0,0.3)]">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+                          <RefreshCw className="h-4 w-4 text-primary animate-spin-slow" />
+                        </div>
+                        <h4 className="font-bold text-white">Profitability Sandbox</h4>
+                      </div>
+
+                      <div className="space-y-4">
+                        <label className="block space-y-1">
+                          <span className="text-xs font-medium text-gray-500">Test Distance (KM)</span>
+                          <input
+                            type="number"
+                            value={testDistanceKm}
+                            onChange={(e) => setTestDistanceKm(Number(e.target.value))}
+                            className="w-full bg-black/40 border border-[#2a2a2a] rounded-xl px-4 py-2 text-sm text-white"
+                          />
+                        </label>
+                        <label className="block space-y-1">
+                          <span className="text-xs font-medium text-gray-500">Test Weight (KG)</span>
+                          <input
+                            type="number"
+                            value={testWeightKg}
+                            onChange={(e) => setTestWeightKg(Number(e.target.value))}
+                            className="w-full bg-black/40 border border-[#2a2a2a] rounded-xl px-4 py-2 text-sm text-white"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="my-6 space-y-3 border-t border-white/5 pt-6">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-400 font-medium">Customer Pays</span>
+                          <span className="font-bold text-white">₦{liveFeeBreakdown.shippingFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-400 font-medium">Rider Earns</span>
+                          <span className="font-bold text-orange-400">- ₦{liveFeeBreakdown.riderCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="mt-4 flex items-center justify-between rounded-2xl bg-white/5 px-4 py-4 border border-white/10">
+                          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Net Margin</span>
+                          <span className={`text-xl font-black ${liveFeeBreakdown.margin >= 0 ? 'text-green-400' : 'text-red-400'} drop-shadow-lg`}>
+                            ₦{liveFeeBreakdown.margin.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        {liveFeeBreakdown.margin < 0 && (
+                          <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-red-500/10 text-red-500 text-[10px] font-bold uppercase tracking-tighter">
+                            <AlertCircle className="h-3 w-3" /> Warning: Unprofitable Route Configuration
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={updatePlatform.isPending || !hasUnsavedChanges}
+                        className="w-full py-4 rounded-2xl bg-primary text-black font-black text-sm uppercase tracking-widest shadow-[0_10px_30px_rgba(255,102,0,0.4)] transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100"
+                      >
+                        {updatePlatform.isPending ? 'Syncing...' : 'Apply Config'}
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
             )}
           </section>
+
 
           {/* ——— Team & Permissions ——— */}
           <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] shadow-lg overflow-hidden">
@@ -662,166 +830,113 @@ export default function AdminSettings() {
           </section>
 
           {/* ——— Notifications ——— */}
-          <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] shadow-lg overflow-hidden">
+          <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] shadow-xl overflow-hidden backdrop-blur-md bg-opacity-80">
             <button
               type="button"
               onClick={() => toggleSection('notifications')}
-              className="flex w-full items-center gap-3 px-6 py-4 text-left transition hover:bg-[#181818]"
+              className="flex w-full items-center gap-4 px-8 py-6 text-left transition hover:bg-[#181818]"
             >
-              <Bell className="h-6 w-6 shrink-0 text-primary" />
-              <span className="text-lg font-semibold text-white">Notifications</span>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.15)]">
+                <Bell className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-xl font-bold text-white tracking-tight">System Alerts</span>
+                <p className="text-sm text-gray-500">Enable/Disable global comms channels.</p>
+              </div>
               {openSections.notifications ? (
-                <ChevronDown className="ml-auto h-5 w-5 text-gray-400" />
+                <ChevronDown className="ml-auto h-6 w-6 text-gray-600" />
               ) : (
-                <ChevronRight className="ml-auto h-5 w-5 text-gray-400" />
+                <ChevronRight className="ml-auto h-6 w-6 text-gray-600" />
               )}
             </button>
             {openSections.notifications && (
-              <div className="border-t border-[#1f1f1f] p-6">
-                <p className="mb-5 text-sm text-gray-400">Choose how admins receive important alerts. Use “Send test” to verify each channel.</p>
-
-                <div className="space-y-5">
-                  {/* SMS */}
-                  <div className="flex flex-col gap-3 rounded-2xl border border-[#2a2a2a] bg-[#151515] p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setSmsEnabled((prev) => !prev)}
-                      className="flex flex-1 cursor-pointer items-start gap-4 text-left transition hover:opacity-90"
-                    >
-                      <span className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-[#2f2f2f] transition-colors duration-200 ${smsEnabled ? 'bg-primary' : 'bg-[#1e1e1e]'}`}>
-                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-out ${smsEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </span>
-                      <div>
-                        <span className="block text-sm font-semibold text-white">SMS Notifications</span>
-                        <span className="text-xs text-gray-400">
-                          Triggered by: order status changes, delivery updates, payout alerts, and urgent platform issues. Instant alerts for critical updates.
-                        </span>
+              <div className="border-t border-[#1f1f1f] p-8 space-y-6">
+                <div className="grid gap-6 md:grid-cols-3">
+                  {[
+                    { id: 'sms', label: 'SMS Notifications', enabled: smsEnabled, setter: setSmsEnabled, desc: 'Direct text alerts for urgent updates.' },
+                    { id: 'email', label: 'Email Reports', enabled: emailEnabled, setter: setEmailEnabled, desc: 'Transaction receipts and daily digests.' },
+                    { id: 'push', label: 'Push Notifications', enabled: pushEnabled, setter: setPushEnabled, desc: 'Real-time rider and buyer app alerts.' },
+                  ].map((channel) => (
+                    <div key={channel.id} className="flex flex-col gap-4 p-6 rounded-2xl border border-[#1f1f1f] bg-black/20">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-white">{channel.label}</span>
+                        <button
+                          type="button"
+                          onClick={() => channel.setter(!channel.enabled)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${channel.enabled ? 'bg-blue-500' : 'bg-[#222]'}`}
+                        >
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${channel.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
                       </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleTestSend('sms'); }}
-                      disabled={testSending.sms || !smsEnabled}
-                      className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#2a2a2a] px-4 py-2 text-sm font-medium text-gray-300 transition hover:border-primary hover:text-primary disabled:opacity-50"
-                    >
-                      <Send className="h-4 w-4" />
-                      {testSending.sms ? 'Sending...' : 'Send test'}
-                    </button>
-                  </div>
-
-                  {/* Email */}
-                  <div className="flex flex-col gap-3 rounded-2xl border border-[#2a2a2a] bg-[#151515] p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setEmailEnabled((prev) => !prev)}
-                      className="flex flex-1 cursor-pointer items-start gap-4 text-left transition hover:opacity-90"
-                    >
-                      <span className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-[#2f2f2f] transition-colors duration-200 ${emailEnabled ? 'bg-primary' : 'bg-[#1e1e1e]'}`}>
-                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-out ${emailEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </span>
-                      <div>
-                        <span className="block text-sm font-semibold text-white">Email Notifications</span>
-                        <span className="text-xs text-gray-400">
-                          Triggered by: daily digests, new orders, refund requests, seller verifications, and broadcast announcements. Summaries and important communication.
-                        </span>
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleTestSend('email'); }}
-                      disabled={testSending.email || !emailEnabled}
-                      className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#2a2a2a] px-4 py-2 text-sm font-medium text-gray-300 transition hover:border-primary hover:text-primary disabled:opacity-50"
-                    >
-                      <Send className="h-4 w-4" />
-                      {testSending.email ? 'Sending...' : 'Send test'}
-                    </button>
-                  </div>
-
-                  {/* Push */}
-                  <div className="flex flex-col gap-3 rounded-2xl border border-[#2a2a2a] bg-[#151515] p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setPushEnabled((prev) => !prev)}
-                      className="flex flex-1 cursor-pointer items-start gap-4 text-left transition hover:opacity-90"
-                    >
-                      <span className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-[#2f2f2f] transition-colors duration-200 ${pushEnabled ? 'bg-primary' : 'bg-[#1e1e1e]'}`}>
-                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-out ${pushEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </span>
-                      <div>
-                        <span className="block text-sm font-semibold text-white">Push Notifications</span>
-                        <span className="text-xs text-gray-400">
-                          Triggered by: real-time order updates, new support tickets, delivery milestones, and instant alerts when the admin panel is open. Desktop notifications for live events.
-                        </span>
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleTestSend('push'); }}
-                      disabled={testSending.push || !pushEnabled}
-                      className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#2a2a2a] px-4 py-2 text-sm font-medium text-gray-300 transition hover:border-primary hover:text-primary disabled:opacity-50"
-                    >
-                      <Send className="h-4 w-4" />
-                      {testSending.push ? 'Sending...' : 'Send test'}
-                    </button>
-                  </div>
+                      <p className="text-xs text-gray-500">{channel.desc}</p>
+                      <button
+                        type="button"
+                        onClick={() => handleTestSend(channel.id as 'sms' | 'email' | 'push')}
+                        disabled={testSending[channel.id as keyof typeof testSending] || !channel.enabled}
+                        className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl border border-[#2a2a2a] py-2 text-xs font-bold text-gray-400 transition hover:border-blue-500 hover:text-blue-500 disabled:opacity-50"
+                      >
+                        <Send className="h-3 w-3" />
+                        {testSending[channel.id as keyof typeof testSending] ? 'Sending...' : 'Send Test'}
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
           </section>
 
           {/* ——— Refunds ——— */}
-          <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] shadow-lg overflow-hidden">
+          <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] shadow-xl overflow-hidden backdrop-blur-md bg-opacity-80">
             <button
               type="button"
               onClick={() => toggleSection('refunds')}
-              className="flex w-full items-center gap-3 px-6 py-4 text-left transition hover:bg-[#181818]"
+              className="flex w-full items-center gap-4 px-8 py-6 text-left transition hover:bg-[#181818]"
             >
-              <RefreshCw className="h-6 w-6 shrink-0 text-primary" />
-              <span className="text-lg font-semibold text-white">Refunds</span>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.15)]">
+                <RefreshCw className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-xl font-bold text-white tracking-tight">Refund Policy</span>
+                <p className="text-sm text-gray-500">Auto-approval rules for buyer disputes.</p>
+              </div>
               {openSections.refunds ? (
-                <ChevronDown className="ml-auto h-5 w-5 text-gray-400" />
+                <ChevronDown className="ml-auto h-6 w-6 text-gray-600" />
               ) : (
-                <ChevronRight className="ml-auto h-5 w-5 text-gray-400" />
+                <ChevronRight className="ml-auto h-6 w-6 text-gray-600" />
               )}
             </button>
             {openSections.refunds && (
-              <div className="border-t border-[#1f1f1f] p-6">
-                <p className="mb-5 text-sm text-gray-400">
-                  Auto-approve low-value refund requests under a threshold to reduce manual review. Use the threshold below for bulk approve on the Refund Management page.
-                </p>
-                <div className="space-y-5">
-                  <div className="flex flex-col gap-3 rounded-2xl border border-[#2a2a2a] bg-[#151515] p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setRefundAutoApproveEnabled((prev) => !prev)}
-                      className="flex flex-1 cursor-pointer items-start gap-4 text-left transition hover:opacity-90"
-                    >
-                      <span className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-[#2f2f2f] transition-colors duration-200 ${refundAutoApproveEnabled ? 'bg-primary' : 'bg-[#1e1e1e]'}`}>
-                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-out ${refundAutoApproveEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </span>
-                      <div>
-                        <span className="block text-sm font-semibold text-white">Auto-approve low-value refunds</span>
-                        <span className="text-xs text-gray-400">
-                          When enabled, refund requests under the threshold can be bulk-approved from Refund Management.
-                        </span>
-                      </div>
-                    </button>
+              <div className="border-t border-[#1f1f1f] p-8 space-y-8">
+                <div className="flex flex-col gap-6 md:flex-row md:items-center p-6 rounded-2xl border border-[#1f1f1f] bg-black/20">
+                  <div className="flex-1">
+                    <span className="block text-sm font-bold text-white">Auto-approve Micro-Refunds</span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Instantly credit buyers for disputes below the threshold. Reduces support tickets.
+                    </p>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300">
-                      Threshold (₦)
+                  <button
+                    type="button"
+                    onClick={() => setRefundAutoApproveEnabled(!refundAutoApproveEnabled)}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${refundAutoApproveEnabled ? 'bg-orange-500' : 'bg-[#222]'}`}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${refundAutoApproveEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                <div className="max-w-md">
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-gray-400">Refund Threshold (₦)</span>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">₦</span>
                       <input
                         type="number"
-                        min={0}
-                        step={1}
                         value={refundThresholdNaira}
                         onChange={(e) => setRefundThresholdNaira(Number(e.target.value))}
-                        className={`${inputClass} mt-2 max-w-[140px]`}
-                        placeholder="500"
+                        className={`${inputClass} pl-8 max-w-[180px] border-orange-500/10 focus:border-orange-500/30`}
                       />
-                    </label>
-                    <p className="mt-1 text-xs text-gray-500">Refunds at or below this amount (e.g. ₦500) are eligible for bulk approve.</p>
-                  </div>
+                    </div>
+                    <p className="text-[10px] text-gray-600 italic">Disputes at or below this amount skip manual review.</p>
+                  </label>
                 </div>
               </div>
             )}

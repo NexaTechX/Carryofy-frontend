@@ -695,6 +695,52 @@ export default function AdminOrders() {
               </div>
             </section>
 
+            {/* Financial Breakdown (Admin Only) */}
+            <section className="rounded-xl border border-[#1f1f1f] bg-[#111111] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 mb-3">
+                Financial Breakdown
+              </p>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Items Subtotal</span>
+                  <span className="text-white">{formatNgnFromKobo(detailOrder.subtotalKobo ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Shipping (Customer Paid)</span>
+                  <span className="text-white">{formatNgnFromKobo(detailOrder.shippingFeeKobo ?? 0)}</span>
+                </div>
+                {detailOrder.couponDiscountKobo ? (
+                  <div className="flex justify-between">
+                    <span className="text-red-400/80">Coupon Discount</span>
+                    <span className="text-red-400">-{formatNgnFromKobo(detailOrder.couponDiscountKobo)}</span>
+                  </div>
+                ) : null}
+                <div className="my-2 border-t border-[#1f1f1f] pt-2">
+                  <div className="flex justify-between font-semibold">
+                    <span className="text-gray-400">Customer Total</span>
+                    <span className="text-primary">{formatNgnFromKobo(detailOrder.amount)}</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-primary/20 space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70">Carryofy Internal Audit</p>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400 font-medium">Rider Fee (Our Cost)</span>
+                    <span className="text-[#6ce7a2]">{formatNgnFromKobo(detailOrder.riderCostKobo ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400 font-bold">Platform Profit (Margin)</span>
+                    <span className="text-[#76e4f7] font-bold">{formatNgnFromKobo(detailOrder.carryofyMarginKobo ?? 0)}</span>
+                  </div>
+                  {detailOrder.distanceKmForPricing != null && (
+                    <p className="text-[10px] text-gray-500 italic mt-1">
+                      Distance: {detailOrder.distanceKmForPricing}km | Weight: {detailOrder.chargeableWeightKg ?? '—'}kg
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+
             {/* Delivery / Rider (Reassign) */}
             <section id="delivery-section" className="space-y-3 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Delivery & Rider</p>

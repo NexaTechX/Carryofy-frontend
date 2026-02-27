@@ -249,6 +249,13 @@ export interface AdminOrder {
   updatedAt: string;
   /** Optional: B2B or B2C for fulfillment display; defaults to B2C when absent. */
   customerType?: AdminOrderCustomerType | null;
+  riderCostKobo?: number;
+  carryofyMarginKobo?: number;
+  shippingFeeKobo?: number;
+  subtotalKobo?: number;
+  couponDiscountKobo?: number;
+  chargeableWeightKg?: number;
+  distanceKmForPricing?: number;
   items: AdminOrderItem[];
   delivery?: AdminDelivery | null;
   address?: {
@@ -432,20 +439,36 @@ export interface PlatformSettings {
   baseFee: number;
   perMileFee: number;
   shippingCalculationMode: 'FLAT' | 'WEIGHT';
-  baseFeeKobo: number;
-  perKgFeeKobo: number;
+  platformBaseFeeKobo: number;
+  perKmCustomerFeeKobo: number;
+  weightPerKgFeeKobo: number;
+  riderBaseFeeKoboV4: number;
+  riderPerKmFeeKoboV4: number;
+  minimumMarginMultiplier: number;
+  fudgeFactor: number;
+  maxDeliveryRadiusKm: number;
+  maxBikeWeightKg: number;
+  fallbackDistanceKm: number;
   defaultWeightKg: number;
   standardMultiplier: number;
   expressMultiplier: number;
+  scheduledMultiplier?: number;
   shippingVersion: number;
   smsEnabled: boolean;
   emailEnabled: boolean;
   pushEnabled: boolean;
-  riderBaseFeeKobo: number;
-  riderPerKmFeeKobo: number;
   allowBankTransfer: boolean;
+  etaAverageSpeedKmPerMin?: number;
+  etaApproachingThresholdKm?: number;
+  etaArrivedThresholdKm?: number;
+  etaDistanceFudgeFactor?: number;
   refundAutoApproveEnabled?: boolean;
-  refundAutoApproveThresholdKobo?: number;
+  refundAutoApproveThresholdKobo?: number | null;
+  freeShippingThresholdKobo?: number;
+  freeShippingDiscountPct?: number;
+  quoteValiditySeconds?: number;
+  priceMismatchToleranceKobo?: number;
+  pricingVersion?: string;
 }
 
 export interface PaymentGatewaySettings {

@@ -45,14 +45,20 @@ export function buildProductUrl(productId: string, baseUrl: string): string {
  * Always returns an absolute URL with no trailing slash.
  */
 export function getBaseUrl(): string {
+  let url = '';
   if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+    url = process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+  } else if (process.env.NEXT_PUBLIC_SITE_URL) {
+    url = process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
+  } else if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+    url = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+  } else {
+    url = 'http://localhost:3001';
   }
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
+
+  // Normalize naked carryofy.com to www.carryofy.com to avoid OG redirect issues
+  if (url === 'https://carryofy.com') {
+    return 'https://www.carryofy.com';
   }
-  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
-    return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
-  }
-  return 'http://localhost:3001';
+  return url;
 }

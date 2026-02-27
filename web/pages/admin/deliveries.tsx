@@ -77,9 +77,9 @@ function haversineKm(
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLng / 2) *
+    Math.sin(dLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -157,7 +157,7 @@ export default function AdminDeliveries() {
       deliveryId: d.id,
       orderId: d.orderId,
       rider: getRiderDisplayName(d, availableRiders),
-      pickup: 'Warehouse',
+      pickup: d.vendorName || 'Vendor (Unknown)',
       dropoff: getDropoffLabel(d),
       status: DELIVERY_LABEL[d.status] ?? d.status,
       assigned: new Date(d.createdAt).toLocaleString(),
@@ -221,10 +221,14 @@ export default function AdminDeliveries() {
     setAssignEta('');
   };
 
-  const mapPickup = useMemo(
-    () => ({ lat: DEFAULT_PICKUP_LAT, lng: DEFAULT_PICKUP_LNG, label: 'Pickup (warehouse)' }),
-    []
-  );
+  const mapPickup = useMemo(() => {
+    const d = mapModalDelivery;
+    return {
+      lat: d?.vendorLatitude ? Number(d.vendorLatitude) : DEFAULT_PICKUP_LAT,
+      lng: d?.vendorLongitude ? Number(d.vendorLongitude) : DEFAULT_PICKUP_LNG,
+      label: d?.vendorName || 'Pickup Location',
+    };
+  }, [mapModalDelivery]);
   const mapDropoff = useMemo(() => {
     const d = mapModalDelivery;
     if (!d?.deliveryAddressInfo) return null;
@@ -483,7 +487,9 @@ export default function AdminDeliveries() {
                           )}
                           {visibleCols.some((c) => c.id === 'pickup') && (
                             <DataTableCell>
-                              <span className="text-sm text-gray-400">Warehouse</span>
+                              <span className="text-sm text-gray-400">
+                                {delivery.vendorName || 'Vendor Location'}
+                              </span>
                             </DataTableCell>
                           )}
                           {visibleCols.some((c) => c.id === 'dropoff') && (
@@ -651,9 +657,9 @@ export default function AdminDeliveries() {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Current Rider</p>
                 <p className="mt-1 text-sm text-white">
                   {selectedDelivery.riderId
-                    ? (availableRiders?.find(r => r.id === selectedDelivery.riderId)?.name || 
-                       (typeof selectedDelivery.rider === 'string' ? selectedDelivery.rider : selectedDelivery.rider?.name) || 
-                       'Unknown Rider')
+                    ? (availableRiders?.find(r => r.id === selectedDelivery.riderId)?.name ||
+                      (typeof selectedDelivery.rider === 'string' ? selectedDelivery.rider : selectedDelivery.rider?.name) ||
+                      'Unknown Rider')
                     : 'Unassigned'}
                 </p>
               </div>
@@ -674,6 +680,38 @@ export default function AdminDeliveries() {
                 <p className="mt-1 text-sm text-white">
                   {new Date(selectedDelivery.updatedAt).toLocaleString()}
                 </p>
+              </div>
+            </div>
+
+            {/* Vendor Pickup Display */}
+            <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 mb-3">
+                Pickup Location
+              </p>
+              <div className="bg-[#131924] rounded-lg p-3 space-y-1">
+                <p className="text-sm text-gray-200 font-medium">
+                  {selectedDelivery.vendorName || 'Vendor (Unknown)'}
+                </p>
+                {selectedDelivery.pickupAddress && (
+                  <p className="text-sm text-gray-300">
+                    {selectedDelivery.pickupAddress}
+                  </p>
+                )}
+                {selectedDelivery.pickupInstructions && (
+                  <p className="text-xs text-[#ffcc99] mt-2 pt-2 border-t border-[#1f1f1f]">
+                    <strong>Instructions:</strong> {selectedDelivery.pickupInstructions}
+                  </p>
+                )}
+                {selectedDelivery.vendorLatitude && selectedDelivery.vendorLongitude && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${selectedDelivery.vendorLatitude},${selectedDelivery.vendorLongitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-3 text-xs text-[#76e4f7] hover:underline font-medium"
+                  >
+                    Route to Vendor (Google Maps) ↗
+                  </a>
+                )}
               </div>
             </div>
 

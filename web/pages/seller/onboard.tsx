@@ -59,7 +59,12 @@ export default function SellerOnboardingPage() {
   const [phoneInput, setPhoneInput] = useState('');
   const [needsPhoneUpdate, setNeedsPhoneUpdate] = useState(false);
 
-  const totalSteps = 4;
+  const [pickupAddress, setPickupAddress] = useState('');
+  const [pickupInstructions, setPickupInstructions] = useState('');
+  const [latitude, setLatitude] = useState<number | ''>('');
+  const [longitude, setLongitude] = useState<number | ''>('');
+
+  const totalSteps = 5;
   const togglePlannedCategory = (cat: string) => {
     setPlannedCategories((prev) =>
       prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
@@ -149,9 +154,22 @@ export default function SellerOnboardingPage() {
     return true;
   };
 
+  const canProceedFromStep2 = () => {
+    if (!pickupAddress.trim()) {
+      toast.error('Please enter your pickup address');
+      return false;
+    }
+    if (latitude === '' || longitude === '') {
+      toast.error('Please provide your location coordinates (Latitude/Longitude)');
+      return false;
+    }
+    return true;
+  };
+
   const handleNextStep = () => {
     if (step === 1 && !canProceedFromStep1()) return;
-    if (step === 2 && !businessType) {
+    if (step === 2 && !canProceedFromStep2()) return;
+    if (step === 3 && !businessType) {
       toast.error('Please select your business type');
       return;
     }
@@ -196,7 +214,13 @@ export default function SellerOnboardingPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ businessName: businessName.trim() }),
+        body: JSON.stringify({
+          businessName: businessName.trim(),
+          pickupAddress: pickupAddress.trim(),
+          pickupInstructions: pickupInstructions.trim() || undefined,
+          latitude: latitude !== '' ? Number(latitude) : undefined,
+          longitude: longitude !== '' ? Number(longitude) : undefined,
+        }),
       });
 
       if (response.ok) {
@@ -268,7 +292,7 @@ export default function SellerOnboardingPage() {
           {/* Progress */}
           <div className="mb-8">
             <div className="flex justify-between mb-2">
-              {[1, 2, 3, 4].map((s) => (
+              {[1, 2, 3, 4, 5].map((s) => (
                 <span
                   key={s}
                   className={`text-sm font-medium ${step >= s ? 'text-[#ff6600]' : 'text-[#ffcc99]/50'}`}
@@ -278,7 +302,7 @@ export default function SellerOnboardingPage() {
               ))}
             </div>
             <div className="h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden flex">
-              {[1, 2, 3, 4].map((s) => (
+              {[1, 2, 3, 4, 5].map((s) => (
                 <div
                   key={s}
                   className={`h-full flex-1 ${step >= s ? 'bg-[#ff6600]' : 'bg-white/5'}`}
@@ -342,6 +366,95 @@ export default function SellerOnboardingPage() {
 
             {step === 2 && (
               <>
+                <h2 className="text-white text-2xl font-bold mb-2">Pickup location</h2>
+                <p className="text-[#ffcc99] text-sm mb-6">Where should our riders come to pick up orders from you?</p>
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-white text-sm font-medium mb-2">
+                      Pickup Address <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={pickupAddress}
+                      onChange={(e) => setPickupAddress(e.target.value)}
+                      placeholder="e.g. 14 Bode Thomas Street, Surulere, Lagos"
+                      className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-black focus:border-[#ff6600] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-white text-sm font-medium mb-2">
+                      Pickup Instructions
+                    </label>
+                    <input
+                      type="text"
+                      value={pickupInstructions}
+                      onChange={(e) => setPickupInstructions(e.target.value)}
+                      placeholder="e.g. Call on arrival. Blue gate, ask for Emeka."
+                      className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-black focus:border-[#ff6600] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Latitude <span className="text-red-400">*</span></label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={latitude}
+                        onChange={(e) => setLatitude(e.target.value ? parseFloat(e.target.value) : '')}
+                        disabled
+                        placeholder="Coordinates"
+                        className="form-input flex w-full resize-none overflow-hidden rounded-xl text-[#A0A0A0] border border-[#ff6600]/20 bg-black/50 h-14 p-4 text-base font-normal leading-normal"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Longitude <span className="text-red-400">*</span></label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={longitude}
+                        onChange={(e) => setLongitude(e.target.value ? parseFloat(e.target.value) : '')}
+                        disabled
+                        placeholder="Coordinates"
+                        className="form-input flex w-full resize-none overflow-hidden rounded-xl text-[#A0A0A0] border border-[#ff6600]/20 bg-black/50 h-14 p-4 text-base font-normal leading-normal"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+                        toast.loading('Getting location...', { id: 'geo' });
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => {
+                            setLatitude(pos.coords.latitude);
+                            setLongitude(pos.coords.longitude);
+                            toast.success('Location updated!', { id: 'geo' });
+                          },
+                          (err) => {
+                            toast.error('Could not get location. Please enter manually.', { id: 'geo' });
+                            console.error(err);
+                          }
+                        );
+                      }
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[#ff6600] text-[#ff6600] hover:bg-[#ff6600]/10 transition"
+                  >
+                    <Building2 className="w-5 h-5" />
+                    Use my current location
+                  </button>
+                  <p className="text-center text-[#ffcc99] text-xs">
+                    Riders need these coordinates to find you precisely.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {step === 3 && (
+              <>
                 <h2 className="text-white text-2xl font-bold mb-2">How do you sell?</h2>
                 <p className="text-[#ffcc99] text-sm mb-6">Select your business type so we can tailor your seller experience.</p>
                 <div className="grid gap-4">
@@ -350,11 +463,10 @@ export default function SellerOnboardingPage() {
                       key={opt.id}
                       type="button"
                       onClick={() => setBusinessType(opt.id)}
-                      className={`p-4 rounded-xl border-2 text-left transition-all ${
-                        businessType === opt.id
+                      className={`p-4 rounded-xl border-2 text-left transition-all ${businessType === opt.id
                           ? 'border-[#ff6600] bg-[#ff6600]/10'
                           : 'border-white/10 hover:border-[#ff6600]/50 bg-black/50'
-                      }`}
+                        }`}
                     >
                       <span className="text-white font-semibold block">{opt.label}</span>
                       <span className="text-[#ffcc99]/80 text-sm">{opt.description}</span>
@@ -364,7 +476,7 @@ export default function SellerOnboardingPage() {
               </>
             )}
 
-            {step === 3 && (
+            {step === 4 && (
               <>
                 <h2 className="text-white text-2xl font-bold mb-2">What do you plan to sell?</h2>
                 <p className="text-[#ffcc99] text-sm mb-6">Select the categories you want to list products in (you can add more later).</p>
@@ -374,11 +486,10 @@ export default function SellerOnboardingPage() {
                       key={cat}
                       type="button"
                       onClick={() => togglePlannedCategory(cat)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                        plannedCategories.includes(cat)
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition ${plannedCategories.includes(cat)
                           ? 'bg-[#ff6600] text-black'
                           : 'bg-white/10 text-[#ffcc99] hover:bg-white/20'
-                      }`}
+                        }`}
                     >
                       {cat}
                     </button>
@@ -387,13 +498,22 @@ export default function SellerOnboardingPage() {
               </>
             )}
 
-            {step === 4 && (
+            {step === 5 && (
               <>
                 <h2 className="text-white text-2xl font-bold mb-6">Review & submit</h2>
                 <div className="space-y-4 mb-6">
                   <div className="p-4 rounded-xl bg-black/50 border border-white/10">
                     <p className="text-[#ffcc99] text-xs uppercase tracking-wide mb-1">Business name</p>
                     <p className="text-white font-semibold">{businessName || '—'}</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-black/50 border border-white/10">
+                    <p className="text-[#ffcc99] text-xs uppercase tracking-wide mb-1">Pickup address</p>
+                    <p className="text-white font-semibold">{pickupAddress || '—'}</p>
+                    {(latitude && longitude) && (
+                      <p className="text-[#A0A0A0] text-xs mt-1">
+                        GPS: {latitude.toFixed(4)}, {longitude.toFixed(4)}
+                      </p>
+                    )}
                   </div>
                   <div className="p-4 rounded-xl bg-black/50 border border-white/10">
                     <p className="text-[#ffcc99] text-xs uppercase tracking-wide mb-1">Business type</p>
@@ -437,8 +557,8 @@ export default function SellerOnboardingPage() {
               </>
             )}
 
-            {/* Navigation (steps 1–3) */}
-            {step < 4 && (
+            {/* Navigation (steps 1–4) */}
+            {step < 5 && (
               <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/10">
                 <button
                   type="button"

@@ -8,12 +8,16 @@ export interface ShippingQuoteItem {
 export interface ShippingQuoteRequest {
   addressId: string;
   items: ShippingQuoteItem[];
-  shippingMethod: 'STANDARD' | 'EXPRESS' | 'PICKUP';
+  shippingMethod: 'STANDARD' | 'EXPRESS' | 'SCHEDULED' | 'PICKUP';
+  cartSubtotalKobo?: number;
 }
 
 export interface ShippingQuoteResponse {
   shippingFeeKobo: number;
-  totalWeightKg: number;
+  totalWeightKg?: number;
+  quoteExpiresAt?: string;
+  riderCostKobo?: number;
+  pricingTier?: string;
 }
 
 export async function fetchShippingQuote(

@@ -59,6 +59,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [updatingItems, setUpdatingItems] = useState<{ [key: string]: boolean }>({});
 
+  const emptyCart: Cart = {
+    id: '',
+    userId: '',
+    items: [],
+    totalItems: 0,
+    totalAmount: 0,
+    createdAt: '',
+    updatedAt: '',
+  };
+
   const fetchCart = useCallback(async () => {
     if (!tokenManager.isAuthenticated()) {
       setCart(null);
@@ -81,6 +91,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return;
       }
       console.error('Error fetching cart:', err);
+      // On 500 or network error, show empty cart so the app keeps working
+      setCart(emptyCart);
       setError(err.response?.data?.message || 'Failed to load cart');
     } finally {
       setLoading(false);

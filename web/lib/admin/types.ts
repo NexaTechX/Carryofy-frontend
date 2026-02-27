@@ -227,6 +227,11 @@ export interface AdminDelivery {
     postalCode?: string | null;
     fullAddress: string;
   } | null;
+  vendorLatitude?: number | string | null;
+  vendorLongitude?: number | string | null;
+  vendorName?: string | null;
+  pickupAddress?: string | null;
+  pickupInstructions?: string | null;
   createdAt: string;
   updatedAt: string;
 }

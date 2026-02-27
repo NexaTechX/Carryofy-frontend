@@ -61,6 +61,10 @@ export default function SettingsPage() {
     businessAddress: '',
     businessDescription: '',
     logo: '',
+    pickupAddress: '',
+    pickupInstructions: '',
+    latitude: '' as number | '',
+    longitude: '' as number | '',
   });
   const [logoUploading, setLogoUploading] = useState(false);
 
@@ -225,6 +229,10 @@ export default function SettingsPage() {
           businessAddress: sellerData.businessAddress || '',
           businessDescription: sellerData.businessDescription || '',
           logo: sellerData.logo || '',
+          pickupAddress: sellerData.pickupAddress || '',
+          pickupInstructions: sellerData.pickupInstructions || '',
+          latitude: sellerData.latitude ?? '',
+          longitude: sellerData.longitude ?? '',
         });
       } else if (sellerRes.reason?.response?.status === 404) {
         // Seller record doesn't exist yet — user needs to complete onboarding
@@ -389,6 +397,10 @@ export default function SettingsPage() {
         businessAddress: businessForm.businessAddress || undefined,
         businessDescription: businessForm.businessDescription || undefined,
         logo: businessForm.logo || undefined,
+        pickupAddress: businessForm.pickupAddress || undefined,
+        pickupInstructions: businessForm.pickupInstructions || undefined,
+        latitude: businessForm.latitude !== '' ? Number(businessForm.latitude) : undefined,
+        longitude: businessForm.longitude !== '' ? Number(businessForm.longitude) : undefined,
       };
 
       const response = await fetch(`${apiUrl}/sellers/me`, {
@@ -1077,11 +1089,10 @@ export default function SettingsPage() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as any)}
-                      className={`flex items-center gap-2 px-5 py-4 text-sm font-medium transition-colors shrink-0 whitespace-nowrap ${
-                        isActive
+                      className={`flex items-center gap-2 px-5 py-4 text-sm font-medium transition-colors shrink-0 whitespace-nowrap ${isActive
                           ? 'text-white border-b-[3px] border-[#FF6B00] -mb-[1px]'
                           : 'text-[#A0A0A0] hover:text-white'
-                      }`}
+                        }`}
                     >
                       <Icon className="w-4 h-4" />
                       {tab.label}
@@ -1187,15 +1198,14 @@ export default function SettingsPage() {
                           <button
                             type="submit"
                             disabled={!profileFormDirty || profileSaveStatus === 'loading'}
-                            className={`flex items-center justify-center gap-2 w-full h-11 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                              profileSaveStatus === 'success'
+                            className={`flex items-center justify-center gap-2 w-full h-11 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${profileSaveStatus === 'success'
                                 ? 'bg-[#22C55E] text-white'
                                 : profileSaveStatus === 'error'
                                   ? 'bg-red-600 text-white'
                                   : profileSaveStatus === 'loading'
                                     ? 'bg-[#FF6B00] text-black'
                                     : 'bg-[#FF6B00] text-black hover:bg-[#E65100]'
-                            }`}
+                              }`}
                           >
                             {profileSaveStatus === 'loading' ? (
                               <>
@@ -1374,6 +1384,90 @@ export default function SettingsPage() {
                                 </label>
                                 <p className="text-[#A0A0A0] text-xs mt-2">200×200px crop • JPG, PNG, WebP • Max 2MB</p>
                               </div>
+                            </div>
+                          </div>
+
+                          <div className="seller-location-section mt-8 pt-6 border-t border-[#2A2A2A]">
+                            <h3 className="text-white font-bold mb-2">Pickup Location</h3>
+                            <p className="text-[#A0A0A0] text-sm mb-6">
+                              This is where our riders will come to collect orders from you.
+                              Accurate location helps us calculate correct delivery fees for your customers.
+                            </p>
+
+                            <div className="space-y-6">
+                              <div>
+                                <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Pickup Address *</label>
+                                <input
+                                  type="text"
+                                  value={businessForm.pickupAddress}
+                                  onChange={e => setBusinessForm({ ...businessForm, pickupAddress: e.target.value })}
+                                  placeholder="e.g. 14 Bode Thomas Street, Surulere, Lagos"
+                                  required
+                                  className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Pickup Instructions (optional)</label>
+                                <input
+                                  type="text"
+                                  value={businessForm.pickupInstructions}
+                                  onChange={e => setBusinessForm({ ...businessForm, pickupInstructions: e.target.value })}
+                                  placeholder="e.g. Call on arrival. Blue gate, ask for Emeka."
+                                  className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Latitude</label>
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    value={businessForm.latitude}
+                                    onChange={e => setBusinessForm({ ...businessForm, latitude: e.target.value ? parseFloat(e.target.value) : '' })}
+                                    placeholder="e.g. 6.4969"
+                                    className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Longitude</label>
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    value={businessForm.longitude}
+                                    onChange={e => setBusinessForm({ ...businessForm, longitude: e.target.value ? parseFloat(e.target.value) : '' })}
+                                    placeholder="e.g. 3.3481"
+                                    className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                                  />
+                                </div>
+                              </div>
+
+                              <p className="text-[#A0A0A0] text-xs">
+                                Don't know your coordinates? Click below to use your current location.
+                              </p>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (typeof navigator !== 'undefined' && navigator.geolocation) {
+                                    navigator.geolocation.getCurrentPosition(
+                                      (pos) => {
+                                        setBusinessForm({
+                                          ...businessForm,
+                                          latitude: pos.coords.latitude,
+                                          longitude: pos.coords.longitude,
+                                        });
+                                        toast.success('Location updated!');
+                                      },
+                                      () => toast.error('Could not get location. Please allow location access or enter coordinates manually.')
+                                    );
+                                  }
+                                }}
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#2A2A2A] text-white hover:bg-[#3A3A3A] transition-colors text-sm font-medium"
+                              >
+                                📍 Use My Current Location
+                              </button>
                             </div>
                           </div>
 
@@ -2031,14 +2125,12 @@ export default function SettingsPage() {
                               role="switch"
                               aria-checked={twoFactorEnabled}
                               onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
-                              className={`relative w-14 h-8 rounded-full shrink-0 transition-colors ${
-                                twoFactorEnabled ? 'bg-[#FF6B00]' : 'bg-[#2A2A2A]'
-                              }`}
+                              className={`relative w-14 h-8 rounded-full shrink-0 transition-colors ${twoFactorEnabled ? 'bg-[#FF6B00]' : 'bg-[#2A2A2A]'
+                                }`}
                             >
                               <span
-                                className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${
-                                  twoFactorEnabled ? 'translate-x-6' : 'translate-x-0'
-                                }`}
+                                className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-0'
+                                  }`}
                               />
                             </button>
                           </div>
@@ -2125,18 +2217,16 @@ export default function SettingsPage() {
                                           },
                                         })
                                       }
-                                      className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 ${
-                                        notificationPreferences[key as keyof typeof notificationPreferences].email
+                                      className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 ${notificationPreferences[key as keyof typeof notificationPreferences].email
                                           ? 'bg-[#FF6B00]'
                                           : 'bg-[#2A2A2A]'
-                                      }`}
+                                        }`}
                                     >
                                       <span
-                                        className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
-                                          notificationPreferences[key as keyof typeof notificationPreferences].email
+                                        className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${notificationPreferences[key as keyof typeof notificationPreferences].email
                                             ? 'translate-x-5'
                                             : 'translate-x-0'
-                                        }`}
+                                          }`}
                                       />
                                     </button>
                                   </div>
@@ -2161,20 +2251,18 @@ export default function SettingsPage() {
                                             },
                                           })
                                         }
-                                        className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 ${
-                                          'push' in notificationPreferences[key as keyof typeof notificationPreferences] &&
-                                          notificationPreferences[key as keyof typeof notificationPreferences].push
+                                        className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 ${'push' in notificationPreferences[key as keyof typeof notificationPreferences] &&
+                                            notificationPreferences[key as keyof typeof notificationPreferences].push
                                             ? 'bg-[#FF6B00]'
                                             : 'bg-[#2A2A2A]'
-                                        }`}
+                                          }`}
                                       >
                                         <span
-                                          className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
-                                            'push' in notificationPreferences[key as keyof typeof notificationPreferences] &&
-                                            notificationPreferences[key as keyof typeof notificationPreferences].push
+                                          className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${'push' in notificationPreferences[key as keyof typeof notificationPreferences] &&
+                                              notificationPreferences[key as keyof typeof notificationPreferences].push
                                               ? 'translate-x-5'
                                               : 'translate-x-0'
-                                          }`}
+                                            }`}
                                         />
                                       </button>
                                     </div>

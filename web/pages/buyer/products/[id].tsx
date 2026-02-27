@@ -33,6 +33,7 @@ import { addToWishlist, removeFromWishlist, checkWishlist } from '../../../lib/a
 import { showSuccessToast, showErrorToast } from '../../../lib/ui/toast';
 import ShareButton from '../../../components/products/ShareButton';
 import RelatedProducts from '../../../components/products/RelatedProducts';
+import { getBaseUrl, buildProductOgImageUrl, buildProductUrl } from '../../../lib/og';
 
 interface PriceTier {
   minQuantity: number;
@@ -443,13 +444,13 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
 
   const productForMeta = product ?? initialProduct;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.carryofy.com';
-  const productUrl = productForMeta ? `${siteUrl}/buyer/products/${productForMeta.id}` : undefined;
-  const ogImageUrl = productForMeta?.images?.[0]
-    ? productForMeta.images[0].startsWith('http')
-      ? productForMeta.images[0]
-      : `${siteUrl}${productForMeta.images[0].startsWith('/') ? '' : '/'}${productForMeta.images[0]}`
-    : `${siteUrl}/og/product.png`;
+  const baseUrl = getBaseUrl();
+  const productUrl = productForMeta ? buildProductUrl(productForMeta.id, baseUrl) : undefined;
+  const ogImageUrl = productForMeta
+    ? buildProductOgImageUrl(productForMeta.id, baseUrl)
+    : `${baseUrl}/api/og/default`;
+
+  const fallbackDescription = 'Shop thousands of products with fast delivery in Lagos on Carryofy.';
 
   return (
     <>
@@ -457,13 +458,13 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
         title={productForMeta ? `${productForMeta.title} - Buy Online in Nigeria | Carryofy` : 'Product | Carryofy'}
         description={productForMeta
           ? `Buy ${productForMeta.title} online in Nigeria at ${formatPrice(productForMeta.price)}. ${productForMeta.description?.slice(0, 120) || ''} Same-day delivery in Lagos. Sold by ${productForMeta.seller?.businessName || 'verified seller'}. Buy now on Carryofy.`
-          : 'Shop quality products online at Carryofy. Same-day delivery in Lagos, Nigeria.'
+          : fallbackDescription
         }
         keywords={productKeywords}
         canonical={productUrl}
         ogType="product"
         ogImage={ogImageUrl}
-        ogImageAlt={productForMeta?.title || 'Product on Carryofy'}
+        ogImageAlt={productForMeta ? `${productForMeta.title} — on Carryofy` : 'Product on Carryofy'}
         productPrice={productForMeta != null ? productForMeta.price / 100 : undefined}
         productCurrency="NGN"
         productAvailability={productForMeta?.quantity && productForMeta.quantity > 0 ? 'in stock' : 'out of stock'}
@@ -483,10 +484,10 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
             category={getCategoryName(productForMeta.category)}
             seller={{
               name: productForMeta.seller?.businessName || 'Carryofy Seller',
-              url: `${siteUrl}/seller/${productForMeta.seller?.id}`,
+              url: `${baseUrl}/seller/${productForMeta.seller?.id}`,
             }}
             rating={reviews.length > 0 ? { value: averageRating, count: reviews.length } : undefined}
-            url={productUrl ?? `${siteUrl}/buyer/products/${productForMeta.id}`}
+            url={productUrl ?? `${baseUrl}/buyer/products/${productForMeta.id}`}
           />
           <BreadcrumbSchema
             items={[

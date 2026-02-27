@@ -231,9 +231,11 @@ export default function BuyerDashboard() {
     fetchDashboard();
   }, [mounted]);
 
-  const user = userManager.getUser();
+  // Avoid hydration mismatch: user comes from client (e.g. localStorage) and greeting uses local time.
+  // Render stable placeholder until mounted, then show real values.
+  const user = mounted ? userManager.getUser() : null;
   const firstName = user?.name?.split(' ')[0] || 'there';
-  const greeting = getGreeting();
+  const greeting = mounted ? getGreeting() : 'Hello';
 
   return (
     <>
@@ -247,7 +249,7 @@ export default function BuyerDashboard() {
         <div className="font-inter antialiased">
           {/* ZONE A — Smart Greeting Bar */}
           <div className="w-full rounded-xl bg-[#111111] border border-[#FF6B00]/20 px-4 py-6 sm:px-6 sm:py-8 mb-8">
-            <h1 className="text-white text-2xl sm:text-3xl font-bold mb-1">
+            <h1 className="text-white text-2xl sm:text-3xl font-bold mb-1" suppressHydrationWarning>
               {greeting}, {firstName} 👋
             </h1>
             <p className="text-[#ffcc99]/80 text-sm sm:text-base mb-6">

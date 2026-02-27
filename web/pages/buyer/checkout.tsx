@@ -47,7 +47,7 @@ interface Cart {
   totalItems: number;
 }
 
-// Only Express shipping is offered
+const FREE_SHIPPING_THRESHOLD_KOBO = 3000000; // ₦30,000
 
 const STEPS = [
   { id: 1, label: 'Order summary', icon: ClipboardList },
@@ -84,6 +84,7 @@ export default function CheckoutPage() {
   const [orderMessage, setOrderMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
+  const [shippingMethod, setShippingMethod] = useState<'STANDARD' | 'EXPRESS' | 'SCHEDULED'>('STANDARD');
   const [shippingFee, setShippingFee] = useState<number>(0);
   const [shippingQuoteLoading, setShippingQuoteLoading] = useState(false);
   const [shippingQuoteError, setShippingQuoteError] = useState<string | null>(null);
@@ -171,7 +172,24 @@ export default function CheckoutPage() {
     }
   }, [mounted, quoteId]);
 
-  // Fetch Express shipping quote when cart or quote and address available
+  const quoteSubtotal = useMemo(() => {
+    if (!quote?.items?.length) return 0;
+    return quote.items.reduce(
+      (sum, i) => sum + (i.requestedQuantity * (i.sellerQuotedPriceKobo ?? i.requestedPriceKobo ?? 0)),
+      0,
+    );
+  }, [quote?.items]);
+
+  const cartSubtotalKobo = useMemo(() => {
+    if (quote?.items?.length) return quoteSubtotal;
+    if (!cart?.items?.length) return 0;
+    return cart.items.reduce(
+      (sum, i) => sum + (i.resolvedTotalPrice ?? (i.resolvedUnitPrice ?? i.product?.price ?? 0) * i.quantity),
+      0,
+    );
+  }, [quote, quoteSubtotal, cart?.items]);
+
+  // Fetch shipping quote when cart/quote, address and shipping method are available
   useEffect(() => {
     const items = quote
       ? quote.items.map((i) => ({ productId: i.productId, quantity: i.requestedQuantity }))
@@ -190,7 +208,12 @@ export default function CheckoutPage() {
     let cancelled = false;
     setShippingQuoteLoading(true);
     setShippingQuoteError(null);
-    fetchShippingQuote({ addressId, items, shippingMethod: 'EXPRESS' })
+    fetchShippingQuote({
+      addressId,
+      items,
+      shippingMethod,
+      cartSubtotalKobo,
+    })
       .then((res) => {
         if (!cancelled) {
           const fee = Number(res?.shippingFeeKobo);
@@ -207,7 +230,7 @@ export default function CheckoutPage() {
         if (!cancelled) setShippingQuoteLoading(false);
       });
     return () => { cancelled = true; };
-  }, [cart?.items, quote, selectedAddressId]);
+  }, [cart?.items, quote, selectedAddressId, shippingMethod, cartSubtotalKobo]);
 
   const fetchAddresses = async () => {
     // Only fetch addresses if user is authenticated
@@ -348,14 +371,6 @@ export default function CheckoutPage() {
     if (quote) return true;
     return cart?.items?.some((i) => i.product?.sellingMode === 'B2B_ONLY') ?? false;
   }, [cart?.items, quote]);
-
-  const quoteSubtotal = useMemo(() => {
-    if (!quote?.items?.length) return 0;
-    return quote.items.reduce(
-      (sum, i) => sum + (i.requestedQuantity * (i.sellerQuotedPriceKobo ?? i.requestedPriceKobo ?? 0)),
-      0,
-    );
-  }, [quote?.items]);
 
   const totalAmount = useMemo(() => {
     if (quote) return quoteSubtotal + shippingFee - discount;
@@ -615,7 +630,8 @@ export default function CheckoutPage() {
       // Step 2: Create order (from quote or cart)
       const orderPayload: Record<string, unknown> = {
         addressId,
-        shippingMethod: 'EXPRESS',
+        shippingMethod,
+        quotedShippingFeeKobo: shippingFee,
         couponCode: couponApplied ? couponCode.trim() || undefined : undefined,
       };
       if (isQuoteCheckout) {
@@ -861,6 +877,31 @@ export default function CheckoutPage() {
                           <Truck className="w-5 h-5 text-[#ff6600]" />
                           <h2 className="text-white text-xl font-bold">Shipping</h2>
                         </div>
+                        <div className="space-y-3 mb-4">
+                          {[
+                            // { value: 'STANDARD' as const, label: 'Standard Delivery', description: 'Same day, best effort' },
+                            { value: 'EXPRESS' as const, label: 'Express Delivery', description: 'Guaranteed delivery' },
+                            // { value: 'SCHEDULED' as const, label: 'Scheduled Delivery', description: 'Pick a time slot (save 10%)' },
+                          ].map((option) => (
+                            <label
+                              key={option.value}
+                              className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${shippingMethod === option.value ? 'border-[#ff6600] bg-[#ff6600]/10' : 'border-[#ff6600]/30 hover:border-[#ff6600]/50'}`}
+                            >
+                              <input
+                                type="radio"
+                                name="shippingMethod"
+                                value={option.value}
+                                checked={shippingMethod === option.value}
+                                onChange={() => setShippingMethod(option.value)}
+                                className="mt-1 accent-[#ff6600]"
+                              />
+                              <div>
+                                <span className="text-white font-medium block">{option.label}</span>
+                                <span className="text-[#ffcc99]/80 text-sm">{option.description}</span>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
                         <div className="flex items-center justify-between py-2">
                           <span className="text-[#ff6600] font-bold">
                             {shippingQuoteLoading ? (
@@ -873,6 +914,16 @@ export default function CheckoutPage() {
                             )}
                           </span>
                         </div>
+                        {!quote && cartSubtotalKobo < FREE_SHIPPING_THRESHOLD_KOBO && (
+                          <div className="mt-3 p-3 rounded-lg bg-[#ff6600]/10 border border-[#ff6600]/30 text-[#ffcc99] text-sm">
+                            Add {formatPrice(FREE_SHIPPING_THRESHOLD_KOBO - cartSubtotalKobo)} more to get 30% off delivery
+                          </div>
+                        )}
+                        {!quote && cartSubtotalKobo >= FREE_SHIPPING_THRESHOLD_KOBO && shippingFee > 0 && (
+                          <div className="mt-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
+                            You qualify for 30% off delivery!
+                          </div>
+                        )}
                       </section>
 
                       <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">

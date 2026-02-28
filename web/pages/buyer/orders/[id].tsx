@@ -18,6 +18,8 @@ import {
   ShieldCheck,
   Truck,
   XCircle,
+  CreditCard,
+  Lock,
 } from 'lucide-react';
 import { showErrorToast, showSuccessToast } from '../../../lib/ui/toast';
 import { userManager, tokenManager } from '../../../lib/auth';
@@ -106,6 +108,11 @@ const statusBadge = (status: string) => {
       className: 'bg-red-500/10 text-red-400 border-red-500/30',
       icon: <XCircle className="w-3 h-3" />,
     },
+    FAILED_PAYMENT: {
+      label: 'Payment Failed',
+      className: 'bg-red-500/10 text-red-400 border-red-500/30 font-bold',
+      icon: <XCircle className="w-3 h-3" />,
+    },
     REFUNDED: {
       label: 'Refunded',
       className: 'bg-gray-500/10 text-gray-400 border-gray-500/30',
@@ -145,6 +152,7 @@ export default function BuyerOrderDetailPage() {
   const [hasRefund, setHasRefund] = useState(false);
   const [refundInfo, setRefundInfo] = useState<{ id: string; status: string; createdAt: string; updatedAt: string } | null>(null);
   const [paymentVerifying, setPaymentVerifying] = useState(false);
+  const [paying, setPaying] = useState(false);
   const confirmation = useConfirmation();
 
   // Fetch order details
@@ -157,8 +165,8 @@ export default function BuyerOrderDetailPage() {
       setOrder(orderData);
     } catch (err: unknown) {
       console.error('Error fetching order:', err);
-      const errorMessage = err instanceof AxiosError && err.response?.data?.message 
-        ? err.response.data.message 
+      const errorMessage = err instanceof AxiosError && err.response?.data?.message
+        ? err.response.data.message
         : 'Failed to load order details';
       setError(errorMessage);
     } finally {
@@ -272,11 +280,11 @@ export default function BuyerOrderDetailPage() {
       setRefundInfo(
         orderRefund
           ? {
-              id: orderRefund.id,
-              status: orderRefund.status,
-              createdAt: orderRefund.createdAt,
-              updatedAt: orderRefund.updatedAt,
-            }
+            id: orderRefund.id,
+            status: orderRefund.status,
+            createdAt: orderRefund.createdAt,
+            updatedAt: orderRefund.updatedAt,
+          }
           : null,
       );
     } catch (err) {
@@ -355,8 +363,8 @@ export default function BuyerOrderDetailPage() {
       const errorMessage = err instanceof AxiosError && err.response?.data?.message
         ? err.response.data.message
         : err instanceof Error
-        ? err.message
-        : 'Unable to save review right now.';
+          ? err.message
+          : 'Unable to save review right now.';
       showErrorToast(errorMessage);
       throw err;
     }
@@ -379,6 +387,11 @@ export default function BuyerOrderDetailPage() {
   // Check if order can be canceled
   const canCancel = useMemo(() => {
     return order && ['PENDING_PAYMENT', 'PAID', 'PROCESSING'].includes(order.status);
+  }, [order]);
+
+  // Check if order can be paid
+  const canPay = useMemo(() => {
+    return order && ['PENDING_PAYMENT', 'FAILED_PAYMENT'].includes(order.status);
   }, [order]);
 
   // Check if order can be refunded (not if they already requested refund or left a product review)
@@ -450,6 +463,32 @@ export default function BuyerOrderDetailPage() {
     } finally {
       setCanceling(false);
       confirmation.setLoading(false);
+    }
+  };
+
+  // Handle re-initiating payment
+  const handlePayNow = async () => {
+    if (!order) return;
+
+    try {
+      setPaying(true);
+      const response = await apiClient.post('/payments/initialize', {
+        orderId: order.id,
+      });
+      const data = response.data.data || response.data;
+      if (data?.authorization_url) {
+        window.location.href = data.authorization_url;
+      } else {
+        showErrorToast('Could not initialize payment. Please try again later.');
+      }
+    } catch (err: unknown) {
+      console.error('Error initializing payment:', err);
+      const errorMessage = err instanceof AxiosError && err.response?.data?.message
+        ? err.response.data.message
+        : 'Failed to initialize payment';
+      showErrorToast(errorMessage);
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -552,9 +591,8 @@ export default function BuyerOrderDetailPage() {
                         <div key={step.key} className="relative flex gap-6">
                           <div className="flex flex-col items-center">
                             <div
-                              className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition ${
-                                isActive ? 'bg-[#ff6600] border-[#ff6600] text-black' : 'bg-black border-[#ff6600]/30 text-[#ffcc99]/60'
-                              }`}
+                              className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition ${isActive ? 'bg-[#ff6600] border-[#ff6600] text-black' : 'bg-black border-[#ff6600]/30 text-[#ffcc99]/60'
+                                }`}
                             >
                               {index < activeStepIndex ? (
                                 <CheckCircle2 className="w-5 h-5" />
@@ -576,7 +614,7 @@ export default function BuyerOrderDetailPage() {
                       );
                     })}
 
-                    {order.status === 'CANCELED' && (
+                    {(order.status === 'CANCELED' || order.status === 'FAILED_PAYMENT') && (
                       <div className="relative flex gap-6">
                         <div className="flex flex-col items-center">
                           <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 bg-red-500 border-red-500 text-white">
@@ -584,9 +622,13 @@ export default function BuyerOrderDetailPage() {
                           </div>
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-white">Order Canceled</h3>
+                          <h3 className="text-lg font-bold text-white">
+                            {order.status === 'CANCELED' ? 'Order Canceled' : 'Payment Failed'}
+                          </h3>
                           <p className="text-[#ffcc99]/80 text-sm">
-                            This order was canceled. If you still need the items, you can place a new order.
+                            {order.status === 'CANCELED'
+                              ? 'This order was canceled. If you still need the items, you can place a new order.'
+                              : 'The payment for this order failed or was abandoned. Please try again or place a new order.'}
                           </p>
                         </div>
                       </div>
@@ -665,15 +707,14 @@ export default function BuyerOrderDetailPage() {
                             step === 'REJECTED'
                               ? 'bg-red-500/10 text-red-400 border-red-500/30'
                               : step === 'COMPLETED'
-                              ? 'bg-green-500/10 text-green-400 border-green-500/30'
-                              : 'bg-blue-500/10 text-blue-400 border-blue-500/30';
+                                ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                                : 'bg-blue-500/10 text-blue-400 border-blue-500/30';
 
                           return (
                             <span
                               key={step}
-                              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${
-                                isActive ? tone : 'bg-black border-[#ff6600]/30 text-[#ffcc99]/60'
-                              }`}
+                              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${isActive ? tone : 'bg-black border-[#ff6600]/30 text-[#ffcc99]/60'
+                                }`}
                             >
                               {step}
                             </span>
@@ -736,6 +777,20 @@ export default function BuyerOrderDetailPage() {
                       </div>
                     </div>
                     <div className="mt-4 flex flex-col gap-3">
+                      {canPay && (
+                        <button
+                          onClick={handlePayNow}
+                          disabled={paying}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-[#ff6600]/20"
+                        >
+                          {paying ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <CreditCard className="w-5 h-5" />
+                          )}
+                          {paying ? 'Initializing...' : 'Pay Now'}
+                        </button>
+                      )}
                       {canConfirm && (
                         <button
                           onClick={handleMarkAsReceived}
@@ -821,13 +876,19 @@ export default function BuyerOrderDetailPage() {
                             showErrorToast('Invoice could not be loaded.');
                             return;
                           }
-                          const win = window.open('', '_blank');
-                          if (win) {
-                            win.document.write(html);
-                            win.document.close();
-                          } else {
-                            showErrorToast('Please allow pop-ups to view the invoice.');
-                          }
+
+                          // Create a blob and a temporary link to force download
+                          const blob = new Blob([html], { type: 'text/html' });
+                          const url = window.URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.setAttribute('download', `invoice-${order.id.slice(0, 8)}.html`);
+                          document.body.appendChild(link);
+                          link.click();
+
+                          // Clean up
+                          document.body.removeChild(link);
+                          window.URL.revokeObjectURL(url);
                         } catch (err: unknown) {
                           const msg = err && typeof err === 'object' && err !== null && 'response' in err
                             ? (err as { response?: { data?: { message?: string } } }).response?.data?.message

@@ -6,7 +6,7 @@ import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager, userManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
 import { User, Building2, Shield, Bell, Save, Eye, EyeOff, CheckCircle2, XCircle, Clock, CreditCard, Plus, Trash2, ShieldCheck, Upload, AlertCircle, Lock, Loader2, Moon } from 'lucide-react';
-import ThemeToggle from '../../../components/common/ThemeToggle';
+
 import { geocodeString } from '../../../lib/api/geocode';
 
 interface UserProfile {
@@ -1261,7 +1261,7 @@ export default function SettingsPage() {
                               <p className="text-white text-sm font-medium">Theme Preference</p>
                               <p className="text-[#A0A0A0] text-xs">Switch between light and dark mode</p>
                             </div>
-                            <ThemeToggle />
+
                           </div>
                         </div>
                       </div>

@@ -9,7 +9,7 @@ export interface User {
     verified: boolean;
     vehicleType?: string;
     vehicleNumber?: string;
-    themePreference?: string;
+
 }
 
 export interface AuthResponse {

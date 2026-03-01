@@ -28,7 +28,7 @@ import {
   Bookmark,
   Moon,
 } from 'lucide-react';
-import ThemeToggle from '../../components/common/ThemeToggle';
+
 import Link from 'next/link';
 import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
@@ -1128,7 +1128,7 @@ export default function BuyerProfilePage() {
                       <p className="text-[#ffcc99] font-medium">Interface Theme</p>
                       <p className="text-[#ffcc99]/60 text-xs mt-0.5">Switch between Light and Dark mode</p>
                     </div>
-                    <ThemeToggle />
+
                   </div>
                 </div>
               </div>

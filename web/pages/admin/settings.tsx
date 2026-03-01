@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { AlertCircle, Check, X, Truck, Users, Bell, ChevronDown, ChevronRight, Mail, Send, RefreshCw, Moon } from 'lucide-react';
-import ThemeToggle from '../../components/common/ThemeToggle';
+
 import {
   usePlatformSettings,
   useUpdatePlatformSettings,
@@ -973,7 +973,7 @@ export default function AdminSettings() {
                       Switch between Light and Dark mode for the admin panel.
                     </p>
                   </div>
-                  <ThemeToggle />
+
                 </div>
               </div>
             )}

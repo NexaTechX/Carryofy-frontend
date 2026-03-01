@@ -30,7 +30,7 @@ import GlobalSearch from './GlobalSearch';
 import NotificationsDropdown from './NotificationsDropdown';
 import { RealtimeProvider } from '../../lib/contexts/RealtimeContext';
 import { useAuth } from '../../lib/auth/context';
-import ThemeToggle from '../common/ThemeToggle';
+
 
 interface AdminLayoutProps {
   children: ReactNode;

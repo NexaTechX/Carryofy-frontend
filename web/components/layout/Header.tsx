@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ThemeToggle from '../common/ThemeToggle';
+
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -120,7 +120,7 @@ export default function Header() {
 
           {/* CTA Buttons */}
           <div className="hidden lg:flex items-center gap-3">
-            <ThemeToggle />
+
             <Link
               href="/auth/login"
               className="px-5 py-2.5 text-foreground font-medium hover:text-[#FF6B00] transition-colors"

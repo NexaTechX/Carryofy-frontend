@@ -10,7 +10,6 @@ import { CartProvider } from '../lib/contexts/CartContext';
 import { initAnalytics } from '../lib/firebase/config';
 
 
-import { ThemeProvider } from 'next-themes';
 
 export default function App({ Component, pageProps }: AppProps) {
   const [queryClient] = useState(
@@ -39,15 +38,15 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={true}>
-        <AuthProvider>
-          <CartProvider>
-            <AdminGuard>
-              <Component {...pageProps} />
-            </AdminGuard>
-          </CartProvider>
-        </AuthProvider>
-      </ThemeProvider>
+
+      <AuthProvider>
+        <CartProvider>
+          <AdminGuard>
+            <Component {...pageProps} />
+          </AdminGuard>
+        </CartProvider>
+      </AuthProvider>
+
       <Toaster
         position="top-right"
         toastOptions={{

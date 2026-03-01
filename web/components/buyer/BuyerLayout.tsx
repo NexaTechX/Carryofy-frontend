@@ -27,7 +27,7 @@ const CartDrawer = dynamic(() => import('./CartDrawer'), {
 import { useAuth } from '../../lib/auth';
 import { useCart } from '../../lib/contexts/CartContext';
 import ErrorBoundary from '../common/ErrorBoundary';
-import ThemeToggle from '../common/ThemeToggle';
+
 
 interface BuyerLayoutProps {
   children: ReactNode;

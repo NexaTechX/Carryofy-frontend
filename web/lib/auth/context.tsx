@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User } from './types';
 import { tokenManager } from './token';
 import { authService } from './service';
-import { useTheme } from 'next-themes';
+
 
 interface AuthContextType {
     user: User | null;
@@ -100,23 +100,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     return (
         <AuthContext.Provider value={value}>
-            <ThemeApplier user={user} />
+
             {children}
         </AuthContext.Provider>
     );
 };
 
-const ThemeApplier: React.FC<{ user: User | null }> = ({ user }) => {
-    const { theme, setTheme } = useTheme();
 
-    useEffect(() => {
-        if (user?.themePreference && user.themePreference !== theme) {
-            setTheme(user.themePreference);
-        }
-    }, [user?.themePreference, setTheme, theme]);
-
-    return null;
-};
 
 export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);

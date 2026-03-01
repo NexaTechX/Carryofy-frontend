@@ -539,10 +539,6 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                   <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
                     <MapPin className="w-5 h-5 text-amber-500" />
                   </div>
-                  <div>
-                    <p className="font-bold text-sm">Business Pickup Address Required</p>
-                    <p className="text-xs text-foreground/70">Please add your pickup address to enable delivery calculations and product listing.</p>
-                  </div>
                 </div>
                 <Link
                   href="/seller/settings?tab=business"

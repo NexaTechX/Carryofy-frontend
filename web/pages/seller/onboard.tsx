@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import { useAuth, tokenManager } from '../../lib/auth';
 import { refreshAccessTokenBeforeRedirect } from '../../lib/api/client';
+import { geocodeString } from '../../lib/api/geocode';
 import { Building2, CheckCircle, Phone, AlertTriangle, ArrowLeft, ArrowRight, Store, Package } from 'lucide-react';
 
 /**
@@ -59,7 +60,7 @@ export default function SellerOnboardingPage() {
   const [phoneInput, setPhoneInput] = useState('');
   const [needsPhoneUpdate, setNeedsPhoneUpdate] = useState(false);
 
-  const [pickupAddress, setPickupAddress] = useState('');
+  const [businessAddress, setBusinessAddress] = useState('');
   const [pickupInstructions, setPickupInstructions] = useState('');
   const [latitude, setLatitude] = useState<number | ''>('');
   const [longitude, setLongitude] = useState<number | ''>('');
@@ -155,12 +156,8 @@ export default function SellerOnboardingPage() {
   };
 
   const canProceedFromStep2 = () => {
-    if (!pickupAddress.trim()) {
-      toast.error('Please enter your pickup address');
-      return false;
-    }
-    if (latitude === '' || longitude === '') {
-      toast.error('Please provide your location coordinates (Latitude/Longitude)');
+    if (!businessAddress.trim()) {
+      toast.error('Please enter your business / pickup address');
       return false;
     }
     return true;
@@ -208,6 +205,23 @@ export default function SellerOnboardingPage() {
       }
 
       // Step 2: Onboard seller
+      let lat = latitude;
+      let lng = longitude;
+
+      if (lat === '' || lng === '') {
+        const geoResult = await geocodeString(businessAddress.trim());
+        if (geoResult) {
+          lat = geoResult.latitude;
+          lng = geoResult.longitude;
+          setLatitude(lat);
+          setLongitude(lng);
+        } else {
+          toast.error('Could not find coordinates for this address. Please ensure it is accurate.');
+          setLoading(false);
+          return;
+        }
+      }
+
       const response = await fetch(`${apiUrl}/sellers/onboard`, {
         method: 'POST',
         headers: {
@@ -216,10 +230,11 @@ export default function SellerOnboardingPage() {
         },
         body: JSON.stringify({
           businessName: businessName.trim(),
-          pickupAddress: pickupAddress.trim(),
+          businessType: businessType,
+          businessAddress: businessAddress.trim(),
           pickupInstructions: pickupInstructions.trim() || undefined,
-          latitude: latitude !== '' ? Number(latitude) : undefined,
-          longitude: longitude !== '' ? Number(longitude) : undefined,
+          latitude: Number(lat),
+          longitude: Number(lng),
         }),
       });
 
@@ -371,16 +386,21 @@ export default function SellerOnboardingPage() {
 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-white text-sm font-medium mb-2">
-                      Pickup Address <span className="text-red-400">*</span>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">
+                      Business Pickup Address
                     </label>
-                    <input
-                      type="text"
-                      value={pickupAddress}
-                      onChange={(e) => setPickupAddress(e.target.value)}
-                      placeholder="e.g. 14 Bode Thomas Street, Surulere, Lagos"
-                      className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-black focus:border-[#ff6600] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
-                    />
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
+                      <textarea
+                        value={businessAddress}
+                        onChange={(e) => setBusinessAddress(e.target.value)}
+                        placeholder="e.g. 123 Business Way, Ikeja, Lagos"
+                        className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 h-24"
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">
+                      This is where riders will come to pick up your products.
+                    </p>
                   </div>
 
                   <div>
@@ -396,6 +416,7 @@ export default function SellerOnboardingPage() {
                     />
                   </div>
 
+                  {/* 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-white text-sm font-medium mb-2">Latitude <span className="text-red-400">*</span></label>
@@ -449,6 +470,7 @@ export default function SellerOnboardingPage() {
                   <p className="text-center text-[#ffcc99] text-xs">
                     Riders need these coordinates to find you precisely.
                   </p>
+                  */}
                 </div>
               </>
             )}
@@ -464,8 +486,8 @@ export default function SellerOnboardingPage() {
                       type="button"
                       onClick={() => setBusinessType(opt.id)}
                       className={`p-4 rounded-xl border-2 text-left transition-all ${businessType === opt.id
-                          ? 'border-[#ff6600] bg-[#ff6600]/10'
-                          : 'border-white/10 hover:border-[#ff6600]/50 bg-black/50'
+                        ? 'border-[#ff6600] bg-[#ff6600]/10'
+                        : 'border-white/10 hover:border-[#ff6600]/50 bg-black/50'
                         }`}
                     >
                       <span className="text-white font-semibold block">{opt.label}</span>
@@ -487,8 +509,8 @@ export default function SellerOnboardingPage() {
                       type="button"
                       onClick={() => togglePlannedCategory(cat)}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition ${plannedCategories.includes(cat)
-                          ? 'bg-[#ff6600] text-black'
-                          : 'bg-white/10 text-[#ffcc99] hover:bg-white/20'
+                        ? 'bg-[#ff6600] text-black'
+                        : 'bg-white/10 text-[#ffcc99] hover:bg-white/20'
                         }`}
                     >
                       {cat}
@@ -506,28 +528,30 @@ export default function SellerOnboardingPage() {
                     <p className="text-[#ffcc99] text-xs uppercase tracking-wide mb-1">Business name</p>
                     <p className="text-white font-semibold">{businessName || '—'}</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-black/50 border border-white/10">
-                    <p className="text-[#ffcc99] text-xs uppercase tracking-wide mb-1">Pickup address</p>
-                    <p className="text-white font-semibold">{pickupAddress || '—'}</p>
+                  <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                    <span className="text-sm text-gray-400 block mb-1">Business Address</span>
+                    <span className="text-white font-medium">{businessAddress}</span>
+                  </div>
+                  {/* 
                     {(latitude && longitude) && (
                       <p className="text-[#A0A0A0] text-xs mt-1">
                         GPS: {latitude.toFixed(4)}, {longitude.toFixed(4)}
                       </p>
                     )}
-                  </div>
-                  <div className="p-4 rounded-xl bg-black/50 border border-white/10">
-                    <p className="text-[#ffcc99] text-xs uppercase tracking-wide mb-1">Business type</p>
-                    <p className="text-white font-semibold">
-                      {SELLER_BUSINESS_TYPES.find((t) => t.id === businessType)?.label ?? '—'}
-                    </p>
-                  </div>
-                  {plannedCategories.length > 0 && (
-                    <div className="p-4 rounded-xl bg-black/50 border border-white/10">
-                      <p className="text-[#ffcc99] text-xs uppercase tracking-wide mb-1">Planned categories</p>
-                      <p className="text-white font-medium">{plannedCategories.join(', ')}</p>
-                    </div>
-                  )}
+                    */}
                 </div>
+                <div className="p-4 rounded-xl bg-black/50 border border-white/10">
+                  <p className="text-[#ffcc99] text-xs uppercase tracking-wide mb-1">Business type</p>
+                  <p className="text-white font-semibold">
+                    {SELLER_BUSINESS_TYPES.find((t) => t.id === businessType)?.label ?? '—'}
+                  </p>
+                </div>
+                {plannedCategories.length > 0 && (
+                  <div className="p-4 rounded-xl bg-black/50 border border-white/10">
+                    <p className="text-[#ffcc99] text-xs uppercase tracking-wide mb-1">Planned categories</p>
+                    <p className="text-white font-medium">{plannedCategories.join(', ')}</p>
+                  </div>
+                )}
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
                   <h3 className="text-white font-semibold mb-2">What happens next?</h3>
                   <ul className="text-[#ffcc99] text-sm space-y-2">
@@ -591,7 +615,7 @@ export default function SellerOnboardingPage() {
             </p>
           </div>
         </div>
-      </div>
+      </div >
     </>
   );
 }

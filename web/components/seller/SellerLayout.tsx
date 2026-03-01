@@ -21,8 +21,11 @@ import {
   MessageSquare,
   FileText,
   LogOut,
+  MapPin,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth, tokenManager } from '../../lib/auth';
+import ThemeToggle from '../common/ThemeToggle';
 
 interface Notification {
   id: string;
@@ -38,6 +41,9 @@ interface SellerProfile {
   id: string;
   businessName: string;
   logo?: string;
+  pickupAddress?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface SellerLayoutProps {
@@ -143,6 +149,9 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
           id: sellerData.id,
           businessName: sellerData.businessName,
           logo: sellerData.logo,
+          pickupAddress: sellerData.pickupAddress,
+          latitude: sellerData.latitude,
+          longitude: sellerData.longitude,
         });
       } else if (response.status === 404) {
         setSellerProfile(null);
@@ -249,10 +258,10 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Seller onboarding is separate at /seller/onboard; no buyer AI onboarding banner here */}
       {/* Top Header - fixed height so fixed sidebar aligns below it */}
-      <header className="bg-black border-b border-primary/30 sticky top-0 z-50 safe-top h-14 sm:h-16 shrink-0 flex items-center">
+      <header className="bg-background border-b border-border-custom sticky top-0 z-50 safe-top h-14 sm:h-16 shrink-0 flex items-center">
         <div className="flex items-center justify-between w-full px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
           {/* Mobile Logo - Only visible on mobile when sidebar is hidden */}
           <div className="flex lg:hidden items-center gap-2">
@@ -267,29 +276,30 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                   priority
                 />
               </div>
-              <span className="text-[#ff6600] text-lg sm:text-xl font-bold">Carryofy</span>
+              <span className="text-primary text-lg sm:text-xl font-bold">Carryofy</span>
             </Link>
           </div>
 
           {/* Search Bar - Desktop only */}
           <div className="hidden lg:flex flex-1 max-w-md">
             <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#ffcc99]" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-foreground/50" />
               <input
                 type="text"
                 placeholder="Search"
-                className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-primary/30 rounded-lg text-white placeholder-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 bg-card border border-border-custom rounded-lg text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
           </div>
 
           {/* Right Side */}
           <div className="flex items-center space-x-2 sm:space-x-4">
+
             {/* Notifications Dropdown */}
             <div className="relative" ref={notificationDropdownRef}>
               <button
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
-                className="relative p-2 text-[#ffcc99] hover:text-white transition touch-target btn-mobile"
+                className="relative p-2 text-foreground/70 hover:text-foreground transition touch-target btn-mobile"
                 aria-label="Notifications"
               >
                 <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -307,12 +317,12 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
               {/* Notification Dropdown */}
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-gray-800 border border-primary/30 rounded-xl shadow-xl z-50 max-h-[500px] flex flex-col">
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-card border border-border-custom rounded-xl shadow-xl z-50 max-h-[500px] flex flex-col">
                   {/* Header */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-primary/30">
-                    <h3 className="text-white font-bold text-sm">Notifications</h3>
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border-custom">
+                    <h3 className="text-foreground font-bold text-sm">Notifications</h3>
                     {unreadCount > 0 && (
-                      <span className="text-[#ffcc99] text-xs">
+                      <span className="text-foreground/60 text-xs">
                         {unreadCount} new
                       </span>
                     )}
@@ -323,7 +333,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                     {notifications.length === 0 ? (
                       <div className="p-6 text-center">
                         <Bell className="w-12 h-12 text-primary/30 mx-auto mb-2" />
-                        <p className="text-[#ffcc99] text-sm">No notifications</p>
+                        <p className="text-foreground/50 text-sm">No notifications</p>
                       </div>
                     ) : (
                       <div className="divide-y divide-primary/10">
@@ -345,14 +355,14 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
                                   <div className="flex-1">
-                                    <p className={`text-sm font-semibold mb-1 ${!notification.read ? 'text-white' : 'text-[#ffcc99]'
+                                    <p className={`text-sm font-semibold mb-1 ${!notification.read ? 'text-foreground' : 'text-foreground/70'
                                       }`}>
                                       {notification.title}
                                     </p>
-                                    <p className="text-xs text-[#ffcc99] line-clamp-2 mb-2">
+                                    <p className="text-xs text-foreground/60 line-clamp-2 mb-2">
                                       {notification.message}
                                     </p>
-                                    <div className="flex items-center gap-2 text-xs text-[#ffcc99]">
+                                    <div className="flex items-center gap-2 text-xs text-foreground/50">
                                       <Clock className="w-3 h-3" />
                                       <span>{formatTime(notification.createdAt)}</span>
                                     </div>
@@ -370,11 +380,11 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                   </div>
 
                   {/* Footer */}
-                  <div className="border-t border-primary/30 px-4 py-3">
+                  <div className="border-t border-border-custom px-4 py-3">
                     <Link
                       href="/seller/notifications"
                       onClick={() => setNotificationsOpen(false)}
-                      className="block w-full text-center px-4 py-2 bg-primary text-black text-sm font-bold rounded-lg hover:bg-primary-dark transition-colors"
+                      className="block w-full text-center px-4 py-2 bg-primary text-black text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors"
                     >
                       View All Notifications
                     </Link>
@@ -386,12 +396,12 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             {/* Sign Out */}
             <button
               onClick={handleLogout}
-              className="relative p-2 text-[#A0A0A0] hover:text-white hover:bg-red-500/20 rounded-lg transition-colors touch-target btn-mobile group"
+              className="relative p-2 text-foreground/50 hover:text-foreground hover:bg-red-500/20 rounded-lg transition-colors touch-target btn-mobile group"
               title="Sign out"
               aria-label="Sign out"
             >
               <LogOut className="w-5 h-5 sm:w-6 sm:h-6" />
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-card border border-border-custom rounded text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                 Sign out
               </span>
             </button>
@@ -399,7 +409,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             {/* Profile */}
             <div className="relative">
               <button className="flex items-center space-x-2">
-                <div className="w-10 h-10 rounded-full bg-gray-800 border-2 border-primary flex items-center justify-center overflow-hidden">
+                <div className="w-10 h-10 rounded-full bg-card border-2 border-primary flex items-center justify-center overflow-hidden">
                   {mounted && sellerProfile?.logo ? (
                     <img
                       src={sellerProfile.logo}
@@ -407,11 +417,11 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                       className="w-full h-full object-cover"
                     />
                   ) : mounted && user?.name ? (
-                    <span className="text-white font-semibold text-sm">
+                    <span className="text-foreground font-semibold text-sm">
                       {user.name.charAt(0).toUpperCase()}
                     </span>
                   ) : (
-                    <span className="text-white font-semibold text-sm">U</span>
+                    <span className="text-foreground font-semibold text-sm">U</span>
                   )}
                 </div>
               </button>
@@ -419,7 +429,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
             {/* Mobile Menu Button */}
             <button
-              className="lg:hidden text-[#ffcc99] hover:text-white touch-target btn-mobile"
+              className="lg:hidden text-foreground/70 hover:text-foreground touch-target btn-mobile"
               onClick={() => setSidebarOpen(!sidebarOpen)}
               aria-label={sidebarOpen ? "Close menu" : "Open menu"}
             >
@@ -433,12 +443,12 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
         {/* Sidebar - fixed on desktop so only content scrolls; overlay on mobile */}
         <aside
           className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            } fixed inset-y-0 left-0 z-40 w-[280px] sm:w-64 bg-black border-r border-primary/30 transition-transform duration-300 ease-in-out
+            } fixed inset-y-0 left-0 z-40 w-[280px] sm:w-64 bg-background border-r border-border-custom transition-transform duration-300 ease-in-out
             lg:translate-x-0 lg:top-16 lg:bottom-0 lg:h-[calc(100vh-4rem)] lg:flex lg:flex-col`}
         >
           <div className="flex flex-col h-full">
             {/* Logo */}
-            <div className="flex items-center space-x-2 px-4 sm:px-6 py-3 sm:py-4 border-b border-primary/30">
+            <div className="flex items-center space-x-2 px-4 sm:px-6 py-3 sm:py-4 border-b border-border-custom">
               <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex items-center justify-center">
                 <Image
                   src="/logo.png"
@@ -448,7 +458,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                   className="w-full h-full object-contain"
                 />
               </div>
-              <span className="text-lg sm:text-xl font-bold text-white">Carryofy</span>
+              <span className="text-lg sm:text-xl font-bold text-foreground">Carryofy</span>
             </div>
 
             {/* Navigation */}
@@ -462,8 +472,8 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
                     className={`flex items-center space-x-3 px-3 py-3 sm:py-2 rounded-xl transition touch-target btn-mobile ${active
-                      ? 'bg-primary/20 text-white'
-                      : 'text-[#ffcc99] hover:bg-gray-800 hover:text-white'
+                      ? 'bg-primary/20 text-foreground'
+                      : 'text-foreground/70 hover:bg-card hover:text-foreground'
                       }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -477,20 +487,20 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             <div className="px-3 sm:px-4 py-3 sm:py-4">
               <Link
                 href="/seller/products/new"
-                className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-11 sm:h-10 px-4 bg-primary text-black text-sm font-bold leading-normal tracking-[0.015em] w-full hover:bg-primary-dark transition-colors touch-target btn-mobile"
+                className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-11 sm:h-10 px-4 bg-primary text-black text-sm font-bold leading-normal tracking-[0.015em] w-full hover:bg-primary/90 transition-colors touch-target btn-mobile"
               >
                 <span className="truncate">Add Product</span>
               </Link>
             </div>
 
             {/* Help and Support */}
-            <div className="px-3 sm:px-4 py-3 sm:py-4 border-t border-primary/30 safe-bottom space-y-1">
+            <div className="px-3 sm:px-4 py-3 sm:py-4 border-t border-border-custom safe-bottom space-y-1">
               <Link
                 href="/seller/help"
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center space-x-3 px-3 py-3 sm:py-2 rounded-xl transition touch-target btn-mobile ${isActive('/seller/help')
-                  ? 'bg-primary/20 text-white'
-                  : 'text-[#ffcc99] hover:bg-gray-800 hover:text-white'
+                  ? 'bg-primary/20 text-foreground'
+                  : 'text-foreground/70 hover:bg-card hover:text-foreground'
                   }`}
               >
                 <HelpCircle className="w-5 h-5" />
@@ -500,8 +510,8 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                 href="/seller/feedback"
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center space-x-3 px-3 py-3 sm:py-2 rounded-xl transition touch-target btn-mobile ${isActive('/seller/feedback')
-                  ? 'bg-primary/20 text-white'
-                  : 'text-[#ffcc99] hover:bg-gray-800 hover:text-white'
+                  ? 'bg-primary/20 text-foreground'
+                  : 'text-foreground/70 hover:bg-card hover:text-foreground'
                   }`}
               >
                 <MessageSquare className="w-5 h-5" />
@@ -521,7 +531,28 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
         {/* Main content wrapper: reserved space for fixed sidebar on desktop, scrollable */}
         <div className="flex-1 flex flex-col min-h-0 min-w-0 w-full lg:ml-64">
-          <main className="flex-1 overflow-y-auto overflow-x-hidden bg-black scroll-smooth">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background scroll-smooth">
+            {/* Location Requirement Banner */}
+            {mounted && sellerProfile && !(sellerProfile.pickupAddress && sellerProfile.latitude && sellerProfile.longitude) && (
+              <div className="mx-3 sm:mx-4 lg:mx-6 xl:mx-8 mt-4 lg:mt-6 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3 text-amber-500">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <MapPin className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm">Business Pickup Address Required</p>
+                    <p className="text-xs text-foreground/70">Please add your pickup address to enable delivery calculations and product listing.</p>
+                  </div>
+                </div>
+                <Link
+                  href="/seller/settings?tab=business"
+                  className="whitespace-nowrap px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  Add Location Now
+                </Link>
+              </div>
+            )}
             <div className="p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom">{children}</div>
           </main>
         </div>

@@ -49,13 +49,13 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="Verified Multi-Vendor Marketplace for Modern African Commerce"
-        description="Carryofy is the leading marketplace and logistics platform for trusted sellers in Lagos. Shop safely from verified merchants with same-day delivery, secure payments, and buyer protection."
+        title="Carryofy | Verified Marketplace & Same-Day Delivery in Lagos"
+        description="Carryofy is Nigeria's most trusted marketplace and logistics platform. Shop from verified local sellers in Lagos with guaranteed same-day delivery and secure payments."
         keywords={fullKeywords}
         canonical="https://carryofy.com"
         ogType="website"
         ogImage="https://carryofy.com/og/home.png"
-        ogImageAlt="Carryofy - Verified Multi-Vendor Marketplace for Modern African Commerce"
+        ogImageAlt="Carryofy - Verified Multi-Vendor Marketplace & Same-Day Delivery"
       />
 
       <CombinedSchema

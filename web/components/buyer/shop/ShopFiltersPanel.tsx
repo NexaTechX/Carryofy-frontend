@@ -50,11 +50,11 @@ function AccordionSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-[#2a2a2a] last:border-0">
+    <div className="border-b border-sidebar-border last:border-0">
       <button
         type="button"
         onClick={onToggle}
-        className="flex items-center justify-between w-full py-3 text-left text-white font-medium text-sm hover:text-[#FF6B00] transition-colors"
+        className="flex items-center justify-between w-full py-3 text-left text-foreground font-medium text-sm hover:text-primary transition-colors"
       >
         {title}
         {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -97,15 +97,15 @@ export default function ShopFiltersPanel({
   const isB2B = purchaseType === 'B2B';
 
   return (
-    <aside className="w-full min-w-0 sm:w-[280px] lg:w-[260px] shrink-0 bg-[#1A1A1A] border-r border-[#2a2a2a] flex flex-col h-full min-h-0">
+    <aside className="w-full min-w-0 sm:w-[280px] lg:w-[260px] shrink-0 bg-sidebar-bg border-r border-sidebar-border flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-4 py-4 bg-[#1A1A1A] border-b border-[#2a2a2a] shrink-0">
-        <h2 className="text-white font-bold text-base">Filters</h2>
+      <div className="flex items-center justify-between gap-3 px-4 py-4 bg-sidebar-bg border-b border-sidebar-border shrink-0">
+        <h2 className="text-foreground font-bold text-base">Filters</h2>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onReset}
-            className="text-[#FF6B00] hover:text-[#ff9955] text-sm font-medium transition-colors"
+            className="text-primary hover:text-primary/80 text-sm font-medium transition-colors"
           >
             Reset All
           </button>
@@ -128,11 +128,10 @@ export default function ShopFiltersPanel({
             <button
               type="button"
               onClick={() => onCategoryChange('')}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                !selectedCategory
-                  ? 'bg-[#FF6B00] text-black font-semibold'
-                  : 'text-[#ffcc99] hover:bg-[#2a2a2a] hover:text-white'
-              }`}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${!selectedCategory
+                  ? 'bg-primary text-black font-semibold'
+                  : 'text-foreground/80 hover:bg-sidebar-border/50 hover:text-foreground'
+                }`}
             >
               All categories
             </button>
@@ -143,11 +142,10 @@ export default function ShopFiltersPanel({
                   key={cat.id}
                   type="button"
                   onClick={() => onCategoryChange(selectedCategory === cat.slug ? '' : cat.slug)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                    selectedCategory === cat.slug
-                      ? 'bg-[#FF6B00] text-black font-semibold'
-                      : 'text-[#ffcc99] hover:bg-[#2a2a2a] hover:text-white'
-                  }`}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCategory === cat.slug
+                      ? 'bg-primary text-black font-semibold'
+                      : 'text-foreground/80 hover:bg-sidebar-border/50 hover:text-foreground'
+                    }`}
                 >
                   {categoryDisplayName(cat.slug, cat.name)}
                 </button>
@@ -156,32 +154,30 @@ export default function ShopFiltersPanel({
         </AccordionSection>
 
         <AccordionSection title="Purchase Type" open={openPurchaseType} onToggle={() => setOpenPurchaseType(!openPurchaseType)}>
-          <div className="flex rounded-lg overflow-hidden border border-[#2a2a2a]">
+          <div className="flex rounded-lg overflow-hidden border border-sidebar-border">
             <button
               type="button"
               onClick={() => onPurchaseTypeChange('B2C')}
-              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
-                purchaseType === 'B2C'
-                  ? 'bg-[#FF6B00] text-black'
-                  : 'bg-transparent text-[#ffcc99] hover:text-white'
-              }`}
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${purchaseType === 'B2C'
+                  ? 'bg-primary text-black'
+                  : 'bg-transparent text-foreground/80 hover:text-foreground'
+                }`}
             >
               B2C
             </button>
             <button
               type="button"
               onClick={() => onPurchaseTypeChange('B2B')}
-              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
-                purchaseType === 'B2B'
-                  ? 'bg-[#FF6B00] text-black'
-                  : 'bg-transparent text-[#ffcc99] hover:text-white'
-              }`}
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${purchaseType === 'B2B'
+                  ? 'bg-primary text-black'
+                  : 'bg-transparent text-foreground/80 hover:text-foreground'
+                }`}
             >
               B2B / Bulk
             </button>
           </div>
           {isB2B && (
-            <p className="text-[#ffcc99]/60 text-xs mt-2">MOQ range filter will appear below when B2B is active.</p>
+            <p className="text-foreground/60 text-xs mt-2">MOQ range filter will appear below when B2B is active.</p>
           )}
         </AccordionSection>
 
@@ -192,18 +188,18 @@ export default function ShopFiltersPanel({
                 type="checkbox"
                 checked={inStockOnly}
                 onChange={(e) => onInStockOnlyChange(e.target.checked)}
-                className="rounded border-[#FF6B00]/50 text-[#FF6B00] focus:ring-[#FF6B00] bg-[#111111]"
+                className="rounded border-primary/50 text-primary focus:ring-primary bg-input-bg"
               />
-              <span className="text-[#ffcc99] text-sm">In-stock only</span>
+              <span className="text-foreground/80 text-sm">In-stock only</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={verifiedSellersOnly}
                 onChange={(e) => onVerifiedSellersOnlyChange(e.target.checked)}
-                className="rounded border-[#FF6B00]/50 text-[#FF6B00] focus:ring-[#FF6B00] bg-[#111111]"
+                className="rounded border-primary/50 text-primary focus:ring-primary bg-input-bg"
               />
-              <span className="text-[#ffcc99] text-sm">Verified sellers only</span>
+              <span className="text-foreground/80 text-sm">Verified sellers only</span>
             </label>
           </div>
         </AccordionSection>
@@ -212,25 +208,25 @@ export default function ShopFiltersPanel({
           <AccordionSection title="MOQ Range" open={openMoq} onToggle={() => setOpenMoq(!openMoq)}>
             <div className="space-y-3">
               <div>
-                <label className="text-[#ffcc99] text-xs mb-1 block">Min MOQ (units)</label>
+                <label className="text-foreground/70 text-xs mb-1 block">Min MOQ (units)</label>
                 <input
                   type="number"
                   value={moqMin}
                   onChange={(e) => onMoqMinChange(e.target.value)}
                   placeholder="Any"
                   min={0}
-                  className="w-full px-3 py-2 bg-[#111111] border border-[#2a2a2a] rounded-lg text-white text-sm focus:outline-none focus:border-[#FF6B00]"
+                  className="w-full px-3 py-2 bg-input-bg border border-input-border rounded-lg text-foreground text-sm focus:outline-none focus:border-primary"
                 />
               </div>
               <div>
-                <label className="text-[#ffcc99] text-xs mb-1 block">Max MOQ (units)</label>
+                <label className="text-foreground/70 text-xs mb-1 block">Max MOQ (units)</label>
                 <input
                   type="number"
                   value={moqMax}
                   onChange={(e) => onMoqMaxChange(e.target.value)}
                   placeholder="Any"
                   min={0}
-                  className="w-full px-3 py-2 bg-[#111111] border border-[#2a2a2a] rounded-lg text-white text-sm focus:outline-none focus:border-[#FF6B00]"
+                  className="w-full px-3 py-2 bg-input-bg border border-input-border rounded-lg text-foreground text-sm focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -252,11 +248,11 @@ export default function ShopFiltersPanel({
       </div>
 
       {/* Apply button - fixed at bottom of panel */}
-      <div className="shrink-0 px-4 py-4 bg-[#1A1A1A] border-t border-[#2a2a2a]">
+      <div className="shrink-0 px-4 py-4 bg-sidebar-bg border-t border-sidebar-border">
         <button
           type="button"
           onClick={onApply}
-          className="w-full py-3 bg-[#FF6B00] text-black font-bold rounded-xl hover:bg-[#ff9955] transition-colors"
+          className="w-full py-3 bg-primary text-black font-bold rounded-xl hover:bg-primary/80 transition-colors"
         >
           Apply Filters
         </button>

@@ -523,6 +523,7 @@ export default function CheckoutPage() {
     if (!selectedAddressId) {
       if (!deliveryInfo.address || !deliveryInfo.city || !deliveryInfo.state) {
         setOrderMessage({ type: 'error', text: 'Please provide your delivery address or select a saved address.' });
+        setCurrentStep(2); // Redirect to Step 2 if address is missing
         return false;
       }
     }

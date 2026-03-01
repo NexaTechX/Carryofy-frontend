@@ -74,6 +74,43 @@ export async function geocodeAddress(input: GeocodeAddressInput): Promise<Geocod
 }
 
 /**
+ * Geocode a single address string to latitude/longitude.
+ */
+export async function geocodeString(query: string): Promise<GeocodeResult | null> {
+  if (!query?.trim()) return null;
+
+  const params = new URLSearchParams({
+    q: query,
+    format: 'json',
+    limit: '1',
+    addressdetails: '0',
+  });
+
+  try {
+    const res = await fetch(`${NOMINATIM_BASE}?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': USER_AGENT,
+      },
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return null;
+
+    const first = data[0];
+    const lat = parseFloat(first.lat);
+    const lon = parseFloat(first.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+    return { latitude: lat, longitude: lon };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Reverse geocode: convert latitude/longitude to address components.
  * Uses OpenStreetMap Nominatim reverse geocoding.
  * Returns address parts for auto-filling forms, or null if lookup fails.

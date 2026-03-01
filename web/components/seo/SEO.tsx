@@ -23,8 +23,8 @@ interface SEOProps {
   productCondition?: 'new' | 'used' | 'refurbished';
 }
 
-const SITE_URL = 'https://www.carryofy.com';
-const DEFAULT_OG_IMAGE = `${SITE_URL}/logo.png`;
+const SITE_URL = 'https://carryofy.com';
+const DEFAULT_OG_IMAGE = `${SITE_URL}/og/home.png`;
 const SITE_NAME = 'Carryofy';
 const TWITTER_HANDLE = '@carryofy';
 
@@ -268,9 +268,10 @@ export default function SEO({
 // Page-specific SEO configurations
 export const PAGE_SEO = {
   home: {
-    title: 'Carryofy | Verified Marketplace for Modern African Commerce',
-    description: 'Carryofy is the leading same-day delivery platform for trusted local sellers in Lagos. Shop safely from verified merchants with real-time tracking and buyer protection.',
+    title: 'Carryofy | Verified Marketplace & Same-Day Delivery in Lagos',
+    description: 'Carryofy is the leading same-day delivery platform for trusted local sellers in Lagos. Shop safely from verified merchants with real-time tracking, secure payments, and buyer protection.',
     keywords: generateKeywords(['brand', 'primary', 'problemAware', 'longTail', 'locations']),
+    ogImage: `${SITE_URL}/og/home.png`,
   },
   about: {
     title: 'About Carryofy | Lagos\' Trusted Same-Day Delivery Platform',
@@ -301,6 +302,7 @@ export const PAGE_SEO = {
     title: 'Sell on Carryofy | Grow Your Business with Same-Day Delivery',
     description: 'Join trusted sellers on Carryofy. List your products, reach more buyers in Lagos, and leverage our reliable same-day delivery network to grow your business.',
     keywords: generateKeywords(['brand', 'problemAware', 'longTail']) + ', become a seller Lagos, start online store Lagos, merchant registration Lagos, sell products online Lagos, join marketplace Lagos',
+    ogImage: `${SITE_URL}/og/merchant.png`,
   },
   buyerProducts: {
     title: 'Shop Products | Same-Day Delivery in Lagos from Verified Sellers',

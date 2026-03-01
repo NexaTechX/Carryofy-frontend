@@ -24,10 +24,10 @@ import NotificationsDropdown from './NotificationsDropdown';
 const CartDrawer = dynamic(() => import('./CartDrawer'), {
   ssr: false,
 });
-import { useAuth, tokenManager } from '../../lib/auth';
+import { useAuth } from '../../lib/auth';
 import { useCart } from '../../lib/contexts/CartContext';
 import ErrorBoundary from '../common/ErrorBoundary';
-// import OnboardingBanner from '../ai-onboarding/OnboardingBanner';
+import ThemeToggle from '../common/ThemeToggle';
 
 interface BuyerLayoutProps {
   children: ReactNode;
@@ -77,15 +77,15 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#111111] flex flex-col font-inter" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen bg-background flex flex-col font-inter">
       {/* Top Header */}
-      <header className="bg-[#111111] border-b border-[#FF6B00]/30 sticky top-0 z-50 safe-top">
+      <header className="bg-background border-b border-border-custom sticky top-0 z-50 safe-top">
         <div className="flex items-center gap-4 px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
           {/* Logo and Mobile Menu */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden text-[#ffcc99]/90 hover:text-white p-2 touch-target btn-mobile"
+              className="lg:hidden text-foreground/70 hover:text-foreground p-2 touch-target btn-mobile"
               aria-label="Toggle menu"
             >
               <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -101,7 +101,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
                   priority
                 />
               </div>
-              <span className="text-[#FF6B00] text-lg sm:text-2xl font-bold">Carryofy</span>
+              <span className="text-primary text-lg sm:text-2xl font-bold">Carryofy</span>
             </Link>
           </div>
 
@@ -110,14 +110,14 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
             onSubmit={handleSearch}
             className="hidden md:flex flex-1 max-w-xl mx-4"
           >
-            <div className="flex-1 flex items-center bg-[#1a1a1a] rounded-lg border border-[#FF6B00]/20 focus-within:border-[#FF6B00]/50 transition-colors">
-              <Search className="w-4 h-4 text-[#ffcc99]/60 ml-3 shrink-0" />
+            <div className="flex-1 flex items-center bg-card rounded-lg border border-border-custom focus-within:border-primary/50 transition-colors">
+              <Search className="w-4 h-4 text-foreground/50 ml-3 shrink-0" />
               <input
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products..."
-                className="flex-1 bg-transparent text-white placeholder:text-[#ffcc99]/50 py-2.5 px-3 text-sm focus:outline-none"
+                className="flex-1 bg-transparent text-foreground placeholder:text-foreground/40 py-2.5 px-3 text-sm focus:outline-none"
                 aria-label="Search products"
               />
             </div>
@@ -125,15 +125,16 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
 
           {/* Right Actions */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0 ml-auto">
+
             {/* Cart */}
             <button
               onClick={openDrawer}
-              className="relative p-2 text-[#ffcc99] hover:text-white transition touch-target btn-mobile"
+              className="relative p-2 text-foreground/70 hover:text-foreground transition touch-target btn-mobile"
               aria-label={`Cart ${cartCount > 0 ? `(${cartCount} items)` : ''}`}
             >
               <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
               {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-[#FF6B00] text-black text-[10px] sm:text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-primary text-black text-[10px] sm:text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
                   {cartCount > 9 ? '9+' : cartCount}
                 </span>
               )}
@@ -145,12 +146,12 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
             {/* User Menu */}
             {mounted && user && (
               <div className="flex items-center gap-2 sm:gap-3">
-                <span className="hidden md:block text-white text-sm truncate max-w-[100px]">
+                <span className="hidden md:block text-foreground text-sm truncate max-w-[100px]">
                   {user.name}
                 </span>
                 <button
                   onClick={handleLogout}
-                  className="p-2 text-[#ffcc99] hover:text-white transition touch-target btn-mobile"
+                  className="p-2 text-foreground/70 hover:text-foreground transition touch-target btn-mobile"
                   title="Logout"
                   aria-label="Logout"
                 >
@@ -165,12 +166,12 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside
-          className={`fixed lg:static inset-y-0 left-0 z-40 w-[280px] sm:w-64 bg-[#111111] border-r border-[#FF6B00]/30 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          className={`fixed lg:static inset-y-0 left-0 z-40 w-[280px] sm:w-64 bg-card border-r border-border-custom transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
             } overflow-y-auto`}
         >
           <div className="flex flex-col h-full">
             {/* Mobile Close Button */}
-            <div className="lg:hidden flex justify-between items-center p-4 border-b border-[#FF6B00]/30">
+            <div className="lg:hidden flex justify-between items-center p-4 border-b border-border-custom">
               <Link href="/buyer" className="flex items-center gap-2">
                 <div className="w-7 h-7 relative">
                   <Image
@@ -181,11 +182,11 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <span className="text-[#FF6B00] text-lg font-bold">Carryofy</span>
+                <span className="text-primary text-lg font-bold">Carryofy</span>
               </Link>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="text-[#ffcc99] hover:text-white p-2 touch-target btn-mobile"
+                className="text-foreground/70 hover:text-foreground p-2 touch-target btn-mobile"
                 aria-label="Close menu"
               >
                 <X className="w-5 h-5" />
@@ -202,8 +203,8 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
                     className={`flex items-center space-x-3 px-4 py-3 sm:py-3 rounded-xl transition touch-target btn-mobile ${isActive(item.href)
-                      ? 'bg-[#FF6B00] text-black font-semibold'
-                      : 'text-[#ffcc99]/90 hover:bg-[#1a1a1a] hover:text-white'
+                      ? 'bg-primary text-black font-semibold'
+                      : 'text-foreground/70 hover:bg-background hover:text-foreground'
                       }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -224,7 +225,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto scroll-smooth relative bg-[#111111]">
+        <main className="flex-1 overflow-y-auto scroll-smooth relative bg-background">
           <ErrorBoundary>
             <div className="relative p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom">{children}</div>
           </ErrorBoundary>

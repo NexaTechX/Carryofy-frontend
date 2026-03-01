@@ -26,7 +26,9 @@ import {
   ShoppingBag,
   FileText,
   Bookmark,
+  Moon,
 } from 'lucide-react';
+import ThemeToggle from '../../components/common/ThemeToggle';
 import Link from 'next/link';
 import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
@@ -534,11 +536,10 @@ export default function BuyerProfilePage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition ${
-                      activeTab === tab.id
-                        ? 'border-[#ff6600] text-[#ff6600]'
-                        : 'border-transparent text-[#ffcc99]/70 hover:text-[#ffcc99] hover:border-[#ff6600]/30'
-                    }`}
+                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition ${activeTab === tab.id
+                      ? 'border-[#ff6600] text-[#ff6600]'
+                      : 'border-transparent text-[#ffcc99]/70 hover:text-[#ffcc99] hover:border-[#ff6600]/30'
+                      }`}
                   >
                     <Icon className="w-4 h-4" />
                     {tab.label}
@@ -962,11 +963,10 @@ export default function BuyerProfilePage() {
                         {[1, 2, 3, 4, 5].map((i) => (
                           <div
                             key={i}
-                            className={`flex-1 rounded-full transition ${
-                              i <= (passwordForm.newPassword ? Math.ceil((passwordStrength.score / 5) * 5) : 0)
-                                ? passwordStrength.color
-                                : 'bg-[#ff6600]/20'
-                            }`}
+                            className={`flex-1 rounded-full transition ${i <= (passwordForm.newPassword ? Math.ceil((passwordStrength.score / 5) * 5) : 0)
+                              ? passwordStrength.color
+                              : 'bg-[#ff6600]/20'
+                              }`}
                           />
                         ))}
                       </div>
@@ -1014,14 +1014,12 @@ export default function BuyerProfilePage() {
                     <button
                       type="button"
                       onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
-                      className={`relative w-12 h-6 rounded-full transition ${
-                        twoFactorEnabled ? 'bg-[#ff6600]' : 'bg-[#ff6600]/30'
-                      }`}
+                      className={`relative w-12 h-6 rounded-full transition ${twoFactorEnabled ? 'bg-[#ff6600]' : 'bg-[#ff6600]/30'
+                        }`}
                     >
                       <span
-                        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition left-1 ${
-                          twoFactorEnabled ? 'translate-x-6' : 'translate-x-0'
-                        }`}
+                        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition left-1 ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-0'
+                          }`}
                       />
                     </button>
                   </div>
@@ -1055,14 +1053,12 @@ export default function BuyerProfilePage() {
                             [key]: !prev[key],
                           }))
                         }
-                        className={`relative w-12 h-6 rounded-full transition ${
-                          preferences[key] ? 'bg-[#ff6600]' : 'bg-[#ff6600]/30'
-                        }`}
+                        className={`relative w-12 h-6 rounded-full transition ${preferences[key] ? 'bg-[#ff6600]' : 'bg-[#ff6600]/30'
+                          }`}
                       >
                         <span
-                          className={`absolute top-1 w-4 h-4 rounded-full bg-white transition left-1 ${
-                            preferences[key] ? 'translate-x-6' : 'translate-x-0'
-                          }`}
+                          className={`absolute top-1 w-4 h-4 rounded-full bg-white transition left-1 ${preferences[key] ? 'translate-x-6' : 'translate-x-0'
+                            }`}
                         />
                       </button>
                     </div>
@@ -1120,6 +1116,21 @@ export default function BuyerProfilePage() {
                   <Save className="w-4 h-4" />
                   {preferencesSaving ? 'Saving...' : 'Save Preferences'}
                 </button>
+
+                {/* Display Preference Section */}
+                <div className="mt-8 pt-6 border-t border-[#ff6600]/20">
+                  <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                    <Moon className="w-4 h-4 text-[#ff6600]" />
+                    Display Preference
+                  </h3>
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-black/40 border border-[#ff6600]/20">
+                    <div>
+                      <p className="text-[#ffcc99] font-medium">Interface Theme</p>
+                      <p className="text-[#ffcc99]/60 text-xs mt-0.5">Switch between Light and Dark mode</p>
+                    </div>
+                    <ThemeToggle />
+                  </div>
+                </div>
               </div>
             )}
           </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { AlertCircle, Check, X, Truck, Users, Bell, ChevronDown, ChevronRight, Mail, Send, RefreshCw } from 'lucide-react';
+import { AlertCircle, Check, X, Truck, Users, Bell, ChevronDown, ChevronRight, Mail, Send, RefreshCw, Moon } from 'lucide-react';
+import ThemeToggle from '../../components/common/ThemeToggle';
 import {
   usePlatformSettings,
   useUpdatePlatformSettings,
@@ -119,6 +120,7 @@ export default function AdminSettings() {
     team: true,
     notifications: true,
     refunds: true,
+    appearance: true,
   });
 
   // Team: table sort & filter
@@ -937,6 +939,41 @@ export default function AdminSettings() {
                     </div>
                     <p className="text-[10px] text-gray-600 italic">Disputes at or below this amount skip manual review.</p>
                   </label>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* ——— Appearance ——— */}
+          <section className="rounded-3xl border border-[#1f1f1f] bg-[#111111] shadow-xl overflow-hidden backdrop-blur-md bg-opacity-80">
+            <button
+              type="button"
+              onClick={() => toggleSection('appearance')}
+              className="flex w-full items-center gap-4 px-8 py-6 text-left transition hover:bg-[#181818]"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
+                <Moon className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-xl font-bold text-white tracking-tight">Appearance</span>
+                <p className="text-sm text-gray-500">Customise your admin dashboard display.</p>
+              </div>
+              {openSections.appearance ? (
+                <ChevronDown className="ml-auto h-6 w-6 text-gray-600" />
+              ) : (
+                <ChevronRight className="ml-auto h-6 w-6 text-gray-600" />
+              )}
+            </button>
+            {openSections.appearance && (
+              <div className="border-t border-[#1f1f1f] p-8 space-y-6">
+                <div className="flex items-center justify-between p-6 rounded-2xl border border-[#1f1f1f] bg-black/20">
+                  <div className="flex-1">
+                    <span className="block text-sm font-bold text-white">Interface Theme</span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Switch between Light and Dark mode for the admin panel.
+                    </p>
+                  </div>
+                  <ThemeToggle />
                 </div>
               </div>
             )}

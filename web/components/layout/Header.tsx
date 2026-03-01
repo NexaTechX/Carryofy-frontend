@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ThemeToggle from '../common/ThemeToggle';
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -45,7 +46,7 @@ export default function Header() {
   ];
 
   const navBgClass = scrolled
-    ? 'bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-200/50 py-3'
+    ? 'bg-background/80 backdrop-blur-md shadow-sm border-b border-border-custom py-3'
     : 'bg-transparent py-4';
 
   return (
@@ -65,7 +66,7 @@ export default function Header() {
                 priority
               />
             </div>
-            <span className="font-inter text-xl sm:text-2xl font-bold text-[#111111]">
+            <span className="font-inter text-xl sm:text-2xl font-bold text-foreground">
               Carryofy
             </span>
           </Link>
@@ -77,7 +78,7 @@ export default function Header() {
                 {item.children ? (
                   <button
                     type="button"
-                    className="flex items-center text-[#111111]/80 font-medium hover:text-[#FF6B00] transition-colors py-2 focus:outline-none"
+                    className="flex items-center text-foreground/80 font-medium hover:text-[#FF6B00] transition-colors py-2 focus:outline-none"
                     onMouseEnter={() => setResourcesOpen(true)}
                     onMouseLeave={() => setResourcesOpen(false)}
                   >
@@ -87,7 +88,7 @@ export default function Header() {
                 ) : (
                   <Link
                     href={item.href}
-                    className="text-[#111111]/80 font-medium hover:text-[#FF6B00] transition-colors py-2"
+                    className="text-foreground/80 font-medium hover:text-[#FF6B00] transition-colors py-2"
                   >
                     {item.name}
                   </Link>
@@ -95,9 +96,8 @@ export default function Header() {
 
                 {item.children && (
                   <div
-                    className={`absolute top-full left-0 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-200 origin-top ${
-                      resourcesOpen ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'
-                    }`}
+                    className={`absolute top-full left-0 w-48 bg-card rounded-xl shadow-xl border border-border-custom overflow-hidden transition-all duration-200 origin-top ${resourcesOpen ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'
+                      }`}
                     onMouseEnter={() => setResourcesOpen(true)}
                     onMouseLeave={() => setResourcesOpen(false)}
                   >
@@ -106,7 +106,7 @@ export default function Header() {
                         <Link
                           key={child.name}
                           href={child.href}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-[#FF6B00]/5 hover:text-[#FF6B00] transition-colors"
+                          className="block px-4 py-2 text-sm text-foreground/70 hover:bg-[#FF6B00]/5 hover:text-[#FF6B00] transition-colors"
                         >
                           {child.name}
                         </Link>
@@ -120,21 +120,22 @@ export default function Header() {
 
           {/* CTA Buttons */}
           <div className="hidden lg:flex items-center gap-3">
+            <ThemeToggle />
             <Link
               href="/auth/login"
-              className="px-5 py-2.5 text-[#111111] font-medium hover:text-[#FF6B00] transition-colors"
+              className="px-5 py-2.5 text-foreground font-medium hover:text-[#FF6B00] transition-colors"
             >
               Sign In
             </Link>
             <Link
               href="/buyer/products"
-              className="px-6 py-2.5 bg-[#FF6B00] text-white rounded-full font-semibold hover:bg-[#E65F00] transition-colors"
+              className="px-6 py-2.5 bg-[#FF6B00] text-black rounded-full font-semibold hover:bg-[#E65F00] transition-colors"
             >
               Start Shopping
             </Link>
             <Link
               href="/merchant-onboarding"
-              className="px-6 py-2.5 bg-[#111111] text-white rounded-full font-semibold hover:bg-[#333] transition-colors"
+              className="px-6 py-2.5 bg-foreground text-background rounded-full font-semibold hover:opacity-90 transition-opacity"
             >
               Sell on Carryofy
             </Link>

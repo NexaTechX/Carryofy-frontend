@@ -286,7 +286,7 @@ export default function ProductsPage() {
                 aria-hidden="true"
               />
               <div
-                className="fixed inset-y-0 left-0 w-[min(320px,85vw)] max-w-full z-[110] lg:hidden flex flex-col bg-[#1A1A1A] shadow-2xl transition-transform duration-200 ease-out"
+                className="fixed inset-y-0 left-0 w-[min(320px,85vw)] max-w-full z-[110] lg:hidden flex flex-col bg-sidebar-bg shadow-2xl transition-transform duration-200 ease-out"
                 role="dialog"
                 aria-label="Product filters"
               >
@@ -319,18 +319,18 @@ export default function ProductsPage() {
           )}
 
           {/* Product Grid Area */}
-          <div className="flex-1 min-w-0 flex flex-col bg-[#111111]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+          <div className="flex-1 min-w-0 flex flex-col bg-background" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             {/* Search + Sort - sticky */}
-            <div className="sticky top-0 z-20 flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-4 bg-[#111111] border-b border-[#2a2a2a]">
+            <div className="sticky top-0 z-20 flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-4 bg-background border-b border-border-custom">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#ffcc99]/60" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/50" />
                 <input
                   type="search"
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && fetchProducts()}
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#1A1A1A] border border-[#2a2a2a] rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#FF6B00]"
+                  className="w-full pl-10 pr-4 py-2.5 bg-input-bg border border-input-border rounded-xl text-foreground placeholder-foreground/40 focus:outline-none focus:border-primary"
                 />
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -345,7 +345,7 @@ export default function ProductsPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="px-4 py-2.5 bg-[#1A1A1A] border border-[#2a2a2a] rounded-xl text-white text-sm focus:outline-none focus:border-[#FF6B00] cursor-pointer"
+                  className="px-4 py-2.5 bg-input-bg border border-input-border rounded-xl text-foreground text-sm focus:outline-none focus:border-primary cursor-pointer"
                 >
                   {sortOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -357,15 +357,15 @@ export default function ProductsPage() {
             <div className="flex-1 overflow-y-auto p-4 lg:p-6">
               {loading && (
                 <div className="flex flex-col items-center justify-center py-16">
-                  <div className="animate-spin rounded-full h-12 w-12 border-2 border-[#FF6B00] border-t-transparent" />
-                  <p className="text-[#ffcc99] mt-4">Loading products...</p>
+                  <div className="animate-spin rounded-full h-12 w-12 border-2 border-primary border-t-transparent" />
+                  <p className="text-foreground/70 mt-4">Loading products...</p>
                 </div>
               )}
 
               {error && (
                 <div className="py-12 text-center">
                   <p className="text-red-400 mb-4">{error}</p>
-                  <button onClick={fetchProducts} className="px-6 py-2.5 bg-[#FF6B00] text-black font-bold rounded-xl hover:bg-[#ff9955]">
+                  <button onClick={fetchProducts} className="px-6 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/80">
                     Try Again
                   </button>
                 </div>
@@ -377,8 +377,8 @@ export default function ProductsPage() {
 
               {!loading && !error && products.length > 0 && (
                 <>
-                  <p className="text-[#ffcc99]/80 text-sm mb-4">
-                    Showing <span className="font-semibold text-white">{displayProducts.length}</span> of {displayTotal.toLocaleString()} products
+                  <p className="text-foreground/60 text-sm mb-4">
+                    Showing <span className="font-semibold text-foreground">{displayProducts.length}</span> of {displayTotal.toLocaleString()} products
                   </p>
                   <section className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-5" aria-label="Products">
                     {displayProducts.map((product) => (
@@ -391,7 +391,7 @@ export default function ProductsPage() {
                       <button
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="p-2 bg-[#1A1A1A] border border-[#2a2a2a] rounded-xl text-white hover:border-[#FF6B00] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-2 bg-input-bg border border-input-border rounded-xl text-foreground hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Previous page"
                       >
                         <ChevronLeft className="w-5 h-5" />
@@ -402,9 +402,8 @@ export default function ProductsPage() {
                           <button
                             key={pageNum}
                             onClick={() => handlePageChange(pageNum)}
-                            className={`w-10 h-10 flex items-center justify-center rounded-xl font-medium text-sm ${
-                              currentPage === pageNum ? 'bg-[#FF6B00] text-black' : 'bg-[#1A1A1A] border border-[#2a2a2a] text-white hover:border-[#FF6B00]'
-                            }`}
+                            className={`w-10 h-10 flex items-center justify-center rounded-xl font-medium text-sm ${currentPage === pageNum ? 'bg-primary text-black' : 'bg-input-bg border border-input-border text-foreground hover:border-primary'
+                              }`}
                             aria-label={`Page ${pageNum}`}
                             aria-current={currentPage === pageNum ? 'page' : undefined}
                           >
@@ -415,7 +414,7 @@ export default function ProductsPage() {
                       <button
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className="p-2 bg-[#1A1A1A] border border-[#2a2a2a] rounded-xl text-white hover:border-[#FF6B00] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-2 bg-input-bg border border-input-border rounded-xl text-foreground hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Next page"
                       >
                         <ChevronRight className="w-5 h-5" />

@@ -79,7 +79,7 @@ export default function MerchantOnboarding() {
         'join Carryofy',
         'Carryofy seller registration',
         'register as seller Nigeria',
-        
+
         // Business opportunity keywords
         'sell online Nigeria',
         'start online business Nigeria',
@@ -87,28 +87,28 @@ export default function MerchantOnboarding() {
         'online store Nigeria',
         'sell products online Africa',
         'start selling online Lagos',
-        
+
         // Platform comparison keywords
         'trusted marketplace Nigeria',
         'where to sell online Nigeria',
         'ecommerce platform Nigeria',
         'jumia alternative sellers',
         'konga alternative sellers',
-        
+
         // Feature keywords
         'fulfillment service Nigeria',
         'warehouse for sellers Nigeria',
         'same day delivery sellers Lagos',
         'fast payout sellers Nigeria',
         'seller dashboard Nigeria',
-        
+
         // Problem-aware keywords
         'how to sell online Nigeria',
         'grow online business Nigeria',
         'increase sales Nigeria',
         'reach more customers Nigeria',
         'logistics for sellers Lagos',
-        
+
         // Long-tail keywords
         'sell clothes online Nigeria',
         'sell electronics online Lagos',
@@ -150,9 +150,9 @@ export default function MerchantOnboarding() {
                 canonical="https://carryofy.com/merchant-onboarding"
                 ogType="website"
                 ogImage="https://carryofy.com/og/merchant.png"
-                ogImageAlt="Become a Seller on Carryofy - Start Selling Online in Nigeria"
+                ogImageAlt="Sell on Carryofy - Grow Your Business with Same-Day Delivery"
             />
-            
+
             <CombinedSchema
                 breadcrumbs={[
                     { name: 'Home', url: '/' },
@@ -165,7 +165,7 @@ export default function MerchantOnboarding() {
                     totalTime: 'PT15M',
                 }}
             />
-            
+
             <div className="min-h-screen flex flex-col">
                 <Header />
                 <main className="flex-grow">
@@ -196,7 +196,7 @@ export default function MerchantOnboarding() {
                                     How It Works
                                 </a>
                             </div>
-                            
+
                             {/* Trust badges */}
                             <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm text-gray-500">
                                 <span className="flex items-center gap-2">

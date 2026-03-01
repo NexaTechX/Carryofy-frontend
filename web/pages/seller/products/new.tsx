@@ -150,9 +150,16 @@ export default function AddProductPage() {
 
       if (sellerRes.status === 'fulfilled') {
         const data = sellerRes.value.data?.data || sellerRes.value.data;
-        const hasLoc = !!(data.pickupAddress && data.latitude != null && data.longitude != null);
-        setHasLocation(hasLoc);
+        // Detailed check for location components
+        const hasAddr = !!data.businessAddress;
+        const hasLat = data.latitude != null;
+        const hasLng = data.longitude != null;
+
+        console.log('Location Check:', { hasAddr, hasLat, hasLng, data });
+
+        setHasLocation(hasAddr && hasLat && hasLng);
       } else {
+        console.warn('Seller Profile fetch failed:', sellerRes.reason);
         setHasLocation(false);
       }
     } catch (err) {
@@ -608,9 +615,21 @@ export default function AddProductPage() {
               </h1>
 
               {/* Description */}
-              <p className="text-[#ffcc99]/80 text-center text-sm leading-relaxed mb-8">
-                To list products on Carryofy, you must provide your business pickup location. This allows us to calculate accurate delivery fees and coordinate riders for your orders.
-              </p>
+              <div className="text-[#ffcc99]/80 text-center text-sm leading-relaxed mb-8 space-y-2">
+                <p>
+                  To list products on Carryofy, you must provide your business pickup location. This allows us to calculate accurate delivery fees and coordinate riders for your orders.
+                </p>
+                {!hasLocation && !checkingLocation && (
+                  <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs text-left">
+                    <p className="font-bold mb-1">Status:</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li>Profile Found: Yes</li>
+                      <li>Business Address: {/* We can't easily access the partial data here without adding more state, but let's just show general guidance */} Check Settings</li>
+                      <li>Coordinates (GPS): Required for pricing engine</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
 
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-3">
@@ -775,10 +794,10 @@ export default function AddProductPage() {
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div
                       className={`flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0 ${step.done
-                          ? 'bg-green-500/20 text-green-500'
-                          : step.active
-                            ? 'bg-[#FF6B00]/20 text-[#FF6B00]'
-                            : 'bg-[#2A2A2A] text-[#6B6B6B]'
+                        ? 'bg-green-500/20 text-green-500'
+                        : step.active
+                          ? 'bg-[#FF6B00]/20 text-[#FF6B00]'
+                          : 'bg-[#2A2A2A] text-[#6B6B6B]'
                         }`}
                     >
                       {step.done ? <Check className="w-3 h-3" /> : <span className="w-1.5 h-1.5 rounded-full bg-current" />}
@@ -1255,10 +1274,10 @@ export default function AddProductPage() {
                                       setErrors(prev => ({ ...prev, categoryIds: undefined }));
                                     }}
                                     className={`relative p-4 rounded-xl border text-center transition-all flex items-center gap-2 justify-center ${isSelected
-                                        ? 'bg-[#FF6B0020] border-[#FF6B00] text-[#FF6B00]'
-                                        : (formData.categoryIds?.length ?? 0) >= 10
-                                          ? 'opacity-60 cursor-not-allowed bg-[#1A1A1A] border-[#2A2A2A] text-[#A0A0A0]'
-                                          : 'bg-[#1A1A1A] border-[#2A2A2A] text-[#A0A0A0] hover:bg-[#222] hover:border-[#444444]'
+                                      ? 'bg-[#FF6B0020] border-[#FF6B00] text-[#FF6B00]'
+                                      : (formData.categoryIds?.length ?? 0) >= 10
+                                        ? 'opacity-60 cursor-not-allowed bg-[#1A1A1A] border-[#2A2A2A] text-[#A0A0A0]'
+                                        : 'bg-[#1A1A1A] border-[#2A2A2A] text-[#A0A0A0] hover:bg-[#222] hover:border-[#444444]'
                                       } ${errors.categoryIds ? 'border-red-500' : ''}`}
                                     disabled={!formData.categoryIds.includes(cat.id) && (formData.categoryIds?.length ?? 0) >= 10}
                                   >
@@ -1416,8 +1435,8 @@ export default function AddProductPage() {
                                 type="button"
                                 onClick={() => setFormData(prev => ({ ...prev, sellingMode: opt.value }))}
                                 className={`relative p-4 rounded-xl border text-left transition-all ${isSelected
-                                    ? 'bg-[#FF6B0010] border-[#FF6B00]'
-                                    : 'bg-[#1A1A1A] border-[#2A2A2A] hover:bg-[#222] hover:border-[#444444]'
+                                  ? 'bg-[#FF6B0010] border-[#FF6B00]'
+                                  : 'bg-[#1A1A1A] border-[#2A2A2A] hover:bg-[#222] hover:border-[#444444]'
                                   }`}
                                 style={isSelected ? { borderWidth: '1.5px' } : undefined}
                               >

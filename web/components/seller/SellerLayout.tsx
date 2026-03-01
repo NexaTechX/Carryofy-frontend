@@ -532,23 +532,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
         {/* Main content wrapper: reserved space for fixed sidebar on desktop, scrollable */}
         <div className="flex-1 flex flex-col min-h-0 min-w-0 w-full lg:ml-64">
           <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background scroll-smooth">
-            {/* Location Requirement Banner */}
-            {mounted && sellerProfile && !(sellerProfile.pickupAddress && sellerProfile.latitude && sellerProfile.longitude) && (
-              <div className="mx-3 sm:mx-4 lg:mx-6 xl:mx-8 mt-4 lg:mt-6 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3 text-amber-500">
-                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-                    <MapPin className="w-5 h-5 text-amber-500" />
-                  </div>
-                </div>
-                <Link
-                  href="/seller/settings?tab=business"
-                  className="whitespace-nowrap px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold rounded-lg transition-colors flex items-center gap-2"
-                >
-                  <Settings className="w-3.5 h-3.5" />
-                  Add Location Now
-                </Link>
-              </div>
-            )}
+
             <div className="p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom">{children}</div>
           </main>
         </div>

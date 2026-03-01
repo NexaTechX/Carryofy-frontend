@@ -194,20 +194,6 @@ export default function OrdersPage() {
     }
   };
 
-  const getCustomerName = (order: Order) => {
-    if (order.user?.name) return order.user.name;
-    return `Customer #${order.id.slice(0, 8)}`;
-  };
-
-  const getInitials = (order: Order) => {
-    const name = getCustomerName(order);
-    const parts = name.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-  };
-
   const isB2B = (order: Order) => order.orderType === 'B2B' || !!order.quoteId;
 
   const filteredOrders = useMemo(() => {
@@ -217,7 +203,6 @@ export default function OrdersPage() {
         const q = searchQuery.toLowerCase();
         const matches =
           order.id.toLowerCase().includes(q) ||
-          getCustomerName(order).toLowerCase().includes(q) ||
           order.status.toLowerCase().includes(q) ||
           getStatusDisplay(order).toLowerCase().includes(q);
         if (!matches) return false;
@@ -268,11 +253,10 @@ export default function OrdersPage() {
   };
 
   const handleExportCsv = () => {
-    const headers = ['Order ID', 'Date', 'Customer', 'Amount', 'Status', 'Type'];
+    const headers = ['Order ID', 'Date', 'Amount', 'Status', 'Type'];
     const rows = filteredOrders.map((o) => [
       o.id,
       formatDateWithTime(o.createdAt),
-      getCustomerName(o),
       formatPrice(o.amount),
       getStatusDisplay(o),
       isB2B(o) ? 'B2B' : 'Consumer',
@@ -342,11 +326,10 @@ export default function OrdersPage() {
                 <button
                   key={f.value}
                   onClick={() => setOrderTypeFilter(f.value)}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    orderTypeFilter === f.value
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${orderTypeFilter === f.value
                       ? 'bg-[#FF6B00] text-white'
                       : 'text-[#A0A0A0] hover:text-white'
-                  }`}
+                    }`}
                 >
                   {f.icon && <Building2 className="w-4 h-4 shrink-0" />}
                   <span>{f.label} ({f.count})</span>
@@ -362,11 +345,10 @@ export default function OrdersPage() {
                 <button
                   key={filter.value}
                   onClick={() => setStatusFilter(filter.value)}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    statusFilter === filter.value
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${statusFilter === filter.value
                       ? 'bg-[#FF6B00] text-white'
                       : 'bg-[#1A1A1A] border border-[#FF6B00]/30 text-[#ffcc99] hover:bg-[#FF6B00]/10'
-                  }`}
+                    }`}
                 >
                   {filter.dotColor && (
                     <span className={`w-2 h-2 rounded-full shrink-0 ${filter.dotColor}`} />
@@ -428,9 +410,6 @@ export default function OrdersPage() {
                     </th>
                     <th className="px-4 py-3 text-left text-white text-sm font-medium w-[160px]">
                       Date
-                    </th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium">
-                      Customer
                     </th>
                     <th className="px-4 py-3 text-right text-white text-sm font-medium w-[120px]">
                       Amount
@@ -495,9 +474,8 @@ export default function OrdersPage() {
                             setHoveredRowId(null);
                             setOrderIdHovered(null);
                           }}
-                          className={`border-t border-[#FF6B00]/20 transition-colors cursor-pointer ${
-                            isHovered ? 'bg-[#1E1E1E]' : 'bg-[#1A1A1A] hover:bg-[#1E1E1E]'
-                          }`}
+                          className={`border-t border-[#FF6B00]/20 transition-colors cursor-pointer ${isHovered ? 'bg-[#1E1E1E]' : 'bg-[#1A1A1A] hover:bg-[#1E1E1E]'
+                            }`}
                           onClick={() => router.push(`/seller/orders/${order.id}`)}
                         >
                           <td className="h-[72px] px-4 py-2">
@@ -534,15 +512,8 @@ export default function OrdersPage() {
                           <td className="h-[72px] px-4 py-2 text-[#A0A0A0] text-sm">
                             {formatDateWithTime(order.createdAt)}
                           </td>
-                          <td className="h-[72px] px-4 py-2">
-                            <div className="flex items-center gap-3">
-                              <div className="w-7 h-7 rounded-full bg-[#FF6B00]/80 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                                {getInitials(order)}
-                              </div>
-                              <span className="text-white text-sm truncate">
-                                {getCustomerName(order)}
-                              </span>
-                            </div>
+                          <td className="h-[72px] px-4 py-2 text-[#A0A0A0] text-sm">
+                            Order #{order.id.slice(0, 8)}
                           </td>
                           <td className="h-[72px] px-4 py-2 text-right">
                             <span
@@ -564,9 +535,8 @@ export default function OrdersPage() {
                             <Link
                               href={`/seller/orders/${order.id}`}
                               onClick={(e) => e.stopPropagation()}
-                              className={`inline-flex items-center gap-1 text-sm text-[#FF6B00] transition-opacity ${
-                                isHovered ? 'opacity-100' : 'opacity-0'
-                              } hover:text-[#E65100]`}
+                              className={`inline-flex items-center gap-1 text-sm text-[#FF6B00] transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'
+                                } hover:text-[#E65100]`}
                             >
                               View details <ChevronRight className="w-4 h-4" />
                             </Link>

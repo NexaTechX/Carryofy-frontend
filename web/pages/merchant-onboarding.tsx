@@ -1,317 +1,317 @@
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
-import { CheckCircle, TrendingUp, Package, LayoutDashboard, Truck, Shield, Users, Zap } from 'lucide-react';
+import { CheckCircle, TrendingUp, Package, LayoutDashboard, Truck, Shield, Users, Zap, ArrowRight, BarChart3, Globe, CreditCard } from 'lucide-react';
 import SEO from '../components/seo/SEO';
-import { CombinedSchema, HowToSchema } from '../components/seo/JsonLd';
+import { CombinedSchema } from '../components/seo/JsonLd';
+import Link from 'next/link';
 
 export default function MerchantOnboarding() {
     const benefits = [
         {
             icon: TrendingUp,
-            title: 'Faster delivery = more sales',
-            description: 'Customers buy more when they know they\'ll get it fast. Same-day delivery in Lagos boosts conversion by 40%.',
+            title: 'Boost Your Sales',
+            description: 'Same-day delivery in Lagos transforms casual browsers into loyal customers. Sellers on Carryofy see an average 40% increase in conversion rates.',
         },
         {
             icon: LayoutDashboard,
-            title: 'AI tools to optimize growth',
-            description: 'Use our AI to price products competitively, find new customers, and predict demand.',
+            title: 'AI-Powered Growth',
+            description: 'Leverage our proprietary AI tools to optimize your pricing, predict upcoming demand, and identify trending products in your niche.',
         },
         {
             icon: Package,
-            title: 'Storage + packaging done for you',
-            description: 'We store, pack, and ship. You just sell. No warehouse needed, no logistics headaches.',
+            title: 'Hassle-Free Fulfillment',
+            description: 'We handle the "dirty work." From secure storage to professional packaging and nationwide shipping, your logistics are solved.',
         },
         {
-            icon: CheckCircle,
-            title: 'Simple seller dashboard',
-            description: 'Track inventory, orders, earnings, and payouts in one place. Mobile-friendly interface.',
+            icon: CreditCard,
+            title: 'Fast & Secure Payouts',
+            description: 'Keep your cash flow healthy. Payouts are processed within 24-48 hours after delivery confirmation directly to your Nigerian bank account.',
         },
+    ];
+
+    const deepBenefits = [
         {
             icon: Truck,
-            title: 'Nationwide delivery network',
-            description: 'Reach customers in all 36 Nigerian states. We handle the last-mile delivery.',
+            title: 'Nationwide Reach',
+            description: 'Reach customers in all 36 states and the FCT. We manage the last-mile delivery, handling the complex Nigerian logistics landscape for you.',
         },
         {
             icon: Shield,
-            title: 'Seller protection program',
-            description: 'Protection against fraud, chargebacks, and damaged goods. We\'ve got your back.',
+            title: 'Seller Protection',
+            description: 'Sell with peace of mind. Our protection program covers you against fraudulent chargebacks and damaged goods during transit.',
         },
         {
             icon: Users,
-            title: 'Access to millions of buyers',
-            description: 'Tap into our growing customer base looking for quality Nigerian products.',
+            title: 'Targeted Marketing',
+            description: 'Your products aren\'t just listed; they\'re promoted. We use data-driven marketing to put your store in front of the right buyers.',
         },
         {
-            icon: Zap,
-            title: 'Fast payouts',
-            description: 'Get paid within 24-48 hours after delivery confirmation. No waiting for weeks.',
+            icon: BarChart3,
+            title: 'Advanced Analytics',
+            description: 'Get deep insights into your business performance with our mobile-friendly dashboard. Track inventory, orders, and growth in real-time.',
         },
     ];
 
     const steps = [
         {
-            number: '1',
-            title: 'Apply & get verified',
-            description: 'Submit your business details. We verify and onboard you.',
+            number: '01',
+            title: 'Application & Verification',
+            description: 'Submit your business details and valid ID. Our team verifies your business within 24 hours to maintain our "Verified Vendor" status.',
+            link: '/auth/signup?role=SELLER',
+            btnText: 'Register Now'
         },
         {
-            number: '2',
-            title: 'List products',
-            description: 'Add your products. We help if needed.',
+            number: '02',
+            title: 'Stock Your Inventory',
+            description: 'List your products on the dashboard and send your inventory to our central Lagos fulfillment center. We handle the intake and quality checks.',
         },
         {
-            number: '3',
-            title: 'We handle orders & delivery',
-            description: 'We store, pack, and deliver. You focus on selling.',
+            number: '03',
+            title: 'Sit Back & Sell',
+            description: 'Your products go live. When an order is placed, we pick, pack, and deliver it within hours. You receive automated notifications for every step.',
         },
         {
-            number: '4',
-            title: 'Get paid',
-            description: 'Receive payouts after delivery confirmation.',
+            number: '04',
+            title: 'Collect Your Earnings',
+            description: 'Once the buyer receives the product, we release the funds. Automated payouts ensure you never have to chase your money.',
         },
     ];
 
     const merchantKeywords = [
-        // Primary seller intent keywords
-        'sell on Carryofy',
-        'become Carryofy seller',
-        'Carryofy merchant',
-        'join Carryofy',
-        'Carryofy seller registration',
-        'register as seller Nigeria',
-
-        // Business opportunity keywords
-        'sell online Nigeria',
-        'start online business Nigeria',
-        'ecommerce business Nigeria',
-        'online store Nigeria',
-        'sell products online Africa',
-        'start selling online Lagos',
-
-        // Platform comparison keywords
-        'trusted marketplace Nigeria',
-        'where to sell online Nigeria',
-        'ecommerce platform Nigeria',
-        'jumia alternative sellers',
-        'konga alternative sellers',
-
-        // Feature keywords
-        'fulfillment service Nigeria',
-        'warehouse for sellers Nigeria',
-        'same day delivery sellers Lagos',
-        'fast payout sellers Nigeria',
-        'seller dashboard Nigeria',
-
-        // Problem-aware keywords
-        'how to sell online Nigeria',
-        'grow online business Nigeria',
-        'increase sales Nigeria',
-        'reach more customers Nigeria',
-        'logistics for sellers Lagos',
-
-        // Long-tail keywords
-        'sell clothes online Nigeria',
-        'sell electronics online Lagos',
-        'sell food products online Nigeria',
-        'sell handmade products Nigeria',
-        'sell wholesale Nigeria',
-        'dropshipping Nigeria',
-        'vendor registration Nigeria',
+        'sell on Carryofy', 'become Carryofy seller', 'Carryofy merchant', 'join Carryofy',
+        'Carryofy seller registration', 'register as seller Nigeria', 'sell online Nigeria',
+        'start online business Nigeria', 'ecommerce business Nigeria', 'online store Nigeria',
+        'fulfillment service Nigeria', 'warehouse for sellers Nigeria', 'same day delivery sellers Lagos',
+        'fast payout sellers Nigeria', 'seller dashboard Nigeria', 'logistics for sellers Lagos'
     ].join(', ');
-
-    // HowTo steps for structured data
-    const howToSteps = [
-        {
-            name: 'Create Your Seller Account',
-            text: 'Visit carryofy.com/auth/signup and create your free seller account. Provide your email, phone number, and business details. Verification takes less than 24 hours.',
-            url: '/auth/signup',
-        },
-        {
-            name: 'Add Your Products',
-            text: 'Upload your product photos, write compelling descriptions, and set competitive prices. We help optimize your listings for maximum visibility.',
-            url: '/seller/products/new',
-        },
-        {
-            name: 'Ship Inventory to Warehouse',
-            text: 'Send your products to our Lagos warehouse. We provide labels and pickup services. Your inventory is stored securely and ready for same-day dispatch.',
-        },
-        {
-            name: 'Start Selling and Get Paid',
-            text: 'Your products go live on the Carryofy marketplace. When orders come in, we handle packaging, delivery, and customer service. You receive payouts within 24-48 hours.',
-        },
-    ];
 
     return (
         <>
             <SEO
-                title="Become a Seller on Carryofy - Sell Online in Nigeria | Free Registration, Fast Payouts"
-                description="Join trusted sellers on Carryofy. List your products, reach buyers in Lagos, and enjoy reliable same-day delivery. Zero upfront costs, fast payouts within 24-48 hours. Start selling today!"
+                title="Sell on Carryofy - Grow Your Business with Premium Fulfillment"
+                description="Join Nigeria's most trusted marketplace. We handle logistics, storage, and customer service while you focus on growth. Sign up to sell on Carryofy today."
                 keywords={merchantKeywords}
                 canonical="https://carryofy.com/merchant-onboarding"
                 ogType="website"
-                ogImage="https://carryofy.com/og/merchant.png"
-                ogImageAlt="Sell on Carryofy - Grow Your Business with Same-Day Delivery"
             />
 
             <CombinedSchema
                 breadcrumbs={[
                     { name: 'Home', url: '/' },
-                    { name: 'Become a Merchant', url: '/merchant-onboarding' },
+                    { name: 'Become a Seller', url: '/merchant-onboarding' },
                 ]}
-                howTo={{
-                    name: 'How to Start Selling on Carryofy in Nigeria',
-                    description: 'A complete guide to becoming a successful seller on Carryofy in Lagos. Learn how to register, list products, and start earning.',
-                    steps: howToSteps,
-                    totalTime: 'PT15M',
-                }}
             />
 
-            <div className="min-h-screen flex flex-col">
+            <div className="min-h-screen flex flex-col bg-white">
                 <Header />
                 <main className="flex-grow">
                     {/* Hero Section */}
-                    <section className="bg-gradient-to-r from-primary/10 to-primary/5 py-20">
-                        <div className="container mx-auto px-4 text-center">
-                            <span className="inline-block px-4 py-2 bg-primary/20 text-primary rounded-full text-sm font-semibold mb-6">
-                                Early access — limited slots
-                            </span>
-                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">Grow your business. We handle delivery.</h1>
-                            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-                                Carryofy helps SMEs sell online with built-in logistics, payments, and customer trust.
-                            </p>
-                            <p className="text-gray-600 mb-8 max-w-xl mx-auto text-sm">
-                                Commission-based — no upfront fees. Manual support during onboarding. Early seller incentives.
-                            </p>
-                            <div className="flex flex-col sm:flex-row justify-center gap-4">
-                                <a
-                                    href="/auth/signup"
-                                    className="px-8 py-4 bg-primary text-white rounded-full font-bold text-lg hover:bg-primary-dark transition shadow-lg shadow-primary/30"
-                                >
-                                    Apply as a Seller
-                                </a>
-                                <a
-                                    href="#how-it-works"
-                                    className="px-8 py-4 bg-white text-gray-700 rounded-full font-bold text-lg hover:bg-gray-50 transition border border-gray-200"
-                                >
-                                    How It Works
-                                </a>
-                            </div>
+                    <section className="relative pt-24 pb-20 lg:pt-32 lg:pb-32 overflow-hidden">
+                        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl -z-10" />
+                        <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-[400px] h-[400px] bg-primary/10 rounded-full blur-3xl -z-10" />
 
-                            {/* Trust badges */}
-                            <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm text-gray-500">
-                                <span className="flex items-center gap-2">
-                                    <CheckCircle className="w-4 h-4 text-green-500" />
-                                    Commission-based
+                        <div className="container mx-auto px-4">
+                            <div className="max-w-4xl mx-auto text-center">
+                                <span className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-bold mb-8 animate-fade-in">
+                                    <Globe className="w-4 h-4" />
+                                    JOIN NIGERIA'S FASTEST GROWING MARKETPLACE
                                 </span>
-                                <span className="flex items-center gap-2">
-                                    <CheckCircle className="w-4 h-4 text-green-500" />
-                                    No upfront fees
-                                </span>
-                                <span className="flex items-center gap-2">
-                                    <CheckCircle className="w-4 h-4 text-green-500" />
-                                    Payouts after delivery
-                                </span>
-                                <span className="flex items-center gap-2">
-                                    <CheckCircle className="w-4 h-4 text-green-500" />
-                                    Same-day delivery
-                                </span>
+                                <h1 className="text-4xl md:text-6xl font-extrabold text-[#111111] leading-tight mb-8">
+                                    You source the products.<br />
+                                    <span className="text-primary italic">We handle the rest.</span>
+                                </h1>
+                                <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+                                    Carryofy is not just a marketplace. We are your logistics, fulfillment, and marketing partner, helping scale your business across Nigeria.
+                                </p>
+
+                                <div className="flex flex-col sm:flex-row justify-center gap-4">
+                                    <Link
+                                        href="/auth/signup?role=SELLER"
+                                        className="px-10 py-5 bg-primary text-white rounded-2xl font-bold text-lg hover:bg-primary-dark transition-all shadow-xl shadow-primary/25 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                                    >
+                                        Apply as a Seller
+                                        <ArrowRight className="w-5 h-5" />
+                                    </Link>
+                                    <a
+                                        href="#how-it-works"
+                                        className="px-10 py-5 bg-white text-gray-900 rounded-2xl font-bold text-lg hover:bg-gray-50 transition border-2 border-gray-100 flex items-center justify-center"
+                                    >
+                                        How It Works
+                                    </a>
+                                </div>
+
+                                <div className="mt-16 flex flex-wrap justify-center gap-x-12 gap-y-6">
+                                    {[
+                                        { label: 'Verified Partners', value: '500+' },
+                                        { label: 'Next-Day Payouts', value: '24hrs' },
+                                        { label: 'Lagos Delivery', value: 'Same-Day' },
+                                        { label: 'Registration Fee', value: '₦0.00' },
+                                    ].map((stat, i) => (
+                                        <div key={i} className="text-center">
+                                            <p className="text-2xl font-extrabold text-[#111111]">{stat.value}</p>
+                                            <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </section>
 
-                    {/* Trust strip */}
-                    <section className="py-8 bg-gray-900 text-white">
+                    {/* Features Grid */}
+                    <section className="py-24 bg-[#FAFAFA]">
                         <div className="container mx-auto px-4">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto text-center">
-                                {[
-                                    { label: 'Verified sellers' },
-                                    { label: 'Fast payouts' },
-                                    { label: 'Same-day delivery' },
-                                    { label: 'Paystack payments' },
-                                ].map((item, index) => (
-                                    <div key={index}>
-                                        <p className="text-gray-300 font-medium text-sm">{item.label}</p>
-                                    </div>
-                                ))}
+                            <div className="text-center mb-16">
+                                <h2 className="text-3xl md:text-4xl font-bold text-[#111111] mb-4">Everything you need to scale</h2>
+                                <p className="text-gray-600 max-w-2xl mx-auto">From AI-driven insights to nationwide logistics, we\'ve built the infrastructure so you don\'t have to.</p>
                             </div>
-                        </div>
-                    </section>
 
-                    {/* Benefits Section */}
-                    <section className="py-20 bg-white">
-                        <div className="container mx-auto px-4">
-                            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">Why Sell on Carryofy?</h2>
-                            <p className="text-gray-600 text-center mb-16 max-w-2xl mx-auto">
-                                Everything you need to grow your business, all in one platform.
-                            </p>
-                            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+                            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
                                 {benefits.map((benefit, index) => (
-                                    <article key={index} className="bg-gray-50 p-6 rounded-xl hover:shadow-md transition">
-                                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                                            <benefit.icon className="w-6 h-6 text-primary" />
+                                    <article key={index} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all group">
+                                        <div className="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary/10 transition-colors">
+                                            <benefit.icon className="w-7 h-7 text-primary" />
                                         </div>
-                                        <h3 className="text-lg font-bold mb-2">{benefit.title}</h3>
-                                        <p className="text-gray-600 text-sm">{benefit.description}</p>
+                                        <h3 className="text-xl font-bold text-[#111111] mb-3">{benefit.title}</h3>
+                                        <p className="text-gray-600 leading-relaxed text-sm">{benefit.description}</p>
                                     </article>
                                 ))}
                             </div>
                         </div>
                     </section>
 
-                    {/* How It Works Section */}
-                    <section id="how-it-works" className="py-20 bg-gray-50">
+                    {/* How It Works - Detailed */}
+                    <section id="how-it-works" className="py-24 bg-white overflow-hidden">
                         <div className="container mx-auto px-4">
-                            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">How It Works</h2>
-                            <p className="text-gray-600 text-center mb-16 max-w-2xl mx-auto">
-                                Start selling in 4 simple steps. Get your store up and running in less than 15 minutes.
-                            </p>
-                            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
-                                {steps.map((step, index) => (
-                                    <article key={index} className="relative bg-white p-6 rounded-xl shadow-sm text-center">
-                                        <div className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
-                                            {step.number}
+                            <div className="flex flex-col lg:flex-row gap-16 items-center max-w-7xl mx-auto">
+                                <div className="lg:w-1/2">
+                                    <h2 className="text-3xl md:text-5xl font-bold text-[#111111] mb-8 leading-tight">
+                                        The simplest way to<br />
+                                        <span className="text-primary italic">sell online in Nigeria.</span>
+                                    </h2>
+                                    <div className="space-y-8">
+                                        {steps.map((step, index) => (
+                                            <div key={index} className="flex gap-6">
+                                                <div className="flex-shrink-0 w-12 h-12 rounded-full border-2 border-primary/20 flex items-center justify-center font-bold text-primary">
+                                                    {step.number}
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-[#111111] mb-2">{step.title}</h3>
+                                                    <p className="text-gray-600 leading-relaxed">{step.description}</p>
+                                                    {step.link && (
+                                                        <Link href={step.link} className="inline-flex items-center gap-2 text-primary font-bold mt-4 hover:underline">
+                                                            {step.btnText} <ArrowRight className="w-4 h-4" />
+                                                        </Link>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="lg:w-1/2 relative">
+                                    <div className="relative z-10 rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-white">
+                                        <div className="aspect-[4/5] bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center p-12">
+                                            {/* Representing the UI */}
+                                            <div className="w-full h-full bg-white rounded-2xl shadow-lg p-6 space-y-4">
+                                                <div className="h-6 w-1/3 bg-gray-100 rounded-lg" />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="aspect-square bg-gray-50 rounded-xl" />
+                                                    <div className="space-y-4">
+                                                        <div className="h-4 w-full bg-gray-50 rounded-lg" />
+                                                        <div className="h-4 w-2/3 bg-gray-50 rounded-lg" />
+                                                        <div className="h-10 w-full bg-primary rounded-lg" />
+                                                    </div>
+                                                </div>
+                                                <div className="h-40 w-full bg-gray-50 rounded-xl flex items-center justify-center text-gray-400">
+                                                    <LayoutDashboard className="w-12 h-12 opacity-20" />
+                                                </div>
+                                            </div>
                                         </div>
-                                        <h3 className="text-lg font-bold mb-2">{step.title}</h3>
-                                        <p className="text-gray-600 text-sm">{step.description}</p>
-                                        {index < steps.length - 1 && (
-                                            <div className="hidden lg:block absolute top-1/2 -right-4 w-8 h-0.5 bg-primary/30" />
-                                        )}
-                                    </article>
-                                ))}
+                                    </div>
+                                    <div className="absolute -bottom-8 -right-8 w-48 h-48 bg-[#FF6B00] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob" />
+                                    <div className="absolute -top-8 -left-8 w-48 h-48 bg-primary rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000" />
+                                </div>
                             </div>
                         </div>
                     </section>
 
-                    {/* Testimonials Placeholder */}
-                    <section className="py-20 bg-white">
+                    {/* Detailed Benefits - The "Why" */}
+                    <section className="py-24 bg-[#111111] text-white">
                         <div className="container mx-auto px-4">
-                            <h2 className="text-3xl font-bold text-center mb-4">What Sellers Say</h2>
-                            <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-                                Join thousands of successful Nigerian merchants growing with Carryofy.
-                            </p>
-                            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                            <div className="max-w-7xl mx-auto">
+                                <div className="grid lg:grid-cols-2 gap-20 items-center">
+                                    <div>
+                                        <h2 className="text-3xl md:text-5xl font-bold mb-8 leading-tight">
+                                            We solve the hardest part of <span className="text-primary italic">E-commerce.</span>
+                                        </h2>
+                                        <p className="text-xl text-gray-400 mb-12">
+                                            Logistics and trust are the biggest barriers to selling online in Africa. Carryofy solves both.
+                                        </p>
+                                        <div className="grid sm:grid-cols-2 gap-8">
+                                            {deepBenefits.map((item, i) => (
+                                                <div key={i}>
+                                                    <item.icon className="w-8 h-8 text-primary mb-4" />
+                                                    <h4 className="text-lg font-bold mb-2">{item.title}</h4>
+                                                    <p className="text-sm text-gray-400">{item.description}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="bg-primary/5 rounded-3xl p-10 border border-white/10">
+                                        <h3 className="text-2xl font-bold mb-6">Vendor FAQ</h3>
+                                        <div className="space-y-6">
+                                            {[
+                                                { q: 'How much are the commissions?', a: 'We operate on a transparent commission model. You only pay when you sell. Standard commission is 5-15% depending on product category.' },
+                                                { q: 'How do I get my products to you?', a: 'You can drop off inventory at our hub, or we can arrange a bulk pickup from your warehouse for a small fee.' },
+                                                { q: 'When do I get paid?', a: 'Funds are settled in your Carryofy wallet immediately after delivery. You can withdraw to any Nigerian bank account, with processing taking 24-48 hours.' },
+                                                { q: 'Is there a signup fee?', a: 'Zero. Registering and listing your products on Carryofy is completely free. We only succeed when you succeed.' }
+                                            ].map((faq, i) => (
+                                                <div key={i} className="border-b border-white/5 pb-6 last:border-0 last:pb-0">
+                                                    <h4 className="font-bold text-primary mb-2">Q: {faq.q}</h4>
+                                                    <p className="text-sm text-gray-400Leading-relaxed">{faq.a}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Testimonials */}
+                    <section className="py-24 bg-white">
+                        <div className="container mx-auto px-4">
+                            <h2 className="text-3xl font-bold text-center mb-16 text-[#111111]">Success Stories</h2>
+                            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                                 {[
                                     {
-                                        quote: 'Carryofy transformed my business. Same-day delivery helped me compete with big brands.',
-                                        name: 'Adebayo O.',
-                                        business: 'Fashion Retailer, Lagos',
+                                        quote: "Before Carryofy, I spent 4 hours a day just talking to delivery riders. Now, I just drop off stock and watch the orders come in. It's a game changer.",
+                                        name: 'Adebayo Olusesan',
+                                        role: 'CEO, TrendyHub Fashion',
+                                        image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Adebayo'
                                     },
                                     {
-                                        quote: 'The AI pricing tool helped me increase margins by 20%. Fast payouts keep my cash flow healthy.',
-                                        name: 'Chioma N.',
-                                        business: 'Electronics Seller, Abuja',
+                                        quote: "The same-day delivery feature is what sold me. My customers in Lagos are happy because they get their electronics within hours, not days.",
+                                        name: 'Chioma Nwosu',
+                                        role: 'Founder, ZeeGadgets',
+                                        image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Chioma'
                                     },
                                     {
-                                        quote: 'No more logistics headaches. I focus on products, Carryofy handles everything else.',
-                                        name: 'Ibrahim M.',
-                                        business: 'Home Goods, Kano',
+                                        quote: "Transparent payouts and the AI pricing support helped me increase my monthly revenue by 35% in just three months of joining the platform.",
+                                        name: 'Ibrahim Musa',
+                                        role: 'Owner, Musa Home Goods',
+                                        image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ibrahim'
                                     },
                                 ].map((testimonial, index) => (
-                                    <blockquote key={index} className="bg-gray-50 p-6 rounded-xl">
-                                        <p className="text-gray-600 mb-4">&ldquo;{testimonial.quote}&rdquo;</p>
-                                        <footer>
-                                            <cite className="font-bold text-gray-900 not-italic">{testimonial.name}</cite>
-                                            <p className="text-sm text-gray-500">{testimonial.business}</p>
+                                    <blockquote key={index} className="bg-[#FAFAFA] p-10 rounded-[2rem] border border-gray-100 flex flex-col h-full hover:shadow-lg transition-shadow">
+                                        <p className="text-gray-700 mb-8 italic flex-grow">"{testimonial.quote}"</p>
+                                        <footer className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
+                                                <img src={testimonial.image} alt={testimonial.name} className="w-full h-full object-cover" />
+                                            </div>
+                                            <div>
+                                                <cite className="font-bold text-[#111111] not-italic block">{testimonial.name}</cite>
+                                                <p className="text-xs text-gray-500 font-medium">{testimonial.role}</p>
+                                            </div>
                                         </footer>
                                     </blockquote>
                                 ))}
@@ -319,25 +319,29 @@ export default function MerchantOnboarding() {
                         </div>
                     </section>
 
-                    {/* CTA Section */}
-                    <section className="py-20 bg-gradient-to-r from-primary to-primary-dark text-white">
-                        <div className="container mx-auto px-4 text-center">
-                            <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Grow Your Business?</h2>
-                            <p className="text-xl text-white/80 mb-8 max-w-xl mx-auto">
-                                Join Carryofy. We handle delivery, storage, and payments. You focus on selling.
+                    {/* Final CTA */}
+                    <section className="py-24 bg-primary text-white text-center px-4">
+                        <div className="max-w-3xl mx-auto">
+                            <h2 className="text-3xl md:text-5xl font-extrabold mb-8 leading-tight">Ready to build your<br />online empire?</h2>
+                            <p className="text-xl text-white/80 mb-12">
+                                Join the hundreds of Nigerian businesses scaling with Carryofy today. Registration takes less than 2 minutes.
                             </p>
-                            <a
-                                href="/auth/signup"
-                                className="inline-block px-10 py-4 bg-white text-primary rounded-full font-bold text-lg hover:bg-gray-100 transition shadow-lg"
+                            <Link
+                                href="/auth/signup?role=SELLER"
+                                className="inline-block px-12 py-5 bg-white text-primary rounded-2xl font-bold text-lg hover:bg-gray-50 transition-all shadow-2xl hover:scale-105 active:scale-95"
                             >
-                                Apply as a Seller
-                            </a>
-                            <p className="mt-6 text-white/60 text-sm">
-                                Already have an account?{' '}
-                                <a href="/auth/login" className="text-white underline hover:no-underline">
-                                    Login here
-                                </a>
-                            </p>
+                                Get Started Now — It's Free
+                            </Link>
+                            <div className="mt-8 flex items-center justify-center gap-6 text-sm font-medium text-white/60">
+                                <span className="flex items-center gap-2">
+                                    <CheckCircle className="w-4 h-4 text-white" />
+                                    No signup fee
+                                </span>
+                                <span className="flex items-center gap-2">
+                                    <CheckCircle className="w-4 h-4 text-white" />
+                                    Unlimited listings
+                                </span>
+                            </div>
                         </div>
                     </section>
                 </main>

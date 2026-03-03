@@ -21,13 +21,13 @@ export default function CallToAction() {
             className="flex flex-col sm:flex-row justify-center gap-4"
           >
             <Link
-              href="/buyer/products"
+              href="/auth/signup"
               className="px-8 py-4 bg-white text-[#111111] rounded-xl font-bold hover:bg-gray-100 transition-colors"
             >
               Start Shopping
             </Link>
             <Link
-              href="/merchant-onboarding"
+              href="/auth/signup?role=SELLER"
               className="px-8 py-4 border-2 border-[#111111] text-white rounded-xl font-bold hover:bg-[#111111] transition-colors"
             >
               Sell on Carryofy

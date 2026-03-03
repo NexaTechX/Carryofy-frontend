@@ -42,7 +42,7 @@ export default function WhoCarryofyIsFor() {
                 <p className="text-xl sm:text-2xl text-gray-700 mb-8 font-medium">
                   Sell without friction. Grow with clarity.
                 </p>
-                
+
                 <ul className="space-y-5 mb-10">
                   {[
                     'Intelligent product onboarding and validation',
@@ -68,7 +68,7 @@ export default function WhoCarryofyIsFor() {
                 </ul>
 
                 <Link
-                  href="/merchant-onboarding"
+                  href="/auth/signup?role=SELLER"
                   className="group/btn inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-primary to-primary-light text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 font-semibold text-base"
                 >
                   Become a Vendor
@@ -97,7 +97,7 @@ export default function WhoCarryofyIsFor() {
                 <p className="text-xl sm:text-2xl text-gray-700 mb-8 font-medium">
                   Shop confidently from trusted sellers.
                 </p>
-                
+
                 <ul className="space-y-5 mb-10">
                   {[
                     'Smarter product discovery from verified vendors',
@@ -122,7 +122,7 @@ export default function WhoCarryofyIsFor() {
                 </ul>
 
                 <Link
-                  href="/buyer/products"
+                  href="/auth/signup"
                   className="group/btn inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-primary to-primary-light text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 font-semibold text-base"
                 >
                   Start Shopping

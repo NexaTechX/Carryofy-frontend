@@ -38,14 +38,14 @@ export default function HeroSection() {
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 mb-10">
                 <Link
-                  href="/buyer/products"
+                  href="/auth/signup"
                   className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#FF6B00] text-white rounded-xl font-semibold hover:bg-[#E65F00] transition-colors shadow-lg shadow-[#FF6B00]/20"
                 >
                   Start Shopping
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
                 <Link
-                  href="/merchant-onboarding"
+                  href="/auth/signup?role=SELLER"
                   className="inline-flex items-center justify-center px-8 py-4 rounded-xl font-semibold border-2 border-[#111111] text-[#111111] hover:bg-[#111111] hover:text-white transition-colors"
                 >
                   Sell on Carryofy
@@ -98,11 +98,10 @@ export default function HeroSection() {
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 + i * 0.15 }}
-                      className={`absolute bg-white rounded-xl shadow-lg border border-gray-100 px-4 py-3 flex items-center gap-3 ${
-                        i === 0 ? 'top-4 left-4 sm:top-6 sm:left-6' :
+                      className={`absolute bg-white rounded-xl shadow-lg border border-gray-100 px-4 py-3 flex items-center gap-3 ${i === 0 ? 'top-4 left-4 sm:top-6 sm:left-6' :
                         i === 1 ? 'bottom-20 left-4 sm:bottom-24 sm:left-6' :
-                        'top-1/2 -translate-y-1/2 right-4 sm:right-6'
-                      }`}
+                          'top-1/2 -translate-y-1/2 right-4 sm:right-6'
+                        }`}
                     >
                       <div className="w-8 h-8 rounded-lg bg-[#FF6B00]/10 flex items-center justify-center shrink-0">
                         <card.icon className="w-4 h-4 text-[#FF6B00]" />

@@ -49,7 +49,7 @@ export default function SellerCTASection() {
           </ul>
 
           <Link
-            href="/merchant-onboarding"
+            href="/auth/signup?role=SELLER"
             className="inline-block px-10 py-4 bg-[#FF6B00] text-white rounded-xl font-bold text-lg hover:bg-[#E65F00] transition-colors shadow-lg"
           >
             Apply as a Seller

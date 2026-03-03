@@ -127,13 +127,13 @@ export default function Header() {
               Sign In
             </Link>
             <Link
-              href="/buyer/products"
+              href="/auth/signup"
               className="px-6 py-2.5 bg-[#FF6B00] text-black rounded-full font-semibold hover:bg-[#E65F00] transition-colors"
             >
               Start Shopping
             </Link>
             <Link
-              href="/merchant-onboarding"
+              href="/auth/signup?role=SELLER"
               className="px-6 py-2.5 bg-[#111111] text-white rounded-full font-semibold hover:opacity-90 transition-opacity"
             >
               Sell on Carryofy
@@ -212,14 +212,14 @@ export default function Header() {
                       Sign In
                     </Link>
                     <Link
-                      href="/buyer/products"
+                      href="/auth/signup"
                       className="block w-full py-3 text-center bg-[#FF6B00] text-white rounded-xl font-semibold touch-target btn-mobile"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Start Shopping
                     </Link>
                     <Link
-                      href="/merchant-onboarding"
+                      href="/auth/signup?role=SELLER"
                       className="block w-full py-3 text-center bg-[#111111] text-white rounded-xl font-semibold touch-target btn-mobile"
                       onClick={() => setMobileMenuOpen(false)}
                     >

@@ -107,10 +107,10 @@ export default function ForgotPassword() {
         <header className="bg-white shadow-sm">
           <nav className="container mx-auto px-4 py-4">
             <Link href="/" className="flex items-center space-x-2">
-              <Image 
-                src="/logo.png" 
-                alt="Carryofy Logo" 
-                width={32} 
+              <Image
+                src="/logo.png"
+                alt="Carryofy Logo"
+                width={32}
                 height={32}
                 className="w-8 h-8"
               />
@@ -159,7 +159,7 @@ export default function ForgotPassword() {
                           type="email"
                           id="email"
                           {...forgotForm.register('email')}
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${forgotForm.formState.errors.email ? 'border-red-300' : 'border-gray-300'
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white ${forgotForm.formState.errors.email ? 'border-red-300' : 'border-gray-300'
                             }`}
                           placeholder="your.email@example.com"
                         />
@@ -202,7 +202,7 @@ export default function ForgotPassword() {
                         id="code"
                         maxLength={6}
                         {...resetForm.register('code')}
-                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-center text-lg font-mono tracking-widest ${resetForm.formState.errors.code ? 'border-red-300' : 'border-gray-300'
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-center text-lg font-mono tracking-widest text-gray-900 bg-white ${resetForm.formState.errors.code ? 'border-red-300' : 'border-gray-300'
                           }`}
                         placeholder="000000"
                         autoComplete="one-time-code"
@@ -222,7 +222,7 @@ export default function ForgotPassword() {
                           type={showPassword ? 'text' : 'password'}
                           id="password"
                           {...resetForm.register('password')}
-                          className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${resetForm.formState.errors.password ? 'border-red-300' : 'border-gray-300'
+                          className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white ${resetForm.formState.errors.password ? 'border-red-300' : 'border-gray-300'
                             }`}
                           placeholder="Enter new password"
                         />
@@ -249,7 +249,7 @@ export default function ForgotPassword() {
                           type={showConfirmPassword ? 'text' : 'password'}
                           id="confirmPassword"
                           {...resetForm.register('confirmPassword')}
-                          className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${resetForm.formState.errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                          className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white ${resetForm.formState.errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
                             }`}
                           placeholder="Confirm new password"
                         />

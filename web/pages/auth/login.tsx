@@ -84,7 +84,7 @@ export default function Login() {
       console.error('Login error:', error);
 
       let message = 'Invalid email or password';
-      
+
       // Handle network errors specifically
       if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.message === 'Network Error') {
         const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
@@ -102,8 +102,8 @@ export default function Login() {
       } else if (error.response?.data) {
         const errorData = error.response.data;
         if (typeof errorData === 'object' && errorData.message) {
-          message = Array.isArray(errorData.message) 
-            ? errorData.message.join(', ') 
+          message = Array.isArray(errorData.message)
+            ? errorData.message.join(', ')
             : errorData.message;
         } else if (typeof errorData === 'string') {
           message = errorData;
@@ -129,12 +129,12 @@ export default function Login() {
     'login Carryofy',
     'sign in Carryofy',
     'Carryofy account login',
-    
+
     // User type specific
     'seller login Nigeria',
     'buyer login Nigeria',
     'merchant login Carryofy',
-    
+
     // General
     'ecommerce login Nigeria',
     'online shopping login',
@@ -152,14 +152,14 @@ export default function Login() {
         ogImage="https://carryofy.com/og/login.png"
         ogImageAlt="Login to Carryofy - Nigeria's E-Commerce Platform"
       />
-      
+
       <BreadcrumbSchema
         items={[
           { name: 'Home', url: '/' },
           { name: 'Login', url: '/auth/login' },
         ]}
       />
-      
+
       <div className="min-h-screen flex flex-col bg-linear-to-br from-gray-50 to-white">
         {/* Header */}
         <header className="bg-white shadow-sm">
@@ -211,7 +211,7 @@ export default function Login() {
                       type="email"
                       id="email"
                       {...register('email')}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${errors.email ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white ${errors.email ? 'border-red-300' : 'border-gray-300'
                         }`}
                       placeholder="your.email@example.com"
                     />
@@ -232,7 +232,7 @@ export default function Login() {
                       type={showPassword ? 'text' : 'password'}
                       id="password"
                       {...register('password')}
-                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${errors.password ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white ${errors.password ? 'border-red-300' : 'border-gray-300'
                         }`}
                       placeholder="Enter your password"
                     />
@@ -282,7 +282,7 @@ export default function Login() {
                   </Link>
                 </p>
               </div>
-              
+
               {/* Additional Links for SEO */}
               <div className="mt-8 pt-6 border-t border-gray-100 text-center">
                 <p className="text-gray-500 text-xs">

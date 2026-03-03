@@ -67,7 +67,7 @@ export default function EmailVerification() {
           // Check if user has tokens (from signup)
           const { tokenManager } = await import('../../lib/auth');
           const hasToken = tokenManager.hasAccessToken();
-          
+
           if (hasToken) {
             // User is already logged in from signup, fetch updated user info
             const updatedUser = await authService.getCurrentUser();
@@ -128,13 +128,13 @@ export default function EmailVerification() {
           <header className="bg-white shadow-sm">
             <nav className="container mx-auto px-4 py-4">
               <Link href="/" className="flex items-center space-x-2">
-                <Image 
-                src="/logo.png" 
-                alt="Carryofy Logo" 
-                width={32} 
-                height={32}
-                className="w-8 h-8"
-              />
+                <Image
+                  src="/logo.png"
+                  alt="Carryofy Logo"
+                  width={32}
+                  height={32}
+                  className="w-8 h-8"
+                />
                 <span className="text-2xl font-bold text-black">Carryofy</span>
               </Link>
             </nav>
@@ -179,10 +179,10 @@ export default function EmailVerification() {
         <header className="bg-white shadow-sm">
           <nav className="container mx-auto px-4 py-4">
             <Link href="/" className="flex items-center space-x-2">
-              <Image 
-                src="/logo.png" 
-                alt="Carryofy Logo" 
-                width={32} 
+              <Image
+                src="/logo.png"
+                alt="Carryofy Logo"
+                width={32}
                 height={32}
                 className="w-8 h-8"
               />
@@ -230,7 +230,7 @@ export default function EmailVerification() {
                     id="code"
                     maxLength={6}
                     {...register('code')}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-center text-lg font-mono tracking-widest ${errors.code ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-center text-lg font-mono tracking-widest text-gray-900 bg-white ${errors.code ? 'border-red-300' : 'border-gray-300'
                       }`}
                     placeholder="000000"
                     autoComplete="one-time-code"

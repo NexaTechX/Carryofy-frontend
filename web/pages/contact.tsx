@@ -50,7 +50,7 @@ export default function Contact() {
     'Carryofy address Lagos',
     'reach Carryofy',
     'Carryofy help',
-    
+
     // Support keywords
     'ecommerce support Nigeria',
     'delivery support Lagos',
@@ -58,13 +58,13 @@ export default function Contact() {
     'buyer help Nigeria',
     'order help Nigeria',
     'shipping support Lagos',
-    
+
     // Business keywords
     'Carryofy partnership',
     'Carryofy business inquiries',
     'logistics partnership Nigeria',
     'ecommerce partnership Lagos',
-    
+
     // Location keywords
     'Carryofy Lagos office',
     'Carryofy Nigeria contact',
@@ -110,7 +110,7 @@ export default function Contact() {
         ogImage="https://carryofy.com/og/contact.png"
         ogImageAlt="Contact Carryofy - Customer Support Nigeria"
       />
-      
+
       <CombinedSchema
         includeLocalBusiness
         breadcrumbs={[
@@ -119,7 +119,7 @@ export default function Contact() {
         ]}
         faqs={faqs}
       />
-      
+
       <div className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-grow">
@@ -198,8 +198,8 @@ export default function Contact() {
                           { name: 'LinkedIn', url: 'https://linkedin.com/company/carryofy' },
                           { name: 'TikTok', url: 'https://tiktok.com/@carryofy' },
                         ].map((social) => (
-                          <a 
-                            key={social.name} 
+                          <a
+                            key={social.name}
                             href={social.url}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -230,7 +230,7 @@ export default function Contact() {
                         value={formData.name}
                         onChange={handleChange}
                         required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white"
                         placeholder="Your name"
                       />
                     </div>
@@ -246,7 +246,7 @@ export default function Contact() {
                         value={formData.email}
                         onChange={handleChange}
                         required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white"
                         placeholder="your.email@example.com"
                       />
                     </div>
@@ -261,7 +261,7 @@ export default function Contact() {
                         value={formData.subject}
                         onChange={handleChange}
                         required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white"
                       >
                         <option value="">Select a subject</option>
                         <option value="general">General Inquiry</option>
@@ -284,7 +284,7 @@ export default function Contact() {
                         onChange={handleChange}
                         required
                         rows={6}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition resize-none"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition resize-none text-gray-900 bg-white"
                         placeholder="Your message here..."
                       />
                     </div>

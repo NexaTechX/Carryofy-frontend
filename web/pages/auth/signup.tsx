@@ -231,7 +231,7 @@ export default function Signup() {
                       type="text"
                       id="name"
                       {...register('name')}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${errors.name ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white ${errors.name ? 'border-red-300' : 'border-gray-300'
                         }`}
                       placeholder="John Doe"
                     />
@@ -252,7 +252,7 @@ export default function Signup() {
                       type="email"
                       id="email"
                       {...register('email')}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${errors.email ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white ${errors.email ? 'border-red-300' : 'border-gray-300'
                         }`}
                       placeholder="your.email@example.com"
                     />
@@ -274,7 +274,7 @@ export default function Signup() {
                       id="phone"
                       {...register('phone')}
                       required
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${errors.phone ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white ${errors.phone ? 'border-red-300' : 'border-gray-300'
                         }`}
                       placeholder="e.g. 08012345678"
                     />
@@ -295,7 +295,7 @@ export default function Signup() {
                       type={showPassword ? 'text' : 'password'}
                       id="password"
                       {...register('password')}
-                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${errors.password ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white ${errors.password ? 'border-red-300' : 'border-gray-300'
                         }`}
                       placeholder="Create a password"
                     />
@@ -331,7 +331,7 @@ export default function Signup() {
                       type={showConfirmPassword ? 'text' : 'password'}
                       id="confirmPassword"
                       {...register('confirmPassword')}
-                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white ${errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
                         }`}
                       placeholder="Confirm your password"
                     />

@@ -43,6 +43,7 @@ export function useRejectProductMutation() {
     mutationFn: rejectProductRequest,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: productKeys.pending });
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       toast.success('Product rejected.');
     },
     onError: (error: unknown) => {

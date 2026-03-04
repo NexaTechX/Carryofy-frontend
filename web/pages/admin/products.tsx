@@ -180,7 +180,6 @@ export default function AdminProducts() {
 
   const handleApproveSingle = async (product: PendingProduct) => {
     await approveProduct.mutateAsync({ productId: product.id });
-    toast.success(`${product.title} has been approved.`);
     refetch();
     setFocusedProduct((current) =>
       current && current.id === product.id ? { ...current, status: 'ACTIVE' } : current
@@ -191,7 +190,6 @@ export default function AdminProducts() {
 
   const handleRejectSingle = async (product: PendingProduct) => {
     await rejectProduct.mutateAsync(product.id);
-    toast.success(`${product.title} has been rejected.`);
     refetch();
     setFocusedProduct((current) =>
       current && current.id === product.id ? { ...current, status: 'INACTIVE' } : current
@@ -248,7 +246,7 @@ export default function AdminProducts() {
 
   const handleBulkDelete = async () => {
     if (selectedProductIds.size === 0) return;
-    
+
     const confirmed = await confirmation.confirm({
       title: 'Delete Products',
       message: `Are you sure you want to delete ${selectedProductIds.size} product(s)? This action cannot be undone.`,
@@ -306,635 +304,633 @@ export default function AdminProducts() {
 
   return (
     <>
-    <AdminLayout>
-      <div className="min-h-screen bg-[#090c11]">
-        <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
-          <AdminPageHeader
-            title="Products"
-            tag="Catalog Management"
-            subtitle="View and manage all products in the marketplace. Review pending submissions, monitor active listings, and manage inventory."
-          />
+      <AdminLayout>
+        <div className="min-h-screen bg-[#090c11]">
+          <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
+            <AdminPageHeader
+              title="Products"
+              tag="Catalog Management"
+              subtitle="View and manage all products in the marketplace. Review pending submissions, monitor active listings, and manage inventory."
+            />
 
-          {/* Stats Cards */}
-          <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <AdminCard
-              title="Total Products"
-              description="All marketplace listings"
-              className="border-[#1f2534] bg-[#0f1524]"
-            >
-              <p className="text-3xl font-semibold text-white">{counts.all}</p>
-            </AdminCard>
-            <AdminCard
-              title="Pending Approval"
-              description="Awaiting review"
-              className="border-[#3a2a1f] bg-[#15100d]"
-              pulseBorder={counts.pending > 0}
-            >
-              <p className="text-3xl font-semibold text-primary">{counts.pending}</p>
-            </AdminCard>
-            <AdminCard
-              title="Active Listings"
-              description="Live on marketplace"
-              className="border-[#1f3a1f] bg-[#0d150d]"
-            >
-              <p className="text-3xl font-semibold text-green-500">{counts.active}</p>
-            </AdminCard>
-            <AdminCard
-              title="Inactive"
-              description="Archived or rejected"
-              className="border-[#2a2a2a] bg-[#111111]"
-            >
-              <p className="text-3xl font-semibold text-gray-400">{counts.inactive}</p>
-            </AdminCard>
-            <Link href="/admin/warehouse?stock=out" className="rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-[#090c11]">
+            {/* Stats Cards */}
+            <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               <AdminCard
-                title="Out of Stock"
-                description="Zero quantity — view in warehouse"
-                className="border-red-500/30 bg-red-950/20"
-                accent="red"
+                title="Total Products"
+                description="All marketplace listings"
+                className="border-[#1f2534] bg-[#0f1524]"
               >
-                <p className="text-3xl font-semibold text-red-400">{counts.outOfStock}</p>
+                <p className="text-3xl font-semibold text-white">{counts.all}</p>
               </AdminCard>
-            </Link>
-          </section>
+              <AdminCard
+                title="Pending Approval"
+                description="Awaiting review"
+                className="border-[#3a2a1f] bg-[#15100d]"
+                pulseBorder={counts.pending > 0}
+              >
+                <p className="text-3xl font-semibold text-primary">{counts.pending}</p>
+              </AdminCard>
+              <AdminCard
+                title="Active Listings"
+                description="Live on marketplace"
+                className="border-[#1f3a1f] bg-[#0d150d]"
+              >
+                <p className="text-3xl font-semibold text-green-500">{counts.active}</p>
+              </AdminCard>
+              <AdminCard
+                title="Inactive"
+                description="Archived or rejected"
+                className="border-[#2a2a2a] bg-[#111111]"
+              >
+                <p className="text-3xl font-semibold text-gray-400">{counts.inactive}</p>
+              </AdminCard>
+              <Link href="/admin/warehouse?stock=out" className="rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-[#090c11]">
+                <AdminCard
+                  title="Out of Stock"
+                  description="Zero quantity — view in warehouse"
+                  className="border-red-500/30 bg-red-950/20"
+                  accent="red"
+                >
+                  <p className="text-3xl font-semibold text-red-400">{counts.outOfStock}</p>
+                </AdminCard>
+              </Link>
+            </section>
 
-          {/* Bulk Actions Bar */}
-          {showBulkActions && selectedProductIds.size > 0 && (
-            <div className="mb-4 rounded-lg border border-primary/30 bg-primary/10 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="text-sm font-semibold text-white">
-                  {selectedProductIds.size} product(s) selected
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {filterTab === 'pending' && (
+            {/* Bulk Actions Bar */}
+            {showBulkActions && selectedProductIds.size > 0 && (
+              <div className="mb-4 rounded-lg border border-primary/30 bg-primary/10 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="text-sm font-semibold text-white">
+                    {selectedProductIds.size} product(s) selected
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {filterTab === 'pending' && (
+                      <button
+                        onClick={handleBulkApprove}
+                        disabled={bulkApprove.isPending}
+                        className="flex items-center gap-2 rounded-full bg-green-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+                      >
+                        <Check className="w-4 h-4" />
+                        Approve Selected
+                      </button>
+                    )}
+                    {filterTab === 'pending' && (
+                      <button
+                        onClick={handleBulkReject}
+                        disabled={bulkReject.isPending}
+                        className="flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                      >
+                        <X className="w-4 h-4" />
+                        Reject Selected
+                      </button>
+                    )}
                     <button
-                      onClick={handleBulkApprove}
-                      disabled={bulkApprove.isPending}
-                      className="flex items-center gap-2 rounded-full bg-green-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+                      onClick={handleBulkDeactivate}
+                      disabled={bulkStatusChange.isPending}
+                      className="flex items-center gap-2 rounded-full border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50"
                     >
-                      <Check className="w-4 h-4" />
-                      Approve Selected
+                      Deactivate Selected
                     </button>
-                  )}
-                  {filterTab === 'pending' && (
                     <button
-                      onClick={handleBulkReject}
-                      disabled={bulkReject.isPending}
+                      onClick={() => setBulkStatusModalOpen(true)}
+                      disabled={bulkStatusChange.isPending}
+                      className="flex items-center gap-2 rounded-full border border-primary/50 bg-[#0f1524] px-4 py-2 text-xs font-semibold text-primary transition hover:border-primary hover:bg-primary/10 disabled:opacity-50"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                      Change Status
+                    </button>
+                    <button
+                      onClick={handleBulkDelete}
+                      disabled={bulkDelete.isPending}
                       className="flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
                     >
-                      <X className="w-4 h-4" />
-                      Reject Selected
+                      <Trash2 className="w-4 h-4" />
+                      Delete Selected
                     </button>
-                  )}
-                  <button
-                    onClick={handleBulkDeactivate}
-                    disabled={bulkStatusChange.isPending}
-                    className="flex items-center gap-2 rounded-full border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50"
-                  >
-                    Deactivate Selected
-                  </button>
-                  <button
-                    onClick={() => setBulkStatusModalOpen(true)}
-                    disabled={bulkStatusChange.isPending}
-                    className="flex items-center gap-2 rounded-full border border-primary/50 bg-[#0f1524] px-4 py-2 text-xs font-semibold text-primary transition hover:border-primary hover:bg-primary/10 disabled:opacity-50"
-                  >
-                    <MoreVertical className="w-4 h-4" />
-                    Change Status
-                  </button>
-                  <button
-                    onClick={handleBulkDelete}
-                    disabled={bulkDelete.isPending}
-                    className="flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete Selected
-                  </button>
-                  <button
-                    onClick={() => setSelectedProductIds(new Set())}
-                    className="rounded-full border border-gray-600 px-4 py-2 text-xs font-semibold text-gray-300 transition hover:border-gray-500"
-                  >
-                    Clear Selection
-                  </button>
+                    <button
+                      onClick={() => setSelectedProductIds(new Set())}
+                      className="rounded-full border border-gray-600 px-4 py-2 text-xs font-semibold text-gray-300 transition hover:border-gray-500"
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Filter Tabs */}
-          <AdminToolbar className="mb-4 justify-between">
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  ['all', 'All', counts.all],
-                  ['pending', 'Pending', counts.pending],
-                  ['active', 'Active', counts.active],
-                  ['inactive', 'Inactive', counts.inactive],
-                  ['flagged', 'Recently Flagged', counts.flagged],
-                ] as const
-              ).map(([tab, label, count]) => (
-                <button
-                  key={tab}
-                  onClick={() => setFilterTab(tab)}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                    filterTab === tab
-                      ? 'bg-primary text-black'
-                      : 'border border-[#2a2a2a] bg-[#151515] text-gray-400 hover:border-primary hover:text-primary'
-                  }`}
-                >
-                  {label} ({count})
-                </button>
-              ))}
-            </div>
-            <input
-              type="search"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-64 rounded-full border border-[#1f2432] bg-[#0e131d] px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
-            />
-          </AdminToolbar>
-
-          {/* Additional filters */}
-          <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-[#1f2534] bg-[#0f1524] px-4 py-3">
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-            >
-              <option value="">All categories</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-            <select
-              value={sellerFilter}
-              onChange={(e) => setSellerFilter(e.target.value)}
-              className="rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-            >
-              <option value="">All sellers</option>
-              {sellers.map(({ id, name }) => (
-                <option key={id} value={id}>{name}</option>
-              ))}
-            </select>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Price (₦)</span>
-              <input
-                type="number"
-                min={0}
-                step={1}
-                placeholder="Min"
-                value={priceMinNgn}
-                onChange={(e) => setPriceMinNgn(e.target.value)}
-                className="w-24 rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
-              />
-              <span className="text-gray-500">–</span>
-              <input
-                type="number"
-                min={0}
-                step={1}
-                placeholder="Max"
-                value={priceMaxNgn}
-                onChange={(e) => setPriceMaxNgn(e.target.value)}
-                className="w-24 rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
-              />
-            </div>
-            <select
-              value={stockStatusFilter}
-              onChange={(e) => setStockStatusFilter(e.target.value as 'all' | 'in' | 'low' | 'out')}
-              className="rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-            >
-              <option value="all">Stock: All</option>
-              <option value="in">In Stock</option>
-              <option value="low">Low Stock</option>
-              <option value="out">Out of Stock</option>
-            </select>
-          </div>
-
-          {/* Products Table */}
-          {isLoading ? (
-            <LoadingState fullscreen />
-          ) : isError ? (
-            <AdminEmptyState
-              title="Unable to load products"
-              description={error instanceof Error ? error.message : 'Please try again later.'}
-              action={
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  className="rounded-full border border-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary transition hover:bg-primary hover:text-black"
-                >
-                  Retry
-                </button>
-              }
-            />
-          ) : !filteredProducts || filteredProducts.length === 0 ? (
-            <AdminEmptyState
-              title="No products found"
-              description={searchQuery ? 'Try adjusting your search query.' : 'No products match the selected filter.'}
-            />
-          ) : (
-            <DataTableContainer>
-              <DataTable>
-                <DataTableHead>
-                  <tr>
-                    <th className="px-4 py-4 text-left w-12">
-                      <input
-                        type="checkbox"
-                        checked={selectedProductIds.size === filteredProducts.length && filteredProducts.length > 0}
-                        onChange={toggleSelectAll}
-                        className="h-4 w-4 rounded border-gray-600 bg-[#0e131d] text-primary focus:ring-primary"
-                      />
-                    </th>
-                    <th className="px-4 py-4 text-left text-white w-16">Image</th>
-                    <th className="px-4 py-4 text-left text-white">Product</th>
-                    <th className="px-4 py-4 text-left text-white">Seller</th>
-                    <th className="px-4 py-4 text-left text-white">Category</th>
-                    <th className="px-4 py-4 text-left text-white">Stock</th>
-                    <th className="px-4 py-4 text-left text-white">Date Added</th>
-                    <th className="px-4 py-4 text-left text-white">B2B</th>
-                    <th className="px-4 py-4 text-left text-white">Status</th>
-                    <th className="px-4 py-4 text-left text-white">Price</th>
-                    <th className="px-4 py-4 text-right text-gray-500">Actions</th>
-                  </tr>
-                </DataTableHead>
-                <DataTableBody>
-                  {filteredProducts.map((product) => {
-                    const qty = product.quantity ?? 0;
-                    const stockLabel = qty === 0 ? 'Out' : qty <= LOW_STOCK_THRESHOLD ? 'Low' : 'OK';
-                    return (
-                      <tr
-                        key={product.id}
-                        className="transition hover:bg-[#10151d] cursor-pointer"
-                        onClick={() => setFocusedProduct(product)}
-                      >
-                        <DataTableCell className="w-12" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={selectedProductIds.has(product.id)}
-                            onChange={() => toggleProductSelection(product.id)}
-                            className="h-4 w-4 rounded border-gray-600 bg-[#0e131d] text-primary focus:ring-primary"
-                          />
-                        </DataTableCell>
-                        <DataTableCell className="w-16" onClick={(e) => e.stopPropagation()}>
-                          <div className="h-12 w-12 rounded-lg border border-[#2a2a2a] bg-[#151515] overflow-hidden flex items-center justify-center shrink-0">
-                            {product.images?.[0] ? (
-                              <img src={product.images[0]} alt="" className="h-full w-full object-cover" />
-                            ) : (
-                              <span className="text-lg text-gray-500" aria-hidden>📦</span>
-                            )}
-                          </div>
-                        </DataTableCell>
-                        <DataTableCell>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-white">{product.title}</span>
-                            <span className="text-xs uppercase tracking-[0.16em] text-gray-500">
-                              #{product.id.slice(0, 8)}
-                            </span>
-                          </div>
-                        </DataTableCell>
-                        <DataTableCell>
-                          <span className="text-sm text-gray-300">
-                            {product.seller?.businessName ?? 'Unknown seller'}
-                          </span>
-                        </DataTableCell>
-                        <DataTableCell>
-                          <span className="text-sm text-gray-400">{product.category ?? '—'}</span>
-                        </DataTableCell>
-                        <DataTableCell>
-                          <span
-                            className={`text-sm font-medium ${
-                              qty === 0 ? 'text-red-400' : qty <= LOW_STOCK_THRESHOLD ? 'text-amber-400' : 'text-gray-300'
-                            }`}
-                          >
-                            {qty.toLocaleString()}
-                            <span className="ml-1 text-xs text-gray-500">({stockLabel})</span>
-                          </span>
-                        </DataTableCell>
-                        <DataTableCell>
-                          <span className="text-sm text-gray-400">{product.createdAt ? formatDate(product.createdAt) : '—'}</span>
-                        </DataTableCell>
-                        <DataTableCell>
-                          {product.b2bEligible ? (
-                            <span className="inline-flex rounded-full bg-primary/20 px-2 py-0.5 text-xs font-semibold text-primary">
-                              B2B Eligible
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-500">—</span>
-                          )}
-                        </DataTableCell>
-                        <DataTableCell>
-                          <StatusBadge
-                            tone={productStatusTone[product.status] ?? 'neutral'}
-                            label={productStatusLabel[product.status] ?? product.status}
-                          />
-                        </DataTableCell>
-                        <DataTableCell>{formatNgnFromKobo(product.price)}</DataTableCell>
-                        <DataTableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-end gap-2">
-                            {product.status === 'PENDING_APPROVAL' && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); handleApproveSingleClick(product); }}
-                                  disabled={approveProduct.isPending}
-                                  className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:opacity-50"
-                                >
-                                  Approve
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); handleRejectSingle(product); }}
-                                  disabled={rejectProduct.isPending}
-                                  className="rounded-full border border-[#3a1f1f] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6] disabled:opacity-50"
-                                >
-                                  Reject
-                                </button>
-                              </>
-                            )}
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); setFocusedProduct(product); }}
-                              className="text-xs font-semibold text-primary transition hover:text-primary-light"
-                            >
-                              View
-                            </button>
-                          </div>
-                        </DataTableCell>
-                      </tr>
-                    );
-                  })}
-                </DataTableBody>
-              </DataTable>
-            </DataTableContainer>
-          )}
-        </div>
-      </div>
-
-      {/* Product Details Drawer */}
-      <AdminDrawer
-        open={Boolean(focusedProduct)}
-        onClose={() => setFocusedProduct(null)}
-        title={focusedProduct?.title}
-        description={focusedProduct?.seller?.businessName}
-        className="max-w-lg"
-        footer={
-          focusedProduct && focusedProduct.status === 'PENDING_APPROVAL' ? (
-            <div className="space-y-4">
-              <p className="text-xs text-gray-500">
-                Commission is resolved from the product category when payment is confirmed.
-              </p>
-              <div className="flex justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => focusedProduct && handleRejectSingle(focusedProduct)}
-                  disabled={rejectProduct.isPending}
-                  className="rounded-full border border-[#3a1f1f] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6] disabled:opacity-50"
-                >
-                  Reject
-                </button>
-                <button
-                  type="button"
-                  onClick={() => focusedProduct && handleApproveSingle(focusedProduct)}
-                  disabled={approveProduct.isPending}
-                  className="rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:opacity-50"
-                >
-                  {approveProduct.isPending ? 'Approving...' : 'Approve'}
-                </button>
-              </div>
-            </div>
-          ) : null
-        }
-      >
-        {focusedProduct ? (
-          <div className="space-y-6 text-sm text-gray-300">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Product ID</p>
-                <p className="mt-1 font-mono text-sm text-white">{focusedProduct.id}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Status</p>
-                <StatusBadge
-                  tone={productStatusTone[focusedProduct.status] ?? 'neutral'}
-                  label={productStatusLabel[focusedProduct.status] ?? focusedProduct.status}
-                  className="mt-2"
-                />
-              </div>
-              {focusedProduct.category && (
-                <div className="col-span-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Category</p>
-                  <p className="mt-1 text-white">{focusedProduct.category}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Image gallery</p>
-              {focusedProduct.images && focusedProduct.images.length > 0 ? (
-                <div className="grid grid-cols-2 gap-3">
-                  {focusedProduct.images.map((src, i) => (
-                    <div
-                      key={src + i}
-                      className="aspect-square overflow-hidden rounded-xl border border-[#1f1f1f] bg-[#10151d]"
-                      style={{ backgroundImage: `url(${src})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-dashed border-gray-700 bg-[#10151d] p-6 text-center text-xs text-gray-500">
-                  No images uploaded.
-                </div>
-              )}
-            </div>
-
-            {focusedProduct.description ? (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Description</p>
-                <p className="mt-2 leading-relaxed text-gray-300 whitespace-pre-wrap">{focusedProduct.description}</p>
-              </div>
-            ) : null}
-
-            <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4 space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Seller</p>
-              <p className="text-white font-medium">{focusedProduct.seller?.businessName ?? 'Unknown seller'}</p>
-              <p className="font-mono text-xs text-gray-500">ID: {focusedProduct.sellerId}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Price</p>
-                <p className="mt-2 text-lg font-semibold text-white">{formatNgnFromKobo(focusedProduct.price)}</p>
-              </div>
-              <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Stock</p>
-                <p className="mt-2 text-lg font-semibold text-white">{focusedProduct.quantity ?? 0}</p>
-              </div>
-            </div>
-
-            {focusedProduct.b2bEligible && (
-              <div>
-                <span className="inline-flex rounded-full bg-primary/20 px-3 py-1 text-xs font-semibold text-primary">B2B Eligible</span>
               </div>
             )}
 
-            <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Moderation history</p>
-              {focusedProduct.moderationHistory && focusedProduct.moderationHistory.length > 0 ? (
-                <ul className="space-y-2 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
-                  {focusedProduct.moderationHistory.map((entry, i) => (
-                    <li key={i} className="flex flex-wrap items-center gap-2 text-xs">
-                      <span className="font-semibold text-white">{entry.action}</span>
-                      {entry.by && <span className="text-gray-500">by {entry.by}</span>}
-                      <span className="text-gray-500">{formatDate(entry.at)}</span>
-                      {entry.reason && <span className="text-gray-400">— {entry.reason}</span>}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="rounded-xl border border-dashed border-gray-700 bg-[#10151d] p-4 text-center text-xs text-gray-500">
-                  No moderation history recorded.
+            {/* Filter Tabs */}
+            <AdminToolbar className="mb-4 justify-between">
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    ['all', 'All', counts.all],
+                    ['pending', 'Pending', counts.pending],
+                    ['active', 'Active', counts.active],
+                    ['inactive', 'Inactive', counts.inactive],
+                    ['flagged', 'Recently Flagged', counts.flagged],
+                  ] as const
+                ).map(([tab, label, count]) => (
+                  <button
+                    key={tab}
+                    onClick={() => setFilterTab(tab)}
+                    className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${filterTab === tab
+                        ? 'bg-primary text-black'
+                        : 'border border-[#2a2a2a] bg-[#151515] text-gray-400 hover:border-primary hover:text-primary'
+                      }`}
+                  >
+                    {label} ({count})
+                  </button>
+                ))}
+              </div>
+              <input
+                type="search"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-64 rounded-full border border-[#1f2432] bg-[#0e131d] px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
+              />
+            </AdminToolbar>
+
+            {/* Additional filters */}
+            <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-[#1f2534] bg-[#0f1524] px-4 py-3">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+              >
+                <option value="">All categories</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <select
+                value={sellerFilter}
+                onChange={(e) => setSellerFilter(e.target.value)}
+                className="rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+              >
+                <option value="">All sellers</option>
+                {sellers.map(({ id, name }) => (
+                  <option key={id} value={id}>{name}</option>
+                ))}
+              </select>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">Price (₦)</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="Min"
+                  value={priceMinNgn}
+                  onChange={(e) => setPriceMinNgn(e.target.value)}
+                  className="w-24 rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
+                />
+                <span className="text-gray-500">–</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="Max"
+                  value={priceMaxNgn}
+                  onChange={(e) => setPriceMaxNgn(e.target.value)}
+                  className="w-24 rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
+                />
+              </div>
+              <select
+                value={stockStatusFilter}
+                onChange={(e) => setStockStatusFilter(e.target.value as 'all' | 'in' | 'low' | 'out')}
+                className="rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+              >
+                <option value="all">Stock: All</option>
+                <option value="in">In Stock</option>
+                <option value="low">Low Stock</option>
+                <option value="out">Out of Stock</option>
+              </select>
+            </div>
+
+            {/* Products Table */}
+            {isLoading ? (
+              <LoadingState fullscreen />
+            ) : isError ? (
+              <AdminEmptyState
+                title="Unable to load products"
+                description={error instanceof Error ? error.message : 'Please try again later.'}
+                action={
+                  <button
+                    type="button"
+                    onClick={() => refetch()}
+                    className="rounded-full border border-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary transition hover:bg-primary hover:text-black"
+                  >
+                    Retry
+                  </button>
+                }
+              />
+            ) : !filteredProducts || filteredProducts.length === 0 ? (
+              <AdminEmptyState
+                title="No products found"
+                description={searchQuery ? 'Try adjusting your search query.' : 'No products match the selected filter.'}
+              />
+            ) : (
+              <DataTableContainer>
+                <DataTable>
+                  <DataTableHead>
+                    <tr>
+                      <th className="px-4 py-4 text-left w-12">
+                        <input
+                          type="checkbox"
+                          checked={selectedProductIds.size === filteredProducts.length && filteredProducts.length > 0}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 rounded border-gray-600 bg-[#0e131d] text-primary focus:ring-primary"
+                        />
+                      </th>
+                      <th className="px-4 py-4 text-left text-white w-16">Image</th>
+                      <th className="px-4 py-4 text-left text-white">Product</th>
+                      <th className="px-4 py-4 text-left text-white">Seller</th>
+                      <th className="px-4 py-4 text-left text-white">Category</th>
+                      <th className="px-4 py-4 text-left text-white">Stock</th>
+                      <th className="px-4 py-4 text-left text-white">Date Added</th>
+                      <th className="px-4 py-4 text-left text-white">B2B</th>
+                      <th className="px-4 py-4 text-left text-white">Status</th>
+                      <th className="px-4 py-4 text-left text-white">Price</th>
+                      <th className="px-4 py-4 text-right text-gray-500">Actions</th>
+                    </tr>
+                  </DataTableHead>
+                  <DataTableBody>
+                    {filteredProducts.map((product) => {
+                      const qty = product.quantity ?? 0;
+                      const stockLabel = qty === 0 ? 'Out' : qty <= LOW_STOCK_THRESHOLD ? 'Low' : 'OK';
+                      return (
+                        <tr
+                          key={product.id}
+                          className="transition hover:bg-[#10151d] cursor-pointer"
+                          onClick={() => setFocusedProduct(product)}
+                        >
+                          <DataTableCell className="w-12" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedProductIds.has(product.id)}
+                              onChange={() => toggleProductSelection(product.id)}
+                              className="h-4 w-4 rounded border-gray-600 bg-[#0e131d] text-primary focus:ring-primary"
+                            />
+                          </DataTableCell>
+                          <DataTableCell className="w-16" onClick={(e) => e.stopPropagation()}>
+                            <div className="h-12 w-12 rounded-lg border border-[#2a2a2a] bg-[#151515] overflow-hidden flex items-center justify-center shrink-0">
+                              {product.images?.[0] ? (
+                                <img src={product.images[0]} alt="" className="h-full w-full object-cover" />
+                              ) : (
+                                <span className="text-lg text-gray-500" aria-hidden>📦</span>
+                              )}
+                            </div>
+                          </DataTableCell>
+                          <DataTableCell>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-white">{product.title}</span>
+                              <span className="text-xs uppercase tracking-[0.16em] text-gray-500">
+                                #{product.id.slice(0, 8)}
+                              </span>
+                            </div>
+                          </DataTableCell>
+                          <DataTableCell>
+                            <span className="text-sm text-gray-300">
+                              {product.seller?.businessName ?? 'Unknown seller'}
+                            </span>
+                          </DataTableCell>
+                          <DataTableCell>
+                            <span className="text-sm text-gray-400">{product.category ?? '—'}</span>
+                          </DataTableCell>
+                          <DataTableCell>
+                            <span
+                              className={`text-sm font-medium ${qty === 0 ? 'text-red-400' : qty <= LOW_STOCK_THRESHOLD ? 'text-amber-400' : 'text-gray-300'
+                                }`}
+                            >
+                              {qty.toLocaleString()}
+                              <span className="ml-1 text-xs text-gray-500">({stockLabel})</span>
+                            </span>
+                          </DataTableCell>
+                          <DataTableCell>
+                            <span className="text-sm text-gray-400">{product.createdAt ? formatDate(product.createdAt) : '—'}</span>
+                          </DataTableCell>
+                          <DataTableCell>
+                            {product.b2bEligible ? (
+                              <span className="inline-flex rounded-full bg-primary/20 px-2 py-0.5 text-xs font-semibold text-primary">
+                                B2B Eligible
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-500">—</span>
+                            )}
+                          </DataTableCell>
+                          <DataTableCell>
+                            <StatusBadge
+                              tone={productStatusTone[product.status] ?? 'neutral'}
+                              label={productStatusLabel[product.status] ?? product.status}
+                            />
+                          </DataTableCell>
+                          <DataTableCell>{formatNgnFromKobo(product.price)}</DataTableCell>
+                          <DataTableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex justify-end gap-2">
+                              {product.status === 'PENDING_APPROVAL' && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleApproveSingleClick(product); }}
+                                    disabled={approveProduct.isPending}
+                                    className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:opacity-50"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleRejectSingle(product); }}
+                                    disabled={rejectProduct.isPending}
+                                    className="rounded-full border border-[#3a1f1f] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6] disabled:opacity-50"
+                                  >
+                                    Reject
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setFocusedProduct(product); }}
+                                className="text-xs font-semibold text-primary transition hover:text-primary-light"
+                              >
+                                View
+                              </button>
+                            </div>
+                          </DataTableCell>
+                        </tr>
+                      );
+                    })}
+                  </DataTableBody>
+                </DataTable>
+              </DataTableContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Product Details Drawer */}
+        <AdminDrawer
+          open={Boolean(focusedProduct)}
+          onClose={() => setFocusedProduct(null)}
+          title={focusedProduct?.title}
+          description={focusedProduct?.seller?.businessName}
+          className="max-w-lg"
+          footer={
+            focusedProduct && focusedProduct.status === 'PENDING_APPROVAL' ? (
+              <div className="space-y-4">
+                <p className="text-xs text-gray-500">
+                  Commission is resolved from the product category when payment is confirmed.
                 </p>
+                <div className="flex justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => focusedProduct && handleRejectSingle(focusedProduct)}
+                    disabled={rejectProduct.isPending}
+                    className="rounded-full border border-[#3a1f1f] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#ff9aa8] transition hover:border-[#ff9aa8] hover:text-[#ffb8c6] disabled:opacity-50"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => focusedProduct && handleApproveSingle(focusedProduct)}
+                    disabled={approveProduct.isPending}
+                    className="rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:opacity-50"
+                  >
+                    {approveProduct.isPending ? 'Approving...' : 'Approve'}
+                  </button>
+                </div>
+              </div>
+            ) : null
+          }
+        >
+          {focusedProduct ? (
+            <div className="space-y-6 text-sm text-gray-300">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Product ID</p>
+                  <p className="mt-1 font-mono text-sm text-white">{focusedProduct.id}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Status</p>
+                  <StatusBadge
+                    tone={productStatusTone[focusedProduct.status] ?? 'neutral'}
+                    label={productStatusLabel[focusedProduct.status] ?? focusedProduct.status}
+                    className="mt-2"
+                  />
+                </div>
+                {focusedProduct.category && (
+                  <div className="col-span-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Category</p>
+                    <p className="mt-1 text-white">{focusedProduct.category}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Image gallery</p>
+                {focusedProduct.images && focusedProduct.images.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {focusedProduct.images.map((src, i) => (
+                      <div
+                        key={src + i}
+                        className="aspect-square overflow-hidden rounded-xl border border-[#1f1f1f] bg-[#10151d]"
+                        style={{ backgroundImage: `url(${src})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-gray-700 bg-[#10151d] p-6 text-center text-xs text-gray-500">
+                    No images uploaded.
+                  </div>
+                )}
+              </div>
+
+              {focusedProduct.description ? (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Description</p>
+                  <p className="mt-2 leading-relaxed text-gray-300 whitespace-pre-wrap">{focusedProduct.description}</p>
+                </div>
+              ) : null}
+
+              <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Seller</p>
+                <p className="text-white font-medium">{focusedProduct.seller?.businessName ?? 'Unknown seller'}</p>
+                <p className="font-mono text-xs text-gray-500">ID: {focusedProduct.sellerId}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Price</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{formatNgnFromKobo(focusedProduct.price)}</p>
+                </div>
+                <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Stock</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{focusedProduct.quantity ?? 0}</p>
+                </div>
+              </div>
+
+              {focusedProduct.b2bEligible && (
+                <div>
+                  <span className="inline-flex rounded-full bg-primary/20 px-3 py-1 text-xs font-semibold text-primary">B2B Eligible</span>
+                </div>
               )}
-            </div>
-          </div>
-        ) : null}
-      </AdminDrawer>
 
-      {/* Single Approve Modal */}
-      {singleApproveModalOpen && productToApprove && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
-            <h3 className="mb-2 text-lg font-bold text-white">Approve Product</h3>
-            <p className="mb-4 text-sm text-gray-400">{productToApprove.title}</p>
-            <p className="mb-4 text-xs text-gray-500">
-              Commission is resolved from the product category when payment is confirmed.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => productToApprove && handleApproveSingle(productToApprove)}
-                disabled={approveProduct.isPending}
-                className="flex-1 rounded-full bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
-              >
-                {approveProduct.isPending ? 'Approving...' : 'Confirm Approve'}
-              </button>
-              <button
-                onClick={() => {
-                  setSingleApproveModalOpen(false);
-                  setProductToApprove(null);
-                }}
-                disabled={approveProduct.isPending}
-                className="flex-1 rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500 disabled:opacity-50"
-              >
-                Cancel
-              </button>
+              <div className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Moderation history</p>
+                {focusedProduct.moderationHistory && focusedProduct.moderationHistory.length > 0 ? (
+                  <ul className="space-y-2 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                    {focusedProduct.moderationHistory.map((entry, i) => (
+                      <li key={i} className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="font-semibold text-white">{entry.action}</span>
+                        {entry.by && <span className="text-gray-500">by {entry.by}</span>}
+                        <span className="text-gray-500">{formatDate(entry.at)}</span>
+                        {entry.reason && <span className="text-gray-400">— {entry.reason}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="rounded-xl border border-dashed border-gray-700 bg-[#10151d] p-4 text-center text-xs text-gray-500">
+                    No moderation history recorded.
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          ) : null}
+        </AdminDrawer>
 
-      {/* Bulk Approve Modal */}
-      {bulkApproveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
-            <h3 className="mb-4 text-lg font-bold text-white">Approve Products</h3>
-            <p className="mb-4 text-sm text-gray-400">
-              You are about to approve {selectedProductIds.size} product(s). Commission is resolved from each product category when payment is confirmed.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={confirmBulkApprove}
-                disabled={bulkApprove.isPending}
-                className="flex-1 rounded-full bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
-              >
-                {bulkApprove.isPending ? 'Approving...' : 'Confirm Approve'}
-              </button>
-              <button
-                onClick={() => setBulkApproveModalOpen(false)}
-                disabled={bulkApprove.isPending}
-                className="flex-1 rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bulk Reject Modal */}
-      {bulkRejectModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
-            <h3 className="mb-4 text-lg font-bold text-white">Reject Products</h3>
-            <p className="mb-4 text-sm text-gray-400">
-              You are about to reject {selectedProductIds.size} product(s). This action cannot be undone.
-            </p>
-            <textarea
-              placeholder="Rejection reason (optional)"
-              className="mb-4 w-full rounded-lg border border-[#1f2534] bg-[#0a0f1a] p-3 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
-              rows={3}
-              id="rejection-reason"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  const reason = (document.getElementById('rejection-reason') as HTMLTextAreaElement)?.value;
-                  confirmBulkReject(reason);
-                }}
-                className="flex-1 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
-              >
-                Confirm Reject
-              </button>
-              <button
-                onClick={() => setBulkRejectModalOpen(false)}
-                className="flex-1 rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bulk Status Change Modal */}
-      {bulkStatusModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
-            <h3 className="mb-4 text-lg font-bold text-white">Change Product Status</h3>
-            <p className="mb-4 text-sm text-gray-400">
-              Change status for {selectedProductIds.size} product(s) to:
-            </p>
-            <div className="mb-4 space-y-2">
-              {Object.entries(productStatusLabel).map(([status, label]) => (
+        {/* Single Approve Modal */}
+        {singleApproveModalOpen && productToApprove && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+            <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
+              <h3 className="mb-2 text-lg font-bold text-white">Approve Product</h3>
+              <p className="mb-4 text-sm text-gray-400">{productToApprove.title}</p>
+              <p className="mb-4 text-xs text-gray-500">
+                Commission is resolved from the product category when payment is confirmed.
+              </p>
+              <div className="flex gap-3">
                 <button
-                  key={status}
-                  onClick={() => handleBulkStatusChange(status)}
-                  className="w-full rounded-lg border border-[#1f2534] bg-[#0a0f1a] px-4 py-2 text-left text-sm text-white transition hover:border-primary hover:bg-primary/10"
+                  onClick={() => productToApprove && handleApproveSingle(productToApprove)}
+                  disabled={approveProduct.isPending}
+                  className="flex-1 rounded-full bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
                 >
-                  {label}
+                  {approveProduct.isPending ? 'Approving...' : 'Confirm Approve'}
                 </button>
-              ))}
+                <button
+                  onClick={() => {
+                    setSingleApproveModalOpen(false);
+                    setProductToApprove(null);
+                  }}
+                  disabled={approveProduct.isPending}
+                  className="flex-1 rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-            <button
-              onClick={() => setBulkStatusModalOpen(false)}
-              className="w-full rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500"
-            >
-              Cancel
-            </button>
           </div>
-        </div>
-      )}
-    </AdminLayout>
-    <ConfirmationDialog
-      open={confirmation.open}
-      title={confirmation.title}
-      message={confirmation.message}
-      confirmText={confirmation.confirmText}
-      cancelText={confirmation.cancelText}
-      variant={confirmation.variant}
-      onConfirm={confirmation.handleConfirm}
-      onCancel={confirmation.handleCancel}
-      loading={confirmation.loading}
-    />
+        )}
+
+        {/* Bulk Approve Modal */}
+        {bulkApproveModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+            <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
+              <h3 className="mb-4 text-lg font-bold text-white">Approve Products</h3>
+              <p className="mb-4 text-sm text-gray-400">
+                You are about to approve {selectedProductIds.size} product(s). Commission is resolved from each product category when payment is confirmed.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={confirmBulkApprove}
+                  disabled={bulkApprove.isPending}
+                  className="flex-1 rounded-full bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+                >
+                  {bulkApprove.isPending ? 'Approving...' : 'Confirm Approve'}
+                </button>
+                <button
+                  onClick={() => setBulkApproveModalOpen(false)}
+                  disabled={bulkApprove.isPending}
+                  className="flex-1 rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Reject Modal */}
+        {bulkRejectModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+            <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
+              <h3 className="mb-4 text-lg font-bold text-white">Reject Products</h3>
+              <p className="mb-4 text-sm text-gray-400">
+                You are about to reject {selectedProductIds.size} product(s). This action cannot be undone.
+              </p>
+              <textarea
+                placeholder="Rejection reason (optional)"
+                className="mb-4 w-full rounded-lg border border-[#1f2534] bg-[#0a0f1a] p-3 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
+                rows={3}
+                id="rejection-reason"
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    const reason = (document.getElementById('rejection-reason') as HTMLTextAreaElement)?.value;
+                    confirmBulkReject(reason);
+                  }}
+                  className="flex-1 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                >
+                  Confirm Reject
+                </button>
+                <button
+                  onClick={() => setBulkRejectModalOpen(false)}
+                  className="flex-1 rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Status Change Modal */}
+        {bulkStatusModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+            <div className="w-full max-w-md rounded-2xl border border-[#1f2534] bg-[#0f1524] p-6">
+              <h3 className="mb-4 text-lg font-bold text-white">Change Product Status</h3>
+              <p className="mb-4 text-sm text-gray-400">
+                Change status for {selectedProductIds.size} product(s) to:
+              </p>
+              <div className="mb-4 space-y-2">
+                {Object.entries(productStatusLabel).map(([status, label]) => (
+                  <button
+                    key={status}
+                    onClick={() => handleBulkStatusChange(status)}
+                    className="w-full rounded-lg border border-[#1f2534] bg-[#0a0f1a] px-4 py-2 text-left text-sm text-white transition hover:border-primary hover:bg-primary/10"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setBulkStatusModalOpen(false)}
+                className="w-full rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </AdminLayout>
+      <ConfirmationDialog
+        open={confirmation.open}
+        title={confirmation.title}
+        message={confirmation.message}
+        confirmText={confirmation.confirmText}
+        cancelText={confirmation.cancelText}
+        variant={confirmation.variant}
+        onConfirm={confirmation.handleConfirm}
+        onCancel={confirmation.handleCancel}
+        loading={confirmation.loading}
+      />
     </>
   );
 }

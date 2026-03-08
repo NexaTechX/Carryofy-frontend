@@ -45,9 +45,9 @@ type DisplayStatus = 'PENDING' | 'RESPONDED' | 'ACCEPTED' | 'EXPIRED';
 
 const STATUS_TABS: { value: DisplayStatus | 'ALL'; label: string }[] = [
   { value: 'ALL', label: 'All' },
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'RESPONDED', label: 'Responded' },
-  { value: 'ACCEPTED', label: 'Accepted' },
+  { value: 'PENDING', label: 'Waiting for seller' },
+  { value: 'RESPONDED', label: 'Seller sent a price' },
+  { value: 'ACCEPTED', label: 'Ready to buy' },
   { value: 'EXPIRED', label: 'Expired' },
 ];
 

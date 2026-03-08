@@ -136,7 +136,7 @@ function ProductCard({
   // Price display: never show suspiciously low fixed price for bulk/quote products
   const LOW_PRICE_THRESHOLD_KOBO = 100; // ₦1
   const getPriceDisplay = (): string => {
-    if (product.requestQuoteOnly) return 'Price on request';
+    if (product.requestQuoteOnly) return 'Get a custom price';
     if (product.priceTiers && product.priceTiers.length > 0) {
       const sorted = [...product.priceTiers].sort((a, b) => a.minQuantity - b.minQuantity);
       const lowest = sorted[0];
@@ -147,7 +147,7 @@ function ProductCard({
       product.moq > 1 &&
       product.price < LOW_PRICE_THRESHOLD_KOBO
     ) {
-      return 'Price on request';
+      return 'Get a custom price';
     }
     return formatPrice(product.price);
   };
@@ -209,10 +209,10 @@ function ProductCard({
                 <span className="px-2 py-1 bg-[#ff6600]/90 text-black text-[10px] font-bold rounded-md">Bulk pricing</span>
               )}
               {product.moq != null && product.moq > 0 && (
-                <span className="px-2 py-1 bg-black/70 text-white text-[10px] font-medium rounded-md">MOQ: {product.moq} units</span>
+                <span className="px-2 py-1 bg-black/70 text-white text-[10px] font-medium rounded-md">Min. order: {product.moq} units</span>
               )}
               {product.requestQuoteOnly && (
-                <span className="px-2 py-1 bg-[#ff6600]/70 text-black text-[10px] font-bold rounded-md">Quote available</span>
+                <span className="px-2 py-1 bg-[#ff6600]/70 text-black text-[10px] font-bold rounded-md">Custom pricing</span>
               )}
             </div>
           )}
@@ -325,9 +325,9 @@ function ProductCard({
                   href={productHref}
                   onClick={(e) => e.stopPropagation()}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0d0d0d] border-2 border-[#ff6600]/50 text-white rounded-lg font-semibold hover:bg-[#ff6600]/10 hover:border-[#ff6600] transition-all duration-200 text-sm"
-                  title="Request quote for wholesale pricing"
+                  title="Get a custom price from the seller"
                 >
-                  Request Quote
+                  Get a custom price
                 </Link>
               ) : !isAuthenticated ? (
                 <Link

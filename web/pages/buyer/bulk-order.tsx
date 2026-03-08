@@ -54,9 +54,9 @@ interface ValidatedItem {
 }
 
 const STEPS = [
-  { id: 1, label: 'Build Your List', short: 'List' },
-  { id: 2, label: 'Verify & Price', short: 'Verify' },
-  { id: 3, label: 'Checkout or Request Quote', short: 'Checkout' },
+  { id: 1, label: 'Add products', short: 'List' },
+  { id: 2, label: 'See your prices', short: 'Verify' },
+  { id: 3, label: 'Pay or ask for a quote', short: 'Checkout' },
 ];
 
 export default function BulkOrderPage() {
@@ -278,7 +278,7 @@ export default function BulkOrderPage() {
             <h1 className="text-3xl font-bold text-white">Bulk Order</h1>
           </div>
           <p className="text-[#ffcc99]/80 text-base mb-6">
-            Add multiple products, set quantities, and get wholesale pricing automatically.
+            Add multiple products, set quantities, and see bulk pricing automatically.
           </p>
 
           {/* Step indicator */}
@@ -320,7 +320,7 @@ export default function BulkOrderPage() {
                   }}
                   onFocus={() => setSearchDropdownOpen(true)}
                   onBlur={() => setTimeout(() => setSearchDropdownOpen(false), 200)}
-                  placeholder="Search wholesale products by name or SKU"
+                  placeholder="Search bulk products by name or SKU"
                   className="w-full pl-11 pr-4 py-3 bg-[#111111] border border-[#2a2a2a] rounded-xl text-white placeholder:text-[#ffcc99]/50 text-sm focus:outline-none focus:border-[#FF6B00]/50 transition-colors"
                 />
                 {searchDropdownOpen && (searchQuery.length >= 2 || searchResults.length > 0) && (
@@ -330,7 +330,7 @@ export default function BulkOrderPage() {
                         <Loader2 className="w-5 h-5 animate-spin" /> Searching...
                       </div>
                     ) : searchResults.length === 0 ? (
-                      <div className="p-4 text-[#ffcc99]/70 text-sm">No wholesale products found. Try a different search.</div>
+                      <div className="p-4 text-[#ffcc99]/70 text-sm">No bulk products found. Try a different search.</div>
                     ) : (
                       searchResults.map((p) => (
                         <button
@@ -360,7 +360,7 @@ export default function BulkOrderPage() {
                             <p className="text-white font-medium text-sm truncate">{p.title}</p>
                             <p className="text-[#ffcc99]/70 text-xs">
                               {p.seller?.businessName ?? 'Seller'}
-                              {p.moq && p.moq > 0 ? ` · MOQ ${p.moq}` : ''}
+                              {p.moq && p.moq > 0 ? ` · Min. order ${p.moq}` : ''}
                             </p>
                           </div>
                           <div className="shrink-0 text-right">
@@ -379,7 +379,7 @@ export default function BulkOrderPage() {
                 <button type="button" className="hover:text-[#FF6B00] transition inline-flex items-center gap-1">
                   <FileSpreadsheet className="w-3 h-3" /> Import from CSV
                 </button>
-                {' '}— for power B2B buyers
+                {' '}— for regular bulk buyers
               </p>
 
               <div className="flex justify-between items-center mb-4 mt-6">
@@ -401,12 +401,12 @@ export default function BulkOrderPage() {
                     <Search className="w-8 h-8 text-[#FF6B00]/60" />
                   </div>
                   <p className="text-white font-semibold mb-1">Your bulk list is empty</p>
-                  <p className="text-[#ffcc99]/70 text-sm mb-4">Search for products above or browse wholesale catalogue</p>
+                  <p className="text-[#ffcc99]/70 text-sm mb-4">Search for products above or browse bulk catalogue</p>
                   <Link
                     href="/buyer/products?b2bOnly=true"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-[#FF6B00]/20 text-[#FF6B00] rounded-lg text-sm font-medium hover:bg-[#FF6B00]/30 transition"
                   >
-                    Browse Wholesale Products
+                    Browse bulk products
                   </Link>
                 </div>
               ) : (
@@ -436,7 +436,7 @@ export default function BulkOrderPage() {
                           </div>
                           <p className="text-[#ffcc99]/60 text-xs mt-0.5">
                             {item.priceKobo ? formatPrice(item.priceKobo) : '—'}/unit
-                            {item.moq && item.moq > 0 ? ` · MOQ ${item.moq}` : ''}
+                            {item.moq && item.moq > 0 ? ` · Min. order ${item.moq}` : ''}
                           </p>
                         </div>
                       </div>
@@ -489,7 +489,7 @@ export default function BulkOrderPage() {
                     className="flex items-center gap-2 px-6 py-2.5 bg-[#FF6B00] text-black rounded-xl font-bold hover:bg-[#ff8533] transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {validating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                    Verify & Price
+                    See your prices
                   </button>
                 </div>
               )}
@@ -542,12 +542,12 @@ export default function BulkOrderPage() {
                   className="w-full flex items-center justify-center gap-2 px-6 py-3 border border-[#FF6B00]/50 text-[#FF6B00] rounded-xl font-semibold hover:bg-[#FF6B00]/10 transition"
                 >
                   <FileText className="w-4 h-4" />
-                  Request Quote Instead
+                  Ask for a quote instead
                 </button>
               </div>
 
               <p className="mt-4 text-[#ffcc99]/50 text-xs">
-                Prices are verified at checkout. Final pricing may vary based on seller confirmation.
+                Prices are checked at checkout. The seller may confirm before shipping.
               </p>
             </div>
           </div>

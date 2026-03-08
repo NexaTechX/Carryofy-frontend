@@ -25,9 +25,9 @@ function isValidPhone(phone: string): boolean {
 }
 
 const SELLER_BUSINESS_TYPES = [
-  { id: 'retail', label: 'Retail', description: 'Sell directly to individual customers' },
-  { id: 'wholesale', label: 'Wholesale', description: 'Sell in bulk to businesses' },
-  { id: 'both', label: 'Both', description: 'Retail and wholesale' },
+  { id: 'retail', label: 'Sell to individuals', description: 'Sell directly to individual customers' },
+  { id: 'wholesale', label: 'Sell to businesses in bulk', description: 'Sell in bulk to businesses. You can set minimum order quantities and bulk pricing.' },
+  { id: 'both', label: 'Both', description: 'Sell to individuals and businesses (retail and wholesale)' },
 ];
 
 const SELLER_PLANNED_CATEGORIES = [

@@ -50,6 +50,7 @@ const productStatusTone: Record<string, 'warning' | 'success' | 'danger' | 'neut
 const LOW_STOCK_THRESHOLD = 10;
 
 type FilterTab = 'all' | 'pending' | 'active' | 'inactive' | 'flagged';
+type B2BFilter = 'all' | 'wholesale';
 
 export default function AdminProducts() {
   const { data: allProducts, isLoading, isError, error, refetch } = useAllProducts();
@@ -61,6 +62,7 @@ export default function AdminProducts() {
   const bulkStatusChange = useBulkStatusChange();
 
   const [filterTab, setFilterTab] = useState<FilterTab>('all');
+  const [b2bFilter, setB2bFilter] = useState<B2BFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [sellerFilter, setSellerFilter] = useState('');
@@ -115,6 +117,11 @@ export default function AdminProducts() {
       filtered = filtered.filter((p) => p.flaggedAt != null && p.flaggedAt !== '');
     }
 
+    // Wholesale / bulk filter
+    if (b2bFilter === 'wholesale') {
+      filtered = filtered.filter((p) => (p as { b2bEligible?: boolean; sellingMode?: string }).b2bEligible === true || (p as { sellingMode?: string }).sellingMode === 'B2B_ONLY' || (p as { sellingMode?: string }).sellingMode === 'B2C_AND_B2B');
+    }
+
     // Category
     if (categoryFilter) {
       filtered = filtered.filter((p) => (p.category ?? '').trim() === categoryFilter);
@@ -157,7 +164,7 @@ export default function AdminProducts() {
     }
 
     return filtered;
-  }, [allProducts, filterTab, searchQuery, categoryFilter, sellerFilter, priceMinNgn, priceMaxNgn, stockStatusFilter]);
+  }, [allProducts, filterTab, b2bFilter, searchQuery, categoryFilter, sellerFilter, priceMinNgn, priceMaxNgn, stockStatusFilter]);
 
   // Calculate counts
   const counts = useMemo(() => {
@@ -453,6 +460,14 @@ export default function AdminProducts() {
 
             {/* Additional filters */}
             <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-[#1f2534] bg-[#0f1524] px-4 py-3">
+              <select
+                value={b2bFilter}
+                onChange={(e) => setB2bFilter(e.target.value as B2BFilter)}
+                className="rounded-lg border border-[#1f2432] bg-[#0e131d] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+              >
+                <option value="all">All products</option>
+                <option value="wholesale">Wholesale / bulk only</option>
+              </select>
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}

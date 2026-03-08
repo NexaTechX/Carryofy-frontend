@@ -169,13 +169,19 @@ function isStalled(order: AdminOrder): boolean {
   return Date.now() - updated > STALLED_THRESHOLD_MS;
 }
 
+type OrderTypeFilter = 'ALL' | 'CONSUMER' | 'B2B';
+
 export default function AdminOrders() {
   const router = useRouter();
   const [filter, setFilter] = useState<OrderFilter>('ALL');
+  const [orderTypeFilter, setOrderTypeFilter] = useState<OrderTypeFilter>('ALL');
   const [focusedOrder, setFocusedOrder] = useState<AdminOrder | null>(null);
   const [search, setSearch] = useState('');
 
-  const { data: orders, isLoading, isError, error, refetch, dataUpdatedAt } = useAdminOrders({ refetchInterval: 30_000 });
+  const { data: orders, isLoading, isError, error, refetch, dataUpdatedAt } = useAdminOrders({
+    refetchInterval: 30_000,
+    orderType: orderTypeFilter === 'ALL' ? undefined : orderTypeFilter,
+  });
   const [tableColumns, setTableColumns] = useColumnVisibility(ORDER_TABLE_COLUMNS);
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
 
@@ -382,6 +388,24 @@ export default function AdminOrders() {
               </button>
             </div>
           )}
+
+          {/* Order type filter */}
+          <AdminToolbar className="mb-3 flex-wrap gap-3">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+              Order type
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {(['ALL', 'CONSUMER', 'B2B'] as const).map((type) => (
+                <AdminFilterChip
+                  key={type}
+                  active={orderTypeFilter === type}
+                  onClick={() => setOrderTypeFilter(type)}
+                >
+                  {type === 'ALL' ? 'All' : type === 'CONSUMER' ? 'Retail' : 'Business'}
+                </AdminFilterChip>
+              ))}
+            </div>
+          </AdminToolbar>
 
           {/* Status filter tabs with count badges */}
           <AdminToolbar className="mb-4 flex-wrap gap-3">

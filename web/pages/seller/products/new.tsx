@@ -1412,20 +1412,20 @@ export default function AddProductPage() {
                     )}
                   </div>
 
-                  {/* Selling mode & B2B */}
+                  {/* Selling mode & wholesale */}
                   <div className="bg-[#1a1a1a] rounded-2xl border border-[#ff6600]/20 p-5">
                     <div className="flex items-center gap-2 mb-5">
                       <Layers className="w-5 h-5 text-[#ff6600]" />
-                      <h2 className="text-white font-semibold">Selling Mode & B2B</h2>
+                      <h2 className="text-white font-semibold">Selling mode</h2>
                     </div>
                     <div className="space-y-4">
                       <div>
                         <label className="block text-[#ffcc99] text-sm font-medium mb-3">Selling mode</label>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           {[
-                            { value: 'B2C_ONLY' as const, icon: Users, label: 'B2C Only', desc: 'Sell directly to individual buyers' },
-                            { value: 'B2B_ONLY' as const, icon: Building2, label: 'B2B Only', desc: 'Sell in bulk to businesses, get quote requests' },
-                            { value: 'B2C_AND_B2B' as const, icon: ShoppingBag, label: 'Both B2C & B2B', desc: 'Reach all buyer types', recommended: true },
+                            { value: 'B2C_ONLY' as const, icon: Users, label: 'Retail only', desc: 'Sell directly to individual buyers' },
+                            { value: 'B2B_ONLY' as const, icon: Building2, label: 'Wholesale only', desc: 'Sell in bulk to businesses, get price requests' },
+                            { value: 'B2C_AND_B2B' as const, icon: ShoppingBag, label: 'Both', desc: 'Sell to individuals and businesses', recommended: true },
                           ].map((opt) => {
                             const Icon = opt.icon;
                             const isSelected = (formData.sellingMode || 'B2C_ONLY') === opt.value;
@@ -1461,7 +1461,7 @@ export default function AddProductPage() {
                         <>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-[#ffcc99] text-sm font-medium mb-2">Minimum order quantity (MOQ)</label>
+                              <label className="block text-[#ffcc99] text-sm font-medium mb-2">Min. order (units)</label>
                               <input
                                 type="number"
                                 min="1"
@@ -1484,7 +1484,7 @@ export default function AddProductPage() {
                             </div>
                           </div>
                           <div>
-                            <label className="block text-[#ffcc99] text-sm font-medium mb-2">B2B product type</label>
+                            <label className="block text-[#ffcc99] text-sm font-medium mb-2">Product type (optional)</label>
                             <select
                               value={formData.b2bProductType || ''}
                               onChange={(e) => setFormData(prev => ({ ...prev, b2bProductType: (e.target.value || undefined) as B2bProductType | undefined }))}
@@ -1503,12 +1503,12 @@ export default function AddProductPage() {
                               onChange={(e) => setFormData(prev => ({ ...prev, requestQuoteOnly: e.target.checked }))}
                               className="rounded border-[#ff6600]/50 text-[#ff6600] focus:ring-[#ff6600]"
                             />
-                            <span className="text-[#ffcc99] text-sm">Request a quote only (no fixed B2B price)</span>
+                            <span className="text-[#ffcc99] text-sm">Custom pricing only — buyer asks for a price</span>
                           </label>
                           {!(formData.requestQuoteOnly ?? false) && (
                             <div>
                               <div className="flex items-center justify-between mb-2">
-                                <label className="block text-[#ffcc99] text-sm font-medium">Tiered pricing (B2B)</label>
+                                <label className="block text-[#ffcc99] text-sm font-medium">Bulk pricing — different prices for different quantities</label>
                                 <button
                                   type="button"
                                   onClick={() => setFormData(prev => ({
@@ -1520,7 +1520,7 @@ export default function AddProductPage() {
                                   <Plus className="w-3 h-3 inline mr-1" /> Add tier
                                 </button>
                               </div>
-                              <p className="text-[#ffcc99]/60 text-xs mb-2">Min qty – Max qty → Price (₦). Use 999999 for open-ended.</p>
+                              <p className="text-[#ffcc99]/60 text-xs mb-2">e.g. 1–10: ₦100, 11–50: ₦90, 51+: ₦80. Use 999999 for open-ended.</p>
                               {(formData.priceTiers || []).map((tier, idx) => (
                                 <div key={idx} className="flex items-center gap-2 mb-2">
                                   <input

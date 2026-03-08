@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Search, X, Package, ShoppingCart, Truck, Users } from 'lucide-react';
+import { Search, X, Package, ShoppingCart, Truck, Users, FileText } from 'lucide-react';
 import { useGlobalSearch } from '../../lib/admin/hooks/useGlobalSearch';
 import { useDebounce } from '../../lib/hooks/useDebounce';
 import { formatNgnFromKobo } from '../../lib/api/utils';
@@ -47,10 +47,18 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     ...(results?.deliveries || []).map((item) => ({
       type: 'delivery' as const,
       id: item.id,
-      title: `Delivery for #${item.orderId.slice(0, 8)}`,
+      title: `Delivery for #${item.orderId?.slice(0, 8) ?? ''}`,
       subtitle: `${item.status} ${item.rider ? `• ${item.rider}` : ''}`,
       href: `/admin/deliveries`,
       icon: Truck,
+    })),
+    ...((results as { quoteRequests?: Array<{ id: string; status: string; seller?: string; buyer?: string }> })?.quoteRequests || []).map((item) => ({
+      type: 'quoteRequest' as const,
+      id: item.id,
+      title: `Quote #${item.id.slice(0, 8)}`,
+      subtitle: `${item.status} • ${item.seller ?? ''} → ${item.buyer ?? ''}`,
+      href: `/admin/quote-requests`,
+      icon: FileText,
     })),
   ];
 

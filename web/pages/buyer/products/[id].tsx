@@ -697,7 +697,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                 {/* Price Section - card with dark background + bulk pricing table */}
                 <div className="p-6 bg-[#1A1A1A] border border-white/10 rounded-2xl" itemProp="offers" itemScope itemType="https://schema.org/Offer">
                   {showB2bFull && product.requestQuoteOnly ? (
-                    <p className="text-[#FF6B00] text-2xl font-bold">Price on quote</p>
+                    <p className="text-[#FF6B00] text-2xl font-bold">Get a custom price</p>
                   ) : (
                     <>
                       <p className="text-[#FF6B00] text-3xl sm:text-4xl font-bold" itemProp="price" content={String((product.priceTiers?.[0]?.priceKobo ?? product.price) / 100)}>
@@ -714,7 +714,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                       {/* Bulk Pricing Tier Table */}
                       {((product.priceTiers && product.priceTiers.length > 0) || (!product.requestQuoteOnly && (product.sellingMode === 'B2C_AND_B2B' || product.sellingMode === 'B2B_ONLY'))) && (
                         <div className="mt-5 pt-4 border-t border-white/10">
-                          <p className="text-[#ffcc99]/80 text-xs font-medium mb-3">Bulk Pricing — automatically applied</p>
+                          <p className="text-[#ffcc99]/80 text-xs font-medium mb-3">Price per unit when you buy more</p>
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
@@ -869,7 +869,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                     className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-transparent text-[#ffcc99] hover:text-[#FF6B00] hover:bg-[#FF6B00]/5 rounded-xl font-medium transition"
                   >
                     <FileText className="w-5 h-5" />
-                    Request a Quote
+                    Get a custom price
                   </a>
                   <div className="flex gap-4 pt-2">
                     <button

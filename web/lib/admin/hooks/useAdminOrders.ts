@@ -14,10 +14,10 @@ const orderKeys = {
   validTransitions: (orderId: string) => ['admin', 'orders', orderId, 'valid-transitions'] as const,
 };
 
-export function useAdminOrders(options?: { refetchInterval?: number | false }) {
+export function useAdminOrders(options?: { refetchInterval?: number | false; orderType?: 'CONSUMER' | 'B2B' }) {
   return useQuery<AdminOrder[]>({
-    queryKey: orderKeys.all,
-    queryFn: fetchAdminOrders,
+    queryKey: [...orderKeys.all, options?.orderType],
+    queryFn: () => fetchAdminOrders({ orderType: options?.orderType }),
     refetchInterval: options?.refetchInterval ?? 30_000, // near-real-time: 30s
   });
 }

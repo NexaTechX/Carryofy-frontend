@@ -529,7 +529,7 @@ export default function CheckoutPage() {
     }
 
     if (hasB2BOnlyItems && (!businessName.trim() || !businessPurpose.trim())) {
-      setOrderMessage({ type: 'error', text: 'Business name and purpose are required for B2B orders.' });
+      setOrderMessage({ type: 'error', text: 'Business name and purpose are required for wholesale orders.' });
       return false;
     }
 
@@ -1051,7 +1051,7 @@ export default function CheckoutPage() {
                             <Package className="w-5 h-5 text-[#ff6600]" />
                             <h2 className="text-white text-xl font-bold">Business details</h2>
                           </div>
-                          <p className="text-[#ffcc99] text-sm mb-4">Required for B2B / wholesale orders.</p>
+                          <p className="text-[#ffcc99] text-sm mb-4">Required for business and wholesale orders.</p>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <label className="block text-white text-sm font-medium mb-2">Business name *</label>
@@ -1064,12 +1064,12 @@ export default function CheckoutPage() {
                               />
                             </div>
                             <div>
-                              <label className="block text-white text-sm font-medium mb-2">Business purpose *</label>
+                              <label className="block text-white text-sm font-medium mb-2">What&apos;s this order for? *</label>
                               <input
                                 type="text"
                                 value={businessPurpose}
                                 onChange={(e) => setBusinessPurpose(e.target.value)}
-                                placeholder="e.g. retail, resale, distribution"
+                                placeholder="e.g. Restocking store, Corporate gift, Resale"
                                 className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
                               />
                             </div>

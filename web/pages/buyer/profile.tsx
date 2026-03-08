@@ -628,7 +628,7 @@ export default function BuyerProfilePage() {
             {activeTab === 'business' && (
               <div>
                 <p className="text-[#ffcc99]/80 text-sm mb-6">
-                  Fill this in if you purchase for a business. This unlocks bulk pricing and invoice generation.
+                  Add your business details to see bulk prices and request invoices.
                 </p>
                 <form
                   onSubmit={(e) => {

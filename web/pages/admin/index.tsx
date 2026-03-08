@@ -360,10 +360,10 @@ export default function AdminDashboard() {
             </section>
           )}
 
-          {/* B2B strip – keep if relevant */}
+          {/* Business orders strip */}
           {(pendingQuoteRequestsCount > 0 || b2bOrdersCount > 0) && (
             <section className="mb-8">
-              <h2 className="mb-4 px-1 text-lg font-bold text-white">B2B</h2>
+              <h2 className="mb-4 px-1 text-lg font-bold text-white">Business orders</h2>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Link href="/admin/quote-requests">
                   <AdminCard
@@ -378,8 +378,8 @@ export default function AdminDashboard() {
                   </AdminCard>
                 </Link>
                 <AdminCard
-                  title="B2B orders"
-                  description="Bulk and quote-based checkouts"
+                  title="Business orders"
+                  description="Wholesale and quote-based checkouts"
                   className="bg-linear-to-br from-primary/12 via-[#101829] to-[#080d16]"
                 >
                   <div className="flex items-center gap-3">

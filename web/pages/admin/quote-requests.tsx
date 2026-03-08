@@ -273,7 +273,7 @@ export default function AdminQuoteRequestsPage() {
       <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
         <AdminPageHeader
           title="Quote Requests"
-          tag="B2B"
+          tag="Business"
           subtitle="Bulk purchase negotiations between business buyers and sellers. Monitor responses and conversions."
         />
 

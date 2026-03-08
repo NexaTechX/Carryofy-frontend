@@ -163,7 +163,7 @@ export default function ShopFiltersPanel({
                   : 'bg-transparent text-foreground/80 hover:text-foreground'
                 }`}
             >
-              B2C
+              Retail
             </button>
             <button
               type="button"
@@ -173,11 +173,11 @@ export default function ShopFiltersPanel({
                   : 'bg-transparent text-foreground/80 hover:text-foreground'
                 }`}
             >
-              B2B / Bulk
+              Wholesale / Bulk
             </button>
           </div>
           {isB2B && (
-            <p className="text-foreground/60 text-xs mt-2">MOQ range filter will appear below when B2B is active.</p>
+            <p className="text-foreground/60 text-xs mt-2">Min. order range filter appears below when wholesale is active.</p>
           )}
         </AccordionSection>
 
@@ -205,10 +205,10 @@ export default function ShopFiltersPanel({
         </AccordionSection>
 
         {isB2B && (
-          <AccordionSection title="MOQ Range" open={openMoq} onToggle={() => setOpenMoq(!openMoq)}>
+          <AccordionSection title="Min. order range" open={openMoq} onToggle={() => setOpenMoq(!openMoq)}>
             <div className="space-y-3">
               <div>
-                <label className="text-foreground/70 text-xs mb-1 block">Min MOQ (units)</label>
+                <label className="text-foreground/70 text-xs mb-1 block">Min. order (units)</label>
                 <input
                   type="number"
                   value={moqMin}
@@ -219,7 +219,7 @@ export default function ShopFiltersPanel({
                 />
               </div>
               <div>
-                <label className="text-foreground/70 text-xs mb-1 block">Max MOQ (units)</label>
+                <label className="text-foreground/70 text-xs mb-1 block">Min. order up to (units)</label>
                 <input
                   type="number"
                   value={moqMax}

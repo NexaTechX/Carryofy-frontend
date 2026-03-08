@@ -365,8 +365,8 @@ export async function bulkStatusChangeRequest(productIds: string[], status: stri
   return normalizeResponse<{ updated: number; failed: number }>(data);
 }
 
-export async function fetchAdminOrders(): Promise<AdminOrder[]> {
-  const { data } = await apiClient.get('/orders');
+export async function fetchAdminOrders(params?: { orderType?: 'CONSUMER' | 'B2B' }): Promise<AdminOrder[]> {
+  const { data } = await apiClient.get('/orders', { params });
   return normalizeListResponse<AdminOrder>(data, ['orders', 'items', 'data', 'results']);
 }
 

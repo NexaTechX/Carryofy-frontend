@@ -146,8 +146,8 @@ export default function QuoteRequestPage() {
   return (
     <>
       <Head>
-        <title>Request a Quote - Buyer | Carryofy</title>
-        <meta name="description" content="Request a quote for bulk or B2B pricing" />
+        <title>Get a custom price - Carryofy</title>
+        <meta name="description" content="Ask the seller for a custom price on bulk orders" />
       </Head>
       <BuyerLayout>
         <div className="max-w-2xl mx-auto px-4 py-8">
@@ -158,13 +158,13 @@ export default function QuoteRequestPage() {
             <ArrowLeft className="w-4 h-4" /> Back to product
           </Link>
           <h1 className="text-white text-2xl font-bold mb-6 flex items-center gap-2">
-            <FileText className="w-6 h-6 text-[#ff6600]" /> Request a Quote
+            <FileText className="w-6 h-6 text-[#ff6600]" /> Get a custom price
           </h1>
 
           {success ? (
             <div className="p-6 bg-green-500/10 border border-green-500/50 rounded-xl text-green-400">
               <p className="font-medium">Quote request sent.</p>
-              <p className="text-sm mt-2 text-[#ffcc99]">The seller will respond with a quote. Check &quot;My quote requests&quot; for updates.</p>
+              <p className="text-sm mt-2 text-[#ffcc99]">The seller will respond within 1–2 business days. Check your price requests for updates.</p>
               <Link href="/buyer/quotes" className="inline-block mt-4 text-[#ff6600] hover:underline">View my quote requests</Link>
             </div>
           ) : loading ? (
@@ -176,6 +176,7 @@ export default function QuoteRequestPage() {
           ) : product ? (
             <form onSubmit={handleSubmit} className="space-y-6">
               <p className="text-[#ffcc99] text-sm">Seller: {product.seller.businessName}</p>
+              <p className="text-[#ffcc99]/70 text-xs">Sellers typically respond within 1–2 business days.</p>
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-[#ffcc99] text-sm font-medium">Products</label>

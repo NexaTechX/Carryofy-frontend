@@ -18,13 +18,13 @@ export default function B2BSection() {
                 Built for businesses too.
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed mb-8">
-                Whether you&apos;re stocking a store or managing corporate procurement, Carryofy supports bulk orders, quote requests, MOQ pricing, and invoice generation — all in one account.
+                Whether you&apos;re stocking a store or buying for your business, Carryofy supports buying in bulk, requesting custom prices, and getting invoices — all in one account.
               </p>
               <Link
                 href="/buyer/products?b2b=true"
                 className="inline-flex items-center gap-2 px-8 py-4 bg-[#FF6B00] text-white rounded-xl font-semibold hover:bg-[#E65F00] transition-colors shadow-lg shadow-[#FF6B00]/20"
               >
-                Explore B2B Features
+                Explore wholesale
                 <span aria-hidden>→</span>
               </Link>
             </motion.div>
@@ -43,16 +43,16 @@ export default function B2BSection() {
                       <Users className="w-5 h-5 text-[#FF6B00]" />
                     </div>
                     <div>
-                      <div className="font-inter font-bold text-[#111111]">B2B Dashboard</div>
-                      <div className="text-sm text-gray-500">Bulk orders & quotes</div>
+                      <div className="font-inter font-bold text-[#111111]">Business orders</div>
+                      <div className="text-sm text-gray-500">Buy in bulk & request prices</div>
                     </div>
                   </div>
                 </div>
                 <div className="p-6 space-y-4">
                   {[
-                    { icon: Package, label: 'Bulk order request', sub: 'Min. order 10 units' },
-                    { icon: FileText, label: 'Quote request', sub: 'Custom pricing' },
-                    { icon: Users, label: 'Invoice generation', sub: 'Corporate accounts' },
+                    { icon: Package, label: 'Buy in bulk', sub: 'Min. order 10 units' },
+                    { icon: FileText, label: 'Get a custom price', sub: 'Ask the seller' },
+                    { icon: Users, label: 'Get an invoice', sub: 'Business accounts' },
                   ].map((item, i) => (
                     <div
                       key={i}

@@ -47,7 +47,7 @@ interface Cart {
   totalItems: number;
 }
 
-const FREE_SHIPPING_THRESHOLD_KOBO = 3000000; // ₦30,000
+const FREE_SHIPPING_THRESHOLD_KOBO = 5000000; // ₦50,000 (aligned with backend)
 
 const STEPS = [
   { id: 1, label: 'Order summary', icon: ClipboardList },
@@ -910,19 +910,23 @@ export default function CheckoutPage() {
                                 <Loader2 className="w-4 h-4 animate-spin" />
                                 Calculating...
                               </span>
+                            ) : shippingQuoteError ? (
+                              '—'
+                            ) : shippingFee === 0 ? (
+                              'Free'
                             ) : (
-                              shippingFee === 0 ? 'Free' : formatPrice(shippingFee)
+                              formatPrice(shippingFee)
                             )}
                           </span>
                         </div>
                         {!quote && cartSubtotalKobo < FREE_SHIPPING_THRESHOLD_KOBO && (
                           <div className="mt-3 p-3 rounded-lg bg-[#ff6600]/10 border border-[#ff6600]/30 text-[#ffcc99] text-sm">
-                            Add {formatPrice(FREE_SHIPPING_THRESHOLD_KOBO - cartSubtotalKobo)} more to get 30% off delivery
+                            Add {formatPrice(FREE_SHIPPING_THRESHOLD_KOBO - cartSubtotalKobo)} more to get 20% off delivery
                           </div>
                         )}
                         {!quote && cartSubtotalKobo >= FREE_SHIPPING_THRESHOLD_KOBO && shippingFee > 0 && (
                           <div className="mt-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
-                            You qualify for 30% off delivery!
+                            You qualify for 20% off delivery!
                           </div>
                         )}
                       </section>
@@ -970,7 +974,13 @@ export default function CheckoutPage() {
                                   <Loader2 className="w-4 h-4 animate-spin" />
                                   Calculating...
                                 </span>
-                              ) : shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}
+                              ) : shippingQuoteError ? (
+                                '—'
+                              ) : shippingFee === 0 ? (
+                                'Free'
+                              ) : (
+                                formatPrice(shippingFee)
+                              )}
                             </span>
                           </div>
                           {shippingQuoteError && (
@@ -1349,7 +1359,7 @@ export default function CheckoutPage() {
                         <h2 className="text-white text-xl font-bold">Summary</h2>
                         <div className="space-y-3 border-t border-[#ff6600]/30 pt-4">
                           <div className="flex justify-between"><span className="text-[#ffcc99]">Subtotal</span><span className="text-white font-semibold">{formatPrice(quote ? quoteSubtotal : (cart?.totalAmount ?? 0))}</span></div>
-                          <div className="flex justify-between"><span className="text-[#ffcc99]">Shipping</span><span className="text-white font-semibold">{shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}</span></div>
+                          <div className="flex justify-between"><span className="text-[#ffcc99]">Shipping</span><span className="text-white font-semibold">{shippingQuoteError ? '—' : shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}</span></div>
                           {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
                           <div className="border-t border-[#ff6600]/30 pt-3 flex justify-between">
                             <span className="text-white font-bold">Total</span><span className="text-[#ff6600] text-xl font-bold">{formatPrice(totalAmount)}</span>
@@ -1435,7 +1445,7 @@ export default function CheckoutPage() {
                         <h2 className="text-white text-xl font-bold">Total</h2>
                         <div className="space-y-3 border-t border-[#ff6600]/30 pt-4">
                           <div className="flex justify-between"><span className="text-[#ffcc99]">Subtotal</span><span className="text-white font-semibold">{formatPrice(quote ? quoteSubtotal : (cart?.totalAmount ?? 0))}</span></div>
-                          <div className="flex justify-between"><span className="text-[#ffcc99]">Shipping</span><span className="text-white font-semibold">{shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}</span></div>
+                          <div className="flex justify-between"><span className="text-[#ffcc99]">Shipping</span><span className="text-white font-semibold">{shippingQuoteError ? '—' : shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}</span></div>
                           {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
                           <div className="border-t border-[#ff6600]/30 pt-3 flex justify-between">
                             <span className="text-white font-bold">Total</span><span className="text-[#ff6600] text-xl font-bold">{formatPrice(totalAmount)}</span>

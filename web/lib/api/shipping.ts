@@ -20,12 +20,22 @@ export interface ShippingQuoteResponse {
   pricingTier?: string;
 }
 
+/** Backend only accepts STANDARD | PICKUP. Map EXPRESS/SCHEDULED to STANDARD. */
+const API_SHIPPING_METHOD = (
+  m: ShippingQuoteRequest['shippingMethod']
+): 'STANDARD' | 'PICKUP' =>
+  m === 'PICKUP' ? 'PICKUP' : 'STANDARD';
+
 export async function fetchShippingQuote(
   request: ShippingQuoteRequest
 ): Promise<ShippingQuoteResponse> {
+  const payload = {
+    ...request,
+    shippingMethod: API_SHIPPING_METHOD(request.shippingMethod),
+  };
   const response = await apiClient.post<ShippingQuoteResponse | { data: ShippingQuoteResponse }>(
     '/shipping/quote',
-    request
+    payload
   );
   const data = (response.data as { data?: ShippingQuoteResponse })?.data ?? response.data;
   return data as ShippingQuoteResponse;

@@ -19,7 +19,7 @@ export default function SellerCTASection() {
             viewport={{ once: true }}
             className="font-inter text-3xl sm:text-4xl lg:text-5xl font-bold mb-4"
           >
-            Sell online without logistics stress.
+            Sell on Carryofy. We handle the rest.
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
@@ -27,7 +27,7 @@ export default function SellerCTASection() {
             viewport={{ once: true }}
             className="text-lg sm:text-xl text-gray-300 mb-10"
           >
-            We store, pack, and deliver your products. You focus on growing your business.
+            List products. Ship inventory. We store, pack, deliver, and pay you fast. No logistics stress.
           </motion.p>
 
           <ul className="space-y-4 mb-10 text-left max-w-md mx-auto">
@@ -52,7 +52,7 @@ export default function SellerCTASection() {
             href="/auth/signup?role=SELLER"
             className="inline-block px-10 py-4 bg-[#FF6B00] text-white rounded-xl font-bold text-lg hover:bg-[#E65F00] transition-colors shadow-lg"
           >
-            Apply as a Seller
+            Start selling
           </Link>
           <p className="mt-4 text-gray-400 text-sm">
             Early access — limited seller spots

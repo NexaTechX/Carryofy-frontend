@@ -1,26 +1,50 @@
-import { UserX, Clock, XCircle } from 'lucide-react';
+import { UserX, Clock, XCircle, Package, ShieldX, Truck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function ProblemSection() {
-    const problems = [
+    const sellerProblems = [
+        {
+            icon: Truck,
+            title: 'Logistics chaos',
+            description: 'Juggling multiple couriers, lost packages, and angry customers. Delivery eats your margins and your time.',
+            iconColor: 'text-red-500',
+            bgColor: 'bg-red-50',
+        },
+        {
+            icon: Package,
+            title: 'Fulfillment headaches',
+            description: 'No warehouse. No packing. No scale. You\'re stuck doing everything yourself.',
+            iconColor: 'text-orange-500',
+            bgColor: 'bg-orange-50',
+        },
+        {
+            icon: ShieldX,
+            title: 'Payments & trust',
+            description: 'Getting paid is slow. Building buyer trust is harder. Fraud and chargebacks add risk.',
+            iconColor: 'text-red-500',
+            bgColor: 'bg-red-50',
+        },
+    ];
+
+    const buyerProblems = [
         {
             icon: UserX,
-            title: 'Fake Sellers',
-            description: 'Every week a vendor goes nomadic. What you see is rarely what you get.',
+            title: 'Unreliable sellers',
+            description: 'Fake listings, ghost vendors, and products that never arrive. Buyer beware is the default.',
             iconColor: 'text-red-500',
             bgColor: 'bg-red-50',
         },
         {
             icon: Clock,
-            title: 'Delivery Delays',
-            description: 'Inventory is stored in courier hubs, ready for long transmission periods via USPS.',
+            title: 'Slow delivery',
+            description: 'Days turn into weeks. No tracking. No accountability. Just hope and follow-up calls.',
             iconColor: 'text-orange-500',
             bgColor: 'bg-orange-50',
         },
         {
             icon: XCircle,
-            title: 'No Support',
-            description: 'Item bumps, local drivers, life lessons. We resolve enquiries and issues within 24 hours.',
+            title: 'No buyer protection',
+            description: 'Wrong item? Damaged? Never arrived? Good luck getting your money back.',
             iconColor: 'text-red-500',
             bgColor: 'bg-red-50',
         },
@@ -32,51 +56,99 @@ export default function ProblemSection() {
                 <div className="max-w-6xl mx-auto">
                     <div className="text-left mb-12 sm:mb-16">
                         <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-                            Online shopping in Nigeria shouldn't be this hard.
+                            Commerce in Africa is fragmented.
                         </h2>
                         <p className="text-base sm:text-lg text-gray-600 max-w-2xl">
-                            We solve the most frustrating parts of the Nigerian marketplace experience.
+                            Sellers and buyers both pay the price. Logistics, fulfillment, payments, and trust — all broken into pieces.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {problems.map((problem, index) => (
-                            <motion.div
-                                key={index}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: index * 0.1 }}
-                                className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow"
-                            >
-                                <div className="relative h-48 overflow-hidden">
-                                    <img
-                                        src={
-                                            index === 0 
-                                                ? 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop'
-                                                : index === 1
-                                                ? 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&h=400&fit=crop'
-                                                : 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&h=400&fit=crop'
-                                        }
-                                        alt={problem.title}
-                                        className="w-full h-full object-cover"
-                                        loading="lazy"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                                    <div className="absolute top-4 left-4">
-                                        <div className={`w-12 h-12 ${problem.bgColor} rounded-lg flex items-center justify-center shadow-lg`}>
-                                            <problem.icon className={`w-6 h-6 ${problem.iconColor}`} />
+                    {/* Sellers */}
+                    <div className="mb-12">
+                        <h3 className="text-lg font-semibold text-gray-700 mb-6">Sellers struggle with:</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {sellerProblems.map((problem, index) => (
+                                <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: index * 0.1 }}
+                                    className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow"
+                                >
+                                    <div className="relative h-40 overflow-hidden">
+                                        <img
+                                            src={
+                                                index === 0
+                                                    ? 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&h=400&fit=crop'
+                                                    : index === 1
+                                                    ? 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=600&h=400&fit=crop'
+                                                    : 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop'
+                                            }
+                                            alt={problem.title}
+                                            className="w-full h-full object-cover"
+                                            loading="lazy"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                                        <div className="absolute top-4 left-4">
+                                            <div className={`w-12 h-12 ${problem.bgColor} rounded-lg flex items-center justify-center shadow-lg`}>
+                                                <problem.icon className={`w-6 h-6 ${problem.iconColor}`} />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="p-6">
-                                    <h3 className="text-xl font-bold text-gray-900 mb-3">{problem.title}</h3>
-                                    <p className="text-sm text-gray-600 leading-relaxed">
-                                        {problem.description}
-                                    </p>
-                                </div>
-                            </motion.div>
-                        ))}
+                                    <div className="p-6">
+                                        <h3 className="text-xl font-bold text-gray-900 mb-3">{problem.title}</h3>
+                                        <p className="text-sm text-gray-600 leading-relaxed">
+                                            {problem.description}
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Buyers */}
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-700 mb-6">Buyers struggle with:</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {buyerProblems.map((problem, index) => (
+                                <motion.div
+                                    key={`buyer-${index}`}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: index * 0.1 }}
+                                    className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow"
+                                >
+                                    <div className="relative h-40 overflow-hidden">
+                                        <img
+                                            src={
+                                                index === 0
+                                                    ? 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop'
+                                                    : index === 1
+                                                    ? 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&h=400&fit=crop'
+                                                    : 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&h=400&fit=crop'
+                                            }
+                                            alt={problem.title}
+                                            className="w-full h-full object-cover"
+                                            loading="lazy"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                                        <div className="absolute top-4 left-4">
+                                            <div className={`w-12 h-12 ${problem.bgColor} rounded-lg flex items-center justify-center shadow-lg`}>
+                                                <problem.icon className={`w-6 h-6 ${problem.iconColor}`} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="p-6">
+                                        <h3 className="text-xl font-bold text-gray-900 mb-3">{problem.title}</h3>
+                                        <p className="text-sm text-gray-600 leading-relaxed">
+                                            {problem.description}
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

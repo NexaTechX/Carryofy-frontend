@@ -4,8 +4,8 @@ import { ArrowRight, Check, Shield, Package, Truck } from 'lucide-react';
 
 export default function HeroSection() {
   const trustBadges = [
-    'Verified Sellers Only',
-    'Fast Delivery',
+    'Verified Sellers',
+    'Same-Day Delivery',
     'Buyer Protection',
     'Secure Payments',
   ];
@@ -29,10 +29,10 @@ export default function HeroSection() {
               className="order-2 lg:order-1"
             >
               <h1 className="font-inter text-4xl sm:text-5xl lg:text-6xl font-bold text-[#111111] leading-tight mb-6">
-                Sell and shop trusted products without logistics stress.
+                Commerce infrastructure for Africa.
               </h1>
               <p className="text-lg sm:text-xl text-gray-600 leading-relaxed mb-8 max-w-xl">
-                Carryofy connects Nigerian businesses and shoppers with verified sellers, we handle storage, fulfillment, and delivery.
+                Marketplace. Fulfillment. Logistics. One platform to sell, warehouse, and deliver.
               </p>
 
               {/* CTA Buttons */}

@@ -59,13 +59,21 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const [kycBannerDismissed, setKycBannerDismissed] = useState(false);
   const notificationDropdownRef = useRef<HTMLDivElement>(null);
+
+  const KYC_BANNER_DISMISSED_KEY = 'seller-kyc-banner-dismissed';
 
   // Only get user on client side after mount to avoid hydration mismatch
   useEffect(() => {
     setMounted(true);
     fetchNotifications();
     fetchSellerProfile();
+    fetchKycStatus();
+    if (typeof window !== 'undefined') {
+      setKycBannerDismissed(!!sessionStorage.getItem(KYC_BANNER_DISMISSED_KEY));
+    }
   }, []);
 
   // Close dropdown when clicking outside
@@ -161,10 +169,40 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
     }
   };
 
-  // Refetch seller profile when route changes (to catch logo updates from settings)
+  const fetchKycStatus = async () => {
+    try {
+      const token = tokenManager.getAccessToken();
+      if (!token) return;
+
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+
+      const response = await fetch(`${apiUrl}/sellers/kyc`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const responseData = data.data || data;
+        setKycStatus(responseData.status);
+      }
+    } catch (error) {
+      console.error('Error fetching KYC status:', error);
+    }
+  };
+
+  const dismissKycBanner = () => {
+    setKycBannerDismissed(true);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(KYC_BANNER_DISMISSED_KEY, '1');
+    }
+  };
+
+  // Refetch seller profile and KYC when route changes (to catch logo/KYC updates)
   useEffect(() => {
     if (mounted) {
       fetchSellerProfile();
+      fetchKycStatus();
     }
   }, [router.asPath]);
 
@@ -532,6 +570,39 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
         {/* Main content wrapper: reserved space for fixed sidebar on desktop, scrollable */}
         <div className="flex-1 flex flex-col min-h-0 min-w-0 w-full lg:ml-64">
           <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background scroll-smooth">
+            {/* KYC Reminder Banner - shown when KYC not submitted or rejected */}
+            {kycStatus && !kycBannerDismissed && (kycStatus === 'NOT_SUBMITTED' || kycStatus === 'REJECTED') && (
+              <div className="mx-3 sm:mx-4 lg:mx-6 xl:mx-8 mt-3 sm:mt-4 lg:mt-6 xl:mt-8 mb-3">
+                <div
+                  className={`h-10 flex items-center justify-between gap-3 rounded-lg px-4 ${
+                    kycStatus === 'REJECTED'
+                      ? 'bg-red-900/40 border border-red-500/30'
+                      : 'bg-blue-900/40 border border-blue-500/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <span className="text-white text-sm font-medium truncate">
+                      {kycStatus === 'REJECTED'
+                        ? 'Verification Rejected — Please resubmit'
+                        : 'Complete your KYC verification to activate your store and start receiving orders.'}
+                    </span>
+                    <Link
+                      href="/seller/settings?tab=kyc"
+                      className="shrink-0 text-xs font-bold px-3 py-1 rounded-md transition bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {kycStatus === 'REJECTED' ? 'Resubmit' : 'Complete KYC'}
+                    </Link>
+                  </div>
+                  <button
+                    onClick={dismissKycBanner}
+                    className="shrink-0 p-1 rounded hover:bg-white/10 text-white/80 hover:text-white transition"
+                    aria-label="Dismiss"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom">{children}</div>
           </main>

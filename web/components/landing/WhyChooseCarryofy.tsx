@@ -4,23 +4,23 @@ import { Shield, Truck, Headphones, Sparkles } from 'lucide-react';
 const features = [
   {
     icon: Shield,
-    title: 'Verified Sellers Only',
-    description: 'Every seller is vetted before listing',
+    title: 'Verified sellers only',
+    description: 'Every seller is vetted. No fake listings, no ghost vendors.',
   },
   {
     icon: Truck,
-    title: 'Fulfillment + Delivery Handled',
-    description: 'We store, pack and deliver your products',
+    title: 'Fulfillment + delivery',
+    description: 'We store, pack, and deliver. You sell. We ship.',
   },
   {
     icon: Headphones,
-    title: 'Local Support & Buyer Protection',
-    description: 'Nigerian support team, refunds handled fast',
+    title: 'Buyer protection & support',
+    description: 'Secure payments, money-back guarantee, local support.',
   },
   {
     icon: Sparkles,
-    title: 'AI-Powered Platform',
-    description: 'Smart recommendations and pricing for B2B buyers',
+    title: 'AI-powered commerce',
+    description: 'Smart pricing, demand forecasting, fraud detection.',
   },
 ];
 
@@ -35,7 +35,7 @@ export default function WhyChooseCarryofy() {
             viewport={{ once: true }}
             className="font-inter text-3xl sm:text-4xl lg:text-5xl font-bold text-[#111111] mb-12 text-center"
           >
-            Why Carryofy
+            Why sellers and buyers choose Carryofy
           </motion.h2>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">

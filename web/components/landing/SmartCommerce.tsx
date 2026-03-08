@@ -50,15 +50,15 @@ export default function SmartCommerce() {
             viewport={{ once: true }}
             className="text-center mb-12 sm:mb-16"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-sm font-semibold text-primary mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#FF6B00]/10 border border-[#FF6B00]/20 rounded-full text-sm font-semibold text-[#FF6B00] mb-4">
               <Sparkles className="w-4 h-4" />
-              Intelligent Systems
+              AI-Powered
             </div>
             <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 sm:mb-6">
-              Smart Commerce, Built In
+              AI-powered commerce tools
             </h2>
             <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
-              Carryofy uses intelligent systems behind the scenes to reduce risk, remove guesswork, and help both vendors and buyers make better decisions.
+              Demand forecasting. Smart pricing. Fraud detection. Automated routing. AI works behind the scenes so sellers scale faster and buyers shop with confidence.
             </p>
           </motion.div>
 
@@ -72,11 +72,11 @@ export default function SmartCommerce() {
               className="bg-gradient-to-br from-orange-50/50 to-white rounded-2xl p-8 sm:p-10 border border-orange-100 shadow-sm"
             >
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 bg-[#FF6B00]/10 rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-[#FF6B00]" />
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  For Vendors <span className="text-primary">(AI‑assisted)</span>
+                  For Vendors <span className="text-[#FF6B00]">(AI‑assisted)</span>
                 </h3>
               </div>
               <ul className="space-y-4">
@@ -89,8 +89,8 @@ export default function SmartCommerce() {
                     transition={{ delay: index * 0.1 }}
                     className="flex items-start gap-4"
                   >
-                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mt-0.5">
-                      <feature.icon className="w-5 h-5 text-primary" />
+                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#FF6B00]/10 flex items-center justify-center mt-0.5">
+                      <feature.icon className="w-5 h-5 text-[#FF6B00]" />
                     </div>
                     <span className="text-base sm:text-lg text-gray-700 leading-relaxed pt-1.5">
                       {feature.title}
@@ -109,11 +109,11 @@ export default function SmartCommerce() {
               className="bg-gradient-to-br from-blue-50/50 to-white rounded-2xl p-8 sm:p-10 border border-blue-100 shadow-sm"
             >
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 bg-[#FF6B00]/10 rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-[#FF6B00]" />
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  For Buyers <span className="text-primary">(AI‑assisted)</span>
+                  For Buyers <span className="text-[#FF6B00]">(AI‑assisted)</span>
                 </h3>
               </div>
               <ul className="space-y-4">
@@ -126,8 +126,8 @@ export default function SmartCommerce() {
                     transition={{ delay: index * 0.1 }}
                     className="flex items-start gap-4"
                   >
-                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mt-0.5">
-                      <feature.icon className="w-5 h-5 text-primary" />
+                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#FF6B00]/10 flex items-center justify-center mt-0.5">
+                      <feature.icon className="w-5 h-5 text-[#FF6B00]" />
                     </div>
                     <span className="text-base sm:text-lg text-gray-700 leading-relaxed pt-1.5">
                       {feature.title}

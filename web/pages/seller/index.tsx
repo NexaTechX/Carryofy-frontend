@@ -5,19 +5,16 @@ import SellerLayout from '../../components/seller/SellerLayout';
 import DashboardStats from '../../components/seller/DashboardStats';
 import SalesTrend from '../../components/seller/SalesTrend';
 import OrderDistribution from '../../components/seller/OrderDistribution';
-import { Plus, Share2, Eye, X } from 'lucide-react';
+import { Plus, Share2, Eye } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useAuth, tokenManager } from '../../lib/auth';
-
-const KYC_BANNER_DISMISSED_KEY = 'seller-kyc-banner-dismissed';
 
 export default function SellerDashboard() {
   const router = useRouter();
   const { user, isLoading, isAuthenticated } = useAuth();
 
   const [kycStatus, setKycStatus] = useState<string | null>(null);
-  const [kycBannerDismissed, setKycBannerDismissed] = useState(false);
   const [sellerId, setSellerId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,12 +32,9 @@ export default function SellerDashboard() {
       return;
     }
 
-    // Fetch KYC status and seller profile
+    // Fetch KYC status and seller profile (KYC banner is in SellerLayout)
     fetchKycStatus();
     fetchSellerProfile();
-    if (typeof window !== 'undefined') {
-      setKycBannerDismissed(!!sessionStorage.getItem(KYC_BANNER_DISMISSED_KEY));
-    }
   }, [router, isLoading, isAuthenticated, user]);
 
   const fetchKycStatus = async () => {
@@ -80,13 +74,6 @@ export default function SellerDashboard() {
       }
     } catch (error) {
       console.error('Error fetching seller profile:', error);
-    }
-  };
-
-  const dismissKycBanner = () => {
-    setKycBannerDismissed(true);
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem(KYC_BANNER_DISMISSED_KEY, '1');
     }
   };
 
@@ -131,54 +118,6 @@ export default function SellerDashboard() {
       </Head>
       <SellerLayout>
         <div className="mx-auto max-w-[1200px] px-8 flex flex-col gap-6">
-          {/* KYC Status Toast — slim 40px dismissible bar */}
-          {kycStatus && !kycBannerDismissed && (
-            <div
-              className={`h-10 flex items-center justify-between gap-3 rounded-lg px-4 ${
-                kycStatus === 'APPROVED'
-                  ? 'bg-green-900/40 border border-green-500/30'
-                  : kycStatus === 'PENDING'
-                    ? 'bg-yellow-900/40 border border-yellow-500/30'
-                    : kycStatus === 'REJECTED'
-                      ? 'bg-red-900/40 border border-red-500/30'
-                      : 'bg-blue-900/40 border border-blue-500/30'
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <span className="text-white text-sm font-medium truncate">
-                  {kycStatus === 'APPROVED'
-                    ? 'Identity Verified — Your account is fully verified'
-                    : kycStatus === 'PENDING'
-                      ? 'Verification Under Review'
-                      : kycStatus === 'REJECTED'
-                        ? 'Verification Rejected — Please resubmit'
-                        : 'Complete your KYC verification to start selling'}
-                </span>
-                <Link
-                  href="/seller/settings?tab=kyc"
-                  className={`shrink-0 text-xs font-bold px-3 py-1 rounded-md transition ${
-                    kycStatus === 'APPROVED'
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : kycStatus === 'PENDING'
-                        ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                        : kycStatus === 'REJECTED'
-                          ? 'bg-red-600 hover:bg-red-700 text-white'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
-                >
-                  {kycStatus === 'REJECTED' ? 'Resubmit' : 'View'}
-                </Link>
-              </div>
-              <button
-                onClick={dismissKycBanner}
-                className="shrink-0 p-1 rounded hover:bg-white/10 text-white/80 hover:text-white transition"
-                aria-label="Dismiss"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
           <p className="text-white tracking-light text-[32px] font-bold leading-tight">Dashboard</p>
 
           {/* Stats Cards */}

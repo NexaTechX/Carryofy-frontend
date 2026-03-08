@@ -1,10 +1,14 @@
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
+import ProblemSection from '../components/landing/ProblemSection';
+import SolutionSection from '../components/landing/SolutionSection';
 import TrustSection from '../components/landing/TrustSection';
 import HowItWorks from '../components/landing/HowItWorks';
 import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
+import SameDayDelivery from '../components/landing/SameDayDelivery';
 import B2BSection from '../components/landing/B2BSection';
+import SmartCommerce from '../components/landing/SmartCommerce';
 import SellerCTASection from '../components/landing/BuyerSellerSection';
 import Testimonials from '../components/landing/Testimonials';
 import CallToAction from '../components/landing/CallToAction';
@@ -42,6 +46,9 @@ export default function Home() {
     'ecommerce Lagos',
     'online marketplace Lagos',
     'verified vendors Lagos',
+    'commerce infrastructure Africa',
+    'fulfillment logistics Nigeria',
+    'AI-powered marketplace',
   ].join(', ');
 
   const fullKeywords = `${homeKeywords}, ${additionalKeywords}`;
@@ -49,13 +56,13 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="Carryofy | Verified Marketplace & Same-Day Delivery in Lagos"
-        description="Carryofy is Nigeria's most trusted marketplace and logistics platform. Shop from verified local sellers in Lagos with guaranteed same-day delivery and secure payments."
+        title="Carryofy | Commerce Infrastructure for Africa"
+        description="Marketplace. Fulfillment. Logistics. One platform to sell, warehouse, and deliver. AI-powered commerce infrastructure for Africa."
         keywords={fullKeywords}
         canonical="https://carryofy.com"
         ogType="website"
         ogImage="https://carryofy.com/og/home.png"
-        ogImageAlt="Carryofy - Verified Multi-Vendor Marketplace & Same-Day Delivery"
+        ogImageAlt="Carryofy - Commerce Infrastructure for Africa"
       />
 
       <CombinedSchema
@@ -92,9 +99,13 @@ export default function Home() {
         <main className="grow">
           <HeroSection />
           <TrustSection />
-          <HowItWorks />
+          <ProblemSection />
+          <SolutionSection />
           <WhyChooseCarryofy />
+          <SameDayDelivery />
           <B2BSection />
+          <SmartCommerce />
+          <HowItWorks />
           <Testimonials />
           <SellerCTASection />
           <CallToAction />

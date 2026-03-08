@@ -12,7 +12,7 @@ export default function CallToAction() {
             viewport={{ once: true }}
             className="font-inter text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-8"
           >
-            Buy or sell online with confidence.
+            Ready to sell, scale, and deliver?
           </motion.h2>
           <motion.div
             initial={{ opacity: 0, y: 16 }}

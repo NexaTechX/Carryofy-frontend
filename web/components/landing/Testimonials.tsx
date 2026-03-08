@@ -28,6 +28,14 @@ export default function Testimonials() {
       quote: 'As someone who shops online frequently, I appreciate the secure payment options and buyer protection. Ordered home decor items and received them within 4 hours. Carryofy is now my go-to for online shopping in Lagos.',
       avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&q=80',
     },
+    {
+      name: 'Emeka Nwosu',
+      rating: 5,
+      location: 'Victoria Island, Lagos',
+      tag: 'Seller',
+      quote: 'Before Carryofy I was juggling couriers, packing orders myself, and chasing payments. Now I ship inventory to their warehouse and focus on growing my business. Same-day delivery is a game-changer for my customers.',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&q=80',
+    },
   ];
 
   return (
@@ -40,10 +48,10 @@ export default function Testimonials() {
           className="text-center mb-12 sm:mb-16"
         >
           <h2 className="font-inter text-2xl sm:text-3xl lg:text-4xl font-bold text-[#111111] mb-3">
-            Loved by Nigerian shoppers &amp; sellers
+            Trusted by sellers and buyers across Lagos
           </h2>
           <p className="text-gray-600 max-w-xl mx-auto">
-            Join thousands of satisfied buyers and sellers across Lagos and beyond
+            Real stories from businesses and shoppers who sell, ship, and buy with confidence.
           </p>
         </motion.div>
 

@@ -15,10 +15,10 @@ export default function B2BSection() {
               viewport={{ once: true }}
             >
               <h2 className="font-inter text-3xl sm:text-4xl lg:text-5xl font-bold text-[#111111] leading-tight mb-6">
-                Built for businesses too.
+                B2B wholesale, built in.
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed mb-8">
-                Whether you&apos;re stocking a store or buying for your business, Carryofy supports buying in bulk, requesting custom prices, and getting invoices — all in one account.
+                Stock your store. Restock your business. Bulk orders, custom quotes, and invoices — all on the same platform. No separate wholesale portal.
               </p>
               <Link
                 href="/buyer/products?b2b=true"

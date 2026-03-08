@@ -5,35 +5,35 @@ import { Search, ShoppingCart, Truck, PackageCheck, UserCheck, Package, CircleDo
 const buyerSteps = [
   {
     id: 1,
-    title: 'Browse & discover',
-    description: 'Browse and discover products from verified sellers',
+    title: 'Browse verified sellers',
+    description: 'Shop from vetted businesses. No fake listings.',
     icon: Search,
   },
   {
     id: 2,
-    title: 'Place your order',
-    description: 'Place your order securely',
+    title: 'Order with protection',
+    description: 'Secure payments. Buyer protection included.',
     icon: ShoppingCart,
   },
   {
     id: 3,
-    title: 'We handle fulfillment & delivery',
-    description: 'We handle fulfillment & delivery',
+    title: 'We fulfill & deliver',
+    description: 'We store, pack, and ship. Same-day in Lagos.',
     icon: Truck,
   },
   {
     id: 4,
-    title: 'Receive & track',
-    description: 'Receive your order, track in real time',
+    title: 'Track & receive',
+    description: 'Real-time tracking. Know exactly when it arrives.',
     icon: PackageCheck,
   },
 ];
 
 const sellerSteps = [
-  { id: 1, title: 'Apply & get verified', description: 'Apply and get verified', icon: UserCheck },
-  { id: 2, title: 'List your products', description: 'List your products', icon: Package },
-  { id: 3, title: 'We handle orders & delivery', description: 'We handle orders and delivery', icon: Truck },
-  { id: 4, title: 'Get paid fast', description: 'Get paid fast', icon: CircleDollarSign },
+  { id: 1, title: 'Apply & get verified', description: 'Submit your business. We vet every seller.', icon: UserCheck },
+  { id: 2, title: 'List your products', description: 'Send inventory to our warehouse.', icon: Package },
+  { id: 3, title: 'We fulfill & deliver', description: 'We pack, ship, and handle last-mile.', icon: Truck },
+  { id: 4, title: 'Get paid fast', description: 'Payouts after delivery confirmation.', icon: CircleDollarSign },
 ];
 
 export default function HowItWorks() {
@@ -51,7 +51,7 @@ export default function HowItWorks() {
             className="text-center mb-12"
           >
             <h2 className="font-inter text-3xl sm:text-4xl lg:text-5xl font-bold text-[#111111] mb-6">
-              How it Works
+              How it works
             </h2>
             <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
               <button

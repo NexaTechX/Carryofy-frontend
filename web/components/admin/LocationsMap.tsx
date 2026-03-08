@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import maplibregl, { GeoJSONSource } from 'maplibre-gl';
+import { useCallback, useEffect, useRef } from 'react';
+import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { LocationPoint } from '../../lib/admin/types';
 
@@ -8,26 +8,17 @@ const RIDER_COLOR = '#f97316';
 const BUYER_COLOR = '#14b8a6';
 const SELLER_COLOR = '#22c55e';
 
-export interface RiderRoute {
-  userId: string;
-  coordinates: [number, number][];
-}
-
 interface LocationsMapProps {
   riders: LocationPoint[];
   buyers: LocationPoint[];
   sellers: LocationPoint[];
   filter: 'all' | 'RIDER' | 'BUYER' | 'SELLER';
   center?: [number, number];
-  selectedEntity: LocationPoint | null;
-  onSelectEntity: (point: LocationPoint | null) => void;
-  showRouteTrails?: boolean;
+  onSelectEntity: (point: LocationPoint) => void;
   showCoverageZones?: boolean;
   isFullscreen?: boolean;
   onFullscreenChange?: (v: boolean) => void;
-  onToggleRouteTrails?: (v: boolean) => void;
   onToggleCoverageZones?: (v: boolean) => void;
-  riderRoutes?: RiderRoute[];
 }
 
 /** Sample Lagos coverage zones (GeoJSON) for overlay */
@@ -106,21 +97,15 @@ export default function LocationsMap({
   sellers,
   filter,
   center = [3.3792, 6.5244],
-  selectedEntity,
   onSelectEntity,
-  showRouteTrails = false,
   showCoverageZones = false,
   isFullscreen = false,
   onFullscreenChange,
-  onToggleRouteTrails,
   onToggleCoverageZones,
-  riderRoutes = [],
 }: LocationsMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<{ marker: maplibregl.Marker; point: LocationPoint; role: LocationPoint['role'] }[]>([]);
-  const routesSourceRef = useRef<Record<string, string>>({});
-  const coverageSourceRef = useRef<string | null>(null);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -149,10 +134,6 @@ export default function LocationsMap({
         map.removeLayer('coverage-zones-line');
         map.removeSource('coverage-zones');
       }
-      Object.keys(routesSourceRef.current).forEach((id) => {
-        if (map.getLayer(`${id}-line`)) map.removeLayer(`${id}-line`);
-        if (map.getSource(id)) map.removeSource(id);
-      });
       map.remove();
       mapRef.current = null;
     };
@@ -218,80 +199,52 @@ export default function LocationsMap({
     const map = mapRef.current;
     if (!map) return;
 
-    if (showCoverageZones) {
-      if (!map.getSource('coverage-zones')) {
-        map.addSource('coverage-zones', {
-          type: 'geojson',
-          data: LAGOS_COVERAGE_ZONES,
-        });
-        map.addLayer({
-          id: 'coverage-zones-fill',
-          type: 'fill',
-          source: 'coverage-zones',
-          paint: {
-            'fill-color': 'rgba(59, 130, 246, 0.12)',
-            'fill-outline-color': 'rgba(59, 130, 246, 0.4)',
-          },
-        });
-        map.addLayer({
-          id: 'coverage-zones-line',
-          type: 'line',
-          source: 'coverage-zones',
-          paint: {
-            'line-color': 'rgba(59, 130, 246, 0.5)',
-            'line-width': 1.5,
-          },
-        });
-      }
-    } else {
+    const addCoverageZones = () => {
+      if (map.getSource('coverage-zones')) return;
+      map.addSource('coverage-zones', {
+        type: 'geojson',
+        data: LAGOS_COVERAGE_ZONES,
+      });
+      map.addLayer({
+        id: 'coverage-zones-fill',
+        type: 'fill',
+        source: 'coverage-zones',
+        paint: {
+          'fill-color': 'rgba(59, 130, 246, 0.12)',
+          'fill-outline-color': 'rgba(59, 130, 246, 0.4)',
+        },
+      });
+      map.addLayer({
+        id: 'coverage-zones-line',
+        type: 'line',
+        source: 'coverage-zones',
+        paint: {
+          'line-color': 'rgba(59, 130, 246, 0.5)',
+          'line-width': 1.5,
+        },
+      });
+    };
+
+    const removeCoverageZones = () => {
       if (map.getLayer('coverage-zones-fill')) map.removeLayer('coverage-zones-fill');
       if (map.getLayer('coverage-zones-line')) map.removeLayer('coverage-zones-line');
       if (map.getSource('coverage-zones')) map.removeSource('coverage-zones');
+    };
+
+    const runWhenStyleLoaded = (fn: () => void) => {
+      if (map.isStyleLoaded()) {
+        fn();
+      } else {
+        map.once('load', fn);
+      }
+    };
+
+    if (showCoverageZones) {
+      runWhenStyleLoaded(addCoverageZones);
+    } else {
+      runWhenStyleLoaded(removeCoverageZones);
     }
   }, [showCoverageZones]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    if (!showRouteTrails) {
-      Object.keys(routesSourceRef.current).forEach((id) => {
-        if (map.getLayer(`${id}-line`)) map.removeLayer(`${id}-line`);
-        if (map.getSource(id)) map.removeSource(id);
-      });
-      routesSourceRef.current = {};
-      return;
-    }
-
-    riderRoutes.forEach((route) => {
-      if (route.coordinates.length < 2) return;
-      const sourceId = `route-${route.userId}`;
-      const layerId = `${sourceId}-line`;
-      const feature = {
-        type: 'Feature' as const,
-        geometry: { type: 'LineString' as const, coordinates: route.coordinates },
-        properties: {},
-      };
-      const existing = map.getSource(sourceId) as GeoJSONSource | undefined;
-      if (existing) {
-        existing.setData(feature);
-      } else {
-        map.addSource(sourceId, { type: 'geojson', data: feature });
-        map.addLayer({
-          id: layerId,
-          type: 'line',
-          source: sourceId,
-          layout: { 'line-cap': 'round', 'line-join': 'round' },
-          paint: {
-            'line-color': RIDER_COLOR,
-            'line-width': 3,
-            'line-opacity': 0.75,
-          },
-        });
-      }
-      routesSourceRef.current[sourceId] = layerId;
-    });
-  }, [showRouteTrails, riderRoutes]);
 
   const toggleFullscreen = () => {
     const next = !isFullscreen;
@@ -340,23 +293,6 @@ export default function LocationsMap({
             </svg>
           )}
         </button>
-        {onToggleRouteTrails && (
-          <button
-            type="button"
-            onClick={() => onToggleRouteTrails(!showRouteTrails)}
-            className={`rounded-lg border p-2 shadow backdrop-blur-sm transition ${
-              showRouteTrails
-                ? 'border-[#f97316] bg-[#f97316]/20 text-[#f97316]'
-                : 'border-[#2a2a2a] bg-[#111111]/95 text-gray-400 hover:bg-[#1f1f1f] hover:text-white'
-            }`}
-            title="Rider route trails"
-            aria-label="Toggle rider route trails"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
-          </button>
-        )}
         {onToggleCoverageZones && (
           <button
             type="button"
@@ -366,7 +302,7 @@ export default function LocationsMap({
                 ? 'border-blue-500 bg-blue-500/20 text-blue-400'
                 : 'border-[#2a2a2a] bg-[#111111]/95 text-gray-400 hover:bg-[#1f1f1f] hover:text-white'
             }`}
-            title="Coverage zones"
+            title="Sample coverage areas (Ikeja, Victoria Island, Lekki)"
             aria-label="Toggle coverage zones"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -375,72 +311,6 @@ export default function LocationsMap({
           </button>
         )}
       </div>
-
-      {/* Side panel: entity details */}
-      {selectedEntity !== null && (
-        <div className="absolute right-0 top-0 z-20 h-full w-full max-w-sm border-l border-[#2a2a2a] bg-[#111111] shadow-2xl sm:max-w-md">
-          <div className="flex h-full flex-col p-4">
-            <div className="flex items-center justify-between border-b border-[#2a2a2a] pb-3">
-              <h3 className="text-lg font-semibold text-white">Entity details</h3>
-              <button
-                type="button"
-                onClick={() => onSelectEntity(null)}
-                className="rounded p-1 text-gray-400 hover:bg-[#2a2a2a] hover:text-white"
-                aria-label="Close panel"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="mt-4 space-y-4">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Name / Label</div>
-                <p className="mt-1 text-white">{selectedEntity.label || `${selectedEntity.role} — ${selectedEntity.userId.slice(0, 8)}`}</p>
-              </div>
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Role</div>
-                <p className="mt-1">
-                  <span
-                    className="inline-block rounded-full px-2 py-0.5 text-sm font-medium text-white"
-                    style={{ backgroundColor: getColor(selectedEntity.role) }}
-                  >
-                    {selectedEntity.role}
-                  </span>
-                </p>
-              </div>
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Phone</div>
-                <p className="mt-1 text-gray-300">{selectedEntity.phone ?? '—'}</p>
-              </div>
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Last active</div>
-                <p className="mt-1 text-gray-300">
-                  {selectedEntity.lastUpdated
-                    ? new Date(selectedEntity.lastUpdated).toLocaleString()
-                    : '—'}
-                </p>
-              </div>
-              {selectedEntity.currentOrder && (
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Current order</div>
-                  <div className="mt-1 rounded-lg border border-[#2a2a2a] bg-[#0d0d0d] p-3 text-sm text-gray-300">
-                    <p>ID: {selectedEntity.currentOrder.id}</p>
-                    {selectedEntity.currentOrder.status && <p>Status: {selectedEntity.currentOrder.status}</p>}
-                    {selectedEntity.currentOrder.destination && <p>Destination: {selectedEntity.currentOrder.destination}</p>}
-                  </div>
-                </div>
-              )}
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Position</div>
-                <p className="mt-1 font-mono text-sm text-gray-400">
-                  {selectedEntity.lat.toFixed(5)}, {selectedEntity.lng.toFixed(5)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

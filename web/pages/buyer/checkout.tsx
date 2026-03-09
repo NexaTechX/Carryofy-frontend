@@ -84,7 +84,7 @@ export default function CheckoutPage() {
   const [orderMessage, setOrderMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
-  const [shippingMethod, setShippingMethod] = useState<'STANDARD' | 'EXPRESS' | 'SCHEDULED'>('STANDARD');
+  const [shippingMethod] = useState<'STANDARD' | 'EXPRESS' | 'SCHEDULED'>('STANDARD');
   const [shippingFee, setShippingFee] = useState<number>(0);
   const [shippingQuoteLoading, setShippingQuoteLoading] = useState(false);
   const [shippingQuoteError, setShippingQuoteError] = useState<string | null>(null);
@@ -878,31 +878,6 @@ export default function CheckoutPage() {
                           <Truck className="w-5 h-5 text-[#ff6600]" />
                           <h2 className="text-white text-xl font-bold">Shipping</h2>
                         </div>
-                        <div className="space-y-3 mb-4">
-                          {[
-                            // { value: 'STANDARD' as const, label: 'Standard Delivery', description: 'Same day, best effort' },
-                            { value: 'EXPRESS' as const, label: 'Express Delivery', description: 'Guaranteed delivery' },
-                            // { value: 'SCHEDULED' as const, label: 'Scheduled Delivery', description: 'Pick a time slot (save 10%)' },
-                          ].map((option) => (
-                            <label
-                              key={option.value}
-                              className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${shippingMethod === option.value ? 'border-[#ff6600] bg-[#ff6600]/10' : 'border-[#ff6600]/30 hover:border-[#ff6600]/50'}`}
-                            >
-                              <input
-                                type="radio"
-                                name="shippingMethod"
-                                value={option.value}
-                                checked={shippingMethod === option.value}
-                                onChange={() => setShippingMethod(option.value)}
-                                className="mt-1 accent-[#ff6600]"
-                              />
-                              <div>
-                                <span className="text-white font-medium block">{option.label}</span>
-                                <span className="text-[#ffcc99]/80 text-sm">{option.description}</span>
-                              </div>
-                            </label>
-                          ))}
-                        </div>
                         <div className="flex items-center justify-between py-2">
                           <span className="text-[#ff6600] font-bold">
                             {shippingQuoteLoading ? (
@@ -1414,7 +1389,7 @@ export default function CheckoutPage() {
                                 })()
                                 : `${deliveryInfo.address}, ${deliveryInfo.city}, ${deliveryInfo.state}`}
                             </p>
-                            <p className="text-[#ffcc99] text-xs mt-1">Express (24–48 hours)</p>
+                            <p className="text-[#ffcc99] text-xs mt-1">Standard delivery</p>
                           </div>
                         </div>
 

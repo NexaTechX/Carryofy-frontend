@@ -150,6 +150,13 @@ export default function BuyerProfilePage() {
   });
   const [preferencesSaving, setPreferencesSaving] = useState(false);
 
+  const [stats, setStats] = useState<{ orders: number; quotes: number; savedLists: number }>({
+    orders: 0,
+    quotes: 0,
+    savedLists: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const confirmation = useConfirmation();
 
@@ -176,8 +183,32 @@ export default function BuyerProfilePage() {
     if (mounted) {
       fetchProfile();
       fetchAddresses();
+      fetchStats();
     }
   }, [mounted]);
+
+  const fetchStats = async () => {
+    if (!tokenManager.getAccessToken()) return;
+    setLoadingStats(true);
+    try {
+      const [ordersRes, quotesRes, wishlistRes] = await Promise.allSettled([
+        apiClient.get('/orders'),
+        apiClient.get('/quote-requests'),
+        apiClient.get('/wishlist').catch(() => ({ data: { items: [], total: 0 } })),
+      ]);
+      const ordersData = ordersRes.status === 'fulfilled' ? ordersRes.value?.data?.data ?? ordersRes.value?.data : null;
+      const ordersCount = ordersData?.pagination?.total ?? (Array.isArray(ordersData?.orders) ? ordersData.orders.length : 0);
+      const quotesData = quotesRes.status === 'fulfilled' ? quotesRes.value?.data?.data ?? quotesRes.value?.data : null;
+      const quotesCount = Array.isArray(quotesData) ? quotesData.length : 0;
+      const wishlistData = wishlistRes.status === 'fulfilled' ? wishlistRes.value?.data?.data ?? wishlistRes.value?.data : null;
+      const savedListsCount = wishlistData?.total ?? (Array.isArray(wishlistData?.items) ? wishlistData.items.length : 0);
+      setStats({ orders: ordersCount, quotes: quotesCount, savedLists: savedListsCount });
+    } catch {
+      setStats({ orders: 0, quotes: 0, savedLists: 0 });
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const handleGetCurrentLocation = async () => {
     if (!navigator.geolocation) {
@@ -440,12 +471,6 @@ export default function BuyerProfilePage() {
 
   if (!mounted) return null;
 
-  const stats = {
-    orders: 12,
-    quotes: 3,
-    savedLists: 5,
-  };
-
   return (
     <>
       <Head>
@@ -509,15 +534,15 @@ export default function BuyerProfilePage() {
                   <div className="flex flex-wrap gap-2 mt-4">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/40 border border-[#ff6600]/20 text-[#ffcc99] text-sm">
                       <ShoppingBag className="w-4 h-4 text-[#ff6600]" />
-                      {stats.orders} Orders
+                      {loadingStats ? '—' : stats.orders} Orders
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/40 border border-[#ff6600]/20 text-[#ffcc99] text-sm">
                       <FileText className="w-4 h-4 text-[#ff6600]" />
-                      {stats.quotes} Quotes
+                      {loadingStats ? '—' : stats.quotes} Quotes
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/40 border border-[#ff6600]/20 text-[#ffcc99] text-sm">
                       <Bookmark className="w-4 h-4 text-[#ff6600]" />
-                      {stats.savedLists} Saved Lists
+                      {loadingStats ? '—' : stats.savedLists} Saved Lists
                     </span>
                   </div>
                 </div>

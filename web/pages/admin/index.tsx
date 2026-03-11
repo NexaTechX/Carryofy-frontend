@@ -420,8 +420,9 @@ export default function AdminDashboard() {
             </div>
           </section>
 
-          {/* Platform Commission Revenue – larger chart + goal line */}
-          <section className="mb-8">
+          {/* Revenue breakdown: Platform (seller) vs Rider commission */}
+          <section className="mb-8 grid gap-4 lg:grid-cols-[1fr_auto]">
+            {/* Platform Commission Revenue – larger chart + goal line */}
             <div className="rounded-2xl border border-primary/20 bg-linear-to-br from-[#0f1729] via-primary/10 to-[#0a101b] p-6 shadow-[0_32px_60px_-40px_rgba(255,102,0,0.5)] sm:flex sm:flex-col">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -433,7 +434,7 @@ export default function AdminDashboard() {
                     {((commissionRevenue?.growth ?? 0) >= 0 ? '+' : '')}
                     {(commissionRevenue?.growth ?? 0).toFixed(1)}% growth this period
                   </p>
-                  <p className="mt-1 text-xs text-gray-500">Total commissions earned across all orders</p>
+                  <p className="mt-1 text-xs text-gray-500">Seller commissions from product sales</p>
                   {(commissionRevenue?.totalB2B != null || commissionRevenue?.totalB2C != null) && (
                     <div className="mt-2 flex gap-4 text-xs text-gray-400">
                       <span>B2C: {formatCurrency((commissionRevenue?.totalB2C ?? 0) / 100)}</span>
@@ -489,6 +490,17 @@ export default function AdminDashboard() {
                 </p>
               )}
             </div>
+            {/* Rider Commission – separate from seller commissions */}
+            <AdminCard
+              title="Rider Commission"
+              description="15% from delivery fees (separate from seller commissions)"
+              className="lg:w-64 bg-linear-to-br from-[#0f1729] to-[#0a101b] border-emerald-500/20"
+            >
+              <p className="text-3xl font-bold text-emerald-400">
+                {formatCurrency((metrics.riderCommissionKobo ?? 0) / 100)}
+              </p>
+              <p className="mt-2 text-xs text-gray-500">From rider delivery fees</p>
+            </AdminCard>
           </section>
 
           {/* Performance Insights – 3-column panel */}

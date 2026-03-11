@@ -177,7 +177,8 @@ export default function AdminFinance() {
   }, [refundsData]);
 
   const grossOrderVolumeKobo = metrics?.totalRevenue ?? 0;
-  const platformCommissionKobo = metrics?.totalCommissions ?? 0;
+  const platformCommissionKobo = metrics?.totalCommissions ?? 0; // seller commissions
+  const riderCommissionKobo = metrics?.riderCommissionKobo ?? 0; // 15% from delivery fees (separate)
   const netPlatformRevenueKobo = (metrics?.totalCommissions ?? 0) - totalRefundedKobo;
 
   const grossByPeriodKobo = useMemo(
@@ -310,15 +311,17 @@ export default function AdminFinance() {
   };
 
   const financeSummaryDonut = useMemo(() => {
-    const commissionKobo = metrics?.totalCommissions ?? 0;
+    const sellerCommissionKobo = metrics?.totalCommissions ?? 0;
+    const riderCommissionKobo = metrics?.riderCommissionKobo ?? 0;
     const refundsKobo = totalRefundedKobo;
     const pendingKobo = pendingPayouts.reduce((acc, p) => acc + p.amount, 0);
     return [
-      { name: 'Commissions', value: Math.max(0, commissionKobo), color: '#FF6B00' },
+      { name: 'Seller Commission', value: Math.max(0, sellerCommissionKobo), color: '#FF6B00' },
+      { name: 'Rider Commission', value: Math.max(0, riderCommissionKobo), color: '#6ce7a2' },
       { name: 'Refunds', value: Math.max(0, refundsKobo), color: '#ff8484' },
       { name: 'Pending', value: Math.max(0, pendingKobo), color: '#ffb169' },
     ].filter((d) => d.value > 0);
-  }, [metrics?.totalCommissions, totalRefundedKobo, pendingPayouts]);
+  }, [metrics?.totalCommissions, metrics?.riderCommissionKobo, totalRefundedKobo, pendingPayouts]);
 
   const displayGrossKobo = period === 'ALL_TIME' ? grossOrderVolumeKobo : grossByPeriodKobo;
   const displayCommissionKobo = period === 'ALL_TIME' ? platformCommissionKobo : commissionByPeriodKobo;
@@ -355,7 +358,7 @@ export default function AdminFinance() {
                     <option value="ALL_TIME">All Time</option>
                   </select>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                   <AdminCard
                     title="Gross Order Volume"
                     description="Total value of paid orders (before commissions)."
@@ -365,10 +368,19 @@ export default function AdminFinance() {
                   </AdminCard>
                   <AdminCard
                     title="Platform Commission Revenue"
-                    description="Total commissions earned across all orders."
+                    description="Commissions from seller orders (product sales)."
                   >
                     <p className="text-3xl font-semibold text-primary">{formatNgnFromKobo(displayCommissionKobo)}</p>
                     <Sparkline data={sparklineCommission} color="#FF6B00" height={44} />
+                  </AdminCard>
+                  <AdminCard
+                    title="Rider Commission"
+                    description="15% from delivery fees (separate from seller commissions)."
+                  >
+                    <p className="text-3xl font-semibold text-[#6ce7a2]">{formatNgnFromKobo(riderCommissionKobo)}</p>
+                    <div className="h-11 flex items-center text-xs text-gray-500">
+                      From rider delivery fees
+                    </div>
                   </AdminCard>
                   <AdminCard
                     title="Payout Operations"
@@ -379,7 +391,7 @@ export default function AdminFinance() {
                   </AdminCard>
                   <AdminCard
                     title="Net Platform Revenue"
-                    description="Commission revenue minus refunds issued."
+                    description="Seller commission revenue minus refunds issued."
                   >
                     <p className="text-3xl font-semibold text-white">{formatNgnFromKobo(netPlatformRevenueKobo)}</p>
                     <div className="h-11 flex items-center text-xs text-gray-500">

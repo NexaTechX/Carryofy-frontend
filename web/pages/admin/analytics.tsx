@@ -147,7 +147,7 @@ export default function AdminAnalytics() {
   );
 
   const recentBroadcastStats = useMemo(() => {
-    const broadcasts = broadcastHistory?.broadcasts || [];
+    const broadcasts = Array.isArray(broadcastHistory?.broadcasts) ? broadcastHistory.broadcasts : [];
     if (broadcasts.length === 0) return null;
     const totalSent = broadcasts.reduce((sum, b) => sum + (b.sentEmail || 0), 0);
     const totalOpens = broadcasts.reduce((sum, b) => sum + (b.emailOpens || 0), 0);
@@ -681,7 +681,7 @@ export default function AdminAnalytics() {
               Email and in-app broadcast performance: open rates and click rates for product and
               promotional links sent to buyers, sellers, and riders.
             </p>
-            {broadcastHistory?.broadcasts && broadcastHistory.broadcasts.length > 0 ? (
+            {Array.isArray(broadcastHistory?.broadcasts) && broadcastHistory.broadcasts.length > 0 ? (
               <>
                 {recentBroadcastStats && (
                   <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -737,7 +737,7 @@ export default function AdminAnalytics() {
                       </tr>
                     </thead>
                     <tbody>
-                      {broadcastHistory.broadcasts.map((b) => {
+                      {(Array.isArray(broadcastHistory?.broadcasts) ? broadcastHistory.broadcasts : []).map((b) => {
                         const sent = b.sentEmail ?? 0;
                         const openRate = sent > 0 && b.emailOpens != null ? ((b.emailOpens / sent) * 100).toFixed(1) : '—';
                         const clickRate = sent > 0 && b.emailClicks != null ? ((b.emailClicks / sent) * 100).toFixed(1) : '—';

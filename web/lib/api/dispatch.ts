@@ -45,7 +45,7 @@ export async function getDispatchJobs(params?: { status?: string; deliveryId?: s
   if (params?.deliveryId) search.set('deliveryId', params.deliveryId);
   const q = search.toString();
   const { data } = await apiClient.get<DispatchJob[]>(`/dispatch/jobs${q ? `?${q}` : ''}`);
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getDispatchJobById(id: string): Promise<DispatchJob> {

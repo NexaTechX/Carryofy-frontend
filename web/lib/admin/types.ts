@@ -5,7 +5,8 @@ export interface DashboardMetrics {
   totalOrders: number;
   todaysOrders?: number; // orders created today (admin)
   totalRevenue: number; // in kobo
-  totalCommissions: number; // in kobo
+  totalCommissions: number; // in kobo (seller commissions)
+  riderCommissionKobo?: number; // in kobo (15% from delivery fees - separate from seller commissions)
   pendingOrders: number;
   activeDeliveries: number;
   pendingApprovals: number;

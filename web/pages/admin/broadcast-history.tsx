@@ -179,7 +179,7 @@ export default function BroadcastHistoryPage() {
     handleFilterChange('search', searchInput.trim() || undefined);
   };
 
-  const broadcasts = history?.broadcasts ?? [];
+  const broadcasts = Array.isArray(history?.broadcasts) ? history.broadcasts : [];
   const total = history?.total ?? 0;
   const totalPages = history?.totalPages ?? 0;
   const page = history?.page ?? 1;

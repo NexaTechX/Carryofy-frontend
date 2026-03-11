@@ -209,16 +209,17 @@ export default function SellerOnboardingPage() {
       let lng = longitude;
 
       if (lat === '' || lng === '') {
-        const geoResult = await geocodeString(businessAddress.trim());
+        const geoResult = await geocodeString(businessAddress.trim(), {
+          preferServer: true,
+          accessToken: token ?? undefined,
+        });
         if (geoResult) {
           lat = geoResult.latitude;
           lng = geoResult.longitude;
           setLatitude(lat);
           setLongitude(lng);
         } else {
-          toast.error('Could not find coordinates for this address. Please ensure it is accurate.');
-          setLoading(false);
-          return;
+          toast.error('We could not auto-locate this address now. Your profile will be saved and coordinates can be added later.');
         }
       }
 
@@ -233,8 +234,8 @@ export default function SellerOnboardingPage() {
           businessType: businessType,
           businessAddress: businessAddress.trim(),
           pickupInstructions: pickupInstructions.trim() || undefined,
-          latitude: Number(lat),
-          longitude: Number(lng),
+          latitude: lat === '' ? undefined : Number(lat),
+          longitude: lng === '' ? undefined : Number(lng),
         }),
       });
 

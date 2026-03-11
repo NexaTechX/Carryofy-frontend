@@ -390,26 +390,27 @@ export default function SettingsPage() {
 
     setSaving(true);
 
+    const token = tokenManager.getAccessToken();
     let lat = businessForm.latitude;
     let lng = businessForm.longitude;
 
     // Automatically geocode if coordinates are missing
     if (!lat || !lng) {
-      const geoResult = await geocodeString(businessForm.businessAddress);
+      const geoResult = await geocodeString(businessForm.businessAddress, {
+        preferServer: true,
+        accessToken: token ?? undefined,
+      });
       if (geoResult) {
         lat = geoResult.latitude;
         lng = geoResult.longitude;
         // Update local state so it's reflected if form stays open
         setBusinessForm(prev => ({ ...prev, latitude: lat, longitude: lng }));
       } else {
-        toast.error('Could not find coordinates for this address. Please ensure it is accurate.');
-        setSaving(false);
-        return;
+        toast.error('Address saved without coordinates. You can update location again later.');
       }
     }
 
     try {
-      const token = tokenManager.getAccessToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 

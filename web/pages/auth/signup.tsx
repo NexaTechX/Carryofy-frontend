@@ -87,12 +87,14 @@ export default function Signup() {
     setError(null);
 
     try {
+      const referralCode = typeof router.query.referralCode === 'string' ? router.query.referralCode.trim() : undefined;
       const response = await authService.signup({
         name: data.name,
         email: data.email,
         password: data.password,
         phone: data.phone,
         role: data.role,
+        ...(referralCode && { referralCode }),
       });
 
       tokenManager.setTokens(response.accessToken, response.refreshToken);

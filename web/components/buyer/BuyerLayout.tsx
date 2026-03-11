@@ -17,6 +17,9 @@ import {
   FileText,
   Layers,
   Search,
+  Scale,
+  Gift,
+  Wallet as WalletIcon,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import NotificationsDropdown from './NotificationsDropdown';
@@ -60,6 +63,9 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
     { name: 'Bulk Order', href: '/buyer/bulk-order', icon: Layers },
     { name: 'Saved Lists', href: '/buyer/wishlist', icon: Bookmark },
     { name: 'Track Shipment', href: '/buyer/track', icon: Truck },
+    { name: 'Disputes', href: '/buyer/disputes', icon: Scale },
+    { name: 'Referrals', href: '/buyer/referrals', icon: Gift },
+    { name: 'Wallet', href: '/buyer/wallet', icon: WalletIcon },
     { name: 'Profile', href: '/buyer/profile', icon: User },
     { name: 'Help', href: '/buyer/help', icon: HelpCircle },
   ];

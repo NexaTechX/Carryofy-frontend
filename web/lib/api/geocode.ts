@@ -16,8 +16,96 @@ export interface GeocodeAddressInput {
   country?: string;
 }
 
+export interface GeocodeOptions {
+  preferServer?: boolean;
+  accessToken?: string;
+}
+
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org/search';
 const USER_AGENT = 'Carryofy/1.0 (delivery address geocoding)';
+const BASE_HEADERS: Record<string, string> = {
+  Accept: 'application/json',
+};
+
+function getRequestHeaders(): Record<string, string> {
+  // Browsers block custom User-Agent; keep it for non-browser runtimes.
+  if (typeof window !== 'undefined') return BASE_HEADERS;
+  return { ...BASE_HEADERS, 'User-Agent': USER_AGENT };
+}
+
+function parseGeocodePayload(data: unknown): GeocodeResult | null {
+  if (!Array.isArray(data) || data.length === 0) return null;
+  const first = data[0] as { lat?: string; lon?: string };
+  const lat = parseFloat(first.lat ?? '');
+  const lon = parseFloat(first.lon ?? '');
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  return { latitude: lat, longitude: lon };
+}
+
+function normalizeQuery(query: string): string {
+  return query.replace(/\s+/g, ' ').replace(/\n+/g, ', ').trim();
+}
+
+function buildQueryCandidates(rawQuery: string): string[] {
+  const normalized = normalizeQuery(rawQuery);
+  if (!normalized) return [];
+  const hasNigeria = /\bnigeria\b/i.test(normalized);
+  const candidates = [normalized];
+  if (!hasNigeria) candidates.push(`${normalized}, Nigeria`);
+  return Array.from(new Set(candidates));
+}
+
+async function fetchGeocode(query: string): Promise<GeocodeResult | null> {
+  const params = new URLSearchParams({
+    q: query,
+    format: 'jsonv2',
+    limit: '1',
+    addressdetails: '0',
+    'accept-language': 'en',
+  });
+
+  try {
+    const res = await fetch(`${NOMINATIM_BASE}?${params.toString()}`, {
+      method: 'GET',
+      headers: getRequestHeaders(),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return parseGeocodePayload(data);
+  } catch {
+    return null;
+  }
+}
+
+async function fetchServerGeocode(
+  query: string,
+  accessToken: string
+): Promise<GeocodeResult | null> {
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
+  const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+
+  try {
+    const response = await fetch(`${apiUrl}/location/geocode`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ query }),
+    });
+
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const candidate = payload?.data ?? payload;
+    const latitude = Number(candidate?.latitude);
+    const longitude = Number(candidate?.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+    return { latitude, longitude };
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Build a single query string from address parts for Nominatim search.
@@ -40,74 +128,32 @@ function buildQuery(input: GeocodeAddressInput): string {
  */
 export async function geocodeAddress(input: GeocodeAddressInput): Promise<GeocodeResult | null> {
   const query = buildQuery(input);
-  if (!query.trim()) return null;
-
-  const params = new URLSearchParams({
-    q: query,
-    format: 'json',
-    limit: '1',
-    addressdetails: '0',
-  });
-
-  try {
-    const res = await fetch(`${NOMINATIM_BASE}?${params.toString()}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': USER_AGENT,
-      },
-    });
-
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!Array.isArray(data) || data.length === 0) return null;
-
-    const first = data[0];
-    const lat = parseFloat(first.lat);
-    const lon = parseFloat(first.lon);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-
-    return { latitude: lat, longitude: lon };
-  } catch {
-    return null;
-  }
+  return geocodeString(query);
 }
 
 /**
  * Geocode a single address string to latitude/longitude.
  */
-export async function geocodeString(query: string): Promise<GeocodeResult | null> {
-  if (!query?.trim()) return null;
+export async function geocodeString(
+  query: string,
+  options: GeocodeOptions = {}
+): Promise<GeocodeResult | null> {
+  const queries = buildQueryCandidates(query);
+  if (queries.length === 0) return null;
 
-  const params = new URLSearchParams({
-    q: query,
-    format: 'json',
-    limit: '1',
-    addressdetails: '0',
-  });
-
-  try {
-    const res = await fetch(`${NOMINATIM_BASE}?${params.toString()}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': USER_AGENT,
-      },
-    });
-
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!Array.isArray(data) || data.length === 0) return null;
-
-    const first = data[0];
-    const lat = parseFloat(first.lat);
-    const lon = parseFloat(first.lon);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-
-    return { latitude: lat, longitude: lon };
-  } catch {
-    return null;
+  if (options.preferServer && options.accessToken) {
+    for (const candidate of queries) {
+      const resolved = await fetchServerGeocode(candidate, options.accessToken);
+      if (resolved) return resolved;
+    }
   }
+
+  for (const candidate of queries) {
+    const resolved = await fetchGeocode(candidate);
+    if (resolved) return resolved;
+  }
+
+  return null;
 }
 
 /**
@@ -141,10 +187,7 @@ export async function reverseGeocode(lat: number, lon: number): Promise<ReverseG
   try {
     const res = await fetch(`${NOMINATIM_REVERSE}?${params.toString()}`, {
       method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': USER_AGENT,
-      },
+      headers: getRequestHeaders(),
     });
 
     if (!res.ok) return null;

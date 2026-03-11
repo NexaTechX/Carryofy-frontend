@@ -3,6 +3,7 @@ import { ReactNode, useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import clsx from 'clsx';
 import {
+  AlertTriangle,
   BarChart2,
   Calendar,
   DollarSign,
@@ -25,6 +26,8 @@ import {
   X,
   Star,
   LogOut,
+  Scale,
+  Zap,
 } from 'lucide-react';
 import GlobalSearch from './GlobalSearch';
 import NotificationsDropdown from './NotificationsDropdown';
@@ -53,7 +56,10 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Quote Requests', href: '/admin/quote-requests', icon: FileText },
   { name: 'Reviews', href: '/admin/reviews', icon: MessageSquare },
   { name: 'Refunds', href: '/admin/refunds', icon: DollarSign },
+  { name: 'Disputes', href: '/admin/disputes', icon: Scale },
   { name: 'Deliveries', href: '/admin/deliveries', icon: Truck },
+  { name: 'Dispatch', href: '/admin/dispatch', icon: Zap },
+  { name: 'Delivery exceptions', href: '/admin/delivery-exceptions', icon: AlertTriangle },
   { name: 'Locations', href: '/admin/locations', icon: MapPin },
   { name: 'Warehouse', href: '/admin/warehouse', icon: WarehouseIcon },
   { name: 'Payouts', href: '/admin/payouts', icon: DollarSign },

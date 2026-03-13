@@ -34,15 +34,6 @@ import {
   ShoppingBag,
 } from 'lucide-react';
 
-type SellingMode = 'B2C_ONLY' | 'B2B_ONLY' | 'B2C_AND_B2B';
-type B2bProductType = 'WHOLESALE' | 'DISTRIBUTOR' | 'MANUFACTURER_DIRECT';
-
-interface PriceTier {
-  minQuantity: string;
-  maxQuantity: string;
-  priceKobo: string;
-}
-
 interface FormData {
   title: string;
   description: string;
@@ -52,12 +43,7 @@ interface FormData {
   material?: string;
   careInfo?: string;
   keyFeatures?: string[];
-  sellingMode?: SellingMode;
   moq?: string;
-  leadTimeDays?: string;
-  b2bProductType?: B2bProductType;
-  requestQuoteOnly?: boolean;
-  priceTiers?: PriceTier[];
 }
 
 
@@ -123,17 +109,30 @@ export default function AddProductPage() {
     material: '',
     careInfo: '',
     keyFeatures: [],
-    sellingMode: 'B2C_ONLY',
     moq: '',
-    leadTimeDays: '',
-    b2bProductType: undefined,
-    requestQuoteOnly: false,
-    priceTiers: [],
   });
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [aiGeneratingField, setAiGeneratingField] = useState<'description' | 'keyFeatures' | 'material' | 'careInfo' | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [draftKeyFeature, setDraftKeyFeature] = useState('');
+  const [mode, setMode] = useState<'retail' | 'wholesale'>('retail');
+
+  const handleModeChange = (newMode: 'retail' | 'wholesale') => {
+    if (newMode === mode) return;
+    setMode(newMode);
+    setFormData(prev => ({
+      ...prev,
+      price: '',
+      quantity: '',
+      moq: '',
+    }));
+    setErrors(prev => ({
+      ...prev,
+      price: undefined,
+      quantity: undefined,
+      moq: undefined,
+    }));
+  };
 
   // 2. Function declarations (helpers - hoisted but kept here for clarity)
   async function fetchOnboardingStatus() {
@@ -472,6 +471,15 @@ export default function AddProductPage() {
       }
     }
 
+    // Wholesale: MOQ required and >= 1
+    if (mode === 'wholesale') {
+      if (!formData.moq || formData.moq.trim() === '') {
+        newErrors.moq = 'Minimum order quantity is required';
+      } else if (parseInt(formData.moq, 10) < 1) {
+        newErrors.moq = 'Minimum order quantity must be at least 1';
+      }
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       toast.error('Please fix the errors before submitting');
@@ -489,8 +497,7 @@ export default function AddProductPage() {
       }
 
       const priceInKobo = Math.round(parseFloat(formData.price) * 100);
-      const sellingMode = formData.sellingMode || 'B2C_ONLY';
-      const isB2bEnabled = sellingMode === 'B2B_ONLY' || sellingMode === 'B2C_AND_B2B';
+      const sellingMode = mode === 'wholesale' ? 'B2B_ONLY' : 'B2C_ONLY';
 
       const productData: Record<string, unknown> = {
         title: formData.title,
@@ -507,20 +514,8 @@ export default function AddProductPage() {
         sellingMode,
       };
 
-      if (isB2bEnabled) {
-        if (formData.moq) productData.moq = parseInt(formData.moq, 10);
-        if (formData.leadTimeDays) productData.leadTimeDays = parseInt(formData.leadTimeDays, 10);
-        if (formData.b2bProductType) productData.b2bProductType = formData.b2bProductType;
-        productData.requestQuoteOnly = formData.requestQuoteOnly ?? false;
-        if (formData.priceTiers && formData.priceTiers.length > 0 && !formData.requestQuoteOnly) {
-          productData.priceTiers = formData.priceTiers
-            .filter(t => t.minQuantity && t.maxQuantity && t.priceKobo)
-            .map(t => ({
-              minQuantity: parseInt(t.minQuantity, 10),
-              maxQuantity: parseInt(t.maxQuantity, 10),
-              priceKobo: Math.round(parseFloat(t.priceKobo) * 100),
-            }));
-        }
+      if (mode === 'wholesale' && formData.moq) {
+        productData.moq = parseInt(formData.moq, 10);
       }
 
       console.log('🚀 SUBMITTING PRODUCT DATA - Images:', productData.images);
@@ -540,17 +535,16 @@ export default function AddProductPage() {
   };
 
   const isFormValid = () => {
-    return (
-      productImages.length > 0 &&
+    const base = productImages.length > 0 &&
       formData.title.trim().length >= 10 &&
       formData.title.trim().length <= 100 &&
       formData.categoryIds?.length > 0 &&
       formData.price &&
       parseFloat(formData.price) > 0 &&
-      formData.quantity &&
-      parseInt(formData.quantity) >= 0 &&
-      true
-    );
+      formData.quantity !== '' &&
+      parseInt(formData.quantity, 10) >= 0;
+    if (mode === 'retail') return !!base;
+    return !!base && !!formData.moq && parseInt(formData.moq, 10) >= 1;
   };
 
   const hasFormChanges = () => {
@@ -564,18 +558,16 @@ export default function AddProductPage() {
       formData.quantity !== '' ||
       (formData.material && formData.material.trim() !== '') ||
       (formData.careInfo && formData.careInfo.trim() !== '') ||
-      (formData.sellingMode && formData.sellingMode !== 'B2C_ONLY') ||
-      (formData.moq && formData.moq !== '') ||
-      (formData.leadTimeDays && formData.leadTimeDays !== '') ||
-      !!formData.b2bProductType ||
-      (formData.priceTiers && formData.priceTiers.length > 0)
+      (formData.moq && formData.moq !== '')
     );
   };
 
   const step1Complete = productImages.length > 0;
   const step2Complete = formData.title.trim().length >= 10 && formData.title.trim().length <= 100 && (formData.categoryIds?.length ?? 0) > 0;
-  const step3Complete = formData.price && parseFloat(formData.price) > 0 && formData.quantity && parseInt(formData.quantity) >= 0;
-  const step4Complete = true; // Selling mode always has default
+  const step3Complete = mode === 'retail'
+    ? !!(formData.price && parseFloat(formData.price) > 0 && formData.quantity !== '' && parseInt(formData.quantity, 10) >= 0)
+    : !!(formData.price && parseFloat(formData.price) > 0 && formData.moq && parseInt(formData.moq, 10) >= 1 && formData.quantity !== '' && parseInt(formData.quantity, 10) >= 0);
+  const step4Complete = true; // Publish step — ready when steps 1–3 complete
   const activeStep = step1Complete ? (step2Complete ? (step3Complete ? 4 : 3) : 2) : 1;
 
   if (authLoading || kycLoading || checkingLocation) {
@@ -786,9 +778,9 @@ export default function AddProductPage() {
             <div className="flex items-center gap-0 w-full max-w-2xl">
               {[
                 { label: 'Images', done: step1Complete, active: activeStep === 1 },
-                { label: 'Details', done: step2Complete, active: activeStep === 2 },
+                { label: 'Basic Info', done: step2Complete, active: activeStep === 2 },
                 { label: 'Pricing', done: step3Complete, active: activeStep === 3 },
-                { label: 'Selling Mode', done: step4Complete, active: activeStep === 4 },
+                { label: 'Publish', done: step4Complete, active: activeStep === 4 },
               ].map((step, idx) => (
                 <div key={step.label} className="flex items-center flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -830,6 +822,37 @@ export default function AddProductPage() {
                 <ArrowLeft className="w-4 h-4" />
                 <span className="text-sm">Back to Products</span>
               </button>
+              {/* Selling Type Switcher */}
+              <div className="mb-4">
+                <p className="text-[#ffcc99] text-sm font-medium mb-2">Selling type</p>
+                <div
+                  className="inline-flex rounded-lg p-1 bg-[#1A1A1A] gap-0 border border-[#2A2A2A]"
+                  role="tablist"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange('retail')}
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${mode === 'retail'
+                      ? 'bg-[#FF6B00] text-white'
+                      : 'text-[#A0A0A0] hover:text-white'
+                    }`}
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    Retail (D2C)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange('wholesale')}
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${mode === 'wholesale'
+                      ? 'bg-[#FF6B00] text-white'
+                      : 'text-[#A0A0A0] hover:text-white'
+                    }`}
+                  >
+                    <Building2 className="w-4 h-4" />
+                    Wholesale (B2B)
+                  </button>
+                </div>
+              </div>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-linear-to-br from-[#ff6600] to-[#cc5200] flex items-center justify-center">
                   <Package className="w-6 h-6 text-white" />
@@ -1022,63 +1045,64 @@ export default function AddProductPage() {
                       <span>Use &quot;Generate with AI&quot; next to each field below to fill it. Enter a product title first.</span>
                     </div> */}
 
-                      {/* Key Features */}
-                      <div>
-                        <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                          Key Features
-                        </label>
-                        <p className="text-[#ffcc99]/60 text-xs mb-3">
-                          Highlight 1-3 key features that appear in the product headline
-                        </p>
+                      {/* Key Features - Retail only */}
+                      {mode === 'retail' && (
+                        <div>
+                          <label className="block text-[#ffcc99] text-sm font-medium mb-2">
+                            Key Features
+                          </label>
+                          <p className="text-[#ffcc99]/60 text-xs mb-3">
+                            Highlight 1-3 key features that appear in the product headline
+                          </p>
 
-                        <div className="space-y-3">
-                          {/* Tag chips */}
-                          <div className="flex flex-wrap gap-2">
-                            {(formData.keyFeatures || []).map((feature, index) =>
-                              feature.trim() ? (
-                                <span
-                                  key={index}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#FF6B00]/30 text-[#FF6B00] text-sm font-medium bg-[#FF6B00]/5"
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap gap-2">
+                              {(formData.keyFeatures || []).map((feature, index) =>
+                                feature.trim() ? (
+                                  <span
+                                    key={index}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#FF6B00]/30 text-[#FF6B00] text-sm font-medium bg-[#FF6B00]/5"
+                                  >
+                                    {feature}
+                                    <button type="button" onClick={() => handleRemoveKeyFeature(index)} className="p-0.5 rounded hover:bg-[#FF6B00]/20 transition-colors">
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </span>
+                                ) : null
+                              )}
+                            </div>
+
+                            {(formData.keyFeatures || []).filter(f => f.trim()).length < 3 && (
+                              <>
+                                <input
+                                  type="text"
+                                  placeholder="Type a feature and click Add"
+                                  value={draftKeyFeature}
+                                  onChange={(e) => setDraftKeyFeature(e.target.value)}
+                                  maxLength={30}
+                                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddKeyFeature())}
+                                  className={`w-full px-4 py-2 rounded-lg bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] mb-2 ${errors.keyFeatures ? 'border-red-500' : 'border-[#2A2A2A]'}`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleAddKeyFeature}
+                                  className="w-full px-4 py-3 rounded-lg border border-[#2A2A2A] text-[#ffcc99] hover:bg-[#222] hover:border-[#444444] transition-all flex items-center justify-center gap-2"
                                 >
-                                  {feature}
-                                  <button type="button" onClick={() => handleRemoveKeyFeature(index)} className="p-0.5 rounded hover:bg-[#FF6B00]/20 transition-colors">
-                                    <X className="w-4 h-4" />
-                                  </button>
-                                </span>
-                              ) : null
+                                  <Plus className="w-4 h-4" />
+                                  <span className="text-sm">Add Key Feature</span>
+                                </button>
+                              </>
                             )}
                           </div>
 
-                          {(formData.keyFeatures || []).filter(f => f.trim()).length < 3 && (
-                            <>
-                              <input
-                                type="text"
-                                placeholder="Type a feature and click Add"
-                                value={draftKeyFeature}
-                                onChange={(e) => setDraftKeyFeature(e.target.value)}
-                                maxLength={30}
-                                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddKeyFeature())}
-                                className={`w-full px-4 py-2 rounded-lg bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] mb-2 ${errors.keyFeatures ? 'border-red-500' : 'border-[#2A2A2A]'}`}
-                              />
-                              <button
-                                type="button"
-                                onClick={handleAddKeyFeature}
-                                className="w-full px-4 py-3 rounded-lg border border-[#2A2A2A] text-[#ffcc99] hover:bg-[#222] hover:border-[#444444] transition-all flex items-center justify-center gap-2"
-                              >
-                                <Plus className="w-4 h-4" />
-                                <span className="text-sm">Add Key Feature</span>
-                              </button>
-                            </>
+                          {errors.keyFeatures && (
+                            <p className="mt-2 text-red-400 text-xs flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              {errors.keyFeatures}
+                            </p>
                           )}
                         </div>
-
-                        {errors.keyFeatures && (
-                          <p className="mt-2 text-red-400 text-xs flex items-center gap-1">
-                            <AlertCircle className="w-3 h-3" />
-                            {errors.keyFeatures}
-                          </p>
-                        )}
-                      </div>
+                      )}
 
                       {/* Product Description */}
                       <div>
@@ -1328,11 +1352,11 @@ export default function AddProductPage() {
                       <h2 className="text-white font-semibold">Pricing & Inventory</h2>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Price */}
+                    <div className={`grid gap-4 ${mode === 'wholesale' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
+                      {/* Price / Wholesale Price */}
                       <div>
                         <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                          Price (₦) <span className="text-red-400">*</span>
+                          {mode === 'wholesale' ? 'Wholesale Price (₦ per unit)' : 'Price (₦)'} <span className="text-red-400">*</span>
                         </label>
                         <div className="relative">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ffcc99] font-medium">₦</span>
@@ -1348,9 +1372,11 @@ export default function AddProductPage() {
                               }`}
                           />
                         </div>
-                        <p className="mt-1 text-[#A0A0A0] text-xs">
-                          Platform commission: 8–15% depending on category
-                        </p>
+                        {mode === 'retail' && (
+                          <p className="mt-1 text-[#A0A0A0] text-xs">
+                            Platform commission: 8–15% depending on category
+                          </p>
+                        )}
                         {errors.price && (
                           <p className="mt-1 text-red-400 text-xs flex items-center gap-1">
                             <AlertCircle className="w-3 h-3" />
@@ -1359,10 +1385,45 @@ export default function AddProductPage() {
                         )}
                       </div>
 
-                      {/* Stock Quantity */}
+                      {/* MOQ - Wholesale only */}
+                      {mode === 'wholesale' && (
+                        <div>
+                          <label className="block text-[#ffcc99] text-sm font-medium mb-2">
+                            Minimum Order Quantity (MOQ) <span className="text-red-400">*</span>
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2">
+                              <Layers className="w-4 h-4 text-[#ffcc99]" />
+                            </span>
+                            <input
+                              name="moq"
+                              type="number"
+                              min="1"
+                              placeholder="e.g. 10"
+                              value={formData.moq || ''}
+                              onChange={(e) => {
+                                setFormData(prev => ({ ...prev, moq: e.target.value }));
+                                setErrors(prev => ({ ...prev, moq: undefined }));
+                              }}
+                              className={`w-full pl-10 pr-4 py-3 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] transition-all ${errors.moq ? 'border-red-500' : 'border-[#ff6600]/30 focus:border-transparent'}`}
+                            />
+                          </div>
+                          <p className="mt-1 text-[#A0A0A0] text-xs">
+                            Minimum units buyers must order
+                          </p>
+                          {errors.moq && (
+                            <p className="mt-1 text-red-400 text-xs flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              {errors.moq}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Stock Quantity / Available Stock */}
                       <div>
                         <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                          Stock Quantity <span className="text-red-400">*</span>
+                          {mode === 'wholesale' ? 'Available Stock' : 'Stock Quantity'} <span className="text-red-400">*</span>
                         </label>
                         <div className="relative">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2">
@@ -1385,7 +1446,7 @@ export default function AddProductPage() {
                             {errors.quantity}
                           </p>
                         )}
-                        {formData.quantity && parseInt(formData.quantity) > 0 && parseInt(formData.quantity) <= 5 && (
+                        {mode === 'retail' && formData.quantity && parseInt(formData.quantity) > 0 && parseInt(formData.quantity) <= 5 && (
                           <p className="mt-1 text-yellow-400 text-xs flex items-center gap-1">
                             <AlertCircle className="w-3 h-3" />
                             Low stock warning will be shown to buyers
@@ -1394,8 +1455,8 @@ export default function AddProductPage() {
                       </div>
                     </div>
 
-                    {/* Estimated Earnings */}
-                    {formData.price && parseFloat(formData.price) > 0 && (
+                    {/* Estimated Earnings - Retail only */}
+                    {mode === 'retail' && formData.price && parseFloat(formData.price) > 0 && (
                       <div className="mt-4 p-4 bg-[#FF6B00]/10 rounded-xl border border-[#FF6B00]/20">
                         <p className="text-[#ffcc99] text-xs mb-1">Estimated earnings per sale</p>
                         <p className="text-white text-xl font-bold">
@@ -1410,175 +1471,6 @@ export default function AddProductPage() {
                         </p>
                       </div>
                     )}
-                  </div>
-
-                  {/* Selling mode & wholesale */}
-                  <div className="bg-[#1a1a1a] rounded-2xl border border-[#ff6600]/20 p-5">
-                    <div className="flex items-center gap-2 mb-5">
-                      <Layers className="w-5 h-5 text-[#ff6600]" />
-                      <h2 className="text-white font-semibold">Selling mode</h2>
-                    </div>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-[#ffcc99] text-sm font-medium mb-3">Selling mode</label>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          {[
-                            { value: 'B2C_ONLY' as const, icon: Users, label: 'Retail only', desc: 'Sell directly to individual buyers' },
-                            { value: 'B2B_ONLY' as const, icon: Building2, label: 'Wholesale only', desc: 'Sell in bulk to businesses, get price requests' },
-                            { value: 'B2C_AND_B2B' as const, icon: ShoppingBag, label: 'Both', desc: 'Sell to individuals and businesses', recommended: true },
-                          ].map((opt) => {
-                            const Icon = opt.icon;
-                            const isSelected = (formData.sellingMode || 'B2C_ONLY') === opt.value;
-                            return (
-                              <button
-                                key={opt.value}
-                                type="button"
-                                onClick={() => setFormData(prev => ({ ...prev, sellingMode: opt.value }))}
-                                className={`relative p-4 rounded-xl border text-left transition-all ${isSelected
-                                  ? 'bg-[#FF6B0010] border-[#FF6B00]'
-                                  : 'bg-[#1A1A1A] border-[#2A2A2A] hover:bg-[#222] hover:border-[#444444]'
-                                  }`}
-                                style={isSelected ? { borderWidth: '1.5px' } : undefined}
-                              >
-                                {opt.recommended && (
-                                  <span className="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold bg-[#FF6B00] text-black">Recommended</span>
-                                )}
-                                <div className="flex items-start gap-3">
-                                  <div className={`p-2 rounded-lg ${isSelected ? 'bg-[#FF6B00]/20' : 'bg-[#2A2A2A]'}`}>
-                                    <Icon className={`w-5 h-5 ${isSelected ? 'text-[#FF6B00]' : 'text-[#A0A0A0]'}`} />
-                                  </div>
-                                  <div>
-                                    <p className={`font-semibold text-sm ${isSelected ? 'text-[#FF6B00]' : 'text-white'}`}>{opt.label}</p>
-                                    <p className="text-xs mt-0.5 text-[#A0A0A0]">{opt.desc}</p>
-                                  </div>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      {(formData.sellingMode === 'B2B_ONLY' || formData.sellingMode === 'B2C_AND_B2B') && (
-                        <>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-[#ffcc99] text-sm font-medium mb-2">Min. order (units)</label>
-                              <input
-                                type="number"
-                                min="1"
-                                placeholder="e.g. 10"
-                                value={formData.moq || ''}
-                                onChange={(e) => setFormData(prev => ({ ...prev, moq: e.target.value }))}
-                                className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[#ffcc99] text-sm font-medium mb-2">Lead time (days)</label>
-                              <input
-                                type="number"
-                                min="1"
-                                placeholder="e.g. 5"
-                                value={formData.leadTimeDays || ''}
-                                onChange={(e) => setFormData(prev => ({ ...prev, leadTimeDays: e.target.value }))}
-                                className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-[#ffcc99] text-sm font-medium mb-2">Product type (optional)</label>
-                            <select
-                              value={formData.b2bProductType || ''}
-                              onChange={(e) => setFormData(prev => ({ ...prev, b2bProductType: (e.target.value || undefined) as B2bProductType | undefined }))}
-                              className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
-                            >
-                              <option value="">Select type</option>
-                              <option value="WHOLESALE">Wholesale</option>
-                              <option value="DISTRIBUTOR">Distributor</option>
-                              <option value="MANUFACTURER_DIRECT">Manufacturer-direct</option>
-                            </select>
-                          </div>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.requestQuoteOnly ?? false}
-                              onChange={(e) => setFormData(prev => ({ ...prev, requestQuoteOnly: e.target.checked }))}
-                              className="rounded border-[#ff6600]/50 text-[#ff6600] focus:ring-[#ff6600]"
-                            />
-                            <span className="text-[#ffcc99] text-sm">Custom pricing only — buyer asks for a price</span>
-                          </label>
-                          {!(formData.requestQuoteOnly ?? false) && (
-                            <div>
-                              <div className="flex items-center justify-between mb-2">
-                                <label className="block text-[#ffcc99] text-sm font-medium">Bulk pricing — different prices for different quantities</label>
-                                <button
-                                  type="button"
-                                  onClick={() => setFormData(prev => ({
-                                    ...prev,
-                                    priceTiers: [...(prev.priceTiers || []), { minQuantity: '', maxQuantity: '999999', priceKobo: '' }],
-                                  }))}
-                                  className="px-3 py-1.5 rounded-lg bg-[#ff6600]/20 text-[#ff6600] text-xs font-medium hover:bg-[#ff6600]/30"
-                                >
-                                  <Plus className="w-3 h-3 inline mr-1" /> Add tier
-                                </button>
-                              </div>
-                              <p className="text-[#ffcc99]/60 text-xs mb-2">e.g. 1–10: ₦100, 11–50: ₦90, 51+: ₦80. Use 999999 for open-ended.</p>
-                              {(formData.priceTiers || []).map((tier, idx) => (
-                                <div key={idx} className="flex items-center gap-2 mb-2">
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    placeholder="Min"
-                                    value={tier.minQuantity}
-                                    onChange={(e) => {
-                                      const next = [...(formData.priceTiers || [])];
-                                      next[idx] = { ...next[idx], minQuantity: e.target.value };
-                                      setFormData(prev => ({ ...prev, priceTiers: next }));
-                                    }}
-                                    className="w-20 px-2 py-2 rounded-lg bg-black border border-[#ff6600]/30 text-white text-sm"
-                                  />
-                                  <span className="text-[#ffcc99]">–</span>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    placeholder="Max"
-                                    value={tier.maxQuantity}
-                                    onChange={(e) => {
-                                      const next = [...(formData.priceTiers || [])];
-                                      next[idx] = { ...next[idx], maxQuantity: e.target.value };
-                                      setFormData(prev => ({ ...prev, priceTiers: next }));
-                                    }}
-                                    className="w-24 px-2 py-2 rounded-lg bg-black border border-[#ff6600]/30 text-white text-sm"
-                                  />
-                                  <span className="text-[#ffcc99]">→ ₦</span>
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="0.00"
-                                    value={tier.priceKobo}
-                                    onChange={(e) => {
-                                      const next = [...(formData.priceTiers || [])];
-                                      next[idx] = { ...next[idx], priceKobo: e.target.value };
-                                      setFormData(prev => ({ ...prev, priceTiers: next }));
-                                    }}
-                                    className="flex-1 px-2 py-2 rounded-lg bg-black border border-[#ff6600]/30 text-white text-sm"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({
-                                      ...prev,
-                                      priceTiers: (prev.priceTiers || []).filter((_, i) => i !== idx),
-                                    }))}
-                                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
                   </div>
 
                   {/* Action Buttons */}
@@ -1603,12 +1495,12 @@ export default function AddProductPage() {
                         {loading ? (
                           <>
                             <Loader2 className="w-5 h-5 animate-spin" />
-                            Creating Product...
+                            {mode === 'wholesale' ? 'Publishing Wholesale Product...' : 'Creating Product...'}
                           </>
                         ) : (
                           <>
                             <Check className="w-5 h-5" />
-                            Add Product
+                            {mode === 'wholesale' ? 'Publish Wholesale Product' : 'Publish Product'}
                           </>
                         )}
                       </button>

@@ -139,6 +139,13 @@ export default function MerchantOnboarding() {
                                         How It Works
                                     </a>
                                 </div>
+                                <p className="mt-6 text-sm text-gray-500">
+                                    By applying, you agree to our{' '}
+                                    <Link href="/vendor-partnership-terms" className="text-primary font-semibold hover:underline">
+                                        Vendor Partnership Terms
+                                    </Link>
+                                    .
+                                </p>
 
                                 <div className="mt-16 flex flex-wrap justify-center gap-x-12 gap-y-6">
                                     {[
@@ -258,6 +265,13 @@ export default function MerchantOnboarding() {
                                     </div>
                                     <div className="bg-primary/5 rounded-3xl p-10 border border-white/10">
                                         <h3 className="text-2xl font-bold mb-6">Vendor FAQ</h3>
+                                        <p className="text-sm text-gray-400 mb-6">
+                                            Read our{' '}
+                                            <Link href="/vendor-partnership-terms" className="text-primary font-semibold hover:underline">
+                                                Vendor Partnership Terms
+                                            </Link>
+                                            {' '}for full details on escrow, payouts, and logistics.
+                                        </p>
                                         <div className="space-y-6">
                                             {[
                                                 { q: 'How much are the commissions?', a: 'We operate on a transparent commission model. You only pay when you sell. Standard commission is 5-15% depending on product category.' },
@@ -267,7 +281,7 @@ export default function MerchantOnboarding() {
                                             ].map((faq, i) => (
                                                 <div key={i} className="border-b border-white/5 pb-6 last:border-0 last:pb-0">
                                                     <h4 className="font-bold text-primary mb-2">Q: {faq.q}</h4>
-                                                    <p className="text-sm text-gray-400Leading-relaxed">{faq.a}</p>
+                                                    <p className="text-sm text-gray-400 leading-relaxed">{faq.a}</p>
                                                 </div>
                                             ))}
                                         </div>

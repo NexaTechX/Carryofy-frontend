@@ -25,6 +25,7 @@ export default function Footer() {
 
   const sellerLinks = [
     { name: 'Sell on Carryofy', href: '/merchant-onboarding' },
+    { name: 'Vendor Partnership Terms', href: '/vendor-partnership-terms' },
     { name: 'Seller FAQs', href: '/help#sellers' },
   ];
 
@@ -148,6 +149,9 @@ export default function Footer() {
             </Link>
             <Link href="/terms-of-service" className="hover:text-white transition-colors">
               Terms of Service
+            </Link>
+            <Link href="/vendor-partnership-terms" className="hover:text-white transition-colors">
+              Vendor Partnership Terms
             </Link>
             <Link href="#" className="hover:text-white transition-colors">
               Cookie Policy

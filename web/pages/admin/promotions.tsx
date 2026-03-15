@@ -167,12 +167,15 @@ export default function AdminPromotions() {
   };
 
   if (isError) {
+    const err = error as { message?: string; response?: { status?: number } };
+    const is403 = err?.response?.status === 403;
+    const message = is403
+      ? "You don't have permission to manage promotions. The server returned 403 (Forbidden). Ensure you're logged in with an account that has the Admin role."
+      : `Failed to load promotions: ${err?.message ?? 'Unknown error'}`;
     return (
       <AdminLayout>
         <div className="mx-auto max-w-4xl px-4 py-10">
-          <p className="text-red-400">
-            Failed to load promotions: {(error as Error)?.message}
-          </p>
+          <p className="text-red-400">{message}</p>
           <button
             type="button"
             onClick={() => refetch()}

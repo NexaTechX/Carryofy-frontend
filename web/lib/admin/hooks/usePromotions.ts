@@ -16,6 +16,7 @@ export interface Promotion {
   mobileImageUrl?: string | null;
   redirectUrl?: string | null;
   placement: PromotionPlacement;
+  categorySlug?: string | null;
   priority: number;
   startDate: string;
   endDate: string;
@@ -86,6 +87,7 @@ export interface CreatePromotionPayload {
   mobileImageUrl?: string;
   redirectUrl?: string;
   placement: PromotionPlacement;
+  categorySlug?: string;
   priority?: number;
   startDate: string;
   endDate: string;
@@ -100,6 +102,7 @@ export interface UpdatePromotionPayload {
   mobileImageUrl?: string;
   redirectUrl?: string;
   placement?: PromotionPlacement;
+  categorySlug?: string;
   priority?: number;
   startDate?: string;
   endDate?: string;

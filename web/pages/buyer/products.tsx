@@ -10,6 +10,7 @@ import { BreadcrumbSchema } from '../../components/seo/JsonLd';
 import ShopFiltersPanel from '../../components/buyer/shop/ShopFiltersPanel';
 import ShopProductCard, { ShopProductCardProduct } from '../../components/buyer/shop/ShopProductCard';
 import EmptyShopState from '../../components/buyer/shop/EmptyShopState';
+import CategoryBanner from '../../components/promotions/CategoryBanner';
 import { categoryDisplayName } from '../../lib/buyer/categoryDisplay';
 
 interface Product {
@@ -320,6 +321,8 @@ export default function ProductsPage() {
 
           {/* Product Grid Area */}
           <div className="flex-1 min-w-0 flex flex-col bg-background" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+            {selectedCategory && <CategoryBanner categorySlug={selectedCategory} />}
+
             {/* Search + Sort - sticky */}
             <div className="sticky top-0 z-20 flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-4 bg-background border-b border-border-custom">
               <div className="flex-1 relative">

@@ -14,18 +14,41 @@ function PromotionSlide({ promo }: { promo: Promotion }) {
       ? promo.mobileImageUrl
       : promo.imageUrl;
 
-  if (!imgSrc) return null;
-
   const content = (
-    <div className="relative aspect-[3/1] w-full min-h-[200px] md:min-h-[280px] overflow-hidden rounded-xl bg-[#0f1419]">
-      <Image
-        src={imgSrc}
-        alt={promo.title}
-        fill
-        className="object-cover"
-        sizes="100vw"
-        unoptimized={imgSrc.startsWith('https://res.cloudinary.com')}
-      />
+    <div className="relative aspect-3/1 w-full min-h-[200px] overflow-hidden rounded-2xl bg-[#0f1419] md:min-h-[280px]">
+      {imgSrc ? (
+        <Image
+          src={imgSrc}
+          alt={promo.title}
+          fill
+          className="object-cover"
+          sizes="100vw"
+          unoptimized={imgSrc.startsWith('https://res.cloudinary.com')}
+        />
+      ) : (
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,107,0,0.32),transparent_45%),linear-gradient(135deg,#111827,#0f1419_55%,#1f2937)]" />
+      )}
+      <div className="absolute inset-0 bg-linear-to-r from-black/70 via-black/35 to-transparent" />
+      <div className="relative flex h-full items-end p-6 md:p-8">
+        <div className="max-w-2xl text-white">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/90">
+            Carryofy Promotion
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold md:text-4xl">
+            {promo.title}
+          </h2>
+          {promo.description && (
+            <p className="mt-3 max-w-xl text-sm text-white/80 md:text-base">
+              {promo.description}
+            </p>
+          )}
+          {promo.redirectUrl && (
+            <span className="mt-4 inline-flex items-center rounded-full bg-white/12 px-4 py-2 text-sm font-medium backdrop-blur">
+              Explore offer
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 

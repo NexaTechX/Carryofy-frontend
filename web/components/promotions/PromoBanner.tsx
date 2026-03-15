@@ -15,7 +15,7 @@ function PromotionBlock({ promo }: { promo: Promotion }) {
       : promo.imageUrl;
 
   const content = imgSrc ? (
-    <div className="relative aspect-[21/9] w-full min-h-[160px] md:min-h-[200px] overflow-hidden rounded-xl bg-[#0f1419]">
+    <div className="relative aspect-21/9 w-full min-h-[160px] md:min-h-[200px] overflow-hidden rounded-xl bg-[#0f1419]">
       <Image
         src={imgSrc}
         alt={promo.title}
@@ -26,8 +26,13 @@ function PromotionBlock({ promo }: { promo: Promotion }) {
       />
     </div>
   ) : (
-    <div className="flex min-h-[120px] items-center justify-center rounded-xl bg-gradient-to-r from-primary/20 to-primary/10 px-6 py-8 text-center">
+    <div className="flex min-h-[120px] flex-col items-center justify-center rounded-xl bg-linear-to-r from-primary/20 to-primary/10 px-6 py-8 text-center">
       <p className="text-lg font-medium text-foreground">{promo.title}</p>
+      {promo.description && (
+        <p className="mt-2 max-w-2xl text-sm text-foreground/75">
+          {promo.description}
+        </p>
+      )}
     </div>
   );
 

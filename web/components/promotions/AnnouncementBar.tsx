@@ -9,7 +9,7 @@ function PromoLink({ promo }: { promo: Promotion }) {
     promo.redirectUrl?.startsWith('http://') ||
     promo.redirectUrl?.startsWith('https://');
 
-  const text = promo.title;
+  const text = promo.description ? `${promo.title} - ${promo.description}` : promo.title;
   if (promo.redirectUrl) {
     if (isExternal) {
       return (

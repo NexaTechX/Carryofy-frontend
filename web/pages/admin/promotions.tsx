@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
   AdminDrawer,
@@ -50,6 +50,19 @@ function formatDate(d: string) {
   });
 }
 
+function toDateInputValue(value?: string | null) {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString().slice(0, 10);
+}
+
+function toDayBoundaryIso(value: string, boundary: 'start' | 'end') {
+  if (!value) return '';
+  const time = boundary === 'start' ? 'T00:00:00' : 'T23:59:59.999';
+  return new Date(`${value}${time}`).toISOString();
+}
+
 export default function AdminPromotions() {
   const [placementFilter, setPlacementFilter] = useState<PromotionPlacement | ''>('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -61,6 +74,7 @@ export default function AdminPromotions() {
     mobileImageUrl: '',
     redirectUrl: '',
     placement: 'HOMEPAGE_HERO',
+    categorySlug: '',
     priority: 0,
     startDate: '',
     endDate: '',
@@ -90,6 +104,7 @@ export default function AdminPromotions() {
       mobileImageUrl: '',
       redirectUrl: '',
       placement: 'HOMEPAGE_HERO',
+      categorySlug: '',
       priority: 0,
       startDate: '',
       endDate: '',
@@ -108,9 +123,10 @@ export default function AdminPromotions() {
       mobileImageUrl: p.mobileImageUrl ?? '',
       redirectUrl: p.redirectUrl ?? '',
       placement: p.placement,
+      categorySlug: p.categorySlug ?? '',
       priority: p.priority,
-      startDate: p.startDate.slice(0, 10),
-      endDate: p.endDate.slice(0, 10),
+      startDate: toDateInputValue(p.startDate),
+      endDate: toDateInputValue(p.endDate),
       isActive: p.isActive,
       campaignId: p.campaignId ?? '',
     });
@@ -119,15 +135,23 @@ export default function AdminPromotions() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.startDate && form.endDate && form.startDate > form.endDate) {
+      toast.error('End date must be the same as or after the start date.');
+      return;
+    }
     const payload = {
       ...form,
       campaignId: form.campaignId || undefined,
       imageUrl: form.imageUrl || undefined,
       mobileImageUrl: form.mobileImageUrl || undefined,
       redirectUrl: form.redirectUrl || undefined,
+      categorySlug:
+        form.placement === 'CATEGORY_PAGE'
+          ? form.categorySlug?.trim() || undefined
+          : undefined,
       description: form.description || undefined,
-      startDate: form.startDate ? new Date(form.startDate).toISOString() : '',
-      endDate: form.endDate ? new Date(form.endDate).toISOString() : '',
+      startDate: toDayBoundaryIso(form.startDate, 'start'),
+      endDate: toDayBoundaryIso(form.endDate, 'end'),
     };
     if (editingPromotion) {
       updatePromotion.mutate(
@@ -280,6 +304,11 @@ export default function AdminPromotions() {
                           <span className="ml-1 text-xs text-gray-500">
                             ({p.campaignName})
                           </span>
+                        )}
+                        {p.placement === 'CATEGORY_PAGE' && p.categorySlug && (
+                          <div className="mt-1 text-xs text-gray-500">
+                            Category: {p.categorySlug}
+                          </div>
                         )}
                       </DataTableCell>
                       <DataTableCell>
@@ -457,7 +486,35 @@ export default function AdminPromotions() {
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-gray-500">
+              {form.placement === 'HOMEPAGE_HERO' && 'Shows above the landing page hero section.'}
+              {form.placement === 'TOP_ANNOUNCEMENT' && 'Shows in the slim announcement bar at the very top of the homepage.'}
+              {form.placement === 'HOMEPAGE_PROMO' && 'Shows as a promotional block below the landing page hero section.'}
+              {form.placement === 'CATEGORY_PAGE' && 'Shows on the buyer products page when a matching category is being viewed.'}
+            </p>
           </div>
+          {form.placement === 'CATEGORY_PAGE' && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-300">
+                Category slug (optional)
+              </label>
+              <input
+                type="text"
+                value={form.categorySlug ?? ''}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    categorySlug: e.target.value,
+                  }))
+                }
+                className="w-full rounded-lg border border-[#2a2a2a] bg-[#0b1018] px-3 py-2 text-white"
+                placeholder="e.g. electronics"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Leave empty to show on all category pages.
+              </p>
+            </div>
+          )}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-300">
               Priority (higher = first)
@@ -505,6 +562,9 @@ export default function AdminPromotions() {
               />
             </div>
           </div>
+          <p className="-mt-2 text-xs text-gray-500">
+            Promotions stay active for the full selected days, from 12:00 AM on the start date to 11:59 PM on the end date.
+          </p>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-300">
               Campaign (optional)

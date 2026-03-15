@@ -14,6 +14,7 @@ export interface Promotion {
   mobileImageUrl?: string | null;
   redirectUrl?: string | null;
   placement: PromotionPlacement;
+  categorySlug?: string | null;
   priority: number;
   startDate: string;
   endDate: string;

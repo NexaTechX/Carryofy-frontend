@@ -20,14 +20,19 @@ function PromotionBlock({ promo }: { promo: Promotion }) {
 
   if (!imgSrc) {
     return (
-      <div className="flex min-h-[80px] items-center justify-center rounded-lg bg-[#0f1419] px-4 py-6 text-center">
+      <div className="flex min-h-[80px] flex-col items-center justify-center rounded-lg bg-[#0f1419] px-4 py-6 text-center">
         <p className="font-medium text-foreground">{promo.title}</p>
+        {promo.description && (
+          <p className="mt-2 max-w-2xl text-sm text-foreground/70">
+            {promo.description}
+          </p>
+        )}
       </div>
     );
   }
 
   const content = (
-    <div className="relative aspect-[3/1] w-full min-h-[100px] overflow-hidden rounded-lg bg-[#0f1419]">
+    <div className="relative aspect-3/1 w-full min-h-[100px] overflow-hidden rounded-lg bg-[#0f1419]">
       <Image
         src={imgSrc}
         alt={promo.title}

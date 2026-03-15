@@ -59,7 +59,7 @@ export default function ProblemSection() {
                             Commerce in Africa is fragmented.
                         </h2>
                         <p className="text-base sm:text-lg text-gray-600 max-w-2xl">
-                            Sellers and buyers both pay the price. Logistics, fulfillment, payments, and trust — all broken into pieces.
+                            Sellers and buyers both pay the price. Logistics, fulfillment, payments, and trust all broken into pieces.
                         </p>
                     </div>
 

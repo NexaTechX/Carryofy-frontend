@@ -35,7 +35,7 @@ export default function SolutionSection() {
                             <span className="text-[#FF6B00]">Sell. Store. Deliver.</span>
                         </h2>
                         <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed">
-                            Carryofy isn&apos;t just a marketplace. We combine marketplace, fulfillment, and last-mile logistics into one infrastructure — so sellers can scale and buyers can trust.
+                            Carryofy isn&apos;t just a marketplace. We combine marketplace, fulfillment, and last-mile logistics into one infrastructure so sellers can scale and buyers can trust.
                         </p>
 
                         <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">

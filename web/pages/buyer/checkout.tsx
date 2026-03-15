@@ -7,6 +7,7 @@ import apiClient from '../../lib/api/client';
 import { validateCoupon } from '../../lib/api/coupons';
 import { fetchShippingQuote } from '../../lib/api/shipping';
 import { geocodeAddress, getCurrentPosition, reverseGeocode } from '../../lib/api/geocode';
+import { getWalletBalance } from '../../lib/api/wallet';
 import {
   Truck,
   MapPin,
@@ -21,6 +22,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Locate,
+  Wallet,
 } from 'lucide-react';
 
 interface CartItem {
@@ -92,6 +94,9 @@ export default function CheckoutPage() {
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponValidating, setCouponValidating] = useState(false);
+
+  const [rewardBalanceKobo, setRewardBalanceKobo] = useState(0);
+  const [useRewardForDelivery, setUseRewardForDelivery] = useState(false);
 
   const [contactInfo, setContactInfo] = useState({
     fullName: '',
@@ -171,6 +176,18 @@ export default function CheckoutPage() {
       fetchAddresses();
     }
   }, [mounted, quoteId]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    getWalletBalance()
+      .then((res) => setRewardBalanceKobo(res?.balanceKobo ?? 0))
+      .catch(() => setRewardBalanceKobo(0));
+  }, [mounted]);
+
+  const rewardAppliedKobo = useMemo(() => {
+    if (!useRewardForDelivery || rewardBalanceKobo <= 0 || shippingFee <= 0) return 0;
+    return Math.min(rewardBalanceKobo, shippingFee);
+  }, [useRewardForDelivery, rewardBalanceKobo, shippingFee]);
 
   const quoteSubtotal = useMemo(() => {
     if (!quote?.items?.length) return 0;
@@ -373,10 +390,10 @@ export default function CheckoutPage() {
   }, [cart?.items, quote]);
 
   const totalAmount = useMemo(() => {
-    if (quote) return quoteSubtotal + shippingFee - discount;
+    if (quote) return quoteSubtotal + shippingFee - discount - rewardAppliedKobo;
     if (!cart) return 0;
-    return cart.totalAmount + shippingFee - discount;
-  }, [cart, quote, quoteSubtotal, shippingFee, discount]);
+    return cart.totalAmount + shippingFee - discount - rewardAppliedKobo;
+  }, [cart, quote, quoteSubtotal, shippingFee, discount, rewardAppliedKobo]);
 
   const formatPrice = (priceInKobo: number) => {
     const n = Number(priceInKobo);
@@ -634,6 +651,7 @@ export default function CheckoutPage() {
         shippingMethod,
         quotedShippingFeeKobo: shippingFee,
         couponCode: couponApplied ? couponCode.trim() || undefined : undefined,
+        ...(rewardAppliedKobo > 0 && { walletApplyKobo: rewardAppliedKobo }),
       };
       if (isQuoteCheckout) {
         orderPayload.quoteId = quoteId;
@@ -935,6 +953,46 @@ export default function CheckoutPage() {
                           </p>
                         )}
                       </section>
+
+                      {rewardBalanceKobo > 0 && (
+                        <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
+                          <div className="flex items-center gap-3 mb-4">
+                            <Wallet className="w-5 h-5 text-[#ff6600]" />
+                            <h2 className="text-white text-xl font-bold">Delivery reward</h2>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-[#ffcc99] text-sm">
+                                You have <span className="text-[#ff6600] font-semibold">{formatPrice(rewardBalanceKobo)}</span> in delivery rewards
+                              </p>
+                              <p className="text-[#ffcc99]/70 text-xs mt-1">Apply toward your delivery fee</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setUseRewardForDelivery(!useRewardForDelivery)}
+                              disabled={shippingFee <= 0}
+                              className={`relative w-12 h-7 rounded-full transition-colors duration-200 ${
+                                useRewardForDelivery ? 'bg-[#ff6600]' : 'bg-[#333]'
+                              } ${shippingFee <= 0 ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                            >
+                              <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform duration-200 ${
+                                useRewardForDelivery ? 'translate-x-5' : ''
+                              }`} />
+                            </button>
+                          </div>
+                          {useRewardForDelivery && shippingFee > 0 && (
+                            <div className="mt-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                              <p className="text-green-400 text-sm flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4" />
+                                {rewardAppliedKobo >= shippingFee
+                                  ? 'Delivery fee fully covered by your reward!'
+                                  : <>Reward covers {formatPrice(rewardAppliedKobo)} of {formatPrice(shippingFee)} delivery — you pay <span className="font-semibold">{formatPrice(shippingFee - rewardAppliedKobo)}</span> for delivery</>
+                                }
+                              </p>
+                            </div>
+                          )}
+                        </section>
+                      )}
                     </div>
                     <div className="lg:col-span-1">
                       <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 sticky top-6 space-y-6">
@@ -953,6 +1011,11 @@ export default function CheckoutPage() {
                                 '—'
                               ) : shippingFee === 0 ? (
                                 'Free'
+                              ) : rewardAppliedKobo > 0 ? (
+                                <span className="flex items-center gap-2">
+                                  <span className="line-through text-[#ffcc99]/60">{formatPrice(shippingFee)}</span>
+                                  <span className="text-green-400">{rewardAppliedKobo >= shippingFee ? 'Free' : formatPrice(shippingFee - rewardAppliedKobo)}</span>
+                                </span>
                               ) : (
                                 formatPrice(shippingFee)
                               )}
@@ -961,7 +1024,8 @@ export default function CheckoutPage() {
                           {shippingQuoteError && (
                             <p className="text-amber-400 text-xs">{shippingQuoteError}</p>
                           )}
-                          {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
+                          {rewardAppliedKobo > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Delivery reward</span><span className="text-green-400 font-semibold">- {formatPrice(rewardAppliedKobo)}</span></div>}
+                          {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Coupon discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
                           <div className="border-t border-[#ff6600]/30 pt-3 flex justify-between">
                             <span className="text-white font-bold">Total</span><span className="text-[#ff6600] text-xl font-bold">{formatPrice(totalAmount)}</span>
                           </div>
@@ -1334,8 +1398,19 @@ export default function CheckoutPage() {
                         <h2 className="text-white text-xl font-bold">Summary</h2>
                         <div className="space-y-3 border-t border-[#ff6600]/30 pt-4">
                           <div className="flex justify-between"><span className="text-[#ffcc99]">Subtotal</span><span className="text-white font-semibold">{formatPrice(quote ? quoteSubtotal : (cart?.totalAmount ?? 0))}</span></div>
-                          <div className="flex justify-between"><span className="text-[#ffcc99]">Shipping</span><span className="text-white font-semibold">{shippingQuoteError ? '—' : shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}</span></div>
-                          {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
+                          <div className="flex justify-between">
+                            <span className="text-[#ffcc99]">Shipping</span>
+                            <span className="text-white font-semibold">
+                              {shippingQuoteError ? '—' : shippingFee === 0 ? 'Free' : rewardAppliedKobo > 0 ? (
+                                <span className="flex items-center gap-2">
+                                  <span className="line-through text-[#ffcc99]/60">{formatPrice(shippingFee)}</span>
+                                  <span className="text-green-400">{rewardAppliedKobo >= shippingFee ? 'Free' : formatPrice(shippingFee - rewardAppliedKobo)}</span>
+                                </span>
+                              ) : formatPrice(shippingFee)}
+                            </span>
+                          </div>
+                          {rewardAppliedKobo > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Delivery reward</span><span className="text-green-400 font-semibold">- {formatPrice(rewardAppliedKobo)}</span></div>}
+                          {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Coupon discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
                           <div className="border-t border-[#ff6600]/30 pt-3 flex justify-between">
                             <span className="text-white font-bold">Total</span><span className="text-[#ff6600] text-xl font-bold">{formatPrice(totalAmount)}</span>
                           </div>
@@ -1420,8 +1495,19 @@ export default function CheckoutPage() {
                         <h2 className="text-white text-xl font-bold">Total</h2>
                         <div className="space-y-3 border-t border-[#ff6600]/30 pt-4">
                           <div className="flex justify-between"><span className="text-[#ffcc99]">Subtotal</span><span className="text-white font-semibold">{formatPrice(quote ? quoteSubtotal : (cart?.totalAmount ?? 0))}</span></div>
-                          <div className="flex justify-between"><span className="text-[#ffcc99]">Shipping</span><span className="text-white font-semibold">{shippingQuoteError ? '—' : shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}</span></div>
-                          {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
+                          <div className="flex justify-between">
+                            <span className="text-[#ffcc99]">Shipping</span>
+                            <span className="text-white font-semibold">
+                              {shippingQuoteError ? '—' : shippingFee === 0 ? 'Free' : rewardAppliedKobo > 0 ? (
+                                <span className="flex items-center gap-2">
+                                  <span className="line-through text-[#ffcc99]/60">{formatPrice(shippingFee)}</span>
+                                  <span className="text-green-400">{rewardAppliedKobo >= shippingFee ? 'Free' : formatPrice(shippingFee - rewardAppliedKobo)}</span>
+                                </span>
+                              ) : formatPrice(shippingFee)}
+                            </span>
+                          </div>
+                          {rewardAppliedKobo > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Delivery reward</span><span className="text-green-400 font-semibold">- {formatPrice(rewardAppliedKobo)}</span></div>}
+                          {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Coupon discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
                           <div className="border-t border-[#ff6600]/30 pt-3 flex justify-between">
                             <span className="text-white font-bold">Total</span><span className="text-[#ff6600] text-xl font-bold">{formatPrice(totalAmount)}</span>
                           </div>

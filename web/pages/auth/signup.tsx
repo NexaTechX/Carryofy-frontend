@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import { useForm, Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Mail, Lock, User, Eye, EyeOff, Phone } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, Phone, Gift } from 'lucide-react';
 import { authService, tokenManager, useAuth } from '../../lib/auth';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
 import SEO from '../../components/seo/SEO';
@@ -18,7 +18,6 @@ const signupSchema = z
     phone: z.preprocess((val) => {
       if (typeof val !== 'string') return val;
       let cleaned = val.replace(/[\s-]/g, '');
-      // Auto-format local numbers
       if (cleaned.startsWith('0')) return '+234' + cleaned.substring(1);
       if (cleaned.startsWith('234')) return '+' + cleaned;
       if (!cleaned.startsWith('+') && cleaned.length >= 10) return '+234' + cleaned;
@@ -27,6 +26,7 @@ const signupSchema = z
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
     role: z.enum(['BUYER', 'SELLER']),
+    referralCode: z.string().max(20).optional().or(z.literal('')),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -80,14 +80,18 @@ export default function Signup() {
     if (router.query.role) {
       setValue('role', router.query.role as 'BUYER' | 'SELLER');
     }
-  }, [router.query.role, setValue]);
+    if (typeof router.query.referralCode === 'string' && router.query.referralCode.trim()) {
+      setValue('referralCode', router.query.referralCode.trim());
+    }
+  }, [router.query.role, router.query.referralCode, setValue]);
 
   const onSubmit = async (data: SignupFormData) => {
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const referralCode = typeof router.query.referralCode === 'string' ? router.query.referralCode.trim() : undefined;
+      const referralCode = data.referralCode?.trim()
+        || (typeof router.query.referralCode === 'string' ? router.query.referralCode.trim() : undefined);
       const response = await authService.signup({
         name: data.name,
         email: data.email,
@@ -353,6 +357,25 @@ export default function Signup() {
                   {errors.confirmPassword && (
                     <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
                   )}
+                </div>
+
+                {/* Referral Code Field */}
+                <div>
+                  <label htmlFor="referralCode" className="block text-sm font-medium text-gray-700 mb-2">
+                    Referral Code <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <div className="relative">
+                    <Gift className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      id="referralCode"
+                      {...register('referralCode')}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-gray-900 bg-white uppercase"
+                      placeholder="e.g. ABC12XYZ"
+                      maxLength={20}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Got a code from a friend? Enter it to earn delivery rewards after your first qualifying order.</p>
                 </div>
 
                 {/* Role Selection Field */}

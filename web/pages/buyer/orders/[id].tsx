@@ -399,7 +399,7 @@ export default function BuyerOrderDetailPage() {
     if (!order || hasRefund) return false;
     const hasReviewedAny = order.items.some((item) => reviewedProducts[item.productId]);
     if (hasReviewedAny) return false;
-    return ['PAID', 'PROCESSING', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status);
+    return order.status === 'DELIVERED';
   }, [order, hasRefund, reviewedProducts]);
 
   // Handle marking order as received → then rider rating → then product reviews

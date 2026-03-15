@@ -15,8 +15,7 @@ const REFUND_REASONS = [
   'Product not as described',
   'Product damaged or defective',
   'Wrong item received',
-  'Order not delivered',
-  'Changed my mind',
+  'Quality issue',
   'Other',
 ];
 
@@ -116,6 +115,12 @@ export default function RefundRequestModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* 30-day guarantee policy note */}
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+            <p className="text-blue-400 text-sm font-medium">30-Day Money-Back Guarantee</p>
+            <p className="text-blue-300/70 text-xs mt-1">You can request a refund within 30 days of delivery. Refunds are reviewed and processed by our team.</p>
+          </div>
+
           {/* Order Amount Info */}
           <div className="bg-[#0d0d0d] border border-[#ff6600]/20 rounded-lg p-4">
             <p className="text-[#ffcc99]/70 text-sm mb-1">Order Amount</p>

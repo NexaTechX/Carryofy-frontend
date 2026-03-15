@@ -132,7 +132,7 @@ export default function RefundsPage() {
               My Refunds
             </h1>
             <p className="text-[#ffcc99] text-lg">
-              Track the status of your refund requests
+              Track the status of your refund requests. You have 30 days after delivery to request a refund.
             </p>
           </div>
 
@@ -166,7 +166,7 @@ export default function RefundsPage() {
                   <Gift className="w-20 h-20 text-[#ffcc99]/50 mx-auto mb-4" />
                   <h2 className="text-white text-2xl font-bold mb-2">No refund requests</h2>
                   <p className="text-[#ffcc99] mb-6">
-                    You haven't requested any refunds yet.
+                    You haven't requested any refunds yet. Our 30-day money-back guarantee lets you request a refund within 30 days of delivery.
                   </p>
                   <Link
                     href="/buyer/orders"

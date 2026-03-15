@@ -59,7 +59,7 @@ export default function BuyerWalletPage() {
   return (
     <>
       <Head>
-        <title>Delivery Rewards | Carryofy</title>
+        <title>Rewards | Carryofy</title>
       </Head>
       <BuyerLayout>
         <div className="mx-auto max-w-3xl px-4 py-8">
@@ -72,7 +72,7 @@ export default function BuyerWalletPage() {
           </Link>
           <div className="flex items-center gap-2 mb-6">
             <WalletIcon className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-semibold text-white">Delivery Rewards</h1>
+            <h1 className="text-2xl font-semibold text-white">Rewards</h1>
           </div>
 
           {loading ? (

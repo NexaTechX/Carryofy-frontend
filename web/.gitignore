@@ -89,3 +89,6 @@ logs/
 *.crt
 secrets/
 *.secret
+
+# Sentry Config File
+.env.sentry-build-plugin

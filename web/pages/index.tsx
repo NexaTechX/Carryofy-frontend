@@ -1,11 +1,15 @@
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
+import AnnouncementBar from '../components/promotions/AnnouncementBar';
+import HeroBanner from '../components/promotions/HeroBanner';
+import PromoBanner from '../components/promotions/PromoBanner';
 import ProblemSection from '../components/landing/ProblemSection';
 import SolutionSection from '../components/landing/SolutionSection';
 import TrustSection from '../components/landing/TrustSection';
 import HowItWorks from '../components/landing/HowItWorks';
 import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
+import ValuePropositionsSection from '../components/landing/ValuePropositionsSection';
 import SameDayDelivery from '../components/landing/SameDayDelivery';
 import B2BSection from '../components/landing/B2BSection';
 import SmartCommerce from '../components/landing/SmartCommerce';
@@ -56,13 +60,13 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="Carryofy | Commerce Infrastructure for Africa"
-        description="Marketplace. Fulfillment. Logistics. One platform to sell, warehouse, and deliver. AI-powered commerce infrastructure for Africa."
+        title="Carryofy | Source Wholesale. Sell Retail. Scale Globally."
+        description="The all-in-one AI platform for African SMEs to buy inventory from top manufacturers and sell directly to consumers with built-in logistics. Start your business today with $0 inventory."
         keywords={fullKeywords}
         canonical="https://carryofy.com"
         ogType="website"
         ogImage="https://carryofy.com/og/home.png"
-        ogImageAlt="Carryofy - Commerce Infrastructure for Africa"
+        ogImageAlt="Carryofy - Source Wholesale. Sell Retail. Scale Globally."
       />
 
       <CombinedSchema
@@ -95,10 +99,14 @@ export default function Home() {
       />
 
       <div className="min-h-screen flex flex-col font-inter bg-[#FAFAFA]">
+        <AnnouncementBar />
         <Header />
         <main className="grow">
+          <HeroBanner />
           <HeroSection />
+          <PromoBanner />
           <TrustSection />
+          <ValuePropositionsSection />
           <ProblemSection />
           <SolutionSection />
           <WhyChooseCarryofy />

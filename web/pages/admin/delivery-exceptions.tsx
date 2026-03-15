@@ -242,7 +242,7 @@ export default function AdminDeliveryExceptions() {
                           <StatusBadge tone={ex.severity === 'HIGH' ? 'danger' : ex.severity === 'MEDIUM' ? 'warning' : 'neutral'} label={SEVERITY_LABEL[ex.severity]} />
                         </DataTableCell>
                         <DataTableCell>
-                          <StatusBadge tone={ex.status === 'RESOLVED' ? 'success' : ex.status === 'ESCALATED' ? 'warning' : 'neutral'} label={STATUS_LABEL[ex.status]} />
+                          <StatusBadge tone={ex.status === 'RESOLVED' ? 'success' : ex.status === 'ESCALATED' ? 'warning' : 'neutral'} label={STATUS_LABEL[ex.status] ?? ex.status} />
                         </DataTableCell>
                         <DataTableCell className="text-sm text-gray-500">
                           {ex.reporter?.name ?? ex.reportedBy?.slice(0, 8)} · {ex.reportedAt ? new Date(ex.reportedAt).toLocaleString() : '—'}
@@ -280,7 +280,7 @@ export default function AdminDeliveryExceptions() {
             <div>
               <span className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Status</span>
               <p className="mt-1">
-                <StatusBadge tone={detail.status === 'RESOLVED' ? 'success' : detail.status === 'ESCALATED' ? 'warning' : 'neutral'} label={STATUS_LABEL[detail.status]} />
+                <StatusBadge tone={detail.status === 'RESOLVED' ? 'success' : detail.status === 'ESCALATED' ? 'warning' : 'neutral'} label={STATUS_LABEL[detail.status] ?? detail.status} />
               </p>
             </div>
             {detail.description && (

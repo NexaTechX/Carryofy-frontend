@@ -963,7 +963,7 @@ export default function CheckoutPage() {
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-[#ffcc99] text-sm">
-                                You have <span className="text-[#ff6600] font-semibold">{formatPrice(rewardBalanceKobo)}</span> in delivery rewards
+                                You have <span className="text-[#ff6600] font-semibold">{formatPrice(rewardBalanceKobo)}</span> in Rewards
                               </p>
                               <p className="text-[#ffcc99]/70 text-xs mt-1">Apply toward your delivery fee</p>
                             </div>

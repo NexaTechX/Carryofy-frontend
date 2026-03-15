@@ -977,8 +977,8 @@ export default function AdminPayouts() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Status</p>
                   <StatusBadge
-                    tone={payoutStatusTone[selectedPayout.status]}
-                    label={payoutStatusLabel[selectedPayout.status]}
+                    tone={payoutStatusTone[selectedPayout.status] ?? 'neutral'}
+                    label={payoutStatusLabel[selectedPayout.status] ?? selectedPayout.status}
                     className="mt-2"
                   />
                 </div>

@@ -375,7 +375,7 @@ export default function Signup() {
                       maxLength={20}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">Got a code from a friend? Enter it to earn delivery rewards after your first qualifying order.</p>
+                  <p className="mt-1 text-xs text-gray-500">Got a code from a friend? Enter it to earn Rewards after your first qualifying order.</p>
                 </div>
 
                 {/* Role Selection Field */}

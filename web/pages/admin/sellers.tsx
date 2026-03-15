@@ -787,8 +787,8 @@ export default function AdminSellers() {
                         </DataTableCell>
                         <DataTableCell>
                           <StatusBadge
-                            tone={statusTone[kycDisplayStatus]}
-                            label={statusLabel[kycDisplayStatus]}
+                            tone={statusTone[kycDisplayStatus] ?? 'neutral'}
+                            label={statusLabel[kycDisplayStatus] ?? kycDisplayStatus}
                           />
                         </DataTableCell>
                         <DataTableCell className="font-mono text-gray-300">
@@ -973,8 +973,8 @@ export default function AdminSellers() {
                 <p className="text-white font-medium">{selectedSeller.businessName}</p>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <StatusBadge
-                    tone={statusTone[selectedSeller.kycExpiresAt && new Date(selectedSeller.kycExpiresAt) < new Date() ? 'EXPIRED' : selectedSeller.kycStatus]}
-                    label={statusLabel[selectedSeller.kycExpiresAt && new Date(selectedSeller.kycExpiresAt) < new Date() ? 'EXPIRED' : selectedSeller.kycStatus]}
+                    tone={statusTone[selectedSeller.kycExpiresAt && new Date(selectedSeller.kycExpiresAt) < new Date() ? 'EXPIRED' : selectedSeller.kycStatus] ?? 'neutral'}
+                    label={statusLabel[selectedSeller.kycExpiresAt && new Date(selectedSeller.kycExpiresAt) < new Date() ? 'EXPIRED' : selectedSeller.kycStatus] ?? selectedSeller.kycStatus ?? '—'}
                   />
                   <span className="rounded px-2 py-0.5 text-xs bg-gray-500/20 text-gray-300">
                     {businessTypeBadge(selectedSeller.kyc?.businessType)}

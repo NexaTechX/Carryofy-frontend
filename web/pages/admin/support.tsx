@@ -300,8 +300,8 @@ export default function AdminSupport() {
                         <div className="mt-2 flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-white line-clamp-1">{ticket.subject}</p>
                           <StatusBadge
-                            tone={SUPPORT_STATUS_TONE[ticket.status]}
-                            label={SUPPORT_STATUS_LABEL[ticket.status]}
+                            tone={SUPPORT_STATUS_TONE[ticket.status] ?? 'neutral'}
+                            label={SUPPORT_STATUS_LABEL[ticket.status] ?? ticket.status}
                           />
                         </div>
                         <p className="mt-2 line-clamp-2 text-xs text-gray-400">{ticket.message}</p>
@@ -336,8 +336,8 @@ export default function AdminSupport() {
                   </div>
 
                   <div className="flex flex-wrap gap-3">
-                    <StatusBadge tone={SUPPORT_STATUS_TONE[selectedTicket.status]} label={SUPPORT_STATUS_LABEL[selectedTicket.status]} />
-                    <StatusBadge tone={PRIORITY_TONE[selectedTicket.priority]} label={`${selectedTicket.priority} priority`} />
+                    <StatusBadge tone={SUPPORT_STATUS_TONE[selectedTicket.status] ?? 'neutral'} label={SUPPORT_STATUS_LABEL[selectedTicket.status] ?? selectedTicket.status} />
+                    <StatusBadge tone={PRIORITY_TONE[selectedTicket.priority] ?? 'neutral'} label={`${selectedTicket.priority} priority`} />
                     <StatusBadge tone="neutral" label={selectedTicket.category.toUpperCase()} />
                   </div>
 

@@ -65,7 +65,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
     { name: 'Track Shipment', href: '/buyer/track', icon: Truck },
     { name: 'Disputes', href: '/buyer/disputes', icon: Scale },
     { name: 'Referrals', href: '/buyer/referrals', icon: Gift },
-    { name: 'Delivery Rewards', href: '/buyer/wallet', icon: WalletIcon },
+    { name: 'Rewards', href: '/buyer/wallet', icon: WalletIcon },
     { name: 'Profile', href: '/buyer/profile', icon: User },
     { name: 'Help', href: '/buyer/help', icon: HelpCircle },
   ];

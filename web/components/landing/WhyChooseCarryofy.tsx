@@ -1,26 +1,21 @@
 import { motion } from 'framer-motion';
-import { Shield, Truck, Headphones, Sparkles } from 'lucide-react';
+import { Truck, ShieldCheck, TrendingUp } from 'lucide-react';
 
 const features = [
   {
-    icon: Shield,
-    title: 'Verified sellers only',
-    description: 'Every seller is vetted. No fake listings, no ghost vendors.',
-  },
-  {
     icon: Truck,
-    title: 'Fulfillment + delivery',
-    description: 'We store, pack, and deliver. You sell. We ship.',
+    title: 'Logistics Built-in',
+    description: 'No more arguing with bike riders. We pick up, verify, and deliver — so you can focus on selling.',
   },
   {
-    icon: Headphones,
-    title: 'Buyer protection & support',
-    description: 'Secure payments, money-back guarantee, local support.',
+    icon: ShieldCheck,
+    title: 'Escrow Payments',
+    description: 'Build trust with buyers — their money is safe until delivery. You get paid when the order is complete.',
   },
   {
-    icon: Sparkles,
-    title: 'AI-powered commerce',
-    description: 'Smart pricing, demand forecasting, fraud detection.',
+    icon: TrendingUp,
+    title: 'AI-Powered Insights',
+    description: 'We tell you what is trending so you know what to source. Smarter decisions, less guesswork.',
   },
 ];
 
@@ -35,10 +30,10 @@ export default function WhyChooseCarryofy() {
             viewport={{ once: true }}
             className="font-inter text-3xl sm:text-4xl lg:text-5xl font-bold text-[#111111] mb-12 text-center"
           >
-            Why sellers and buyers choose Carryofy
+            Why Carryofy?
           </motion.h2>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {features.map((feature, index) => (
               <motion.div
                 key={index}

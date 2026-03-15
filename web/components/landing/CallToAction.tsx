@@ -12,8 +12,16 @@ export default function CallToAction() {
             viewport={{ once: true }}
             className="font-inter text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-8"
           >
-            Ready to sell, scale, and deliver?
+            Ready to source, sell, and scale?
           </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-lg text-white/90 mb-10"
+          >
+            Join African SMEs who are growing with $0 inventory and built-in logistics.
+          </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -21,16 +29,16 @@ export default function CallToAction() {
             className="flex flex-col sm:flex-row justify-center gap-4"
           >
             <Link
-              href="/auth/signup"
-              className="px-8 py-4 bg-white text-[#111111] rounded-xl font-bold hover:bg-gray-100 transition-colors"
+              href="/auth/signup?role=SELLER"
+              className="px-8 py-4 bg-white text-[#111111] rounded-xl font-bold hover:bg-gray-100 transition-colors shadow-lg"
             >
-              Start Shopping
+              Start Selling Now
             </Link>
             <Link
-              href="/auth/signup?role=SELLER"
-              className="px-8 py-4 border-2 border-[#111111] text-white rounded-xl font-bold hover:bg-[#111111] transition-colors"
+              href="/merchant-onboarding"
+              className="px-8 py-4 border-2 border-white text-white rounded-xl font-bold hover:bg-white hover:text-[#FF6B00] transition-colors"
             >
-              Sell on Carryofy
+              Onboard your Wholesale Business
             </Link>
           </motion.div>
         </div>

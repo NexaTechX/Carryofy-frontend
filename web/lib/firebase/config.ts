@@ -60,6 +60,15 @@ if (typeof window !== 'undefined') {
 
 // Analytics instance - will be initialized in useEffect
 let analytics: Analytics | null = null;
+let storageWarningShown = false;
+
+const isIndexedDbQuotaError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return (
+    message.includes('QuotaExceededError') ||
+    message.includes('app/idb-set')
+  );
+};
 
 /**
  * Initialize Firebase Analytics
@@ -81,7 +90,14 @@ export const initAnalytics = async (): Promise<Analytics | null> => {
       return analytics;
     }
   } catch (error) {
-    console.error('Firebase Analytics initialization error:', error);
+    if (isIndexedDbQuotaError(error)) {
+      if (!storageWarningShown) {
+        storageWarningShown = true;
+        console.warn('Firebase Analytics disabled due to browser storage limit.');
+      }
+    } else {
+      console.error('Firebase Analytics initialization error:', error);
+    }
   }
 
   return null;

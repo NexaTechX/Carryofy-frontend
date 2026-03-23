@@ -67,7 +67,11 @@ export default function Login() {
       tokenManager.setTokens(response.accessToken, response.refreshToken);
       setUser(response.user);
       if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(response.user));
+        try {
+          localStorage.setItem('user', JSON.stringify(response.user));
+        } catch (storageError) {
+          console.warn('Storage unavailable: could not persist user profile.', storageError);
+        }
       }
 
       showSuccessToast('Login successful!');

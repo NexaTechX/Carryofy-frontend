@@ -16,7 +16,7 @@ export default function ValuePropositionsSection() {
               Who is it for?
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              The B2B marketplace for Lagos retailers. Source from verified vendors — we handle delivery.
+              The B2B marketplace for Lagos retailers. Source from verified vendors, we handle delivery.
             </p>
           </motion.div>
 
@@ -36,7 +36,7 @@ export default function ValuePropositionsSection() {
                   Retailers
                 </h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Stop making market trips. Browse verified vendors, place orders, receive stock at your store.
+                  Stop making market trips. Browse verified vendors, place orders, and receive stock at your store.
                 </p>
               </div>
             </motion.div>
@@ -57,7 +57,7 @@ export default function ValuePropositionsSection() {
                   Vendors
                 </h3>
                 <p className="text-gray-600 leading-relaxed">
-                  List your products, reach retailers across Lagos. We handle logistics.
+                  List your products, reach retailers across Lagos, and we handle logistics.
                 </p>
               </div>
             </motion.div>

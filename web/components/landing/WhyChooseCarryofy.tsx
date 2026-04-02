@@ -5,12 +5,12 @@ const features = [
   {
     icon: ShieldCheck,
     title: 'Verified vendors',
-    description: 'Buy from suppliers we vet — so you spend less time guessing and more time selling.',
+    description: 'Buy from suppliers we vet, so you spend less time guessing and more time selling.',
   },
   {
     icon: Truck,
     title: 'Delivery included',
-    description: 'We coordinate delivery to your store with our logistics partners — you are not chasing riders alone.',
+    description: 'We coordinate delivery to your store with our logistics partners, you are not chasing riders alone.',
   },
   {
     icon: Sparkles,

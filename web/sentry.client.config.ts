@@ -3,6 +3,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { shouldDropFirebaseIndexedDbEvent } from "./lib/sentryFirebaseIdbFilter";
 
 // Only initialize Sentry if DSN is provided
 if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
@@ -32,6 +33,12 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
 
     // Filter out health check and other non-essential errors
     ignoreErrors: [
+      /^Failed to execute 'transaction' on 'IDBDatabase'/,
+      /The database connection is closing/i,
+      /The transaction was aborted/i,
+      /Connection is closing/i,
+      /^AbortError:\s*AbortError$/i,
+      /UnknownError:\s*Connection is closing/i,
       // Browser extensions
       "top.GLOBALS",
       "originalCreateNotification",
@@ -70,6 +77,13 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
             // Browser extensions
             /^moz-extension:\/\//i,
           ],
+
+    beforeSend(event, hint) {
+      if (shouldDropFirebaseIndexedDbEvent(event, hint)) {
+        return null;
+      }
+      return event;
+    },
   });
 
   if (process.env.NODE_ENV === "development") {

@@ -27,13 +27,21 @@ export default function App({ Component, pageProps }: AppProps) {
       })
   );
 
-  // Initialize Firebase Analytics on mount (client-side only)
+  // Initialize Firebase Analytics after first paint to reduce IndexedDB races with HMR/navigation.
   useEffect(() => {
-    initAnalytics().then((analyticsInstance) => {
-      if (analyticsInstance) {
-        console.log('✅ Firebase Analytics initialized');
-      }
-    });
+    const run = () => {
+      initAnalytics().then((analyticsInstance) => {
+        if (analyticsInstance) {
+          console.log('✅ Firebase Analytics initialized');
+        }
+      });
+    };
+    if (typeof requestIdleCallback !== 'undefined') {
+      const id = requestIdleCallback(run, { timeout: 4000 });
+      return () => cancelIdleCallback(id);
+    }
+    const t = window.setTimeout(run, 0);
+    return () => window.clearTimeout(t);
   }, []);
 
   return (

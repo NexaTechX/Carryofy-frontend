@@ -1,11 +1,6 @@
 import { motion } from 'framer-motion';
 
-const stats = [
-  '3 Corridors: Yaba · Surulere · Lekki/Ajah',
-  '4 Categories',
-  'Verified Vendors Only',
-  'Delivery Handled',
-];
+const stats = ['Verified Vendors Only', 'Delivery Handled'];
 
 export default function StatsBar() {
   return (

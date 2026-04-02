@@ -11,7 +11,7 @@ export default function MerchantOnboarding() {
             icon: TrendingUp,
             title: 'Reach Lagos retailers',
             description:
-                'List where retailers already source — fashion, beauty, electronics, and grocery — with delivery coordinated through Carryofy.',
+                'List where retailers already source fashion, beauty, electronics, and grocery with delivery coordinated through Carryofy.',
         },
         {
             icon: LayoutDashboard,
@@ -155,7 +155,6 @@ export default function MerchantOnboarding() {
 
                                 <div className="mt-16 flex flex-wrap justify-center gap-x-12 gap-y-6">
                                     {[
-                                        { label: 'Corridors', value: 'Yaba · Surulere · Lekki/Ajah' },
                                         { label: 'Listing fee', value: '₦0' },
                                         { label: 'Categories', value: '4' },
                                         { label: 'Vendors', value: 'Verified' },

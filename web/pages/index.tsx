@@ -6,7 +6,6 @@ import ProblemSection from '../components/landing/ProblemSection';
 import HowItWorks from '../components/landing/HowItWorks';
 import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
 import ValuePropositionsSection from '../components/landing/ValuePropositionsSection';
-import CategoriesSection from '../components/landing/CategoriesSection';
 import HomepageOnboardingNote from '../components/landing/HomepageOnboardingNote';
 import CallToAction from '../components/landing/CallToAction';
 import SEO, { generateKeywords } from '../components/seo/SEO';
@@ -76,7 +75,6 @@ export default function Home() {
           <ValuePropositionsSection />
           <ProblemSection />
           <HowItWorks />
-          <CategoriesSection />
           <WhyChooseCarryofy />
           <HomepageOnboardingNote />
           <CallToAction />

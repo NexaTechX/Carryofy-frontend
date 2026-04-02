@@ -66,7 +66,7 @@ export default function About() {
                     Our Vision
                   </h2>
                   <p className="text-base sm:text-lg text-gray-600 leading-relaxed text-center">
-                    A future where any retailer in Africa can source inventory from verified vendors in clicks — with delivery handled end-to-end.
+                    A future where any retailer in Africa can source inventory from verified vendors in clicks with delivery handled end-to-end.
                   </p>
                 </div>
               </div>
@@ -80,7 +80,7 @@ export default function About() {
                   Our Story
                 </h2>
                 <p className="text-base sm:text-lg text-gray-600 leading-relaxed text-center">
-                  Carryofy started with a simple observation: Lagos retailers spend hours making market trips just to restock basic inventory. The market is fragmented, suppliers are unverified, and there&apos;s no reliable delivery. We&apos;re building the infrastructure to fix that — starting with Lagos.
+                  Carryofy started with a simple observation: Lagos retailers spend hours making market trips just to restock basic inventory. The market is fragmented, suppliers are unverified, and there&apos;s no reliable delivery. We&apos;re building the infrastructure to fix that starting with Lagos.
                 </p>
               </div>
             </div>

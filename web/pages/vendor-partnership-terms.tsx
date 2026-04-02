@@ -25,12 +25,12 @@ export default function VendorPartnershipTerms() {
                 <Header />
                 <main className="flex-grow">
                     {/* Hero Section */}
-                    <section className="bg-gradient-to-r from-primary/10 to-primary/5 py-12 sm:py-16 md:py-20">
+                    <section className="bg-gradient-to-br from-[#111111] via-[#1a1a1a] to-[#111111] py-12 sm:py-16 md:py-20">
                         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-gray-900">
+                            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-white drop-shadow-sm">
                                 Vendor Partnership Terms
                             </h1>
-                            <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto">
+                            <p className="text-base sm:text-lg text-gray-300 max-w-3xl mx-auto">
                                 Carryofy Vendor Partnership Agreement (Summary)
                             </p>
                         </div>
@@ -102,9 +102,11 @@ export default function VendorPartnershipTerms() {
 
                                 {/* Signature */}
                                 <div className="bg-primary/5 border-l-4 border-primary p-6 rounded-r-lg mt-8">
+                                    <p className="font-serif italic text-2xl sm:text-3xl text-gray-800 tracking-wide mb-6 border-b border-gray-300/80 pb-4 inline-block min-w-[200px]">
+                                        Shinaayomi
+                                    </p>
                                     <p className="text-base text-gray-700 font-medium">
-                                        Shinaayomi<br />
-                                        <span className="text-gray-600 font-normal">Founder, Carryofy</span>
+                                        Founder, Carryofy
                                     </p>
                                 </div>
 

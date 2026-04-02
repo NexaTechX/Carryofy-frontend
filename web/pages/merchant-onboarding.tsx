@@ -9,18 +9,21 @@ export default function MerchantOnboarding() {
     const benefits = [
         {
             icon: TrendingUp,
-            title: 'Boost Your Sales',
-            description: 'Same-day delivery in Lagos transforms casual browsers into loyal customers. Sellers on Carryofy see an average 40% increase in conversion rates.',
+            title: 'Reach Lagos retailers',
+            description:
+                'List where retailers already source — fashion, beauty, electronics, and grocery — with delivery coordinated through Carryofy.',
         },
         {
             icon: LayoutDashboard,
-            title: 'AI-Powered Growth',
-            description: 'Leverage our proprietary AI tools to optimize your pricing, predict upcoming demand, and identify trending products in your niche.',
+            title: 'AI-powered tools',
+            description: 'Smarter pricing and demand signals as we roll out new seller tools on the platform.',
+            comingSoon: true,
         },
         {
             icon: Package,
-            title: 'Hassle-Free Fulfillment',
-            description: 'We handle the "dirty work." From secure storage to professional packaging and nationwide shipping, your logistics are solved.',
+            title: 'Logistics support',
+            description:
+                'We coordinate pickup and last-mile delivery with our partners in Lagos corridors — you keep inventory ready for dispatch.',
         },
         {
             icon: CreditCard,
@@ -32,8 +35,9 @@ export default function MerchantOnboarding() {
     const deepBenefits = [
         {
             icon: Truck,
-            title: 'Nationwide Reach',
-            description: 'Reach customers in all 36 states and the FCT. We manage the last-mile delivery, handling the complex Nigerian logistics landscape for you.',
+            title: 'Lagos-first reach',
+            description:
+                'Lagos (Yaba, Surulere, Lekki/Ajah) — expanding corridor by corridor.',
         },
         {
             icon: Shield,
@@ -62,13 +66,15 @@ export default function MerchantOnboarding() {
         },
         {
             number: '02',
-            title: 'Stock Your Inventory',
-            description: 'List your products on the dashboard and send your inventory to our central Lagos fulfillment center. We handle the intake and quality checks.',
+            title: 'List & prepare orders',
+            description:
+                'Add products and pricing on your dashboard. Keep stock ready — when an order comes in, you prepare for pickup per Carryofy dispatch.',
         },
         {
             number: '03',
-            title: 'Sit Back & Sell',
-            description: 'Your products go live. When an order is placed, we pick, pack, and deliver it within hours. You receive automated notifications for every step.',
+            title: 'We coordinate delivery',
+            description:
+                'Orders route through Carryofy; we work with logistics partners for pickup and delivery to the retailer. You get notifications at each step.',
         },
         {
             number: '04',
@@ -88,8 +94,8 @@ export default function MerchantOnboarding() {
     return (
         <>
             <SEO
-                title="Sell on Carryofy - Grow Your Business with Premium Fulfillment"
-                description="Join Nigeria's most trusted marketplace. We handle logistics, storage, and customer service while you focus on growth. Sign up to sell on Carryofy today."
+                title="Sell on Carryofy — Verified Vendors for Lagos Retailers"
+                description="List products for Lagos retailers in Yaba, Surulere, and Lekki/Ajah. Carryofy coordinates delivery — zero listing fee. Apply to sell on Carryofy."
                 keywords={merchantKeywords}
                 canonical="https://carryofy.com/merchant-onboarding"
                 ogType="website"
@@ -114,14 +120,14 @@ export default function MerchantOnboarding() {
                             <div className="max-w-4xl mx-auto text-center">
                                 <span className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-bold mb-8 animate-fade-in">
                                     <Globe className="w-4 h-4" />
-                                    JOIN NIGERIA'S FASTEST GROWING MARKETPLACE
+                                    B2B MARKETPLACE FOR LAGOS RETAILERS
                                 </span>
                                 <h1 className="text-4xl md:text-6xl font-extrabold text-[#111111] leading-tight mb-8">
                                     You source the products.<br />
                                     <span className="text-primary italic">We handle the rest.</span>
                                 </h1>
                                 <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-                                    Carryofy is not just a marketplace. We are your logistics, fulfillment, and marketing partner, helping scale your business across Nigeria.
+                                    List for Lagos retailers, coordinate delivery with Carryofy, and grow without building logistics from scratch.
                                 </p>
 
                                 <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -149,10 +155,10 @@ export default function MerchantOnboarding() {
 
                                 <div className="mt-16 flex flex-wrap justify-center gap-x-12 gap-y-6">
                                     {[
-                                        { label: 'Verified Partners', value: '500+' },
-                                        { label: 'Next-Day Payouts', value: '24hrs' },
-                                        { label: 'Lagos Delivery', value: 'Same-Day' },
-                                        { label: 'Registration Fee', value: '₦0.00' },
+                                        { label: 'Corridors', value: 'Yaba · Surulere · Lekki/Ajah' },
+                                        { label: 'Listing fee', value: '₦0' },
+                                        { label: 'Categories', value: '4' },
+                                        { label: 'Vendors', value: 'Verified' },
                                     ].map((stat, i) => (
                                         <div key={i} className="text-center">
                                             <p className="text-2xl font-extrabold text-[#111111]">{stat.value}</p>
@@ -169,16 +175,23 @@ export default function MerchantOnboarding() {
                         <div className="container mx-auto px-4">
                             <div className="text-center mb-16">
                                 <h2 className="text-3xl md:text-4xl font-bold text-[#111111] mb-4">Everything you need to scale</h2>
-                                <p className="text-gray-600 max-w-2xl mx-auto">From AI-driven insights to nationwide logistics, we\'ve built the infrastructure so you don\'t have to.</p>
+                                <p className="text-gray-600 max-w-2xl mx-auto">
+                                    Verified listing, coordinated delivery in Lagos corridors, and payouts designed for sellers — without fluff.
+                                </p>
                             </div>
 
                             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
                                 {benefits.map((benefit, index) => (
-                                    <article key={index} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all group">
+                                    <article key={index} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all group relative">
+                                        {'comingSoon' in benefit && benefit.comingSoon ? (
+                                            <span className="absolute top-6 right-6 text-[10px] sm:text-xs font-bold uppercase tracking-wide text-primary bg-primary/10 px-2 py-1 rounded-full">
+                                                Coming Soon
+                                            </span>
+                                        ) : null}
                                         <div className="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary/10 transition-colors">
                                             <benefit.icon className="w-7 h-7 text-primary" />
                                         </div>
-                                        <h3 className="text-xl font-bold text-[#111111] mb-3">{benefit.title}</h3>
+                                        <h3 className="text-xl font-bold text-[#111111] mb-3 pr-16">{benefit.title}</h3>
                                         <p className="text-gray-600 leading-relaxed text-sm">{benefit.description}</p>
                                     </article>
                                 ))}
@@ -234,8 +247,6 @@ export default function MerchantOnboarding() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="absolute -bottom-8 -right-8 w-48 h-48 bg-[#FF6B00] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob" />
-                                    <div className="absolute -top-8 -left-8 w-48 h-48 bg-primary rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000" />
                                 </div>
                             </div>
                         </div>
@@ -275,7 +286,7 @@ export default function MerchantOnboarding() {
                                         <div className="space-y-6">
                                             {[
                                                 { q: 'How much are the commissions?', a: 'We operate on a transparent commission model. You only pay when you sell. Standard commission is 5-15% depending on product category.' },
-                                                { q: 'How do I get my products to you?', a: 'You can drop off inventory at our hub, or we can arrange a bulk pickup from your warehouse for a small fee.' },
+                                                { q: 'How does pickup work?', a: 'When an order is placed, you prepare the stock for pickup. Carryofy coordinates dispatch with our logistics partners — details are confirmed in your seller flow.' },
                                                 { q: 'When do I get paid?', a: 'Funds are settled in your Carryofy wallet immediately after delivery. You can withdraw to any Nigerian bank account, with processing taking 24-48 hours.' },
                                                 { q: 'Is there a signup fee?', a: 'Zero. Registering and listing your products on Carryofy is completely free. We only succeed when you succeed.' }
                                             ].map((faq, i) => (
@@ -291,45 +302,12 @@ export default function MerchantOnboarding() {
                         </div>
                     </section>
 
-                    {/* Testimonials */}
-                    <section className="py-24 bg-white">
-                        <div className="container mx-auto px-4">
-                            <h2 className="text-3xl font-bold text-center mb-16 text-[#111111]">Success Stories</h2>
-                            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                                {[
-                                    {
-                                        quote: "Before Carryofy, I spent 4 hours a day just talking to delivery riders. Now, I just drop off stock and watch the orders come in. It's a game changer.",
-                                        name: 'Adebayo Olusesan',
-                                        role: 'CEO, TrendyHub Fashion',
-                                        image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Adebayo'
-                                    },
-                                    {
-                                        quote: "The same-day delivery feature is what sold me. My customers in Lagos are happy because they get their electronics within hours, not days.",
-                                        name: 'Chioma Nwosu',
-                                        role: 'Founder, ZeeGadgets',
-                                        image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Chioma'
-                                    },
-                                    {
-                                        quote: "Transparent payouts and the AI pricing support helped me increase my monthly revenue by 35% in just three months of joining the platform.",
-                                        name: 'Ibrahim Musa',
-                                        role: 'Owner, Musa Home Goods',
-                                        image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ibrahim'
-                                    },
-                                ].map((testimonial, index) => (
-                                    <blockquote key={index} className="bg-[#FAFAFA] p-10 rounded-[2rem] border border-gray-100 flex flex-col h-full hover:shadow-lg transition-shadow">
-                                        <p className="text-gray-700 mb-8 italic flex-grow">"{testimonial.quote}"</p>
-                                        <footer className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
-                                                <img src={testimonial.image} alt={testimonial.name} className="w-full h-full object-cover" />
-                                            </div>
-                                            <div>
-                                                <cite className="font-bold text-[#111111] not-italic block">{testimonial.name}</cite>
-                                                <p className="text-xs text-gray-500 font-medium">{testimonial.role}</p>
-                                            </div>
-                                        </footer>
-                                    </blockquote>
-                                ))}
-                            </div>
+                    {/* Social proof */}
+                    <section className="py-24 bg-white border-t border-gray-100">
+                        <div className="container mx-auto px-4 max-w-3xl text-center">
+                            <p className="text-lg sm:text-xl text-gray-700 leading-relaxed">
+                                Be among the first verified vendors on Carryofy. Zero listing fee. We only win when you sell.
+                            </p>
                         </div>
                     </section>
 
@@ -338,7 +316,7 @@ export default function MerchantOnboarding() {
                         <div className="max-w-3xl mx-auto">
                             <h2 className="text-3xl md:text-5xl font-extrabold mb-8 leading-tight">Ready to build your<br />online empire?</h2>
                             <p className="text-xl text-white/80 mb-12">
-                                Join the hundreds of Nigerian businesses scaling with Carryofy today. Registration takes less than 2 minutes.
+                                Apply in minutes. We review vendors to keep the marketplace trusted for retailers.
                             </p>
                             <Link
                                 href="/auth/signup?role=SELLER"

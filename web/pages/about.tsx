@@ -2,54 +2,31 @@ import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import SEO from '../components/seo/SEO';
 import { CombinedSchema } from '../components/seo/JsonLd';
+import Link from 'next/link';
 
 export default function About() {
   const aboutKeywords = [
-    // Brand keywords
     'Carryofy about',
     'Carryofy company',
     'Carryofy Nigeria',
     'Carryofy Lagos',
-    'Carryofy team',
+    'B2B marketplace Lagos',
     'who is Carryofy',
     'Carryofy founder',
-    'Carryofy history',
-    
-    // Industry keywords
-    'ecommerce company Nigeria',
-    'logistics company Lagos',
-    'African ecommerce startup',
-    'Nigerian tech startup',
-    'commerce platform Africa',
-    'delivery company Nigeria',
-    'fulfillment company Lagos',
-    
-    // Trust keywords
-    'trusted ecommerce Nigeria',
-    'reliable delivery company Lagos',
-    'reliable logistics Nigeria',
-    'top ecommerce Africa',
-    
-    // Location keywords
-    'ecommerce Lagos Nigeria',
-    'tech company Nigeria',
-    'startup Lagos',
-    'African commerce company',
-    'West African ecommerce',
   ].join(', ');
 
   return (
     <>
       <SEO
-        title="About Carryofy - Same-Day Delivery Platform for Lagos | Our Mission & Vision"
-        description="Learn about Carryofy, Lagos' trusted same-day delivery platform. We connect buyers with verified local sellers and handle reliable delivery in Lagos, Nigeria."
+        title="About Carryofy — B2B Sourcing for Lagos Retailers"
+        description="Carryofy connects Lagos retailers with verified vendors. We coordinate delivery across Yaba, Surulere, and Lekki/Ajah. Learn our mission and story."
         keywords={aboutKeywords}
         canonical="https://carryofy.com/about"
         ogType="website"
         ogImage="https://carryofy.com/og/about.png"
-        ogImageAlt="About Carryofy - Same-Day Delivery Platform for Lagos"
+        ogImageAlt="About Carryofy"
       />
-      
+
       <CombinedSchema
         includeOrganization
         breadcrumbs={[
@@ -57,23 +34,21 @@ export default function About() {
           { name: 'About Us', url: '/about' },
         ]}
       />
-      
+
       <div className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-grow">
-          {/* Hero Section */}
-          <section className="bg-gradient-to-r from-primary/10 to-primary/5 py-12 sm:py-16 md:py-20">
+          <section className="bg-gradient-to-br from-[#111111] via-[#1a1a1a] to-[#111111] py-12 sm:py-16 md:py-20">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-gray-900">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-white drop-shadow-sm">
                 About Carryofy
               </h1>
-              <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-                Enabling same-day delivery for trusted local sellers in Lagos
+              <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
+                The B2B marketplace for Lagos retailers — source from verified vendors, delivery coordinated for your store.
               </p>
             </div>
           </section>
 
-          {/* Mission & Vision Section */}
           <section className="py-12 sm:py-16 bg-white">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
               <div className="max-w-4xl mx-auto space-y-12">
@@ -82,7 +57,7 @@ export default function About() {
                     Our Mission
                   </h2>
                   <p className="text-base sm:text-lg text-gray-600 leading-relaxed text-center">
-                    Carryofy helps urban customers in Lagos get same-day delivery from trusted local sellers. We connect buyers with verified sellers and handle reliable delivery with real-time tracking.
+                    To eliminate unnecessary market trips for Lagos retailers by building Africa&apos;s most reliable B2B sourcing and delivery network.
                   </p>
                 </div>
 
@@ -91,14 +66,13 @@ export default function About() {
                     Our Vision
                   </h2>
                   <p className="text-base sm:text-lg text-gray-600 leading-relaxed text-center">
-                    To become Lagos' most trusted same-day delivery platform. We envision a future where buying from local sellers is as reliable and easy as ordering from any major retailer.
+                    A future where any retailer in Africa can source inventory from verified vendors in clicks — with delivery handled end-to-end.
                   </p>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Story Section */}
           <section className="py-12 sm:py-16 bg-gray-50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
               <div className="max-w-4xl mx-auto">
@@ -106,25 +80,31 @@ export default function About() {
                   Our Story
                 </h2>
                 <p className="text-base sm:text-lg text-gray-600 leading-relaxed text-center">
-                  Born in Lagos, Carryofy began with a simple idea: help urban customers get same-day delivery from trusted local sellers with transparent tracking. We saw the challenges buyers face with unreliable social media vendors and delayed deliveries. Today, we're building reliable same-day delivery in Lagos, connecting buyers with verified sellers.
+                  Carryofy started with a simple observation: Lagos retailers spend hours making market trips just to restock basic inventory. The market is fragmented, suppliers are unverified, and there&apos;s no reliable delivery. We&apos;re building the infrastructure to fix that — starting with Lagos.
                 </p>
               </div>
             </div>
           </section>
 
-          {/* Values Section */}
           <section className="py-12 sm:py-16 bg-white">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8 sm:mb-12 text-gray-900">
                 Our Values
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
                 {[
-                  { title: 'Reliability', desc: 'We deliver on our promises. Order today, receive today. Or your money back.' },
-                  { title: 'Simplicity', desc: 'Buying from local sellers should be simple. No hassle, just order and receive with tracking.' },
-                  { title: 'Trust', desc: 'We verify every seller so you can shop with confidence.' },
-                  { title: 'Customer-first', desc: 'Your success is our top priority. We grow when you grow.' },
-                  { title: 'Transparency', desc: 'We believe in open and honest communication with all stakeholders.' },
+                  {
+                    title: 'Reliability',
+                    desc: 'We say what we do and follow through — for retailers, vendors, and partners.',
+                  },
+                  {
+                    title: 'Transparency',
+                    desc: 'Clear expectations on sourcing, delivery, and how Carryofy works with you.',
+                  },
+                  {
+                    title: 'Merchant-First',
+                    desc: 'Product decisions start with what helps retailers and vendors succeed.',
+                  },
                 ].map((value, index) => (
                   <article key={index} className="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                     <h3 className="text-xl font-bold mb-3 text-gray-900">{value.title}</h3>
@@ -135,47 +115,37 @@ export default function About() {
             </div>
           </section>
 
-          {/* Stats Section */}
           <section className="py-12 sm:py-16 bg-gray-900 text-white">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto text-center">
-                {[
-                  { value: '12,450+', label: 'Deliveries Completed' },
-                  { value: '99.8%', label: 'Satisfaction Rate' },
-                  { value: '1,000+', label: 'Active Merchants' },
-                  { value: 'Lagos', label: 'Coverage Area' },
-                ].map((stat, index) => (
-                  <div key={index}>
-                    <p className="text-3xl md:text-4xl font-bold text-primary mb-2">{stat.value}</p>
-                    <p className="text-gray-400 text-sm md:text-base">{stat.label}</p>
-                  </div>
-                ))}
+              <div className="max-w-3xl mx-auto text-center">
+                <p className="text-lg md:text-xl text-gray-300 leading-relaxed">
+                  Currently live across Yaba, Surulere, and Lekki/Ajah. Onboarding retailers and vendors now.
+                </p>
               </div>
             </div>
           </section>
 
-          {/* CTA Section */}
           <section className="py-12 sm:py-16 bg-gray-50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 text-gray-900">
-                Join Us Today
+                Join Us
               </h2>
               <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto">
-                Shop from trusted local sellers in Lagos and get same-day delivery with real-time tracking. Order today, receive today.
+                Start sourcing for your store or list as a verified vendor on Carryofy.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <a
+                <Link
                   href="/auth/signup"
                   className="px-8 sm:px-10 py-3 sm:py-4 bg-primary text-white rounded-lg hover:bg-primary-dark transition font-semibold text-base sm:text-lg inline-block shadow-lg hover:shadow-xl"
                 >
-                  Get Started Free
-                </a>
-                <a
+                  Start Sourcing
+                </Link>
+                <Link
                   href="/merchant-onboarding"
                   className="px-8 sm:px-10 py-3 sm:py-4 bg-white text-primary border-2 border-primary rounded-lg hover:bg-primary hover:text-white transition font-semibold text-base sm:text-lg inline-block"
                 >
-                  Become a Merchant
-                </a>
+                  Sell on Carryofy
+                </Link>
               </div>
             </div>
           </section>

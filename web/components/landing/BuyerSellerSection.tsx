@@ -55,7 +55,7 @@ export default function SellerCTASection() {
             Start selling
           </Link>
           <p className="mt-4 text-gray-400 text-sm">
-            Early access — limited seller spots
+            Early access: limited seller spots
           </p>
         </div>
       </div>

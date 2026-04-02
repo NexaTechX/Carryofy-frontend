@@ -1,7 +1,7 @@
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { useState } from 'react';
-import { Mail, MapPin, Send } from 'lucide-react';
+import { Mail, MapPin, MessageCircle, Send } from 'lucide-react';
 import SEO from '../components/seo/SEO';
 import { CombinedSchema } from '../components/seo/JsonLd';
 
@@ -79,7 +79,8 @@ export default function Contact() {
     },
     {
       question: 'How long does delivery take?',
-      answer: 'Delivery times vary by location, but typically range from same-day delivery in Lagos to 2-5 business days within major cities and 5-10 business days for other areas. You can track your order in real-time through our platform.',
+      answer:
+        'Carryofy currently serves Lagos corridors (Yaba, Surulere, Lekki/Ajah). Delivery timing depends on your area, vendor readiness, and dispatch — you will see status updates in your order flow as we expand corridor by corridor.',
     },
     {
       question: 'What payment methods do you accept?',
@@ -124,12 +125,12 @@ export default function Contact() {
         <Header />
         <main className="flex-grow">
           {/* Hero Section */}
-          <section className="bg-gradient-to-r from-primary/10 to-primary/5 py-12 sm:py-16 md:py-20">
+          <section className="bg-gradient-to-br from-[#111111] via-[#1a1a1a] to-[#111111] py-12 sm:py-16 md:py-20">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-gray-900">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-white drop-shadow-sm">
                 Contact Carryofy
               </h1>
-              <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
+              <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
                 We&apos;re here to help. Get in touch with our team for any questions, support, or partnership inquiries.
               </p>
             </div>
@@ -184,6 +185,23 @@ export default function Contact() {
                           <p className="text-sm sm:text-base text-gray-600">
                             Lagos, Nigeria
                           </p>
+                        </div>
+                      </address>
+
+                      <address className="flex items-start not-italic">
+                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mr-4">
+                          <MessageCircle className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 mb-1">WhatsApp Business</h3>
+                          <a
+                            href="https://wa.me/2349166783040"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm sm:text-base text-gray-600 hover:text-primary transition"
+                          >
+                            +234 916 678 3040 (WhatsApp Business)
+                          </a>
                         </div>
                       </address>
                     </div>

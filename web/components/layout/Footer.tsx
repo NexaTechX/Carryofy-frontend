@@ -17,11 +17,7 @@ export default function Footer() {
     { name: 'Contact', href: '/contact' },
   ];
 
-  const resourcesLinks = [
-    { name: 'Help Center', href: '/help' },
-    { name: 'Products', href: '/buyer/products' },
-    { name: 'Track Order', href: '/buyer/track' },
-  ];
+  const resourcesLinks = [{ name: 'Help Center', href: '/help' }];
 
   const sellerLinks = [
     { name: 'Sell on Carryofy', href: '/merchant-onboarding' },
@@ -51,7 +47,7 @@ export default function Footer() {
               <span className="font-inter text-xl font-bold">Carryofy</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
-              Nigeria&apos;s AI-powered B2B + B2C e-commerce and logistics platform. Verified sellers, fulfillment handled, buyer protection.
+              Lagos&apos; B2B sourcing marketplace. Verified vendors, delivery included.
             </p>
             <div className="flex gap-3">
               {socialLinks.map(({ Icon, href, label }) => (

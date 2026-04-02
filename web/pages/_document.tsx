@@ -77,7 +77,8 @@ export default function Document() {
                 width: 512,
                 height: 512,
               },
-              description: 'Carryofy is the leading same-day delivery platform for trusted local sellers in Lagos. We bridge the gap between verified Nigerian merchants and buyers with reliable logistics and secure payments.',
+              description:
+                "The B2B marketplace for Lagos retailers. Source fashion, beauty, electronics, and grocery from verified vendors — Carryofy coordinates delivery.",
               email: 'support@carryofy.com',
               foundingDate: '2024',
               address: {
@@ -99,10 +100,10 @@ export default function Document() {
                 { '@type': 'Country', name: 'Nigeria' },
               ],
               serviceType: [
-                'E-commerce Platform',
-                'Logistics Services',
-                'Same-Day Delivery',
-                'Order Fulfillment',
+                'B2B marketplace',
+                'Wholesale sourcing',
+                'Vendor verification',
+                'Coordinated delivery',
               ],
             }),
           }}
@@ -119,7 +120,8 @@ export default function Document() {
               url: 'https://carryofy.com',
               name: 'Carryofy',
               alternateName: 'Carryofy.com',
-              description: 'The Trusted Marketplace for Modern African Commerce - Shop from verified sellers with same-day delivery in Lagos.',
+              description:
+                'The B2B marketplace for Lagos retailers. Source from verified vendors — delivery coordinated for your store.',
               publisher: {
                 '@id': 'https://carryofy.com/#organization',
               },

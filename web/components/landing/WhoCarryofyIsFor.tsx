@@ -125,7 +125,7 @@ export default function WhoCarryofyIsFor() {
                   href="/auth/signup"
                   className="group/btn inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-primary to-primary-light text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 font-semibold text-base"
                 >
-                  Start Shopping
+                  Start Sourcing
                   <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
                 </Link>
               </div>

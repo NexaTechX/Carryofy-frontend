@@ -130,7 +130,7 @@ export default function Header() {
               href="/auth/signup"
               className="px-6 py-2.5 bg-[#FF6B00] text-black rounded-full font-semibold hover:bg-[#E65F00] transition-colors"
             >
-              Start Shopping
+              Start Sourcing
             </Link>
             <Link
               href="/auth/signup?role=SELLER"
@@ -213,10 +213,10 @@ export default function Header() {
                     </Link>
                     <Link
                       href="/auth/signup"
-                      className="block w-full py-3 text-center bg-[#FF6B00] text-white rounded-xl font-semibold touch-target btn-mobile"
+                      className="block w-full py-3 text-center bg-[#FF6B00] text-black rounded-xl font-semibold touch-target btn-mobile"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Start Shopping
+                      Start Sourcing
                     </Link>
                     <Link
                       href="/auth/signup?role=SELLER"

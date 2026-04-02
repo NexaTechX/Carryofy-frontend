@@ -1,6 +1,6 @@
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
-import { HelpCircle, ShoppingBag, Truck, CreditCard, Package, Search, MessageCircle, Phone } from 'lucide-react';
+import { HelpCircle, ShoppingBag, Truck, CreditCard, ClipboardList, Search, MessageCircle, Phone } from 'lucide-react';
 import SEO from '../components/seo/SEO';
 import { CombinedSchema } from '../components/seo/JsonLd';
 import { useState } from 'react';
@@ -13,7 +13,7 @@ export default function Help() {
         { icon: HelpCircle, title: 'Seller Help', desc: 'Managing products, inventory, sales, and payouts.', href: '#seller' },
         { icon: Truck, title: 'Delivery & Tracking', desc: 'Track your package, delivery times, and shipping issues.', href: '#delivery' },
         { icon: CreditCard, title: 'Payments', desc: 'Refunds, payouts, payment methods, and billing.', href: '#payments' },
-        { icon: Package, title: 'Warehouse & Inventory', desc: 'Storage fees, stock management, and fulfillment.', href: '#warehouse' },
+        { icon: ClipboardList, title: 'Vendor Management', desc: 'Listing, pricing, and order notifications.', href: '#seller' },
         { icon: MessageCircle, title: 'Account & Security', desc: 'Login issues, password reset, and account security.', href: '#account' },
     ];
 
@@ -32,7 +32,8 @@ export default function Help() {
         },
         {
             question: 'How long does delivery take?',
-            answer: 'Delivery times: Same-day delivery in Lagos for orders before 12pm. 1-3 business days for major Nigerian cities. 3-7 business days for other areas. You can track your order in real-time.',
+            answer:
+              'Carryofy currently operates across Lagos corridors (Yaba, Surulere, Lekki/Ajah). Delivery timing depends on your location, vendor readiness, and dispatch — you will see updates in your order flow. We are expanding corridor by corridor.',
         },
         {
             question: 'What payment methods are accepted?',
@@ -106,10 +107,10 @@ export default function Help() {
                 <Header />
                 <main className="flex-grow">
                     {/* Hero Section with Search */}
-                    <section className="bg-gradient-to-r from-primary/10 to-primary/5 py-16 md:py-20">
+                    <section className="bg-gradient-to-br from-[#111111] via-[#1a1a1a] to-[#111111] py-16 md:py-20">
                         <div className="container mx-auto px-4 text-center">
-                            <h1 className="text-4xl md:text-5xl font-bold mb-4">Need Help? We&apos;re Here for You.</h1>
-                            <p className="text-xl text-gray-600 mb-8">Search our help center or browse categories below.</p>
+                            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white drop-shadow-sm">Need Help? We&apos;re Here for You.</h1>
+                            <p className="text-xl text-gray-300 mb-8">Search our help center or browse categories below.</p>
                             
                             {/* Search Bar */}
                             <div className="max-w-2xl mx-auto relative">
@@ -204,7 +205,6 @@ export default function Help() {
                                 <h2 className="text-xl font-bold mb-6">Quick Links</h2>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     {[
-                                        { label: 'Track Order', href: '/buyer/track' },
                                         { label: 'Return Request', href: '/buyer/orders' },
                                         { label: 'Seller Dashboard', href: '/seller' },
                                         { label: 'Payment Methods', href: '/help#payments' },

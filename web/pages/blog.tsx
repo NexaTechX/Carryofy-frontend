@@ -4,203 +4,176 @@ import SEO from '../components/seo/SEO';
 import { CombinedSchema } from '../components/seo/JsonLd';
 
 export default function Blog() {
-    const categories = [
-        'Merchant Growth',
-        'Logistics Innovation',
-        'AI in Commerce',
-        'Fulfillment Strategies',
-        'Case Studies',
-        'E-commerce Tips',
-        'Nigerian Business',
-    ];
+  const categories = [
+    'Merchant Growth',
+    'Logistics Innovation',
+    'B2B Sourcing',
+    'Retail Operations',
+    'Lagos Business',
+  ];
 
-    const blogKeywords = [
-        // Blog intent keywords
-        'ecommerce blog Nigeria',
-        'logistics blog Lagos',
-        'business tips Lagos',
-        'online shopping tips',
-        'delivery tips Lagos',
-        
-        // Content keywords
-        'how to shop online Lagos',
-        'ecommerce tips Lagos',
-        'logistics insights Lagos',
-        'delivery tips',
-        'online shopping Lagos',
-        'Lagos commerce news',
-        'shopping tips Lagos',
-        
-        // Industry news
-        'ecommerce news Lagos',
-        'logistics news Lagos',
-        'delivery news Lagos',
-        'tech news Lagos',
-        'startup news Lagos',
-        
-        // Educational keywords
-        'learn online shopping Lagos',
-        'shopping guide Lagos',
-        'delivery guide Lagos',
-        'buyer tips',
-        'ecommerce case studies Lagos',
-        
-        // Trending keywords
-        'same day delivery Lagos',
-        'delivery tips Lagos',
-        'shopping Lagos',
-        'delivery optimization Lagos',
-        'local sellers Lagos',
-    ].join(', ');
+  const blogKeywords = [
+    'Carryofy blog',
+    'B2B retail Lagos',
+    'Lagos retailers',
+    'sourcing marketplace Nigeria',
+  ].join(', ');
 
-    // Placeholder blog posts for structured data
-    const featuredPosts = [
-        {
-            title: 'How to Start Selling Online in Nigeria: A Complete Guide',
-            excerpt: 'Learn everything you need to know about starting your e-commerce business in Nigeria, from registration to your first sale.',
-            category: 'Merchant Growth',
-            date: '2024-01-15',
-        },
-        {
-            title: 'Same-Day Delivery: How It\'s Transforming Nigerian E-Commerce',
-            excerpt: 'Discover how same-day delivery is changing customer expectations and boosting sales for Nigerian merchants.',
-            category: 'Logistics Innovation',
-            date: '2024-01-10',
-        },
-        {
-            title: 'How to Shop from Local Sellers in Lagos: A Complete Guide',
-            excerpt: 'Learn how to shop safely from local sellers in Lagos and get same-day delivery with Carryofy.',
-            category: 'Buyer Tips',
-            date: '2024-01-05',
-        },
-    ];
+  const featuredPosts = [
+    {
+      title: 'How to Start Selling Online in Nigeria: A Complete Guide',
+      excerpt:
+        'Learn everything you need to know about starting your e-commerce business in Nigeria, from registration to your first sale.',
+      category: 'Merchant Growth',
+      date: '2026-01-15',
+    },
+    {
+      title: "Faster Fulfillment: How Expectations Are Shifting for Nigerian E-Commerce",
+      excerpt:
+        'Discover how faster fulfillment is changing expectations for merchants and retailers in Nigerian cities.',
+      category: 'Logistics Innovation',
+      date: '2026-01-10',
+    },
+    {
+      title: 'How to Source from Verified Vendors in Lagos: A Practical Guide',
+      excerpt:
+        'A practical look at sourcing stock for your store through trusted channels and clear delivery expectations.',
+      category: 'Buyer Tips',
+      date: '2026-01-05',
+    },
+    {
+      title: 'Why Lagos Retailers Are Ditching Market Trips in 2026',
+      excerpt:
+        'How B2B marketplaces are helping retailers save time and reduce uncertainty when restocking.',
+      category: 'Merchant Growth',
+      date: '2026-04-02',
+    },
+  ];
 
-    return (
-        <>
-            <SEO
-                title="Carryofy Blog - E-Commerce Tips & Delivery Insights for Lagos"
-                description="Stay updated with the latest e-commerce trends and delivery tips for Lagos. Expert insights on shopping online, delivery optimization, and local business growth."
-                keywords={blogKeywords}
-                canonical="https://carryofy.com/blog"
-                ogType="website"
-                ogImage="https://carryofy.com/og/blog.png"
-                ogImageAlt="Carryofy Blog - E-Commerce and Logistics Insights"
-            />
-            
-            <CombinedSchema
-                breadcrumbs={[
-                    { name: 'Home', url: '/' },
-                    { name: 'Blog', url: '/blog' },
-                ]}
-            />
-            
-            <div className="min-h-screen flex flex-col">
-                <Header />
-                <main className="flex-grow py-20 bg-gray-50">
-                    <div className="container mx-auto px-4">
-                        {/* Hero Section */}
-                        <header className="text-center mb-16">
-                            <h1 className="text-4xl font-bold mb-6">Insights on Shopping & Delivery in Lagos</h1>
-                            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                                Stay updated with the latest trends, tips, and strategies for shopping from local sellers in Lagos.
-                            </p>
-                        </header>
+  return (
+    <>
+      <SEO
+        title="Carryofy Blog — Sourcing, Selling & Scaling"
+        description="Ideas and updates on sourcing, selling, and scaling on Carryofy — for Lagos retailers and verified vendors."
+        keywords={blogKeywords}
+        canonical="https://carryofy.com/blog"
+        ogType="website"
+        ogImage="https://carryofy.com/og/blog.png"
+        ogImageAlt="Carryofy Blog"
+      />
 
-                        {/* Categories */}
-                        <nav className="flex flex-wrap justify-center gap-4 mb-16" aria-label="Blog categories">
-                            {categories.map((cat, index) => (
-                                <button
-                                    key={index}
-                                    className="px-6 py-2 bg-white border border-gray-200 rounded-full text-gray-600 hover:border-primary hover:text-primary cursor-pointer transition"
-                                >
-                                    {cat}
-                                </button>
-                            ))}
-                        </nav>
+      <CombinedSchema
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'Blog', url: '/blog' },
+        ]}
+      />
 
-                        {/* Featured Posts */}
-                        <section className="mb-16">
-                            <h2 className="text-2xl font-bold mb-8 text-center">Featured Articles</h2>
-                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-                                {featuredPosts.map((post, index) => (
-                                    <article key={index} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition">
-                                        <div className="h-48 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                                            <span className="text-primary font-bold text-lg">{post.category}</span>
-                                        </div>
-                                        <div className="p-6">
-                                            <span className="text-xs text-primary font-medium uppercase tracking-wider">{post.category}</span>
-                                            <h3 className="text-xl font-bold mt-2 mb-3 text-gray-900 hover:text-primary transition cursor-pointer">
-                                                {post.title}
-                                            </h3>
-                                            <p className="text-gray-600 text-sm mb-4">{post.excerpt}</p>
-                                            <time className="text-xs text-gray-400" dateTime={post.date}>
-                                                {new Date(post.date).toLocaleDateString('en-NG', { 
-                                                    year: 'numeric', 
-                                                    month: 'long', 
-                                                    day: 'numeric' 
-                                                })}
-                                            </time>
-                                        </div>
-                                    </article>
-                                ))}
-                            </div>
-                        </section>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow py-20 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <header className="text-center mb-16">
+              <h1 className="text-4xl font-bold mb-6 text-gray-900">Insights for Retailers & Vendors</h1>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                Tips and perspectives on sourcing, selling, and scaling on Carryofy.
+              </p>
+            </header>
 
-                        {/* Coming Soon Section */}
-                        <section className="text-center py-12 bg-white rounded-2xl max-w-4xl mx-auto">
-                            <h2 className="text-2xl font-bold mb-4">More Content Coming Soon!</h2>
-                            <p className="text-gray-600 mb-8 max-w-xl mx-auto">
-                                We&apos;re working on more valuable content for shoppers and sellers in Lagos. 
-                                Subscribe to get notified when new articles are published.
-                            </p>
-                            <form className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto px-4">
-                                <input
-                                    type="email"
-                                    placeholder="Enter your email"
-                                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                                />
-                                <button
-                                    type="submit"
-                                    className="px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition"
-                                >
-                                    Subscribe
-                                </button>
-                            </form>
-                        </section>
+            <nav className="flex flex-wrap justify-center gap-4 mb-16" aria-label="Blog categories">
+              {categories.map((cat, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className="px-6 py-2 bg-white border border-gray-200 rounded-full text-gray-600 hover:border-primary hover:text-primary cursor-pointer transition"
+                >
+                  {cat}
+                </button>
+              ))}
+            </nav>
 
-                        {/* Topics We Cover */}
-                        <section className="mt-16 max-w-4xl mx-auto">
-                            <h2 className="text-2xl font-bold mb-8 text-center">Topics We Cover</h2>
-                            <div className="grid md:grid-cols-2 gap-6">
-                                {[
-                                    {
-                                        title: 'E-Commerce Strategies',
-                                        desc: 'Learn how to start, grow, and scale your online business in Nigeria.',
-                                    },
-                                    {
-                                        title: 'Logistics & Delivery',
-                                        desc: 'Insights on optimizing delivery, reducing costs, and improving customer satisfaction.',
-                                    },
-                                    {
-                                        title: 'Buyer Tips',
-                                        desc: 'Learn how to shop safely from local sellers in Lagos and get reliable same-day delivery.',
-                                    },
-                                    {
-                                        title: 'Merchant Success Stories',
-                                        desc: 'Real stories from Nigerian sellers who have grown with Carryofy.',
-                                    },
-                                ].map((topic, index) => (
-                                    <div key={index} className="bg-white p-6 rounded-xl shadow-sm">
-                                        <h3 className="font-bold text-lg mb-2">{topic.title}</h3>
-                                        <p className="text-gray-600 text-sm">{topic.desc}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
+            <section className="mb-16">
+              <h2 className="text-2xl font-bold mb-8 text-center text-gray-900">Featured Articles</h2>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+                {featuredPosts.map((post, index) => (
+                  <article
+                    key={index}
+                    className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition flex flex-col"
+                  >
+                    <div className="h-48 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center p-4">
+                      <span className="text-primary font-bold text-sm text-center leading-snug">{post.category}</span>
                     </div>
-                </main>
-                <Footer />
-            </div>
-        </>
-    );
+                    <div className="p-6 flex flex-col flex-1">
+                      <span className="text-xs text-primary font-medium uppercase tracking-wider">{post.category}</span>
+                      <h3 className="text-xl font-bold mt-2 mb-3 text-gray-900 hover:text-primary transition cursor-pointer">
+                        {post.title}
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-4 flex-1">{post.excerpt}</p>
+                      <time className="text-xs text-gray-400 mt-auto" dateTime={post.date}>
+                        {new Date(post.date).toLocaleDateString('en-NG', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </time>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="text-center py-12 bg-white rounded-2xl max-w-4xl mx-auto">
+              <h2 className="text-2xl font-bold mb-4 text-gray-900">More Content Coming Soon</h2>
+              <p className="text-gray-600 mb-8 max-w-xl mx-auto">
+                We&apos;re working on more articles for retailers and vendors in Lagos. Subscribe to hear when we publish.
+              </p>
+              <form className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto px-4">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                />
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-primary text-black rounded-lg font-semibold hover:bg-primary-dark transition"
+                >
+                  Subscribe
+                </button>
+              </form>
+            </section>
+
+            <section className="mt-16 max-w-4xl mx-auto">
+              <h2 className="text-2xl font-bold mb-8 text-center text-gray-900">Topics We Cover</h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {[
+                  {
+                    title: 'B2B Sourcing',
+                    desc: 'How retailers find verified vendors and restock without endless market trips.',
+                  },
+                  {
+                    title: 'Logistics & Delivery',
+                    desc: 'What to expect when delivery is coordinated for your store or your buyers.',
+                  },
+                  {
+                    title: 'Retail Operations',
+                    desc: 'Practical ideas for running a store in Lagos with less friction.',
+                  },
+                  {
+                    title: 'Merchant Growth',
+                    desc: 'Stories and tactics for vendors reaching more retailers on Carryofy.',
+                  },
+                ].map((topic, index) => (
+                  <div key={index} className="bg-white p-6 rounded-xl shadow-sm">
+                    <h3 className="font-bold text-lg mb-2 text-gray-900">{topic.title}</h3>
+                    <p className="text-gray-600 text-sm">{topic.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    </>
+  );
 }

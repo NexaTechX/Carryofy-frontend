@@ -145,10 +145,9 @@ export default function CartPage() {
     return cart.items.reduce((sum, item) => sum + (item.resolvedTotalPrice ?? item.resolvedUnitPrice * item.quantity), 0);
   };
 
-  const shippingFee = 500; // ₦5.00
   const discount = 0; // No discount for now
   const subtotal = calculateSubtotal();
-  const total = subtotal + shippingFee - discount;
+  const total = subtotal - discount; // Shipping calculated at checkout
 
   if (!mounted) {
     return null;
@@ -365,7 +364,7 @@ export default function CartPage() {
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-[#ffcc99]">Shipping</span>
-                          <span className="text-white font-bold">{formatPrice(shippingFee)}</span>
+                          <span className="text-[#ffcc99]/70 text-sm italic">Calculated at checkout</span>
                         </div>
                         {discount > 0 && (
                           <div className="flex items-center justify-between">

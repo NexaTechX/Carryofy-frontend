@@ -44,7 +44,7 @@ interface CartContextType {
   fetchCart: () => Promise<void>;
   updateQuantity: (itemId: string, newQuantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
-  addToCart: (productId: string, quantity?: number) => Promise<void>;
+  addToCart: (productId: string, quantity?: number) => Promise<boolean>;
   refreshCart: () => Promise<void>;
   cartCount: number;
 }
@@ -156,14 +156,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addToCart = useCallback(async (productId: string, quantity?: number) => {
     if (!tokenManager.isAuthenticated()) {
       showErrorToast('Please login to add items to cart');
-      return;
+      return false;
     }
 
     // Safeguard: never send quantity < 1 to API (would fail validation). Default to 1 only when not provided.
     const qty = typeof quantity === 'number' && quantity >= 1 ? quantity : 1;
 
     try {
-      const response = await apiClient.post('/cart/items', {
+      await apiClient.post('/cart/items', {
         productId,
         quantity: qty,
       });
@@ -173,9 +173,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       window.dispatchEvent(new Event('cartUpdated'));
       showSuccessToast('Product added to cart successfully!');
+      return true;
     } catch (err: any) {
       console.error('Error adding to cart:', err);
       showErrorToast(err.response?.data?.message || 'Failed to add product to cart');
+      return false;
     }
   }, [fetchCart]);
 

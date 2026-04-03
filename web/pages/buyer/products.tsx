@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
@@ -54,6 +54,7 @@ const sortOptions = [
 
 const PRICE_MIN = 0;
 const PRICE_MAX = 2_147_483_647;
+const PRODUCTS_PAGE_SIZE = 24;
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -72,6 +73,8 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  /** Debounced value used for API + URL sync so typing does not hammer the server */
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [purchaseType, setPurchaseType] = useState<'ALL' | 'B2C' | 'B2B'>('ALL');
   const [inStockOnly, setInStockOnly] = useState(true);
   const [verifiedSellersOnly, setVerifiedSellersOnly] = useState(false);
@@ -82,6 +85,8 @@ export default function ProductsPage() {
   const [vendors, setVendors] = useState<{ id: string; businessName: string }[]>([]);
   const [vendorSearch, setVendorSearch] = useState('');
   const [selectedSellerId, setSelectedSellerId] = useState('');
+  /** Skip one sync from URL after we shallow-replace ?search= so typing is not overwritten */
+  const skipSearchSyncRef = useRef(false);
 
   const b2bOnly = purchaseType === 'B2B' ? true : purchaseType === 'B2C' ? false : undefined;
 
@@ -94,18 +99,55 @@ export default function ProductsPage() {
     }
   }, [router]);
 
+  useLayoutEffect(() => {
+    if (!mounted || !router.isReady) return;
+    const { category, page, b2bOnly: b2bParam, sellerId } = router.query;
+    if (category && typeof category === 'string') setSelectedCategory(category);
+    if (page && typeof page === 'string') setCurrentPage(parseInt(page, 10));
+    if (b2bParam === 'true' || b2bParam === '1') setPurchaseType('B2B');
+    else if (b2bParam === 'false' || b2bParam === '0') setPurchaseType('B2C');
+    if (sellerId && typeof sellerId === 'string') setSelectedSellerId(sellerId);
+    else if (!sellerId) setSelectedSellerId('');
+  }, [mounted, router.isReady, router.query]);
+
   useEffect(() => {
-    if (mounted) {
-      const { category, search, page, b2bOnly: b2bParam, sellerId } = router.query;
-      if (category && typeof category === 'string') setSelectedCategory(category);
-      if (search && typeof search === 'string') setSearchQuery(search);
-      if (page && typeof page === 'string') setCurrentPage(parseInt(page));
-      if (b2bParam === 'true' || b2bParam === '1') setPurchaseType('B2B');
-      else if (b2bParam === 'false' || b2bParam === '0') setPurchaseType('B2C');
-      if (sellerId && typeof sellerId === 'string') setSelectedSellerId(sellerId);
-      else if (!sellerId) setSelectedSellerId('');
+    if (!mounted || !router.isReady) return;
+    if (skipSearchSyncRef.current) {
+      skipSearchSyncRef.current = false;
+      return;
     }
-  }, [mounted, router.query]);
+    const raw = router.query.search;
+    const s = typeof raw === 'string' ? raw : '';
+    setSearchQuery(s);
+    setDebouncedSearch(s);
+  }, [mounted, router.isReady, router.query.search]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const id = window.setTimeout(() => {
+      setDebouncedSearch((prev) => {
+        if (prev !== searchQuery) {
+          setCurrentPage(1);
+        }
+        return searchQuery;
+      });
+    }, 300);
+    return () => window.clearTimeout(id);
+  }, [searchQuery, router.isReady]);
+
+  useEffect(() => {
+    if (!mounted || !router.isReady || router.pathname !== '/buyer/products') return;
+    const nextStr = debouncedSearch.trim();
+    const cur = router.query.search;
+    const curStr = typeof cur === 'string' ? cur : '';
+    if (curStr === nextStr) return;
+    const nextQuery = { ...router.query };
+    if (nextStr) nextQuery.search = nextStr;
+    else delete nextQuery.search;
+    nextQuery.page = '1';
+    skipSearchSyncRef.current = true;
+    void router.replace({ pathname: '/buyer/products', query: nextQuery }, undefined, { shallow: true });
+  }, [debouncedSearch, mounted, router.isReady, router.pathname, router.query, router]);
 
   useEffect(() => {
     if (!mounted || !tokenManager.isAuthenticated()) return;
@@ -126,13 +168,14 @@ export default function ProductsPage() {
   }, [mounted]);
 
   useEffect(() => {
-    if (mounted) fetchProducts();
+    if (mounted && router.isReady) fetchProducts();
   }, [
     mounted,
+    router.isReady,
     selectedCategory,
     sortBy,
     currentPage,
-    searchQuery,
+    debouncedSearch,
     b2bOnly,
     inStockOnly,
     verifiedSellersOnly,
@@ -162,14 +205,17 @@ export default function ProductsPage() {
     }
   }, [showFiltersMobile]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (searchOverride?: string, pageOverride?: number) => {
     try {
       setLoading(true);
       setError(null);
+      const searchTerm =
+        searchOverride !== undefined ? String(searchOverride).trim() : debouncedSearch.trim();
+      const pageNum = pageOverride !== undefined ? pageOverride : currentPage;
       const params = new URLSearchParams();
-      params.append('page', currentPage.toString());
-      params.append('limit', '15');
-      if (searchQuery) params.append('search', searchQuery);
+      params.append('page', String(pageNum));
+      params.append('limit', String(PRODUCTS_PAGE_SIZE));
+      if (searchTerm) params.append('search', searchTerm);
       if (selectedCategory) params.append('category', selectedCategory);
       if (sortBy && sortBy !== 'newest') params.append('sortBy', sortBy);
       if (b2bOnly === true) params.append('b2bOnly', 'true');
@@ -219,14 +265,16 @@ export default function ProductsPage() {
 
   const handleApplyFilters = () => {
     setCurrentPage(1);
+    const trimmedSearch = searchQuery.trim();
+    setDebouncedSearch(trimmedSearch);
     const q: Record<string, string> = {};
     if (selectedCategory) q.category = selectedCategory;
-    if (searchQuery.trim()) q.search = searchQuery.trim();
+    if (trimmedSearch) q.search = trimmedSearch;
     if (b2bOnly === true) q.b2bOnly = 'true';
     else if (b2bOnly === false) q.b2bOnly = 'false';
     if (selectedSellerId) q.sellerId = selectedSellerId;
     router.replace({ pathname: '/buyer/products', query: q }, undefined, { shallow: true });
-    fetchProducts();
+    fetchProducts(trimmedSearch, 1);
     setShowFiltersMobile(false);
   };
 
@@ -234,6 +282,7 @@ export default function ProductsPage() {
     setSelectedCategory('');
     setSortBy('newest');
     setSearchQuery('');
+    setDebouncedSearch('');
     setPurchaseType('ALL');
     setInStockOnly(true);
     setVerifiedSellersOnly(false);
@@ -245,7 +294,7 @@ export default function ProductsPage() {
     setSelectedSellerId('');
     setVendorSearch('');
     router.replace({ pathname: '/buyer/products' }, undefined, { shallow: true });
-    setTimeout(() => fetchProducts(), 0);
+    setTimeout(() => fetchProducts('', 1), 0);
   };
 
   const handlePageChange = (page: number) => {
@@ -272,8 +321,8 @@ export default function ProductsPage() {
 
   const pageTitle = selectedCategory
     ? `Buy ${categoryDisplayName(selectedCategory, '')} Online in Nigeria | Carryofy`
-    : searchQuery
-      ? `Search: ${searchQuery} - Products | Carryofy`
+    : debouncedSearch.trim()
+      ? `Search: ${debouncedSearch.trim()} - Products | Carryofy`
       : 'Shop Products Online in Nigeria | Carryofy';
 
   const pageDescription = selectedCategory
@@ -398,7 +447,6 @@ export default function ProductsPage() {
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && fetchProducts()}
                   className="w-full pl-10 pr-4 py-2.5 bg-input-bg border border-input-border rounded-xl text-foreground placeholder-foreground/40 focus:outline-none focus:border-primary"
                 />
               </div>

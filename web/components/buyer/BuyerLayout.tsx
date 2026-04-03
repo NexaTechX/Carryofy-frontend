@@ -49,6 +49,17 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!mounted || !router.isReady) return;
+    if (router.pathname !== '/buyer/products') {
+      setSearchQuery('');
+      return;
+    }
+    const raw = router.query.search;
+    const s = typeof raw === 'string' ? raw : '';
+    setSearchQuery(s);
+  }, [mounted, router.isReady, router.pathname, router.query.search]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { Heart, Package, ShoppingCart, ShieldCheck } from 'lucide-react';
+import { Check, Heart, Package, ShoppingCart, ShieldCheck } from 'lucide-react';
 import { useWishlist } from '../../../lib/hooks/useWishlist';
 import { useCart } from '../../../lib/contexts/CartContext';
 import { tokenManager } from '../../../lib/auth';
@@ -44,6 +44,7 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
   const { addToCart } = useCart();
   const [isToggling, setIsToggling] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
 
   const inWishlist = isAuthenticated && initialized ? isInWishlist(product.id) : false;
 
@@ -96,7 +97,11 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
     const qty = product.moq && product.moq > 1 ? product.moq : 1;
     try {
       setIsAddingToCart(true);
-      await addToCart(product.id, qty);
+      const ok = await addToCart(product.id, qty);
+      if (ok) {
+        setJustAdded(true);
+        window.setTimeout(() => setJustAdded(false), 2200);
+      }
     } finally {
       setIsAddingToCart(false);
     }
@@ -224,10 +229,14 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
                   <button
                     onClick={handleAddToCart}
                     disabled={!isAuthenticated || isAddingToCart}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#FF6B00] text-black rounded-lg text-sm font-bold hover:bg-[#ff9955] disabled:opacity-50 transition-colors"
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${
+                      justAdded
+                        ? 'bg-green-600/90 text-white'
+                        : 'bg-[#FF6B00] text-black hover:bg-[#ff9955]'
+                    }`}
                   >
-                    <ShoppingCart className="w-4 h-4" />
-                    {isAddingToCart ? 'Adding...' : 'Add to Cart'}
+                    {justAdded ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
+                    {isAddingToCart ? 'Adding...' : justAdded ? 'Added' : 'Add to Cart'}
                   </button>
                 )}
               </>

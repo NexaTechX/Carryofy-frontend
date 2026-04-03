@@ -25,6 +25,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useAuth, tokenManager } from '../../lib/auth';
+import { getApiBaseUrl } from '../../lib/api/utils';
 
 
 interface Notification {
@@ -105,8 +106,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
         return;
       }
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+      const apiUrl = getApiBaseUrl();
 
       try {
         const response = await fetch(`${apiUrl}/notifications?limit=5`, {
@@ -143,8 +143,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       const token = tokenManager.getAccessToken();
       if (!token) return;
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+      const apiUrl = getApiBaseUrl();
 
       const response = await fetch(`${apiUrl}/sellers/me`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -174,8 +173,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       const token = tokenManager.getAccessToken();
       if (!token) return;
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+      const apiUrl = getApiBaseUrl();
 
       const response = await fetch(`${apiUrl}/sellers/kyc`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -245,8 +243,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       if (!notification.read) {
         try {
           const token = tokenManager.getAccessToken();
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-          const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+          const apiUrl = getApiBaseUrl();
 
           await fetch(`${apiUrl}/notifications/${notification.id}/mark-as-read`, {
             method: 'PUT',

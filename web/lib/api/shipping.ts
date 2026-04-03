@@ -10,6 +10,8 @@ export interface ShippingQuoteRequest {
   items: ShippingQuoteItem[];
   shippingMethod: 'STANDARD' | 'EXPRESS' | 'SCHEDULED' | 'PICKUP';
   cartSubtotalKobo?: number;
+  /** SECTION 7.3 — must match checkout orderType */
+  orderType?: 'CONSUMER' | 'B2B';
 }
 
 export interface ShippingQuoteResponse {

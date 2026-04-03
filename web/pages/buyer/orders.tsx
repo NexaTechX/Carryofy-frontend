@@ -146,6 +146,7 @@ export default function OrdersPage() {
   const canCancelOrder = (status: string) =>
     ['PENDING_PAYMENT', 'PAID', 'PROCESSING'].includes(status);
 
+  // SECTION 5.1 — resolved: reorder from order history (cart API + OOS skip)
   const handleReorder = async (order: Order) => {
     setReorderingId(order.id);
     const skipped: string[] = [];

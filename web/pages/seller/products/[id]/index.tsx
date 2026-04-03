@@ -42,7 +42,6 @@ interface Product {
   images: string[];
   createdAt: string;
   updatedAt: string;
-  commissionPercentage?: number;
   categoryRel?: {
     id: string;
     name: string;

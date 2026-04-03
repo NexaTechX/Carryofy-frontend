@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
-import { tokenManager, userManager } from '../../lib/auth';
+import { tokenManager, userManager, useAuth } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
 import { ChevronLeft, ChevronRight, Filter, Search, X } from 'lucide-react';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
@@ -56,6 +57,7 @@ const PRICE_MAX = 2_147_483_647;
 
 export default function ProductsPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,16 +87,9 @@ export default function ProductsPage() {
 
   useEffect(() => {
     setMounted(true);
-    if (!tokenManager.isAuthenticated()) {
-      router.push('/auth/login');
-      return;
-    }
-    const user = userManager.getUser();
-    if (!user) {
-      router.push('/auth/login');
-      return;
-    }
-    if (user.role && user.role !== 'BUYER' && user.role !== 'ADMIN') {
+    const u = userManager.getUser();
+    // SECTION 3.1 — resolved: public catalog; only redirect logged-in non-buyers
+    if (u && u.role && u.role !== 'BUYER' && u.role !== 'ADMIN') {
       router.push('/');
     }
   }, [router]);
@@ -113,6 +108,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     if (!mounted || !tokenManager.isAuthenticated()) return;
+    // Vendors for filter — authenticated buyers only
     let cancelled = false;
     apiClient
       .get('/sellers/vendors-for-shop')
@@ -295,6 +291,18 @@ export default function ProductsPage() {
       />
 
       <BuyerLayout>
+        {/* SECTION 3.1 — resolved: guest banner */}
+        {!user && (
+          <div className="mb-4 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground/90 flex flex-wrap items-center justify-between gap-2">
+            <span>Sign in to place orders and get delivery to your store</span>
+            <Link
+              href="/auth/login?redirect=/buyer/products"
+              className="font-semibold text-primary hover:underline shrink-0"
+            >
+              Sign in
+            </Link>
+          </div>
+        )}
         <div className="flex h-full min-h-0 -m-3 sm:-m-4 lg:-m-6 xl:-m-8">
           {/* Filter Panel - Desktop */}
           <div className="hidden lg:flex lg:flex-col lg:w-[260px] lg:shrink-0 lg:h-full lg:min-h-0 lg:overflow-hidden">

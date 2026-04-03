@@ -3,6 +3,8 @@
  * Uses OpenStreetMap Nominatim (free, no API key). See: https://nominatim.org/release-docs/develop/api/Search/
  */
 
+import { getApiBaseUrl } from './utils';
+
 export interface GeocodeResult {
   latitude: number;
   longitude: number;
@@ -81,8 +83,7 @@ async function fetchServerGeocode(
   query: string,
   accessToken: string
 ): Promise<GeocodeResult | null> {
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-  const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+  const apiUrl = getApiBaseUrl();
 
   try {
     const response = await fetch(`${apiUrl}/location/geocode`, {

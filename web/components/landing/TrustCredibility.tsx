@@ -101,7 +101,7 @@ export default function TrustCredibility() {
                 ))}
               </div>
               <blockquote className="text-xl sm:text-2xl lg:text-3xl font-medium text-gray-800 mb-6 italic">
-                "Early customers are testing Carryofy and loving the experience. Real reviews coming soon."
+                "Early customers are testing Carryofy and loving the experience."
               </blockquote>
               <div className="text-gray-600 font-semibold">
                 — The Carryofy Community

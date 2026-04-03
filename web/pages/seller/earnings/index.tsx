@@ -603,6 +603,7 @@ export default function EarningsPage() {
             </div>
           )}
 
+          {/* SECTION 4.2 — resolved: per-order payout line items (table below) */}
           {/* Payout History Table */}
           <div className="px-4 py-3">
             <h3 className="text-white text-lg font-bold mb-4">Payout History</h3>

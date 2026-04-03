@@ -7,6 +7,8 @@ export interface User {
     phone?: string;
     role: UserRole;
     verified: boolean;
+    /** BUSINESS vs CONSUMER — used for B2B pricing and checkout order type */
+    accountType?: string;
     vehicleType?: string;
     vehicleNumber?: string;
 

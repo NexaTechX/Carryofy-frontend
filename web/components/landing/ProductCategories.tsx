@@ -117,13 +117,10 @@ export default function ProductCategories({ categories: initialCategories, produ
     }
   };
 
-  // Beta: only 1–2 core verticals active; rest shown as "Coming Soon"
-  const BETA_ACTIVE_COUNT = 2;
+  // SECTION 3.2 — resolved: no "Coming Soon" category teases; all active categories link to shop
   const sortedCategories = [...categories].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-  const activeCategories = sortedCategories.slice(0, BETA_ACTIVE_COUNT);
-  const comingSoonCategories = sortedCategories.slice(BETA_ACTIVE_COUNT);
   const totalCategories = categories.length;
-  const categoriesToShow = showAll ? sortedCategories : sortedCategories.slice(0, Math.max(BETA_ACTIVE_COUNT + 2, 4)); // show a few "Coming Soon" in view
+  const categoriesToShow = showAll ? sortedCategories : sortedCategories.slice(0, Math.max(8, 4));
 
   // For small catalogs (less than 5 categories), show individual products instead
   const shouldShowProducts = totalCategories < 5 && products.length > 0;
@@ -270,14 +267,13 @@ export default function ProductCategories({ categories: initialCategories, produ
           </motion.p>
         </div>
 
-        {/* Desktop: Grid layout with icons — first 2 active, rest Coming Soon */}
+        {/* Desktop: category grid */}
         <div className="hidden sm:grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
           {categoriesToShow.map((category, index) => {
             const IconComponent = category.icon 
               ? getCategoryIcon(category.icon) 
               : getCategoryIcon(category.slug.toLowerCase()) || getCategoryIcon(category.name.toLowerCase());
             const bgColor = category.color || '#ff6600';
-            const isActive = activeCategories.some((c) => c.id === category.id);
 
             return (
               <motion.div
@@ -286,9 +282,8 @@ export default function ProductCategories({ categories: initialCategories, produ
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05 }}
-                whileHover={isActive ? { y: -4 } : undefined}
+                whileHover={{ y: -4 }}
               >
-                {isActive ? (
                   <Link
                     href={`/buyer/products?category=${category.slug}`}
                     className="block bg-white rounded-xl p-4 sm:p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 group"
@@ -312,39 +307,18 @@ export default function ProductCategories({ categories: initialCategories, produ
                       )}
                     </div>
                   </Link>
-                ) : (
-                  <div className="block bg-gray-100 rounded-xl p-4 sm:p-6 border border-gray-200 opacity-75 cursor-default">
-                    <div className="flex flex-col items-center text-center">
-                      <div
-                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mb-3 sm:mb-4"
-                        style={{ backgroundColor: `${bgColor}15` }}
-                      >
-                        <div style={{ color: bgColor }}>
-                          <IconComponent className="w-8 h-8 sm:w-10 sm:h-10" />
-                        </div>
-                      </div>
-                      <h3 className="text-sm sm:text-base font-semibold text-gray-600 line-clamp-2">
-                        {categoryDisplayName(category.slug, category.name)}
-                      </h3>
-                      <span className="text-xs font-medium text-gray-500 mt-1 px-2 py-0.5 bg-gray-200 rounded-full">
-                        Coming Soon
-                      </span>
-                    </div>
-                  </div>
-                )}
               </motion.div>
             );
           })}
         </div>
 
-        {/* Mobile: Text links — first 2 active, rest Coming Soon */}
+        {/* Mobile: Text links */}
         <div className="sm:hidden space-y-2">
           {categoriesToShow.map((category, index) => {
             const IconComponent = category.icon 
               ? getCategoryIcon(category.icon) 
               : getCategoryIcon(category.slug.toLowerCase()) || getCategoryIcon(category.name.toLowerCase());
             const bgColor = category.color || '#ff6600';
-            const isActive = activeCategories.some((c) => c.id === category.id);
 
             return (
               <motion.div
@@ -354,7 +328,6 @@ export default function ProductCategories({ categories: initialCategories, produ
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.03 }}
               >
-                {isActive ? (
                   <Link
                     href={`/buyer/products?category=${category.slug}`}
                     className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm hover:shadow-md transition-all border border-gray-100 group"
@@ -376,21 +349,6 @@ export default function ProductCategories({ categories: initialCategories, produ
                     </div>
                     <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors flex-shrink-0" />
                   </Link>
-                ) : (
-                  <div className="flex items-center justify-between bg-gray-100 rounded-lg p-3 border border-gray-200 opacity-75">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="shrink-0" style={{ color: bgColor }}>
-                        <IconComponent className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold text-gray-600 truncate">
-                          {categoryDisplayName(category.slug, category.name)}
-                        </h3>
-                        <span className="text-xs text-gray-500">Coming Soon</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </motion.div>
             );
           })}

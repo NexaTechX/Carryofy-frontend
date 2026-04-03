@@ -1,19 +1,20 @@
+// SECTION 1.4 — resolved: API_URL (origin) vs API_BASE (/api/v1) convention
+
 /**
- * Get the API base URL with proper fallback
- * Uses environment variable or defaults to production API
+ * REST API base including `/api/v1` — use for axios `apiClient`, server fetch to JSON API, etc.
  */
 export const getApiBaseUrl = (): string => {
   return process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
 };
 
 /**
- * Get the API base URL without /api/v1 suffix (for manual endpoint construction)
- * Uses environment variable or defaults to production API base
+ * API origin only (no `/api/v1`) — use for Socket.IO (`${origin}/location`), health checks, etc.
+ * Prefer `NEXT_PUBLIC_API_URL`; do not use `NEXT_PUBLIC_API_BASE` as a fallback (wrong semantics).
  */
 export const getApiBaseUrlWithoutSuffix = (): string => {
-  const base = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-  // Remove /api/v1 if present
-  return base.replace(/\/api\/v1$/, '');
+  const raw =
+    process.env.NEXT_PUBLIC_API_URL || 'https://api.carryofy.com';
+  return raw.replace(/\/api\/v1\/?$/, '').replace(/\/$/, '');
 };
 
 /**

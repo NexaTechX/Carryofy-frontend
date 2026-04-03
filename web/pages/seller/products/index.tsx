@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { Search, Trash2, Plus, Package, Edit, Eye, Clock, CheckCircle, XCircle, AlertCircle, CheckSquare, Square, Copy, ShieldAlert, ShieldX, X } from 'lucide-react';
 import { useAuth, tokenManager } from '../../../lib/auth';
+import { getApiBaseUrl } from '../../../lib/api/utils';
 import { apiClient } from '../../../lib/api/client';
 import Link from 'next/link';
 import { useConfirmation } from '../../../lib/hooks/useConfirmation';
@@ -18,7 +19,6 @@ interface Product {
   status: string;
   images: string[];
   createdAt: string;
-  commissionPercentage?: number;
   categoryRel?: {
     id: string;
     name: string;
@@ -83,8 +83,7 @@ export default function ProductsPage() {
       // Reset sellerNotFound when checking KYC status
       setSellerNotFound(false);
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+      const apiUrl = getApiBaseUrl();
       const response = await fetch(`${apiUrl}/sellers/kyc`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -171,6 +170,7 @@ export default function ProductsPage() {
 
   const getStatusPill = (status: string) => {
     const isActive = status === 'ACTIVE';
+    const isPendingApproval = status === 'PENDING_APPROVAL';
     const labels: Record<string, string> = {
       ACTIVE: 'Active',
       INACTIVE: 'Inactive',
@@ -180,6 +180,7 @@ export default function ProductsPage() {
     return {
       label: labels[status] ?? status,
       isActive,
+      isPendingApproval,
     };
   };
 
@@ -468,6 +469,18 @@ export default function ProductsPage() {
             </div>
           </div>
 
+          {/* SECTION 4.3 — resolved: PENDING_APPROVAL seller messaging (emails via API Resend) */}
+          {kycStatus === 'APPROVED' && products.some((p) => p.status === 'PENDING_APPROVAL') && (
+            <div className="mb-6 rounded-xl border border-amber-500/35 bg-amber-950/30 px-4 py-3">
+              <p className="text-amber-100/95 text-sm flex items-start gap-2">
+                <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong className="text-amber-200">Pending review:</strong> Approval typically takes up to 24 hours. You’ll receive an email when each listing is approved or rejected.
+                </span>
+              </p>
+            </div>
+          )}
+
           {/* Delete Confirmation Modal */}
           {deleteConfirm && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -666,18 +679,33 @@ export default function ProductsPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-                                statusPill.isActive ? 'bg-[#22C55E15] text-[#22C55E]' : 'bg-[#2A2A2A] text-[#A0A0A0]'
-                              }`}
-                            >
+                            <div className="flex flex-col gap-1 items-start">
                               <span
-                                className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                                  statusPill.isActive ? 'bg-[#22C55E]' : 'bg-[#A0A0A0]'
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                                  statusPill.isPendingApproval
+                                    ? 'bg-amber-500/15 text-amber-200 border border-amber-500/35'
+                                    : statusPill.isActive
+                                      ? 'bg-[#22C55E15] text-[#22C55E]'
+                                      : 'bg-[#2A2A2A] text-[#A0A0A0]'
                                 }`}
-                              />
-                              {statusPill.label}
-                            </span>
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                                    statusPill.isPendingApproval
+                                      ? 'bg-amber-400'
+                                      : statusPill.isActive
+                                        ? 'bg-[#22C55E]'
+                                        : 'bg-[#A0A0A0]'
+                                  }`}
+                                />
+                                {statusPill.label}
+                              </span>
+                              {statusPill.isPendingApproval && (
+                                <span className="text-[11px] text-amber-200/80 max-w-[200px] leading-snug">
+                                  Usually reviewed within 24h
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center justify-end gap-2">
@@ -748,11 +776,22 @@ export default function ProductsPage() {
                           </p>
                           <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <span
-                              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium"
-                              style={statusPill.isActive ? { backgroundColor: '#22C55E15', color: '#22C55E' } : { backgroundColor: '#2A2A2A', color: '#A0A0A0' }}
+                              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                                statusPill.isPendingApproval
+                                  ? 'bg-amber-500/15 text-amber-200 border border-amber-500/35'
+                                  : statusPill.isActive
+                                    ? 'bg-[#22C55E15] text-[#22C55E]'
+                                    : 'bg-[#2A2A2A] text-[#A0A0A0]'
+                              }`}
                             >
                               <span
-                                className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusPill.isActive ? 'bg-[#22C55E]' : 'bg-[#A0A0A0]'}`}
+                                className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                                  statusPill.isPendingApproval
+                                    ? 'bg-amber-400'
+                                    : statusPill.isActive
+                                      ? 'bg-[#22C55E]'
+                                      : 'bg-[#A0A0A0]'
+                                }`}
                               />
                               {statusPill.label}
                             </span>

@@ -1,5 +1,6 @@
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
+import MerchantCategoryCommissions from '../components/merchant/MerchantCategoryCommissions';
 import { CheckCircle, TrendingUp, Package, LayoutDashboard, Truck, Shield, Users, Zap, ArrowRight, BarChart3, Globe, CreditCard } from 'lucide-react';
 import SEO from '../components/seo/SEO';
 import { CombinedSchema } from '../components/seo/JsonLd';
@@ -16,8 +17,7 @@ export default function MerchantOnboarding() {
         {
             icon: LayoutDashboard,
             title: 'AI-powered tools',
-            description: 'Smarter pricing and demand signals as we roll out new seller tools on the platform.',
-            comingSoon: true,
+            description: 'Smarter pricing and demand signals as new seller tools roll out on the platform.',
         },
         {
             icon: Package,
@@ -182,19 +182,27 @@ export default function MerchantOnboarding() {
                             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
                                 {benefits.map((benefit, index) => (
                                     <article key={index} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all group relative">
-                                        {'comingSoon' in benefit && benefit.comingSoon ? (
-                                            <span className="absolute top-6 right-6 text-[10px] sm:text-xs font-bold uppercase tracking-wide text-primary bg-primary/10 px-2 py-1 rounded-full">
-                                                Coming Soon
-                                            </span>
-                                        ) : null}
                                         <div className="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary/10 transition-colors">
                                             <benefit.icon className="w-7 h-7 text-primary" />
                                         </div>
-                                        <h3 className="text-xl font-bold text-[#111111] mb-3 pr-16">{benefit.title}</h3>
+                                        <h3 className="text-xl font-bold text-[#111111] mb-3">{benefit.title}</h3>
                                         <p className="text-gray-600 leading-relaxed text-sm">{benefit.description}</p>
                                     </article>
                                 ))}
                             </div>
+                        </div>
+                    </section>
+
+                    {/* SECTION 3.3 — resolved: live category commission table */}
+                    <section className="py-16 bg-white border-t border-gray-100">
+                        <div className="container mx-auto px-4 max-w-4xl">
+                            <h2 className="text-2xl md:text-3xl font-bold text-[#111111] mb-2 text-center">
+                                Commission rates by category
+                            </h2>
+                            <p className="text-gray-600 text-center mb-8 text-sm md:text-base">
+                                Carryofy earns a percentage on each sale — rates below are current for active categories (retail vs wholesale).
+                            </p>
+                            <MerchantCategoryCommissions />
                         </div>
                     </section>
 
@@ -284,7 +292,7 @@ export default function MerchantOnboarding() {
                                         </p>
                                         <div className="space-y-6">
                                             {[
-                                                { q: 'How much are the commissions?', a: 'We operate on a transparent commission model. You only pay when you sell. Standard commission is 5-15% depending on product category.' },
+                                                { q: 'How much are the commissions?', a: 'We operate on a transparent category-based model — you only pay when you sell. See the table above for current retail and wholesale rates per category.' },
                                                 { q: 'How does pickup work?', a: 'When an order is placed, you prepare the stock for pickup. Carryofy coordinates dispatch with our logistics partners — details are confirmed in your seller flow.' },
                                                 { q: 'When do I get paid?', a: 'Funds are settled in your Carryofy wallet immediately after delivery. You can withdraw to any Nigerian bank account, with processing taking 24-48 hours.' },
                                                 { q: 'Is there a signup fee?', a: 'Zero. Registering and listing your products on Carryofy is completely free. We only succeed when you succeed.' }

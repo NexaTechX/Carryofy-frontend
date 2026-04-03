@@ -1,3 +1,4 @@
+// SECTION 1.4 — resolved: REST uses NEXT_PUBLIC_API_BASE (includes /api/v1)
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { tokenManager } from '../auth/token';
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { AlertCircle, Check, X, Truck, Users, Bell, ChevronDown, ChevronRight, Mail, Send, RefreshCw, Moon } from 'lucide-react';
+import { AlertCircle, Check, X, Truck, Users, Bell, ChevronDown, ChevronRight, Send, RefreshCw, Moon } from 'lucide-react';
 
 import {
   usePlatformSettings,
@@ -269,14 +269,6 @@ export default function AdminSettings() {
 
   const toggleSection = (key: string) => {
     setOpenSections((s) => ({ ...s, [key]: !s[key] }));
-  };
-
-  const handleAddTeamMember = () => {
-    setMemberModal({ name: '', email: '', role: 'Support' });
-  };
-
-  const handleInviteViaEmail = () => {
-    setMemberModal({ name: '', email: '', role: 'Support' });
   };
 
   const handleEditTeamMember = (member: TeamMember) => {
@@ -723,23 +715,10 @@ export default function AdminSettings() {
               <div className="border-t border-[#1f1f1f] p-6">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <p className="text-sm text-gray-400">Control access across your admin team.</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleInviteViaEmail}
-                      className="inline-flex items-center justify-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-black"
-                    >
-                      <Mail className="h-4 w-4" />
-                      Invite via Email
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleAddTeamMember}
-                      className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#ff9140]"
-                    >
-                      Add Team Member
-                    </button>
-                  </div>
+                  {/* SECTION 6.2 — resolved: creation disabled until invite flow ships (API returns 501) */}
+                  <p className="text-sm text-amber-200/90">
+                    Adding team members from the dashboard is not available yet.
+                  </p>
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">

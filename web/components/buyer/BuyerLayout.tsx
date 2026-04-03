@@ -1,5 +1,6 @@
 import { useState, useEffect, ReactNode } from 'react';
 import Link from 'next/link';
+// SECTION 3.1 — resolved: layout supports logged-out catalog browse
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import {
@@ -146,8 +147,19 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
               )}
             </button>
 
-            {/* Notifications */}
-            <NotificationsDropdown className="relative" />
+            {/* Notifications — authenticated buyers only */}
+            {mounted && user && (
+              <NotificationsDropdown className="relative" />
+            )}
+
+            {mounted && !user && (
+              <Link
+                href="/auth/login"
+                className="text-sm font-semibold text-primary hover:underline px-2"
+              >
+                Sign in
+              </Link>
+            )}
 
             {/* User Menu */}
             {mounted && user && (

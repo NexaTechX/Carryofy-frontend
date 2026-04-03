@@ -139,7 +139,9 @@ export default function TrackOrderPage() {
 
   useEffect(() => {
     if (tokenManager.isAuthenticated() && delivery?.rider?.id) {
-      const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/location', {
+      const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+      const newSocket = io(`${apiOrigin}/location`, {
+        auth: { token: tokenManager.getAccessToken() || '' },
         extraHeaders: { Authorization: `Bearer ${tokenManager.getAccessToken()}` },
       });
       newSocket.on('connect', () => {

@@ -79,13 +79,6 @@ const PLACEHOLDER_SPECS: Record<string, string>[] = [
   { Origin: 'China' },
 ];
 
-// Placeholder bulk pricing tiers (used when product has no priceTiers)
-const PLACEHOLDER_BULK_TIERS = [
-  { min: 1, max: 4, priceKobo: 160000000, savings: null as string | null },
-  { min: 5, max: 9, priceKobo: 144000000, savings: '10% off' },
-  { min: 10, max: 999999, priceKobo: 128000000, savings: '20% off' },
-];
-
 // Placeholder perfect-for tags
 const PLACEHOLDER_PERFECT_FOR = ['Home Use', 'Offices', 'Hotels', 'Spas'];
 
@@ -383,8 +376,17 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
 
   const isB2bEnabled = product?.sellingMode === 'B2B_ONLY' || product?.sellingMode === 'B2C_AND_B2B';
   const isB2bOnly = product?.sellingMode === 'B2B_ONLY';
+  const isBusinessBuyer = authUser?.accountType === 'BUSINESS';
   // B2B details (MOQ, tiers, bulk price) for all authenticated buyers — never for public
   const showB2bFull = isAuthenticated && isB2bEnabled;
+  // SECTION 5.2 — resolved: B2B price tier table (business account or B2B listing; no fake placeholder tiers)
+  const hasRealPriceTiers = !!(product?.priceTiers && product.priceTiers.length > 0);
+  const wholesaleTierViewer = isBusinessBuyer || showB2bFull;
+  const showB2bTierBlock =
+    !!product &&
+    !product.requestQuoteOnly &&
+    wholesaleTierViewer &&
+    isB2bEnabled;
   const showB2bCta = false; // logic removed
   // B2B_ONLY: add-to-cart unless quote-only. B2C_AND_B2B: cart unless quote-only for B2B context.
   const canAddToCart = isB2bOnly
@@ -711,39 +713,41 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                       ) : (
                         <p className="mt-3 text-red-400 text-sm font-medium">Out of stock</p>
                       )}
-                      {/* Bulk Pricing Tier Table */}
-                      {((product.priceTiers && product.priceTiers.length > 0) || (!product.requestQuoteOnly && (product.sellingMode === 'B2C_AND_B2B' || product.sellingMode === 'B2B_ONLY'))) && (
+                      {/* Bulk pricing — real tiers from API only; no demo rows */}
+                      {showB2bTierBlock && (
                         <div className="mt-5 pt-4 border-t border-white/10">
-                          <p className="text-[#ffcc99]/80 text-xs font-medium mb-3">Price per unit when you buy more</p>
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="border-b border-white/10">
-                                  <th className="py-2 pr-4 text-left text-[#ffcc99]/70 font-medium">Quantity</th>
-                                  <th className="py-2 pr-4 text-left text-[#ffcc99]/70 font-medium">Price Per Unit</th>
-                                  <th className="py-2 text-left text-[#ffcc99]/70 font-medium">Savings</th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-white">
-                                {product.priceTiers && product.priceTiers.length > 0
-                                  ? [...product.priceTiers].sort((a, b) => a.minQuantity - b.minQuantity).map((tier, i) => (
-                                    <tr key={i} className={i % 2 === 1 ? 'bg-white/[0.02]' : ''}>
-                                      <td className="py-2 pr-4">{tier.minQuantity}–{tier.maxQuantity >= 999999 ? '∞' : tier.maxQuantity}</td>
-                                      <td className="py-2 pr-4">{formatPrice(tier.priceKobo)}</td>
-                                      <td className="py-2">—</td>
-                                    </tr>
-                                  ))
-                                  : PLACEHOLDER_BULK_TIERS.map((tier, i) => (
-                                    <tr key={i} className={i % 2 === 1 ? 'bg-white/[0.02]' : ''}>
-                                      <td className="py-2 pr-4">{tier.min}–{tier.max >= 999999 ? '∞' : tier.max}</td>
-                                      <td className="py-2 pr-4">{formatPrice(tier.priceKobo)}</td>
-                                      <td className="py-2">{tier.savings ?? '—'}</td>
-                                    </tr>
-                                  ))
-                                }
-                              </tbody>
-                            </table>
-                          </div>
+                          <p className="text-[#ffcc99]/80 text-xs font-medium mb-3">
+                            {isBusinessBuyer ? 'Wholesale tiers (per unit)' : 'Price per unit when you buy more'}
+                          </p>
+                          {hasRealPriceTiers ? (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b border-white/10">
+                                    <th className="py-2 pr-4 text-left text-[#ffcc99]/70 font-medium">Quantity band</th>
+                                    <th className="py-2 text-left text-[#ffcc99]/70 font-medium">Price each</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="text-white">
+                                  {[...product.priceTiers!].sort((a, b) => a.minQuantity - b.minQuantity).map((tier, i) => {
+                                    const maxLabel = tier.maxQuantity >= 999999 ? '∞' : String(tier.maxQuantity);
+                                    return (
+                                      <tr key={i} className={i % 2 === 1 ? 'bg-white/[0.02]' : ''}>
+                                        <td className="py-2 pr-4">
+                                          Buy {tier.minQuantity}–{maxLabel} units
+                                        </td>
+                                        <td className="py-2">{formatPrice(tier.priceKobo)}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="text-[#ffcc99]/80 text-sm">
+                              No volume price tiers are configured for this product yet. The price shown above applies per unit.
+                            </p>
+                          )}
                         </div>
                       )}
                     </>

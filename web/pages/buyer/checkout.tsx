@@ -206,6 +206,19 @@ export default function CheckoutPage() {
     );
   }, [quote, quoteSubtotal, cart?.items]);
 
+  /** SECTION 7.3 — must match order payload orderType for shipping tier alignment */
+  const resolvedCheckoutOrderType = useMemo((): 'CONSUMER' | 'B2B' => {
+    if (quote) return 'B2B';
+    const u = userManager.getUser();
+    const b2bOnly =
+      cart?.items?.some((i) => i.product?.sellingMode === 'B2B_ONLY') ?? false;
+    const b2bCtx =
+      cart?.items?.some((i) => i.sellingContext === 'B2B') ?? false;
+    return b2bOnly || b2bCtx || u?.accountType === 'BUSINESS'
+      ? 'B2B'
+      : 'CONSUMER';
+  }, [quote, cart?.items]);
+
   // Fetch shipping quote when cart/quote, address and shipping method are available
   useEffect(() => {
     const items = quote
@@ -230,6 +243,7 @@ export default function CheckoutPage() {
       items,
       shippingMethod,
       cartSubtotalKobo,
+      orderType: quote ? 'B2B' : resolvedCheckoutOrderType,
     })
       .then((res) => {
         if (!cancelled) {
@@ -247,7 +261,7 @@ export default function CheckoutPage() {
         if (!cancelled) setShippingQuoteLoading(false);
       });
     return () => { cancelled = true; };
-  }, [cart?.items, quote, selectedAddressId, shippingMethod, cartSubtotalKobo]);
+  }, [cart?.items, quote, selectedAddressId, shippingMethod, cartSubtotalKobo, resolvedCheckoutOrderType]);
 
   const fetchAddresses = async () => {
     // Only fetch addresses if user is authenticated
@@ -661,6 +675,7 @@ export default function CheckoutPage() {
           productId: item.productId,
           quantity: item.quantity,
         }));
+        orderPayload.orderType = resolvedCheckoutOrderType;
       }
       if (hasB2BOnlyItems) {
         orderPayload.businessName = businessName.trim();
@@ -954,18 +969,19 @@ export default function CheckoutPage() {
                         )}
                       </section>
 
+                      {/* SECTION 5.3 — resolved: wallet label aligned with walletAppliedKobo / rewards balance */}
                       {rewardBalanceKobo > 0 && (
                         <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                           <div className="flex items-center gap-3 mb-4">
                             <Wallet className="w-5 h-5 text-[#ff6600]" />
-                            <h2 className="text-white text-xl font-bold">Delivery reward</h2>
+                            <h2 className="text-white text-xl font-bold">Carryofy wallet</h2>
                           </div>
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-[#ffcc99] text-sm">
-                                You have <span className="text-[#ff6600] font-semibold">{formatPrice(rewardBalanceKobo)}</span> in Rewards
+                                You have <span className="text-[#ff6600] font-semibold">{formatPrice(rewardBalanceKobo)}</span> available in your Carryofy wallet
                               </p>
-                              <p className="text-[#ffcc99]/70 text-xs mt-1">Apply toward your delivery fee</p>
+                              <p className="text-[#ffcc99]/70 text-xs mt-1">Apply toward your delivery fee at checkout</p>
                             </div>
                             <button
                               type="button"
@@ -985,8 +1001,8 @@ export default function CheckoutPage() {
                               <p className="text-green-400 text-sm flex items-center gap-2">
                                 <CheckCircle2 className="w-4 h-4" />
                                 {rewardAppliedKobo >= shippingFee
-                                  ? 'Delivery fee fully covered by your reward!'
-                                  : <>Reward covers {formatPrice(rewardAppliedKobo)} of {formatPrice(shippingFee)} delivery — you pay <span className="font-semibold">{formatPrice(shippingFee - rewardAppliedKobo)}</span> for delivery</>
+                                  ? 'Delivery fee fully covered from your Carryofy wallet!'
+                                  : <>Wallet covers {formatPrice(rewardAppliedKobo)} of {formatPrice(shippingFee)} delivery — you pay <span className="font-semibold">{formatPrice(shippingFee - rewardAppliedKobo)}</span> for delivery</>
                                 }
                               </p>
                             </div>

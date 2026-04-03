@@ -27,9 +27,12 @@ export default function RiderDashboard() {
     useEffect(() => {
         if (isAuthenticated && user) {
             // Connect to the 'location' namespace
-            const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/location', {
+            const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+            const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '';
+            const newSocket = io(`${apiOrigin}/location`, {
+                auth: { token: token || '' },
                 extraHeaders: {
-                    Authorization: `Bearer ${localStorage.getItem('accessToken')}`, // Adjust token retrieval
+                    Authorization: `Bearer ${token}`,
                 },
                 autoConnect: false,
             });

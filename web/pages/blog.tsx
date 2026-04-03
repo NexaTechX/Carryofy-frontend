@@ -123,7 +123,7 @@ export default function Blog() {
             </section>
 
             <section className="text-center py-12 bg-white rounded-2xl max-w-4xl mx-auto">
-              <h2 className="text-2xl font-bold mb-4 text-gray-900">More Content Coming Soon</h2>
+              <h2 className="text-2xl font-bold mb-4 text-gray-900">More articles</h2>
               <p className="text-gray-600 mb-8 max-w-xl mx-auto">
                 We&apos;re working on more articles for retailers and vendors in Lagos. Subscribe to hear when we publish.
               </p>

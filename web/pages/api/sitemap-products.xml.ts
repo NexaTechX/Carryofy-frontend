@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { getApiBaseUrl } from '../../lib/api/utils';
 
 const SITE_URL = 'https://carryofy.com';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 interface Product {
   id: string;
@@ -60,7 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let products: Product[] = [];
     
     try {
-      const response = await fetch(`${API_URL}/products?limit=1000&status=active`);
+      const response = await fetch(`${getApiBaseUrl()}/products?limit=1000&status=active`);
       if (response.ok) {
         const data = await response.json();
         products = data.data || data || [];

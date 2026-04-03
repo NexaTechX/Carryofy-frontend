@@ -28,8 +28,8 @@ export function OrganizationSchema({
   logo = LOGO_URL,
   description = 'Carryofy enables same-day delivery for trusted local sellers in Lagos. Shop from verified sellers and get fast, reliable delivery with real-time tracking.',
   email = 'support@carryofy.com',
-  // TODO: Replace with actual contact phone number
-  telephone = process.env.NEXT_PUBLIC_CONTACT_PHONE || '+234-XXX-XXX-XXXX',
+  // SECTION 3.4 — resolved: real business phone for structured data
+  telephone = process.env.NEXT_PUBLIC_CONTACT_PHONE || '+234 916 678 3040',
   address = {
     addressLocality: 'Lagos',
     addressRegion: 'Lagos State',

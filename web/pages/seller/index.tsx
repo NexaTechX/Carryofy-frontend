@@ -9,6 +9,8 @@ import { Plus, Share2, Eye } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useAuth, tokenManager } from '../../lib/auth';
+import { getApiBaseUrl } from '../../lib/api/utils';
+import SellerCommissionRates from '../../components/seller/SellerCommissionRates';
 
 export default function SellerDashboard() {
   const router = useRouter();
@@ -40,8 +42,7 @@ export default function SellerDashboard() {
   const fetchKycStatus = async () => {
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+      const apiUrl = getApiBaseUrl();
 
       const response = await fetch(`${apiUrl}/sellers/kyc`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -60,8 +61,7 @@ export default function SellerDashboard() {
   const fetchSellerProfile = async () => {
     try {
       const token = tokenManager.getAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+      const apiUrl = getApiBaseUrl();
 
       const response = await fetch(`${apiUrl}/sellers/me`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -122,6 +122,8 @@ export default function SellerDashboard() {
 
           {/* Stats Cards */}
           <DashboardStats />
+
+          <SellerCommissionRates sellerId={sellerId} />
 
           {/* Quick Actions */}
           <div className="flex items-center gap-3 h-10 px-4 rounded-[12px] bg-[#1A1A1A] border border-[#2A2A2A]">

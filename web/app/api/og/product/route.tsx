@@ -5,7 +5,6 @@ import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 import {
   truncateText,
-  formatNairaFromKobo,
   OG_IMAGE_WIDTH,
   OG_IMAGE_HEIGHT,
 } from '@/lib/og';
@@ -37,6 +36,50 @@ async function fetchProduct(productId: string) {
   }
 }
 
+/** Shrink Cloudinary delivery size so Edge OG fetch stays fast and within limits */
+function optimizeCloudinaryOgUrl(url: string): string {
+  if (!url.includes('res.cloudinary.com') || !url.includes('/image/upload')) {
+    return url;
+  }
+  if (url.includes('w_600') || url.includes('c_fill')) return url;
+  return url.replace(
+    '/image/upload/',
+    '/image/upload/w_600,h_630,c_fill,q_auto:good,f_auto/',
+  );
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]!);
+  }
+  return btoa(binary);
+}
+
+/**
+ * Satori only reliably renders remote images when inlined as data URLs (or with explicit dimensions).
+ * Fetching avoids broken previews for Cloudinary and API-hosted paths.
+ */
+async function fetchImageAsDataUrl(imageUrl: string): Promise<string | null> {
+  const url = optimizeCloudinaryOgUrl(imageUrl);
+  try {
+    const res = await fetch(url, {
+      next: { revalidate: 3600 },
+      headers: { Accept: 'image/*' },
+    });
+    if (!res.ok) return null;
+    const mime =
+      res.headers.get('content-type')?.split(';')[0]?.trim() || 'image/jpeg';
+    if (!mime.startsWith('image/')) return null;
+    const buf = await res.arrayBuffer();
+    if (buf.byteLength > 4_000_000) return null;
+    return `data:${mime};base64,${arrayBufferToBase64(buf)}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const productId = searchParams.get('id');
@@ -60,12 +103,14 @@ export async function GET(req: NextRequest) {
       : (firstImage as { url?: string })?.url ?? null
     : product?.imageUrl ?? null;
 
-  // Ensure imageUrl is absolute
+  // Ensure imageUrl is absolute (API may return paths relative to API origin)
   if (imageUrl && imageUrl.startsWith('/')) {
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.carryofy.com';
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.carryofy.com/api/v1';
     const domain = apiBase.split('/api')[0];
     imageUrl = `${domain}${imageUrl}`;
   }
+
+  const imageDataUrl = imageUrl ? await fetchImageAsDataUrl(imageUrl) : null;
 
   const category =
     product?.categoryRel?.name ?? product?.category ?? '';
@@ -104,10 +149,12 @@ export async function GET(req: NextRequest) {
             position: 'relative',
           }}
         >
-          {imageUrl ? (
+          {imageDataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={imageUrl}
+              width={600}
+              height={630}
+              src={imageDataUrl}
               alt={name}
               style={{
                 width: '100%',
@@ -227,7 +274,13 @@ export async function GET(req: NextRequest) {
                 {/* Custom SVG Naira Symbol for guaranteed rendering */}
                 <div style={{ display: 'flex', color: BRAND_ORANGE, marginTop: 8 }}>
                   <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
-                    <path d="M7 19V5L17 19V5M5 10H19M5 14H19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <path
+                      d="M7 19V5L17 19V5M5 10H19M5 14H19"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </div>
                 <span
@@ -256,7 +309,7 @@ export async function GET(req: NextRequest) {
                 width: '100%',
               }}
             >
-              🛒 Buy on Carryofy →
+              Buy on Carryofy
             </div>
 
             <div style={{ fontSize: 18, color: '#475569', textAlign: 'center' }}>

@@ -4,6 +4,7 @@ import { X, Copy, Check, Share2, MessageCircle, Twitter, Facebook, Instagram, Sh
 import { shareProduct } from '../../lib/api/sharing';
 import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
 import { useAuth } from '../../lib/auth';
+import { resolveProductImageUrl } from '../../lib/og';
 
 interface ShareModalProps {
   productId: string;
@@ -77,6 +78,8 @@ export default function ShareModal({
       ? `Buy now – ${formatPrice(productPriceKobo)} – ${productTitle} on Carryofy`
       : `Check out ${productTitle} on Carryofy`;
 
+  const resolvedProductImage = resolveProductImageUrl(productImage);
+
   const getWhatsAppUrl = () => {
     const text = encodeURIComponent(`${shareSummary}: ${shareUrl}`);
     return `https://wa.me/?text=${text}`;
@@ -125,14 +128,14 @@ export default function ShareModal({
         </div>
 
         {/* Share preview card: image, price, Buy now */}
-        {(productImage || productPriceKobo != null) && (
+        {(resolvedProductImage || productPriceKobo != null) && (
           <div className="mb-6 rounded-xl border border-[#ff6600]/20 overflow-hidden bg-[#0a0a0a]">
             <div className="flex gap-4 p-4">
-              {productImage && (
+              {resolvedProductImage && (
                 <div className="relative w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-[#1a1a1a]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={productImage}
+                    src={resolvedProductImage}
                     alt={productTitle}
                     className="w-full h-full object-cover"
                   />
@@ -158,7 +161,7 @@ export default function ShareModal({
           </div>
         )}
 
-        {!(productImage || productPriceKobo != null) && (
+        {!(resolvedProductImage || productPriceKobo != null) && (
           <p className="text-white/80 text-sm mb-6 line-clamp-2">{productTitle}</p>
         )}
 

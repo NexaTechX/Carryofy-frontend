@@ -62,3 +62,42 @@ export function getBaseUrl(): string {
   }
   return url;
 }
+
+/**
+ * Turn a product image value from the API into an absolute URL for <img> / sharing previews.
+ * Handles full HTTPS URLs, protocol-relative URLs, and paths served from the API origin.
+ */
+export function resolveProductImageUrl(
+  src: string | undefined,
+  opts?: { pageOrigin?: string }
+): string | undefined {
+  if (!src || typeof src !== 'string') return undefined;
+  const s = src.trim();
+  if (!s) return undefined;
+  if (s.startsWith('http://') || s.startsWith('https://')) return s;
+  if (s.startsWith('//')) return `https:${s}`;
+
+  const pageOrigin =
+    opts?.pageOrigin?.replace(/\/$/, '') ||
+    (typeof window !== 'undefined' ? window.location.origin : '');
+  const apiBase =
+    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_BASE) ||
+    'https://api.carryofy.com/api/v1';
+  const apiOrigin = apiBase.replace(/\/api\/v1\/?$/, '').replace(/\/$/, '');
+
+  if (s.startsWith('/')) {
+    if (
+      s.startsWith('/uploads/') ||
+      s.startsWith('/storage/') ||
+      s.startsWith('/files/') ||
+      s.startsWith('/public/')
+    ) {
+      return `${apiOrigin}${s}`;
+    }
+    if (pageOrigin) return `${pageOrigin}${s}`;
+    return s;
+  }
+
+  if (pageOrigin) return `${pageOrigin}/${s}`;
+  return s;
+}

@@ -5,17 +5,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import BuyerDashboardPromoCarousel from '../../components/buyer/BuyerDashboardPromoCarousel';
+import BuyerCategoryStrip from '../../components/buyer/BuyerCategoryStrip';
 import ShopProductCard, { ShopProductCardProduct } from '../../components/buyer/shop/ShopProductCard';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
-import { categoryDisplayName } from '../../lib/buyer/categoryDisplay';
 import {
   Package,
   FileText,
   Bookmark,
   TrendingUp,
-  ChevronRight,
   ShoppingBag,
   Layers,
   Sparkles,
@@ -373,45 +372,12 @@ export default function BuyerDashboard() {
           {/* 1 — Hero: admin promos or default brand banner */}
           <BuyerDashboardPromoCarousel />
 
-          {/* 2 — Category strip */}
-          <section className="mb-8" aria-label="Shop by category">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Categories</h2>
-              <Link
-                href="/buyer/products"
-                className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-              >
-                See all <ChevronRight className="h-4 w-4" />
-              </Link>
-            </div>
-            {categoriesLoading ? (
-              <div className="py-6 text-center text-sm text-[#ffcc99]/60">Loading categories…</div>
-            ) : categoryStrip.length === 0 ? (
-              <div className="rounded-xl border border-[#2a2a2a] bg-[#111111] py-8 text-center text-sm text-[#ffcc99]/70">
-                Categories coming soon
-              </div>
-            ) : (
-              <div className="-mx-1 flex gap-3 overflow-x-auto pb-2 scrollbar-hide px-1">
-                {categoryStrip.map((cat) => {
-                  const Icon = getCategoryIcon(cat.slug, cat.name);
-                  return (
-                    <Link
-                      key={cat.id}
-                      href={`/buyer/products?category=${cat.slug}`}
-                      className="group flex min-w-[76px] max-w-[88px] shrink-0 flex-col items-center gap-2 rounded-xl border border-[#2a2a2a] bg-[#111111] px-3 py-3 transition hover:border-primary/50"
-                    >
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1a1a1a] transition group-hover:bg-primary/15">
-                        <Icon className="h-6 w-6 text-primary" aria-hidden />
-                      </div>
-                      <span className="line-clamp-2 text-center text-[11px] font-medium leading-tight text-white">
-                        {categoryDisplayName(cat.slug, cat.name)}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </section>
+          {/* 2 — Category strip (Jumia-style tall cards + See All) */}
+          <BuyerCategoryStrip
+            categories={categoryStrip}
+            loading={categoriesLoading}
+            getCategoryIcon={getCategoryIcon}
+          />
 
           {/* 3 — Flash deals / featured products */}
           <section className="mb-10" aria-label="Featured products">

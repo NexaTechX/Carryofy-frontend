@@ -557,8 +557,8 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
     setPendingImages((prev) => [...prev, ...newPending]);
     setUploadingImages(true);
 
-    // Upload images individually for faster single-task success and to avoid big batch timeouts
-    const uploadTasks = newPending.map(async (pendingItem) => {
+    // Upload images sequentially to avoid network timeout and Cloudinary rate limits on mobile connections
+    for (const pendingItem of newPending) {
       try {
         const uploadData = new FormData();
         uploadData.append('images', pendingItem.file);
@@ -589,10 +589,10 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
         URL.revokeObjectURL(pendingItem.url);
         setPendingImages((prev) => prev.filter(p => p.id !== pendingItem.id));
       }
-    });
+    }
 
     try {
-      await Promise.all(uploadTasks);
+      // Replaced Promise.all directly with try/finally since we awaited in the for loop above
     } finally {
       setUploadingImages(false);
       if (e.target) e.target.value = '';
@@ -607,15 +607,12 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
     e.preventDefault();
     const files = e.dataTransfer?.files;
     if (!files || files.length === 0) return;
-    const input = document.getElementById('image-upload') as HTMLInputElement;
-    if (input) {
-      const dt = new DataTransfer();
-      for (let i = 0; i < Math.min(files.length, 5 - productImages.length - pendingImages.length); i++) {
-        dt.items.add(files[i]);
-      }
-      input.files = dt.files;
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+    
+    // Simulate input change by creating a pseudo event object
+    const pseudoEvent = {
+       target: { files }
+    } as any;
+    handleImageUpload(pseudoEvent);
   };
 
   const handleDragOver = (e: React.DragEvent) => {

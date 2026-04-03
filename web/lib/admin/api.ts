@@ -329,7 +329,7 @@ export async function fetchPendingProducts(): Promise<PendingProduct[]> {
 }
 
 export async function fetchAllProducts(): Promise<PendingProduct[]> {
-  const { data } = await apiClient.get('/products/admin/all');
+  const { data } = await apiClient.get('/products/admin/all?limit=10000');
   const normalized = normalizeListResponse<PendingProduct>(data, ['products', 'items', 'data', 'results']);
   return transformProducts(normalized);
 }

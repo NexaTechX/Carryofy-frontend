@@ -133,7 +133,7 @@ export default function ProductsPage() {
         return;
       }
 
-      const productsResponse = await apiClient.get(`/products?sellerId=${sellerId}`);
+      const productsResponse = await apiClient.get(`/products?sellerId=${sellerId}&limit=1000&inStockOnly=false`);
       const productsData = productsResponse.data?.data || productsResponse.data;
       setProducts(productsData?.products || []);
     } catch (error: any) {

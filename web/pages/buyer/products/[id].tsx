@@ -210,6 +210,28 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
     setIsAuthenticated(!!authenticated);
   }, [authLoading, authAuthenticated]);
 
+  // Sync product state with SSR initialProduct when navigating between product pages
+  // useState(initialProduct) only uses the value on first mount, so we need this effect
+  // to update when the prop changes via client-side navigation
+  useEffect(() => {
+    if (initialProduct) {
+      setProduct(initialProduct);
+      setLoading(false);
+      setError(null);
+      // Reset UI state for the new product
+      setSelectedImageIndex(0);
+      setQuantity(1);
+      setActiveTab('details');
+      setFullDescriptionOpen(false);
+      setCartMessage(null);
+      setInWishlist(false);
+      // Scroll to top so the user sees the new product from the beginning
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+    }
+  }, [initialProduct?.id]);
+
   useEffect(() => {
     if (mounted && id && !initialProduct) {
       fetchProduct();

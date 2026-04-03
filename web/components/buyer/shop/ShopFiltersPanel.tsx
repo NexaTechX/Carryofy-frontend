@@ -27,8 +27,8 @@ interface ShopFiltersPanelProps {
   onSellerIdChange: (sellerId: string) => void;
   selectedCategory: string;
   onCategoryChange: (slug: string) => void;
-  purchaseType: 'B2C' | 'B2B';
-  onPurchaseTypeChange: (t: 'B2C' | 'B2B') => void;
+  purchaseType: 'ALL' | 'B2C' | 'B2B';
+  onPurchaseTypeChange: (t: 'ALL' | 'B2C' | 'B2B') => void;
   inStockOnly: boolean;
   onInStockOnlyChange: (v: boolean) => void;
   verifiedSellersOnly: boolean;
@@ -205,6 +205,16 @@ export default function ShopFiltersPanel({
           <div className="flex rounded-lg overflow-hidden border border-sidebar-border">
             <button
               type="button"
+              onClick={() => onPurchaseTypeChange('ALL')}
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${purchaseType === 'ALL'
+                  ? 'bg-primary text-black'
+                  : 'bg-transparent text-foreground/80 hover:text-foreground'
+                }`}
+            >
+              All
+            </button>
+            <button
+              type="button"
               onClick={() => onPurchaseTypeChange('B2C')}
               className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${purchaseType === 'B2C'
                   ? 'bg-primary text-black'
@@ -221,7 +231,7 @@ export default function ShopFiltersPanel({
                   : 'bg-transparent text-foreground/80 hover:text-foreground'
                 }`}
             >
-              Wholesale / Bulk
+              Wholesale
             </button>
           </div>
           {isB2B && (

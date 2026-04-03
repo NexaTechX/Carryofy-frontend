@@ -72,7 +72,7 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [purchaseType, setPurchaseType] = useState<'B2C' | 'B2B'>('B2C');
+  const [purchaseType, setPurchaseType] = useState<'ALL' | 'B2C' | 'B2B'>('ALL');
   const [inStockOnly, setInStockOnly] = useState(true);
   const [verifiedSellersOnly, setVerifiedSellersOnly] = useState(false);
   const [moqMin, setMoqMin] = useState<string>('');
@@ -83,7 +83,7 @@ export default function ProductsPage() {
   const [vendorSearch, setVendorSearch] = useState('');
   const [selectedSellerId, setSelectedSellerId] = useState('');
 
-  const b2bOnly = purchaseType === 'B2B';
+  const b2bOnly = purchaseType === 'B2B' ? true : purchaseType === 'B2C' ? false : undefined;
 
   useEffect(() => {
     setMounted(true);
@@ -101,6 +101,7 @@ export default function ProductsPage() {
       if (search && typeof search === 'string') setSearchQuery(search);
       if (page && typeof page === 'string') setCurrentPage(parseInt(page));
       if (b2bParam === 'true' || b2bParam === '1') setPurchaseType('B2B');
+      else if (b2bParam === 'false' || b2bParam === '0') setPurchaseType('B2C');
       if (sellerId && typeof sellerId === 'string') setSelectedSellerId(sellerId);
       else if (!sellerId) setSelectedSellerId('');
     }
@@ -171,7 +172,8 @@ export default function ProductsPage() {
       if (searchQuery) params.append('search', searchQuery);
       if (selectedCategory) params.append('category', selectedCategory);
       if (sortBy && sortBy !== 'newest') params.append('sortBy', sortBy);
-      if (b2bOnly) params.append('b2bOnly', 'true');
+      if (b2bOnly === true) params.append('b2bOnly', 'true');
+      else if (b2bOnly === false) params.append('b2bOnly', 'false');
       params.append('inStockOnly', inStockOnly ? 'true' : 'false');
       if (verifiedSellersOnly) params.append('verifiedSellersOnly', 'true');
       if (priceLow > PRICE_MIN) params.append('minPrice', priceLow.toString());
@@ -220,7 +222,8 @@ export default function ProductsPage() {
     const q: Record<string, string> = {};
     if (selectedCategory) q.category = selectedCategory;
     if (searchQuery.trim()) q.search = searchQuery.trim();
-    if (b2bOnly) q.b2bOnly = 'true';
+    if (b2bOnly === true) q.b2bOnly = 'true';
+    else if (b2bOnly === false) q.b2bOnly = 'false';
     if (selectedSellerId) q.sellerId = selectedSellerId;
     router.replace({ pathname: '/buyer/products', query: q }, undefined, { shallow: true });
     fetchProducts();
@@ -231,7 +234,7 @@ export default function ProductsPage() {
     setSelectedCategory('');
     setSortBy('newest');
     setSearchQuery('');
-    setPurchaseType('B2C');
+    setPurchaseType('ALL');
     setInStockOnly(true);
     setVerifiedSellersOnly(false);
     setMoqMin('');

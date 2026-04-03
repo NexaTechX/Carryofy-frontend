@@ -19,7 +19,7 @@ export default function HeroSection() {
               Carryofy connects Lagos retailers with verified vendors across fashion, beauty, electronics, and grocery. Order today, delivered to your store.
             </p>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4">
               <Link
                 href="/auth/signup"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#FF6B00] text-black rounded-xl font-semibold hover:bg-[#E65F00] transition-colors shadow-lg shadow-[#FF6B00]/20"
@@ -28,8 +28,14 @@ export default function HeroSection() {
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
               </Link>
               <Link
-                href="/merchant-onboarding"
+                href="/auth/login"
                 className="inline-flex items-center justify-center px-8 py-4 rounded-xl font-semibold border-2 border-[#111111] text-[#111111] hover:bg-[#111111] hover:text-white transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/merchant-onboarding"
+                className="inline-flex items-center justify-center px-8 py-4 rounded-xl font-semibold border-2 border-gray-300 text-[#111111] hover:border-[#111111] transition-colors"
               >
                 Sell on Carryofy
               </Link>

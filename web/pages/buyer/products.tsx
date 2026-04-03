@@ -12,6 +12,7 @@ import ShopFiltersPanel from '../../components/buyer/shop/ShopFiltersPanel';
 import ShopProductCard, { ShopProductCardProduct } from '../../components/buyer/shop/ShopProductCard';
 import EmptyShopState from '../../components/buyer/shop/EmptyShopState';
 import CategoryBanner from '../../components/promotions/CategoryBanner';
+import BuyerShopPromoStrip from '../../components/buyer/BuyerShopPromoStrip';
 import { categoryDisplayName } from '../../lib/buyer/categoryDisplay';
 
 interface Product {
@@ -502,6 +503,8 @@ export default function ProductsPage() {
                 </select>
               </div>
             </div>
+
+            <BuyerShopPromoStrip />
 
             <div className="flex-1 overflow-y-auto p-4 lg:p-6">
               {loading && (

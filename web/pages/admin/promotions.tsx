@@ -29,18 +29,40 @@ import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 
 const PLACEMENT_LABELS: Record<PromotionPlacement, string> = {
-  HOMEPAGE_HERO: 'Homepage Hero',
+  HOMEPAGE_HERO: 'Legacy (deprecated)',
   TOP_ANNOUNCEMENT: 'Top Announcement Bar',
-  HOMEPAGE_PROMO: 'Homepage Promo Section',
+  HOMEPAGE_PROMO: 'Legacy (deprecated)',
   CATEGORY_PAGE: 'Category Page',
+  BUYER_DASHBOARD: 'Buyer Home',
+  BUYER_SHOP: 'Buyer Shop',
 };
 
+/** Placements available for new promotions. Legacy enum values may still appear on old rows. */
 const PLACEMENT_OPTIONS: { value: PromotionPlacement; label: string }[] = [
-  { value: 'HOMEPAGE_HERO', label: PLACEMENT_LABELS.HOMEPAGE_HERO },
   { value: 'TOP_ANNOUNCEMENT', label: PLACEMENT_LABELS.TOP_ANNOUNCEMENT },
-  { value: 'HOMEPAGE_PROMO', label: PLACEMENT_LABELS.HOMEPAGE_PROMO },
+  { value: 'BUYER_DASHBOARD', label: PLACEMENT_LABELS.BUYER_DASHBOARD },
+  { value: 'BUYER_SHOP', label: PLACEMENT_LABELS.BUYER_SHOP },
   { value: 'CATEGORY_PAGE', label: PLACEMENT_LABELS.CATEGORY_PAGE },
 ];
+
+function placementOptionsForForm(
+  editingPromotion: Promotion | null,
+): { value: PromotionPlacement; label: string }[] {
+  const p = editingPromotion?.placement;
+  if (p === 'HOMEPAGE_HERO' || p === 'HOMEPAGE_PROMO') {
+    const hasInList = PLACEMENT_OPTIONS.some((o) => o.value === p);
+    if (!hasInList) {
+      return [
+        {
+          value: p,
+          label: `${PLACEMENT_LABELS[p]} — not displayed; change placement to reuse`,
+        },
+        ...PLACEMENT_OPTIONS,
+      ];
+    }
+  }
+  return PLACEMENT_OPTIONS;
+}
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString(undefined, {
@@ -63,6 +85,68 @@ function toDayBoundaryIso(value: string, boundary: 'start' | 'end') {
   return new Date(`${value}${time}`).toISOString();
 }
 
+type BuyerPreviewFields = Pick<Promotion, 'placement' | 'imageUrl' | 'mobileImageUrl'>;
+
+/** Thumbnails match buyer app surfaces: dashboard carousel vs shop strip vs announcement bar. */
+function PromotionBuyerPreview({ promotion: p }: { promotion: BuyerPreviewFields }) {
+  const src = p.imageUrl?.trim() || p.mobileImageUrl?.trim();
+  if (!src) {
+    return (
+      <div className="flex h-12 w-[5.5rem] items-center justify-center rounded-lg border border-[#2a2a2a] bg-[#111111] text-gray-500">
+        <ImageIcon className="h-5 w-5" aria-hidden />
+      </div>
+    );
+  }
+
+  if (p.placement === 'BUYER_SHOP') {
+    return (
+      <div
+        className="w-[5.5rem] shrink-0 rounded-lg border border-[#2a2a2a] bg-[#0d0d0d] p-px shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]"
+        title="Preview: slim strip on Buyer Shop (below search)"
+      >
+        <div className="h-7 w-full overflow-hidden rounded-md bg-[#111111]">
+          <img src={src} alt="" className="h-full w-full object-cover object-center" />
+        </div>
+      </div>
+    );
+  }
+
+  if (p.placement === 'BUYER_DASHBOARD') {
+    return (
+      <div
+        className="w-[5.5rem] shrink-0 rounded-lg border border-[#2a2a2a] bg-[#0d0d0d] p-px shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]"
+        title="Preview: carousel on Buyer Home (above stats)"
+      >
+        <div className="aspect-[21/9] w-full overflow-hidden rounded-md bg-[#111111]">
+          <img src={src} alt="" className="h-full w-full object-cover object-center" />
+        </div>
+      </div>
+    );
+  }
+
+  if (p.placement === 'TOP_ANNOUNCEMENT') {
+    return (
+      <div
+        className="w-[5.5rem] shrink-0 rounded border border-[#2a2a2a] bg-[#111111] p-1"
+        title="Preview: top announcement bar"
+      >
+        <div className="h-2.5 w-full overflow-hidden rounded-sm bg-[#1a1a1a]">
+          <img src={src} alt="" className="h-full w-full object-cover object-center" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="h-12 w-[5.5rem] overflow-hidden rounded-lg border border-[#2a2a2a] bg-[#111111]"
+      title="Preview: buyer app styling"
+    >
+      <img src={src} alt="" className="h-full w-full object-cover" />
+    </div>
+  );
+}
+
 export default function AdminPromotions() {
   const [placementFilter, setPlacementFilter] = useState<PromotionPlacement | ''>('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -73,7 +157,7 @@ export default function AdminPromotions() {
     imageUrl: '',
     mobileImageUrl: '',
     redirectUrl: '',
-    placement: 'HOMEPAGE_HERO',
+    placement: 'TOP_ANNOUNCEMENT',
     categorySlug: '',
     priority: 0,
     startDate: '',
@@ -103,7 +187,7 @@ export default function AdminPromotions() {
       imageUrl: '',
       mobileImageUrl: '',
       redirectUrl: '',
-      placement: 'HOMEPAGE_HERO',
+      placement: 'TOP_ANNOUNCEMENT',
       categorySlug: '',
       priority: 0,
       startDate: '',
@@ -219,8 +303,25 @@ export default function AdminPromotions() {
           <AdminPageHeader
             title="Promotions"
             tag="Banners & Campaigns"
-            subtitle="Manage homepage banners, announcement bars, and campaign promotions."
+            subtitle="Banner-style promotions for logged-in buyers. Primary surfaces: Buyer Home (dashboard carousel) and Buyer Shop (strip under the search bar). Also: top announcement bar and category-targeted banners."
           />
+
+          <div className="mb-6 rounded-xl border border-[#2a2a2a] bg-[#0b1018] px-4 py-3 text-sm text-gray-300">
+            <p className="font-medium text-white">Where banners appear (buyer app)</p>
+            <ul className="mt-2 list-inside list-disc space-y-1 text-gray-400">
+              <li>
+                <span className="text-gray-200">Buyer Home</span> — full-width carousel above your stats cards (
+                <code className="text-xs text-primary/90">/buyer</code>)
+              </li>
+              <li>
+                <span className="text-gray-200">Buyer Shop</span> — slim strip below the shop header (
+                <code className="text-xs text-primary/90">/buyer/products</code>)
+              </li>
+            </ul>
+            <p className="mt-2 text-xs text-gray-500">
+              Other placements: announcement bar (site-wide chrome) and category filters on the shop catalog.
+            </p>
+          </div>
 
           <div className="mb-6 flex flex-wrap items-center gap-4">
             <select
@@ -253,7 +354,7 @@ export default function AdminPromotions() {
             <AdminEmptyState
               icon={<Megaphone className="h-5 w-5" />}
               title="No promotions yet"
-              description="Create a promotion to show banners on the homepage or announcement bar."
+              description="Create a promotion for Buyer Home, Buyer Shop, the announcement bar, or category pages."
               action={
                 <button
                   type="button"
@@ -268,7 +369,9 @@ export default function AdminPromotions() {
             <DataTableContainer>
               <DataTable>
                 <DataTableHead>
-                  <DataTableCell className="w-20">Preview</DataTableCell>
+                  <DataTableCell className="w-24" title="Preview uses buyer app framing (dashboard vs shop).">
+                    Preview
+                  </DataTableCell>
                   <DataTableCell>Title</DataTableCell>
                   <DataTableCell>Placement</DataTableCell>
                   <DataTableCell>Start</DataTableCell>
@@ -284,19 +387,7 @@ export default function AdminPromotions() {
                       className="border-b border-[#1f1f1f] transition hover:bg-[#0f1419]"
                     >
                       <DataTableCell>
-                        <div className="h-12 w-20 overflow-hidden rounded border border-[#2a2a2a] bg-[#1a1a1a]">
-                          {p.imageUrl ? (
-                            <img
-                              src={p.imageUrl}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-gray-500">
-                              <ImageIcon className="h-5 w-5" />
-                            </div>
-                          )}
-                        </div>
+                        <PromotionBuyerPreview promotion={p} />
                       </DataTableCell>
                       <DataTableCell>
                         <span className="font-medium">{p.title}</span>
@@ -354,7 +445,7 @@ export default function AdminPromotions() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         title={editingPromotion ? 'Edit promotion' : 'Create promotion'}
-        description="Banner image, placement, and schedule."
+        description="Banner art, placement in the buyer app, and schedule."
         footer={
           <div className="flex justify-end gap-2">
             <button
@@ -452,6 +543,28 @@ export default function AdminPromotions() {
               </label>
             </div>
           </div>
+          {(form.imageUrl?.trim() || form.mobileImageUrl?.trim()) &&
+            (form.placement === 'BUYER_DASHBOARD' || form.placement === 'BUYER_SHOP') && (
+              <div className="rounded-lg border border-[#2a2a2a] bg-[#0b1018] p-3">
+                <p className="mb-2 text-xs font-medium text-gray-400">
+                  Preview in buyer app ({form.placement === 'BUYER_DASHBOARD' ? 'Buyer Home' : 'Buyer Shop'})
+                </p>
+                <div className="flex items-center gap-3">
+                  <PromotionBuyerPreview
+                    promotion={{
+                      placement: form.placement,
+                      imageUrl: form.imageUrl,
+                      mobileImageUrl: form.mobileImageUrl,
+                    }}
+                  />
+                  <p className="text-xs leading-snug text-gray-500">
+                    {form.placement === 'BUYER_DASHBOARD'
+                      ? 'Wide carousel slot above dashboard stats — matches /buyer.'
+                      : 'Slim strip under the shop search bar — matches /buyer/products.'}
+                  </p>
+                </div>
+              </div>
+            )}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-300">
               Redirect URL (optional)
@@ -480,17 +593,23 @@ export default function AdminPromotions() {
               }
               className="w-full rounded-lg border border-[#2a2a2a] bg-[#0b1018] px-3 py-2 text-white"
             >
-              {PLACEMENT_OPTIONS.map((opt) => (
+              {placementOptionsForForm(editingPromotion).map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
               ))}
             </select>
             <p className="mt-1 text-xs text-gray-500">
-              {form.placement === 'HOMEPAGE_HERO' && 'Shows above the landing page hero section.'}
-              {form.placement === 'TOP_ANNOUNCEMENT' && 'Shows in the slim announcement bar at the very top of the homepage.'}
-              {form.placement === 'HOMEPAGE_PROMO' && 'Shows as a promotional block below the landing page hero section.'}
-              {form.placement === 'CATEGORY_PAGE' && 'Shows on the buyer products page when a matching category is being viewed.'}
+              {form.placement === 'TOP_ANNOUNCEMENT' &&
+                'Slim bar at the top of the app chrome (all roles / areas that show the announcement).'}
+              {form.placement === 'BUYER_DASHBOARD' &&
+                'Buyer Home (/buyer): full-width carousel above the stats cards. Use a strong banner image and optional redirect.'}
+              {form.placement === 'BUYER_SHOP' &&
+                'Buyer Shop (/buyer/products): slim strip directly under the search/sort header, above the product grid.'}
+              {form.placement === 'CATEGORY_PAGE' &&
+                'Shown on the buyer catalog when the selected category matches (optional slug).'}
+              {(form.placement === 'HOMEPAGE_HERO' || form.placement === 'HOMEPAGE_PROMO') &&
+                'Legacy placement: not displayed anywhere. Pick Buyer Home, Buyer Shop, or another active placement to reuse this promotion.'}
             </p>
           </div>
           {form.placement === 'CATEGORY_PAGE' && (

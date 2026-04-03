@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Image from 'next/image';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
+import BuyerDashboardPromoCarousel from '../../components/buyer/BuyerDashboardPromoCarousel';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
@@ -382,6 +383,8 @@ export default function BuyerDashboard() {
               </div>
             </div>
           </div>
+
+          <BuyerDashboardPromoCarousel />
 
           {/* ZONE B — Activity Snapshot */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">

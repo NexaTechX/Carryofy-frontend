@@ -6,7 +6,9 @@ export type PromotionPlacement =
   | 'HOMEPAGE_HERO'
   | 'TOP_ANNOUNCEMENT'
   | 'HOMEPAGE_PROMO'
-  | 'CATEGORY_PAGE';
+  | 'CATEGORY_PAGE'
+  | 'BUYER_DASHBOARD'
+  | 'BUYER_SHOP';
 
 export interface Promotion {
   id: string;

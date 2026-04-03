@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import { getActivePromotions, type Promotion } from '../../lib/api/promotions';
 
 const AUTO_MS = 4000;
@@ -43,8 +43,61 @@ function SlideLink({
   );
 }
 
+/** Brand fallback when no admin promos — marketplace-first hero. */
+function DefaultMarketplaceHero() {
+  return (
+    <Link
+      href="/buyer/products"
+      className="group relative block w-full overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#111111] ring-1 ring-white/5"
+    >
+      <div className="relative aspect-[5/2] min-h-[120px] w-full sm:aspect-[21/9] sm:min-h-[140px]">
+        <div
+          className="absolute inset-0 bg-gradient-to-br from-[#E8630A] via-[#c45206] to-[#1a0a00]"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ffb347]/25 blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-[#8b2f00]/25 blur-3xl"
+          aria-hidden
+        />
+        <div className="relative flex h-full flex-col items-start justify-center px-5 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-10 sm:py-8">
+          <div className="mb-4 flex max-w-xl flex-col sm:mb-0">
+            <span className="mb-2 inline-flex w-fit items-center rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white/95 ring-1 ring-white/20">
+              Carryofy marketplace
+            </span>
+            <h2 className="text-2xl font-bold tracking-tight text-white drop-shadow-sm sm:text-3xl lg:text-4xl">
+              Stock your store from verified Lagos vendors
+            </h2>
+            <p className="mt-2 max-w-lg text-sm font-medium text-white/90 sm:text-base">
+              Fashion, beauty, electronics, grocery & more — delivered to you.
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-4">
+            <div className="relative h-14 w-14 overflow-hidden rounded-xl bg-white/10 p-2 ring-1 ring-white/20 sm:h-16 sm:w-16">
+              <Image
+                src="/logo.png"
+                alt=""
+                width={64}
+                height={64}
+                className="h-full w-full object-contain"
+              />
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-bold text-neutral-900 shadow-lg transition group-hover:bg-amber-50 sm:text-base">
+              <ShoppingBag className="h-5 w-5 shrink-0" />
+              Shop now
+            </span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default function BuyerDashboardPromoCarousel() {
-  const { data: promotions = [], isSuccess } = useQuery({
+  const { data: promotions = [], isSuccess, isPending } = useQuery({
     queryKey: ['promotions', 'BUYER_DASHBOARD'],
     queryFn: () => getActivePromotions('BUYER_DASHBOARD'),
     staleTime: 5 * 60 * 1000,
@@ -78,10 +131,20 @@ export default function BuyerDashboardPromoCarousel() {
       setIndex((i) => (i + 1) % slides.length);
     }, AUTO_MS);
     return () => window.clearInterval(id);
-  }, [slides.length, index]);
+  }, [slides.length]);
 
-  if (!isSuccess || slides.length === 0) {
-    return null;
+  const showAdminCarousel = isSuccess && slides.length > 0;
+
+  if (isPending || !showAdminCarousel) {
+    return (
+      <div
+        className="-mx-3 mb-8 sm:-mx-4 lg:-mx-6 xl:-mx-8"
+        role="region"
+        aria-label="Featured"
+      >
+        <DefaultMarketplaceHero />
+      </div>
+    );
   }
 
   const n = slides.length;

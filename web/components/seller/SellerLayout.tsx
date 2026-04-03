@@ -272,7 +272,6 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
     { name: 'Reviews', href: '/seller/reviews', icon: Star },
     { name: 'Analytics', href: '/seller/analytics', icon: BarChart3 },
     { name: 'Earnings', href: '/seller/earnings', icon: DollarSign },
-    { name: 'Identity Verification', href: '/seller/settings?tab=kyc', icon: ShieldCheck },
     { name: 'Settings', href: '/seller/settings', icon: Settings },
   ];
 

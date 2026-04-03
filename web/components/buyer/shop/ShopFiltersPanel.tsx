@@ -13,8 +13,18 @@ interface Category {
   isActive: boolean;
 }
 
+export interface VendorOption {
+  id: string;
+  businessName: string;
+}
+
 interface ShopFiltersPanelProps {
   categories: Category[];
+  vendors: VendorOption[];
+  vendorSearch: string;
+  onVendorSearchChange: (v: string) => void;
+  selectedSellerId: string;
+  onSellerIdChange: (sellerId: string) => void;
   selectedCategory: string;
   onCategoryChange: (slug: string) => void;
   purchaseType: 'B2C' | 'B2B';
@@ -66,6 +76,11 @@ function AccordionSection({
 
 export default function ShopFiltersPanel({
   categories,
+  vendors,
+  vendorSearch,
+  onVendorSearchChange,
+  selectedSellerId,
+  onSellerIdChange,
   selectedCategory,
   onCategoryChange,
   purchaseType,
@@ -93,8 +108,17 @@ export default function ShopFiltersPanel({
   const [openAvailability, setOpenAvailability] = useState(true);
   const [openMoq, setOpenMoq] = useState(true);
   const [openPrice, setOpenPrice] = useState(true);
+  const [openVendor, setOpenVendor] = useState(true);
 
   const isB2B = purchaseType === 'B2B';
+
+  const vendorFilter = vendorSearch.trim().toLowerCase();
+  const filteredVendors = vendors.filter(
+    (v) =>
+      !vendorFilter ||
+      v.businessName.toLowerCase().includes(vendorFilter) ||
+      v.id.toLowerCase().includes(vendorFilter),
+  );
 
   return (
     <aside className="w-full min-w-0 sm:w-[280px] lg:w-[260px] shrink-0 bg-sidebar-bg border-r border-sidebar-border flex flex-col h-full min-h-0">
@@ -123,6 +147,30 @@ export default function ShopFiltersPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+        <AccordionSection title="Vendor" open={openVendor} onToggle={() => setOpenVendor(!openVendor)}>
+          <div className="space-y-2">
+            <input
+              type="search"
+              value={vendorSearch}
+              onChange={(e) => onVendorSearchChange(e.target.value)}
+              placeholder="Narrow vendor list by name or ID…"
+              className="w-full px-3 py-2 bg-input-bg border border-input-border rounded-lg text-foreground text-sm focus:outline-none focus:border-primary"
+            />
+            <select
+              value={selectedSellerId}
+              onChange={(e) => onSellerIdChange(e.target.value)}
+              className="w-full px-3 py-2 bg-input-bg border border-input-border rounded-lg text-foreground text-sm focus:outline-none focus:border-primary"
+            >
+              <option value="">All vendors</option>
+              {filteredVendors.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.businessName}
+                </option>
+              ))}
+            </select>
+          </div>
+        </AccordionSection>
+
         <AccordionSection title="Categories" open={openCategories} onToggle={() => setOpenCategories(!openCategories)}>
           <nav className="space-y-1">
             <button

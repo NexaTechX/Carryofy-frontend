@@ -81,11 +81,16 @@ function getStatusKey(order: Order): StatusKey {
   )
     return 'pending';
   if (
-    order.delivery?.status === 'PREPARING' ||
+    order.delivery?.status === 'AWAITING_ASSIGNMENT' ||
+    order.delivery?.status === 'ASSIGNED' ||
     order.delivery?.status === 'PICKED_UP' ||
     order.delivery?.status === 'IN_TRANSIT'
   ) {
-    if (order.delivery.status === 'PREPARING') return 'pending';
+    if (
+      order.delivery.status === 'AWAITING_ASSIGNMENT' ||
+      order.delivery.status === 'ASSIGNED'
+    )
+      return 'pending';
     return 'out_for_delivery';
   }
   return 'pending';
@@ -96,6 +101,7 @@ export default function OrdersPage() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusKey>('all');
   const [orderTypeFilter, setOrderTypeFilter] = useState<string>('all');
@@ -118,6 +124,8 @@ export default function OrdersPage() {
   }, [router, authLoading, isAuthenticated, user, orderTypeFilter]);
 
   const fetchOrders = async () => {
+    setLoading(true);
+    setListError(null);
     try {
       const token = tokenManager.getAccessToken();
       const params = new URLSearchParams();
@@ -141,9 +149,19 @@ export default function OrdersPage() {
         } else {
           setOrders([]);
         }
+      } else {
+        let msg = 'Could not load orders. Please try again.';
+        try {
+          const errBody = await response.json();
+          if (errBody?.message) msg = String(errBody.message);
+        } catch {
+          /* ignore */
+        }
+        setListError(msg);
+        setOrders([]);
       }
-    } catch (error) {
-      console.error('Error fetching orders:', error);
+    } catch {
+      setListError('Could not load orders. Please try again.');
       setOrders([]);
     } finally {
       setLoading(false);
@@ -155,10 +173,13 @@ export default function OrdersPage() {
   const getStatusDisplay = (order: Order) => {
     if (order.delivery) {
       const s = order.delivery.status;
-      if (s === 'PREPARING') return 'In Warehouse';
+      if (s === 'AWAITING_ASSIGNMENT' || s === 'ASSIGNED') return 'Awaiting pickup / assigned';
       if (s === 'PICKED_UP' || s === 'IN_TRANSIT') return 'Out for Delivery';
       if (s === 'DELIVERED') return 'Delivered';
       if (s === 'ISSUE') return 'Issue';
+      if (s === 'FAILED_DELIVERY') return 'Delivery failed';
+      if (s === 'RETURNING') return 'Returning';
+      if (s === 'CANCELED') return 'Delivery canceled';
     }
     switch (order.status) {
       case 'PENDING_PAYMENT':
@@ -306,6 +327,18 @@ export default function OrdersPage() {
       </Head>
       <SellerLayout>
         <div>
+          {listError && !loading && (
+            <div className="mx-4 mt-2 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-red-300 flex flex-wrap items-center justify-between gap-3">
+              <span>{listError}</span>
+              <button
+                type="button"
+                onClick={() => fetchOrders()}
+                className="shrink-0 px-4 py-2 rounded-lg bg-[#ff6600] text-black font-semibold text-sm hover:bg-[#ff8533]"
+              >
+                Retry
+              </button>
+            </div>
+          )}
           <div className="flex flex-wrap justify-between gap-3 p-4">
             <p className="text-white tracking-light text-[32px] font-bold leading-tight min-w-72">
               Orders

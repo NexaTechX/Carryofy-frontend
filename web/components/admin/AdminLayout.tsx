@@ -70,6 +70,7 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Broadcast', href: '/admin/broadcast', icon: Mail },
   { name: 'Broadcast History', href: '/admin/broadcast-history', icon: Calendar },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
+  { name: 'Audit Log', href: '/admin/audit-log', icon: FileText },
   { name: 'Feedback', href: '/admin/feedback', icon: Star },
   { name: 'Support Center', href: '/admin/support', icon: HelpCircle },
 ];

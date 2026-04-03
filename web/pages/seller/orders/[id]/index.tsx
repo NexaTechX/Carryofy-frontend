@@ -1,11 +1,13 @@
 import Head from 'next/head';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import SellerLayout from '../../../../components/seller/SellerLayout';
-import { useAuth, tokenManager } from '../../../../lib/auth';
-import { ArrowLeft, Package, User, MapPin, CreditCard, Calendar } from 'lucide-react';
-import { formatNgnFromKobo, formatDateTime, getApiUrl } from '../../../../lib/api/utils';
+import { useAuth } from '../../../../lib/auth';
+import apiClient from '../../../../lib/api/client';
+import { ArrowLeft, Package, MapPin, CreditCard, Calendar, Loader2 } from 'lucide-react';
+import { formatNgnFromKobo, formatDateTime } from '../../../../lib/api/utils';
+import toast from 'react-hot-toast';
 
 interface OrderItem {
   id: string;
@@ -53,12 +55,32 @@ export default function OrderDetailPage() {
   const { id } = router.query;
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [markingReady, setMarkingReady] = useState(false);
+
+  const fetchOrder = useCallback(async () => {
+    if (!id || typeof id !== 'string') return;
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const response = await apiClient.get(`/orders/${id}`);
+      const orderData = (response.data as { data?: Order }).data ?? (response.data as Order);
+      setOrder(orderData);
+    } catch (error: unknown) {
+      const msg =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? String((error as { response?: { data?: { message?: string } } }).response?.data?.message)
+          : null;
+      setLoadError(msg || 'Could not load order. Please try again.');
+      setOrder(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    // Wait for auth to finish loading
     if (authLoading) return;
 
-    // Check authentication
     if (!isAuthenticated || !user) {
       router.push('/auth/login');
       return;
@@ -72,26 +94,24 @@ export default function OrderDetailPage() {
     if (id) {
       fetchOrder();
     }
-  }, [router, id, authLoading, isAuthenticated, user]);
+  }, [router, id, authLoading, isAuthenticated, user, fetchOrder]);
 
-  const fetchOrder = async () => {
+  const handleReadyForPickup = async () => {
+    if (!id || typeof id !== 'string' || !order) return;
+    setMarkingReady(true);
     try {
-      const token = tokenManager.getAccessToken();
-      const response = await fetch(getApiUrl(`/orders/${id}`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        const orderData = result.data || result;
-        setOrder(orderData);
-      }
-    } catch (error) {
-      console.error('Error fetching order:', error);
+      const res = await apiClient.put(`/seller/orders/${id}/ready-for-pickup`);
+      const updated = (res.data as { data?: Order }).data ?? (res.data as Order);
+      setOrder(updated);
+      toast.success('Marked as ready for pickup');
+    } catch (e: unknown) {
+      const msg =
+        typeof e === 'object' && e !== null && 'response' in e
+          ? String((e as { response?: { data?: { message?: string } } }).response?.data?.message)
+          : 'Could not update order';
+      toast.error(msg);
     } finally {
-      setLoading(false);
+      setMarkingReady(false);
     }
   };
 
@@ -134,20 +154,36 @@ export default function OrderDetailPage() {
     }
   };
 
-  const getDeliveryStatusDisplay = (status: string) => {
+  /** Prisma DeliveryStatus */
+  const DELIVERY_STATUS_LABELS: Record<string, string> = {
+    AWAITING_ASSIGNMENT: 'Awaiting pickup',
+    ASSIGNED: 'Rider assigned',
+    PICKED_UP: 'Picked up by rider',
+    IN_TRANSIT: 'On the way',
+    DELIVERED: 'Delivered',
+    FAILED_DELIVERY: 'Delivery failed',
+    RETURNING: 'Returning',
+    CANCELED: 'Canceled',
+    ISSUE: 'Issue reported',
+  };
+
+  const getDeliveryStatusDisplay = (status: string) =>
+    DELIVERY_STATUS_LABELS[status] || status.replace(/_/g, ' ');
+
+  const getDeliveryStatusColor = (status: string) => {
     switch (status) {
-      case 'PREPARING':
-        return 'Preparing';
-      case 'PICKED_UP':
-        return 'Picked Up';
-      case 'IN_TRANSIT':
-        return 'In Transit';
       case 'DELIVERED':
-        return 'Delivered';
+        return 'bg-green-500/20 text-green-400 border-green-500/50';
+      case 'IN_TRANSIT':
+      case 'PICKED_UP':
+        return 'bg-purple-500/20 text-purple-400 border-purple-500/50';
+      case 'FAILED_DELIVERY':
       case 'ISSUE':
-        return 'Issue Reported';
+        return 'bg-red-500/20 text-red-400 border-red-500/50';
+      case 'CANCELED':
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
       default:
-        return status;
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
     }
   };
 
@@ -181,15 +217,25 @@ export default function OrderDetailPage() {
     );
   }
 
-  if (!order) {
+  if (loadError || !order) {
     return (
       <SellerLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <p className="text-white text-xl mb-4">Order not found</p>
+        <div className="flex items-center justify-center min-h-[400px] px-4">
+          <div className="text-center max-w-md">
+            <p className="text-white text-xl mb-2">{loadError ? 'Something went wrong' : 'Order not found'}</p>
+            <p className="text-[#ffcc99]/80 text-sm mb-6">
+              {loadError || 'This order may have been removed or you may not have access.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => fetchOrder()}
+              className="inline-flex items-center justify-center px-6 py-2.5 bg-[#ff6600] text-black font-semibold rounded-lg hover:bg-[#cc5200] transition mb-4 mr-4"
+            >
+              Try again
+            </button>
             <Link
               href="/seller/orders"
-              className="text-[#ff6600] hover:text-[#cc5200] transition"
+              className="inline-block text-[#ff6600] hover:text-[#cc5200] transition"
             >
               Back to Orders
             </Link>
@@ -230,10 +276,21 @@ export default function OrderDetailPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <div className={`px-4 py-2 rounded-xl border ${getStatusColor(order.status)}`}>
                 <span className="font-medium">{getStatusDisplay(order.status)}</span>
               </div>
+              {(order.status === 'PAID' || order.status === 'PROCESSING') && user?.role === 'SELLER' && (
+                <button
+                  type="button"
+                  disabled={markingReady}
+                  onClick={handleReadyForPickup}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ff6600] text-black font-semibold hover:bg-[#ff8533] disabled:opacity-50"
+                >
+                  {markingReady ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  Mark as Ready for Pickup
+                </button>
+              )}
             </div>
           </div>
 
@@ -290,7 +347,7 @@ export default function OrderDetailPage() {
                     <div className="space-y-4">
                       <div>
                         <p className="text-[#ffcc99] text-sm mb-1">Status</p>
-                        <div className={`inline-block px-3 py-1 rounded-lg border ${getStatusColor(order.delivery.status)}`}>
+                        <div className={`inline-block px-3 py-1 rounded-lg border ${getDeliveryStatusColor(order.delivery.status)}`}>
                           <span className="text-sm font-medium">{getDeliveryStatusDisplay(order.delivery.status)}</span>
                         </div>
                       </div>

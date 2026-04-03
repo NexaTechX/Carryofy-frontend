@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
@@ -36,6 +36,14 @@ import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
 import { formatDate } from '../../lib/api/utils';
 
 type TabId = 'personal' | 'business' | 'addresses' | 'security' | 'preferences';
+
+type NotifChannelPrefs = {
+  orders: boolean;
+  products: boolean;
+  payouts: boolean;
+  system: boolean;
+  kyc: boolean;
+};
 
 interface UserProfile {
   id: string;
@@ -144,11 +152,17 @@ export default function BuyerProfilePage() {
     orderUpdates: true,
     quoteResponses: true,
     promotions: false,
+    newProductAlerts: false,
     preferredCategories: [] as string[],
     language: 'en',
     currency: 'NGN',
   });
   const [preferencesSaving, setPreferencesSaving] = useState(false);
+  const [notifBackend, setNotifBackend] = useState<{
+    email: NotifChannelPrefs;
+    push: NotifChannelPrefs;
+  } | null>(null);
+  const [loadingNotifPrefs, setLoadingNotifPrefs] = useState(false);
 
   const [stats, setStats] = useState<{ orders: number; quotes: number; savedLists: number }>({
     orders: 0,
@@ -186,6 +200,89 @@ export default function BuyerProfilePage() {
       fetchStats();
     }
   }, [mounted]);
+
+  const fetchNotificationPreferences = useCallback(async () => {
+    if (!tokenManager.getAccessToken()) return;
+    setLoadingNotifPrefs(true);
+    try {
+      const res = await apiClient.get('/notifications/preferences');
+      const data = res.data?.data ?? res.data;
+      if (data?.email && data?.push) {
+        setNotifBackend({ email: data.email, push: data.push });
+        setPreferences((prev) => ({
+          ...prev,
+          orderUpdates: Boolean(data.email.orders),
+          quoteResponses: Boolean(data.email.system),
+          promotions: Boolean(data.email.kyc),
+          newProductAlerts: Boolean(data.email.products),
+        }));
+      } else {
+        setNotifBackend(null);
+      }
+    } catch {
+      setNotifBackend(null);
+    } finally {
+      setLoadingNotifPrefs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mounted && activeTab === 'preferences') {
+      void fetchNotificationPreferences();
+    }
+  }, [mounted, activeTab, fetchNotificationPreferences]);
+
+  const saveNotificationPreferences = async () => {
+    if (!tokenManager.getAccessToken()) return;
+    const defaultEmail: NotifChannelPrefs = {
+      orders: true,
+      products: false,
+      payouts: true,
+      system: true,
+      kyc: false,
+    };
+    const defaultPush: NotifChannelPrefs = {
+      orders: true,
+      products: false,
+      payouts: true,
+      system: true,
+      kyc: false,
+    };
+    const baseEmail = notifBackend?.email ?? defaultEmail;
+    const basePush = notifBackend?.push ?? defaultPush;
+    setPreferencesSaving(true);
+    try {
+      const res = await apiClient.put('/notifications/preferences', {
+        email: {
+          orders: preferences.orderUpdates,
+          products: preferences.newProductAlerts,
+          payouts: baseEmail.payouts,
+          system: preferences.quoteResponses,
+          kyc: preferences.promotions,
+        },
+        push: {
+          orders: preferences.orderUpdates,
+          products: preferences.newProductAlerts,
+          payouts: basePush.payouts,
+          system: preferences.quoteResponses,
+          kyc: preferences.promotions,
+        },
+      });
+      const data = res.data?.data ?? res.data;
+      if (data?.email && data?.push) {
+        setNotifBackend({ email: data.email, push: data.push });
+      }
+      showSuccessToast('Preferences saved');
+    } catch (e: unknown) {
+      const msg =
+        typeof e === 'object' && e !== null && 'response' in e
+          ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
+      showErrorToast(msg || 'Could not save notification preferences');
+    } finally {
+      setPreferencesSaving(false);
+    }
+  };
 
   const fetchStats = async () => {
     if (!tokenManager.getAccessToken()) return;
@@ -1056,11 +1153,22 @@ export default function BuyerProfilePage() {
             {activeTab === 'preferences' && (
               <div>
                 <h2 className="text-white text-lg font-bold mb-4">Notification Preferences</h2>
+                {loadingNotifPrefs && (
+                  <p className="text-[#ffcc99]/70 text-sm mb-4 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-[#ff6600]" />
+                    Loading email settings…
+                  </p>
+                )}
                 <div className="space-y-4 max-w-xl">
                   {[
                     { key: 'orderUpdates' as const, label: 'Order updates', desc: 'Get notified about order status changes' },
                     { key: 'quoteResponses' as const, label: 'Quote responses', desc: 'When sellers respond to your quote requests' },
                     { key: 'promotions' as const, label: 'Promotions', desc: 'Deals, discounts, and marketing emails' },
+                    {
+                      key: 'newProductAlerts' as const,
+                      label: 'New products & restocks',
+                      desc: 'Email when new listings are approved and inventory updates matter to you',
+                    },
                   ].map(({ key, label, desc }) => (
                     <div
                       key={key}
@@ -1131,15 +1239,13 @@ export default function BuyerProfilePage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => {
-                    setPreferencesSaving(true);
-                    setTimeout(() => setPreferencesSaving(false), 800);
-                  }}
-                  disabled={preferencesSaving}
+                  type="button"
+                  onClick={() => void saveNotificationPreferences()}
+                  disabled={preferencesSaving || loadingNotifPrefs}
                   className="mt-4 inline-flex items-center gap-2 px-6 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 transition"
                 >
                   <Save className="w-4 h-4" />
-                  {preferencesSaving ? 'Saving...' : 'Save Preferences'}
+                  {preferencesSaving ? 'Saving…' : 'Save notification settings'}
                 </button>
 
                 {/* Display Preference Section */}

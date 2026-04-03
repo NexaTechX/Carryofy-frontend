@@ -1,37 +1,33 @@
 import Head from 'next/head';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
-import { useCategories, Category } from '../../../lib/buyer/hooks/useCategories';
+import { useCategories } from '../../../lib/buyer/hooks/useCategories';
 import {
   Package,
   X,
   DollarSign,
-  Tag,
   Layers,
   FileText,
   ArrowLeft,
   Check,
   AlertCircle,
-  Sparkles,
   Plus,
-  Trash2,
-  GripVertical,
   Wand2,
   Loader2,
   ShieldAlert,
   ShieldX,
   Clock,
-  ShieldCheck,
   Image as ImageIcon,
-  Upload,
-  Users,
+  Camera,
   Building2,
   ShoppingBag,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 interface FormData {
@@ -44,6 +40,25 @@ interface FormData {
   careInfo?: string;
   keyFeatures?: string[];
   moq?: string;
+}
+
+/** B2B tier form rows (₦ per unit in UI; sent as kobo on submit) */
+interface WholesalePriceTierForm {
+  minQuantity: string;
+  maxQuantity: string;
+  unitPrice: string;
+}
+
+const DRAFT_STORAGE_KEY = 'carryofy-seller-add-product-draft-v1';
+
+interface ProductDraftV1 {
+  v: 1;
+  savedAt: string;
+  mode: 'retail' | 'wholesale';
+  wizardStep: 1 | 2 | 3 | 4;
+  formData: FormData;
+  productImages: string[];
+  priceTiers: WholesalePriceTierForm[];
 }
 
 
@@ -116,6 +131,19 @@ export default function AddProductPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [draftKeyFeature, setDraftKeyFeature] = useState('');
   const [mode, setMode] = useState<'retail' | 'wholesale'>('retail');
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
+  const [priceTiers, setPriceTiers] = useState<WholesalePriceTierForm[]>([]);
+  const [draftSavedVisible, setDraftSavedVisible] = useState(false);
+  const [draftRestoreOffer, setDraftRestoreOffer] = useState<ProductDraftV1 | null>(null);
+
+  const draftSnapshotRef = useRef({
+    mode,
+    wizardStep,
+    formData,
+    productImages,
+    priceTiers,
+  });
+  draftSnapshotRef.current = { mode, wizardStep, formData, productImages, priceTiers };
 
   const handleModeChange = (newMode: 'retail' | 'wholesale') => {
     if (newMode === mode) return;
@@ -126,6 +154,7 @@ export default function AddProductPage() {
       quantity: '',
       moq: '',
     }));
+    setPriceTiers([]);
     setErrors(prev => ({
       ...prev,
       price: undefined,
@@ -185,10 +214,161 @@ export default function AddProductPage() {
   const categoryExamples = categorySlug ? getCategoryExamples(categorySlug) : null;
   const needsMaterialCare = categoryInfo?.required || categoryInfo?.recommended;
 
+  function getEffectiveCommissionPercent(): number | null {
+    const cat = getSelectedCategory();
+    if (!cat) return null;
+    if (mode === 'wholesale') {
+      const b2b = cat.commissionB2B;
+      if (b2b != null && !Number.isNaN(b2b)) return b2b;
+      return cat.commissionB2C ?? 15;
+    }
+    return cat.commissionB2C ?? 15;
+  }
+
+  function getEarningsPerUnitNaira(): string | null {
+    const pct = getEffectiveCommissionPercent();
+    const p = parseFloat(formData.price);
+    if (pct == null || !formData.price || Number.isNaN(p) || p <= 0) return null;
+    const earn = p * (1 - pct / 100);
+    return earn.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function stepImagesOk() {
+    return productImages.length > 0;
+  }
+
+  function stepBasicOk() {
+    const titleOk = formData.title.trim().length >= 3 && formData.title.trim().length <= 100;
+    const catOk = (formData.categoryIds?.length ?? 0) > 0;
+    if (!titleOk || !catOk) return false;
+    if (categorySlug) {
+      const catInfo = shouldShowMaterialCarePrompt(categorySlug);
+      if (catInfo.required) {
+        if (!formData.material?.trim() || !formData.careInfo?.trim()) return false;
+      }
+    }
+    if (mode === 'retail' && formData.keyFeatures?.length) {
+      const err = validateKeyFeatures(formData.keyFeatures);
+      if (err) return false;
+    }
+    return true;
+  }
+
+  function stepPricingOk() {
+    if (!formData.price || parseFloat(formData.price) <= 0) return false;
+    if (formData.quantity === '' || parseInt(formData.quantity, 10) < 0) return false;
+    if (mode === 'wholesale') {
+      if (!formData.moq || parseInt(formData.moq, 10) < 1) return false;
+      for (const t of priceTiers) {
+        const hasAny = !!(t.minQuantity || t.maxQuantity || t.unitPrice);
+        if (!hasAny) continue;
+        const min = parseInt(t.minQuantity, 10);
+        const max = parseInt(t.maxQuantity, 10);
+        const pr = parseFloat(t.unitPrice);
+        if (
+          !t.minQuantity ||
+          !t.maxQuantity ||
+          !t.unitPrice ||
+          Number.isNaN(min) ||
+          Number.isNaN(max) ||
+          min < 1 ||
+          max < min ||
+          Number.isNaN(pr) ||
+          pr <= 0
+        ) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  function persistDraftToStorage() {
+    if (typeof window === 'undefined') return;
+    const { mode: m, wizardStep: ws, formData: fd, productImages: imgs, priceTiers: tiers } =
+      draftSnapshotRef.current;
+    const hasContent =
+      imgs.length > 0 ||
+      fd.title.trim() !== '' ||
+      fd.description.trim() !== '' ||
+      (fd.keyFeatures && fd.keyFeatures.some((f) => f.trim() !== '')) ||
+      (fd.categoryIds?.length ?? 0) > 0 ||
+      fd.price !== '' ||
+      fd.quantity !== '' ||
+      (fd.material && fd.material.trim() !== '') ||
+      (fd.careInfo && fd.careInfo.trim() !== '') ||
+      (fd.moq && fd.moq !== '') ||
+      tiers.length > 0;
+    if (!hasContent) return;
+    try {
+      const payload: ProductDraftV1 = {
+        v: 1,
+        savedAt: new Date().toISOString(),
+        mode: m,
+        wizardStep: ws,
+        formData: fd,
+        productImages: imgs,
+        priceTiers: tiers,
+      };
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(payload));
+      setDraftSavedVisible(true);
+      window.setTimeout(() => setDraftSavedVisible(false), 2500);
+    } catch {
+      /* ignore quota */
+    }
+  }
+
+  function clearDraftStorage() {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function restoreDraft(d: ProductDraftV1) {
+    setMode(d.mode);
+    setWizardStep(d.wizardStep >= 1 && d.wizardStep <= 4 ? d.wizardStep : 1);
+    setFormData(d.formData);
+    setProductImages(d.productImages || []);
+    setPriceTiers(Array.isArray(d.priceTiers) ? d.priceTiers : []);
+    setErrors({});
+    setDraftRestoreOffer(null);
+    toast.success('Draft restored');
+  }
+
   // 4. Effects
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as ProductDraftV1;
+      if (parsed?.v !== 1 || !parsed.formData) return;
+      const hasContent =
+        (parsed.productImages?.length ?? 0) > 0 ||
+        (parsed.formData.title?.trim?.() ?? '') !== '' ||
+        (parsed.formData.description?.trim?.() ?? '') !== '' ||
+        (parsed.formData.categoryIds?.length ?? 0) > 0 ||
+        (parsed.formData.price ?? '') !== '';
+      if (hasContent) setDraftRestoreOffer(parsed);
+    } catch {
+      /* ignore */
+    }
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const id = window.setInterval(() => {
+      persistDraftToStorage();
+    }, 30_000);
+    return () => window.clearInterval(id);
+  }, [mounted]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -445,6 +625,7 @@ export default function AddProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (wizardStep !== 4) return;
 
     // Validate all fields
     const newErrors: Partial<Record<keyof FormData, string>> = {};
@@ -518,11 +699,25 @@ export default function AddProductPage() {
         productData.moq = parseInt(formData.moq, 10);
       }
 
+      if (mode === 'wholesale' && priceTiers.length > 0) {
+        const tiersPayload = priceTiers
+          .filter((t) => t.minQuantity && t.maxQuantity && t.unitPrice)
+          .map((t) => ({
+            minQuantity: parseInt(t.minQuantity, 10),
+            maxQuantity: parseInt(t.maxQuantity, 10),
+            priceKobo: Math.round(parseFloat(t.unitPrice) * 100),
+          }));
+        if (tiersPayload.length > 0) {
+          productData.priceTiers = tiersPayload;
+        }
+      }
+
       console.log('🚀 SUBMITTING PRODUCT DATA - Images:', productData.images);
 
       // Use apiClient which handles token refresh automatically
       await apiClient.post('/products', productData);
 
+      clearDraftStorage();
       toast.success('Product created successfully!');
       router.push('/seller/products');
     } catch (error: any) {
@@ -534,18 +729,7 @@ export default function AddProductPage() {
     }
   };
 
-  const isFormValid = () => {
-    const base = productImages.length > 0 &&
-      formData.title.trim().length >= 10 &&
-      formData.title.trim().length <= 100 &&
-      formData.categoryIds?.length > 0 &&
-      formData.price &&
-      parseFloat(formData.price) > 0 &&
-      formData.quantity !== '' &&
-      parseInt(formData.quantity, 10) >= 0;
-    if (mode === 'retail') return !!base;
-    return !!base && !!formData.moq && parseInt(formData.moq, 10) >= 1;
-  };
+  const isFormValid = () => stepImagesOk() && stepBasicOk() && stepPricingOk();
 
   const hasFormChanges = () => {
     return (
@@ -558,17 +742,37 @@ export default function AddProductPage() {
       formData.quantity !== '' ||
       (formData.material && formData.material.trim() !== '') ||
       (formData.careInfo && formData.careInfo.trim() !== '') ||
-      (formData.moq && formData.moq !== '')
+      (formData.moq && formData.moq !== '') ||
+      priceTiers.length > 0
     );
   };
 
-  const step1Complete = productImages.length > 0;
-  const step2Complete = formData.title.trim().length >= 10 && formData.title.trim().length <= 100 && (formData.categoryIds?.length ?? 0) > 0;
-  const step3Complete = mode === 'retail'
-    ? !!(formData.price && parseFloat(formData.price) > 0 && formData.quantity !== '' && parseInt(formData.quantity, 10) >= 0)
-    : !!(formData.price && parseFloat(formData.price) > 0 && formData.moq && parseInt(formData.moq, 10) >= 1 && formData.quantity !== '' && parseInt(formData.quantity, 10) >= 0);
-  const step4Complete = true; // Publish step — ready when steps 1–3 complete
-  const activeStep = step1Complete ? (step2Complete ? (step3Complete ? 4 : 3) : 2) : 1;
+  const goWizardBack = () => {
+    if (wizardStep > 1) setWizardStep((s) => (s - 1) as 1 | 2 | 3 | 4);
+  };
+
+  const goWizardNext = () => {
+    if (wizardStep === 1 && !stepImagesOk()) {
+      toast.error('Add at least one product image to continue');
+      return;
+    }
+    if (wizardStep === 2 && !stepBasicOk()) {
+      toast.error('Complete title, category, and required product details');
+      return;
+    }
+    if (wizardStep === 3 && !stepPricingOk()) {
+      toast.error('Fix pricing, stock, and tier rows before continuing');
+      return;
+    }
+    if (wizardStep < 4) setWizardStep((s) => (s + 1) as 1 | 2 | 3 | 4);
+  };
+
+  const stepperItems: { label: string; step: 1 | 2 | 3 | 4 }[] = [
+    { label: 'Images', step: 1 },
+    { label: 'Basic Info', step: 2 },
+    { label: 'Pricing', step: 3 },
+    { label: 'Publish', step: 4 },
+  ];
 
   if (authLoading || kycLoading || checkingLocation) {
     return (
@@ -770,45 +974,59 @@ export default function AddProductPage() {
       </Head>
       <SellerLayout>
         <div className="min-h-full pb-8 -m-3 sm:-m-4 lg:-m-6 xl:-m-8">
-          {/* Sticky Progress Bar */}
+          {/* Sticky stepper — Publish shows ✓ only on step 4 */}
           <div
-            className="sticky top-0 z-20 h-12 flex items-center px-4 sm:px-6 lg:px-8 border-b border-[#2A2A2A]"
-            style={{ backgroundColor: '#111111', height: '48px' }}
+            className="sticky top-0 z-20 flex flex-wrap items-center gap-y-2 px-4 sm:px-6 lg:px-8 py-2.5 border-b border-[#2A2A2A]"
+            style={{ backgroundColor: '#111111' }}
           >
-            <div className="flex items-center gap-0 w-full max-w-2xl">
-              {[
-                { label: 'Images', done: step1Complete, active: activeStep === 1 },
-                { label: 'Basic Info', done: step2Complete, active: activeStep === 2 },
-                { label: 'Pricing', done: step3Complete, active: activeStep === 3 },
-                { label: 'Publish', done: step4Complete, active: activeStep === 4 },
-              ].map((step, idx) => (
-                <div key={step.label} className="flex items-center flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div
-                      className={`flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0 ${step.done
-                        ? 'bg-green-500/20 text-green-500'
-                        : step.active
-                          ? 'bg-[#FF6B00]/20 text-[#FF6B00]'
-                          : 'bg-[#2A2A2A] text-[#6B6B6B]'
+            <div className="flex items-center gap-0 w-full max-w-3xl">
+              {stepperItems.map((item, idx) => {
+                const isPublish = item.step === 4;
+                const isActive = wizardStep === item.step;
+                const priorComplete = !isPublish && wizardStep > item.step;
+                const publishComplete = isPublish && wizardStep === 4;
+                const showCheck = priorComplete || publishComplete;
+                return (
+                  <div key={item.label} className="flex items-center flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div
+                        className={`flex items-center justify-center w-5 h-5 rounded-full shrink-0 ${
+                          showCheck
+                            ? 'bg-green-500/20 text-green-500'
+                            : isActive
+                              ? 'bg-[#F97316]/20 text-[#F97316]'
+                              : 'bg-[#2A2A2A] text-[#6B6B6B]'
                         }`}
-                    >
-                      {step.done ? <Check className="w-3 h-3" /> : <span className="w-1.5 h-1.5 rounded-full bg-current" />}
+                      >
+                        {showCheck ? (
+                          <Check className="w-3 h-3" />
+                        ) : (
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                        )}
+                      </div>
+                      <span
+                        className={`text-sm font-medium truncate ${
+                          showCheck
+                            ? 'text-[#6B6B6B]'
+                            : isActive
+                              ? 'text-[#F97316]'
+                              : 'text-[#6B6B6B]'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
                     </div>
-                    <span
-                      className={`text-sm font-medium truncate ${step.done ? 'text-[#6B6B6B]' : step.active ? 'text-[#FF6B00]' : 'text-[#6B6B6B]'
-                        }`}
-                    >
-                      {step.label}
-                    </span>
+                    {idx < stepperItems.length - 1 && (
+                      <div
+                        className="shrink-0 w-6 h-px mx-1"
+                        style={{
+                          backgroundColor: wizardStep > item.step ? '#22c55e' : '#2A2A2A',
+                        }}
+                      />
+                    )}
                   </div>
-                  {idx < 3 && (
-                    <div
-                      className="flex-shrink-0 w-6 h-px mx-1"
-                      style={{ backgroundColor: step.done ? '#22c55e' : '#2A2A2A' }}
-                    />
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -833,7 +1051,7 @@ export default function AddProductPage() {
                     type="button"
                     onClick={() => handleModeChange('retail')}
                     className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${mode === 'retail'
-                      ? 'bg-[#FF6B00] text-white'
+                      ? 'bg-[#F97316] text-white'
                       : 'text-[#A0A0A0] hover:text-white'
                     }`}
                   >
@@ -844,7 +1062,7 @@ export default function AddProductPage() {
                     type="button"
                     onClick={() => handleModeChange('wholesale')}
                     className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${mode === 'wholesale'
-                      ? 'bg-[#FF6B00] text-white'
+                      ? 'bg-[#F97316] text-white'
                       : 'text-[#A0A0A0] hover:text-white'
                     }`}
                   >
@@ -853,31 +1071,66 @@ export default function AddProductPage() {
                   </button>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-[#ff6600] to-[#cc5200] flex items-center justify-center">
-                  <Package className="w-6 h-6 text-white" />
+              <div className="flex flex-wrap items-center gap-3 justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-linear-to-br from-[#F97316] to-[#c2410c] flex items-center justify-center">
+                    <Package className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold text-white">Add New Product</h1>
+                    <p className="text-[#ffcc99] text-sm">Fill in the details to list your product</p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-white">Add New Product</h1>
-                  <p className="text-[#ffcc99] text-sm">Fill in the details to list your product</p>
-                </div>
+                {draftSavedVisible && (
+                  <p className="text-xs text-[#A0A0A0] tabular-nums" aria-live="polite">
+                    Draft saved
+                  </p>
+                )}
               </div>
             </div>
 
+            {draftRestoreOffer && (
+              <div className="mb-6 rounded-xl border border-[#F97316]/35 bg-[#F97316]/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <p className="text-sm text-[#ffcc99]">
+                  You have a saved draft from{' '}
+                  {new Date(draftRestoreOffer.savedAt).toLocaleString(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                  . Restore it?
+                </p>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setDraftRestoreOffer(null)}
+                    className="px-3 py-2 rounded-lg border border-[#2A2A2A] text-[#ffcc99] text-sm hover:bg-[#222]"
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => restoreDraft(draftRestoreOffer)}
+                    className="px-3 py-2 rounded-lg bg-[#F97316] text-black text-sm font-semibold hover:bg-[#ea580c]"
+                  >
+                    Restore draft
+                  </button>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit}>
               <div className="space-y-6">
-                {/* Form */}
                 <div className="space-y-4">
-                  {/* Product Images - 5-slot grid */}
-                  <div className="bg-[#1a1a1a] rounded-2xl border border-[#ff6600]/20 p-5">
+                  {wizardStep === 1 && (
+                  <div className="bg-[#1a1a1a] rounded-2xl border border-[#F97316]/20 p-5">
                     <div className="flex items-center gap-2 mb-5">
-                      <ImageIcon className="w-5 h-5 text-[#ff6600]" />
+                      <ImageIcon className="w-5 h-5 text-[#F97316]" />
                       <h2 className="text-white font-semibold">Product Images</h2>
                     </div>
 
                     <input
                       type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      accept="image/jpeg,image/jpg,image/png,image/webp,image/*"
                       multiple
                       onChange={handleImageUpload}
                       disabled={uploadingImages || productImages.length >= 5}
@@ -885,19 +1138,27 @@ export default function AddProductPage() {
                       id="image-upload"
                     />
 
-                    <div className="grid grid-cols-4 gap-3" style={{ gridTemplateRows: '240px 80px' }}>
-                      {/* Primary slot (1) - spans 2 rows, 1 col */}
+                    {(() => {
+                      const showSecondarySlots = productImages.length > 0;
+                      return (
+                    <div
+                      className={`grid gap-3 ${showSecondarySlots ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1'}`}
+                      style={showSecondarySlots ? { gridTemplateRows: 'minmax(200px,1fr) 88px' } : undefined}
+                    >
                       <div
-                        className="row-span-2 col-span-2 flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all cursor-pointer group min-h-[240px]"
+                        className={
+                          showSecondarySlots
+                            ? 'row-span-2 col-span-2 flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all cursor-pointer min-h-[200px]'
+                            : 'flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all cursor-pointer min-h-[240px]'
+                        }
                         style={{
-                          borderColor: productImages[0] ? 'transparent' : '#FF6B00',
-                          backgroundColor: productImages[0] ? 'transparent' : 'transparent',
+                          borderColor: productImages[0] ? 'transparent' : '#F97316',
                         }}
                       >
                         {productImages[0] ? (
                           <label
                             htmlFor="image-upload"
-                            className="relative w-full h-full rounded-xl overflow-hidden flex items-center justify-center cursor-pointer block group/img"
+                            className="relative w-full h-full min-h-[200px] rounded-xl overflow-hidden flex items-center justify-center cursor-pointer group/img"
                           >
                             <Image
                               src={productImages[0]}
@@ -915,9 +1176,9 @@ export default function AddProductPage() {
                             </button>
                           </label>
                         ) : (pendingImages.length > 0 && productImages.length === 0) ? (
-                          <div className="w-full h-full rounded-xl overflow-hidden border-2 border-[#FF6B00]/30 bg-[#1a1a1a] flex items-center justify-center">
+                          <div className="w-full h-full min-h-[200px] rounded-xl overflow-hidden border-2 border-[#F97316]/30 bg-[#1a1a1a] flex items-center justify-center">
                             <div className="flex flex-col items-center gap-2">
-                              <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin" />
+                              <Loader2 className="w-8 h-8 text-[#F97316] animate-spin" />
                               <span className="text-sm text-[#A0A0A0]">Uploading...</span>
                             </div>
                           </div>
@@ -926,37 +1187,36 @@ export default function AddProductPage() {
                             htmlFor="image-upload"
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
-                            className="w-full h-full flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer hover:bg-[#FF6B0008] hover:scale-[1.01] transition-all duration-200"
-                            style={{ borderColor: '#FF6B00' }}
+                            className="w-full h-full min-h-[220px] flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer hover:bg-[#F97316]/5 transition-all duration-200 px-4 text-center"
+                            style={{ borderColor: '#F97316' }}
                           >
-                            <Upload className="w-8 h-8 text-[#FF6B00] mb-2" style={{ width: 32, height: 32 }} />
-                            <span className="font-bold text-white text-sm">Drop main image here</span>
-                            <span className="text-xs mt-1" style={{ color: '#A0A0A0' }}>JPG, PNG, WebP · max 5MB</span>
+                            <Camera className="w-10 h-10 text-[#F97316] mb-3 shrink-0" />
+                            <span className="font-semibold text-white text-base">Tap to upload from camera or gallery</span>
+                            <span className="text-xs mt-2 text-[#A0A0A0]">JPG, PNG, WebP · up to 5 images · max 5MB each</span>
                           </label>
                         )}
                       </div>
 
-                      {/* Secondary slots 2, 3, 4, 5 - 80x80 each */}
-                      {[1, 2, 3, 4].map((idx) => (
+                      {showSecondarySlots &&
+                        [1, 2, 3, 4].map((idx) => (
                         <div
                           key={idx}
-                          className="w-full rounded-xl border-2 border-dashed flex items-center justify-center transition-all min-h-[80px]"
+                          className="w-full rounded-xl border-2 border-dashed flex items-center justify-center transition-all min-h-[88px]"
                           style={{
                             borderColor: productImages[idx] ? 'transparent' : '#2A2A2A',
-                            height: 80,
                           }}
                         >
                           {productImages[idx] ? (
                             <label
                               htmlFor="image-upload"
-                              className="relative w-full h-full rounded-xl overflow-hidden flex items-center justify-center cursor-pointer block group/img"
+                              className="relative w-full h-full rounded-xl overflow-hidden flex items-center justify-center cursor-pointer group/img min-h-[88px]"
                             >
                               <Image
                                 src={productImages[idx]}
                                 alt={`Product ${idx + 1}`}
                                 width={80}
                                 height={80}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover min-h-[88px]"
                               />
                               <button
                                 type="button"
@@ -967,23 +1227,25 @@ export default function AddProductPage() {
                               </button>
                             </label>
                           ) : (pendingImages[idx - productImages.length]) ? (
-                            <div className="w-full h-full rounded-xl overflow-hidden border border-[#2A2A2A] bg-[#1a1a1a] flex items-center justify-center">
-                              <Loader2 className="w-5 h-5 text-[#FF6B00] animate-spin" />
+                            <div className="w-full h-full rounded-xl overflow-hidden border border-[#2A2A2A] bg-[#1a1a1a] flex items-center justify-center min-h-[88px]">
+                              <Loader2 className="w-5 h-5 text-[#F97316] animate-spin" />
                             </div>
                           ) : (
                             <label
                               htmlFor="image-upload"
                               onDrop={handleDrop}
                               onDragOver={handleDragOver}
-                              className="w-full h-full flex items-center justify-center rounded-xl border-2 border-dashed cursor-pointer hover:bg-[#222] transition-colors"
+                              className="w-full h-full min-h-[88px] flex items-center justify-center rounded-xl border-2 border-dashed cursor-pointer hover:bg-[#222] transition-colors"
                               style={{ borderColor: '#2A2A2A' }}
                             >
-                              <span className="text-sm font-medium" style={{ color: '#A0A0A0' }}>{idx + 1}</span>
+                              <span className="text-sm font-medium text-[#A0A0A0]">{idx + 1}</span>
                             </label>
                           )}
                         </div>
-                      ))}
+                        ))}
                     </div>
+                      );
+                    })()}
 
                     {productImages.length === 0 && (
                       <p className="mt-3 text-red-400 text-xs flex items-center gap-1">
@@ -992,9 +1254,10 @@ export default function AddProductPage() {
                       </p>
                     )}
                   </div>
+                  )}
 
-                  {/* Basic Information */}
-                  <div className="bg-[#1a1a1a] rounded-2xl border border-[#ff6600]/20 p-5">
+                  {wizardStep === 2 && (
+                  <div className="bg-[#1a1a1a] rounded-2xl border border-[#F97316]/20 p-5">
                     <div className="flex items-center gap-2 mb-5">
                       <FileText className="w-5 h-5 text-[#ff6600]" />
                       <h2 className="text-white font-semibold">Basic Information</h2>
@@ -1037,13 +1300,20 @@ export default function AddProductPage() {
                             {errors.title}
                           </p>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateAIField('description')}
+                          disabled={!!aiGeneratingField || !formData.title.trim()}
+                          className="mt-3 w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#F97316]/15 border border-[#F97316]/40 text-[#F97316] text-sm font-medium hover:bg-[#F97316]/25 disabled:opacity-45 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                        >
+                          {aiGeneratingField === 'description' ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Wand2 className="w-4 h-4" />
+                          )}
+                          <span>✨ Generate with AI</span>
+                        </button>
                       </div>
-
-                      {/* AI hint: per-field buttons are next to each section below */}
-                      {/* <div className="flex items-center gap-2 text-[#ffcc99]/70 text-xs">
-                      <Wand2 className="w-4 h-4 text-[#ff6600] shrink-0" />
-                      <span>Use &quot;Generate with AI&quot; next to each field below to fill it. Enter a product title first.</span>
-                    </div> */}
 
                       {/* Key Features - Retail only */}
                       {mode === 'retail' && (
@@ -1052,46 +1322,58 @@ export default function AddProductPage() {
                             Key Features
                           </label>
                           <p className="text-[#ffcc99]/60 text-xs mb-3">
-                            Highlight 1-3 key features that appear in the product headline
+                            Add up to 3 short highlights (press <kbd className="px-1 py-0.5 rounded bg-[#2A2A2A] text-[#ffcc99] text-[10px] font-sans">Enter</kbd> to add)
                           </p>
 
                           <div className="space-y-3">
-                            <div className="flex flex-wrap gap-2">
-                              {(formData.keyFeatures || []).map((feature, index) =>
-                                feature.trim() ? (
-                                  <span
-                                    key={index}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#FF6B00]/30 text-[#FF6B00] text-sm font-medium bg-[#FF6B00]/5"
-                                  >
-                                    {feature}
-                                    <button type="button" onClick={() => handleRemoveKeyFeature(index)} className="p-0.5 rounded hover:bg-[#FF6B00]/20 transition-colors">
-                                      <X className="w-4 h-4" />
-                                    </button>
-                                  </span>
-                                ) : null
-                              )}
-                            </div>
-
-                            {(formData.keyFeatures || []).filter(f => f.trim()).length < 3 && (
-                              <>
+                            {(formData.keyFeatures || []).filter((f) => f.trim()).length < 3 && (
+                              <div className="flex flex-col sm:flex-row gap-2">
                                 <input
                                   type="text"
-                                  placeholder="Type a feature and click Add"
+                                  placeholder="Type a feature, press Enter to add"
                                   value={draftKeyFeature}
                                   onChange={(e) => setDraftKeyFeature(e.target.value)}
                                   maxLength={30}
-                                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddKeyFeature())}
-                                  className={`w-full px-4 py-2 rounded-lg bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#ff6600] mb-2 ${errors.keyFeatures ? 'border-red-500' : 'border-[#2A2A2A]'}`}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      handleAddKeyFeature();
+                                    }
+                                  }}
+                                  className={`flex-1 min-w-0 px-4 py-2.5 rounded-xl bg-black border text-white placeholder:text-[#ffcc99]/50 focus:outline-none focus:ring-2 focus:ring-[#F97316] ${errors.keyFeatures ? 'border-red-500' : 'border-[#2A2A2A]'}`}
                                 />
                                 <button
                                   type="button"
                                   onClick={handleAddKeyFeature}
-                                  className="w-full px-4 py-3 rounded-lg border border-[#2A2A2A] text-[#ffcc99] hover:bg-[#222] hover:border-[#444444] transition-all flex items-center justify-center gap-2"
+                                  className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#F97316]/40 text-[#F97316] text-sm font-medium hover:bg-[#F97316]/10 transition-colors"
                                 >
                                   <Plus className="w-4 h-4" />
-                                  <span className="text-sm">Add Key Feature</span>
+                                  Add
                                 </button>
-                              </>
+                              </div>
+                            )}
+
+                            {(formData.keyFeatures || []).some((f) => f.trim()) && (
+                              <div className="flex flex-wrap gap-2">
+                                {(formData.keyFeatures || []).map((feature, index) =>
+                                  feature.trim() ? (
+                                    <span
+                                      key={index}
+                                      className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-full border border-[#F97316]/35 text-[#F97316] text-sm font-medium bg-[#F97316]/10"
+                                    >
+                                      <span className="max-w-[220px] truncate">{feature}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveKeyFeature(index)}
+                                        className="p-1 rounded-full hover:bg-[#F97316]/20 transition-colors text-[#ffcc99]"
+                                        aria-label={`Remove ${feature}`}
+                                      >
+                                        <X className="w-3.5 h-3.5" />
+                                      </button>
+                                    </span>
+                                  ) : null
+                                )}
+                              </div>
                             )}
                           </div>
 
@@ -1106,25 +1388,9 @@ export default function AddProductPage() {
 
                       {/* Product Description */}
                       <div>
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <label className="block text-[#ffcc99] text-sm font-medium">
-                            Description
-                          </label>
-                          {/* AI Generate Button - Commented out (no API key yet) */}
-                          {/* <button
-                          type="button"
-                          onClick={() => handleGenerateAIField('description')}
-                          disabled={!!aiGeneratingField || !formData.title.trim()}
-                          className="px-3 py-1.5 rounded-lg bg-[#ff6600]/20 border border-[#ff6600]/40 text-[#ff6600] text-xs font-medium hover:bg-[#ff6600]/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
-                        >
-                          {aiGeneratingField === 'description' ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Wand2 className="w-3.5 h-3.5" />
-                          )}
-                          <span>Generate with AI</span>
-                        </button> */}
-                        </div>
+                        <label className="block text-[#ffcc99] text-sm font-medium mb-2">
+                          Description
+                        </label>
                         <textarea
                           name="description"
                           placeholder="Describe your product in detail. Include features, specifications, etc."
@@ -1278,10 +1544,13 @@ export default function AddProductPage() {
                           </div>
                         ) : (
                           <>
-                            <p className="text-[#ffcc99]/70 text-sm mb-2">Select one or more categories (up to 10). First selected is primary for commission.</p>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                            <p className="text-[#ffcc99]/70 text-sm mb-3">
+                              Select one or more categories (up to 10). First selected is primary for commission — platform commission is deducted from each sale; you receive the remainder after each order.
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
                               {categories.map((cat) => {
                                 const isSelected = formData.categoryIds.includes(cat.id);
+                                const isPrimary = formData.categoryIds[0] === cat.id;
                                 return (
                                   <button
                                     key={cat.id}
@@ -1297,17 +1566,29 @@ export default function AddProductPage() {
                                       });
                                       setErrors(prev => ({ ...prev, categoryIds: undefined }));
                                     }}
-                                    className={`relative p-4 rounded-xl border text-center transition-all flex items-center gap-2 justify-center ${isSelected
-                                      ? 'bg-[#FF6B0020] border-[#FF6B00] text-[#FF6B00]'
-                                      : (formData.categoryIds?.length ?? 0) >= 10
-                                        ? 'opacity-60 cursor-not-allowed bg-[#1A1A1A] border-[#2A2A2A] text-[#A0A0A0]'
-                                        : 'bg-[#1A1A1A] border-[#2A2A2A] text-[#A0A0A0] hover:bg-[#222] hover:border-[#444444]'
-                                      } ${errors.categoryIds ? 'border-red-500' : ''}`}
+                                    className={`relative rounded-xl border text-left transition-all flex items-center gap-3 px-3 py-3 min-h-[4.5rem] ${
+                                      isSelected
+                                        ? 'bg-[#F97316]/15 border-[#F97316] text-white'
+                                        : (formData.categoryIds?.length ?? 0) >= 10
+                                          ? 'opacity-60 cursor-not-allowed bg-[#1A1A1A] border-[#2A2A2A] text-[#A0A0A0]'
+                                          : 'bg-[#1A1A1A] border-[#2A2A2A] text-[#A0A0A0] hover:bg-[#222] hover:border-[#444444]'
+                                    } ${errors.categoryIds ? 'border-red-500' : ''}`}
                                     disabled={!formData.categoryIds.includes(cat.id) && (formData.categoryIds?.length ?? 0) >= 10}
                                   >
-                                    {isSelected && <Check className="w-4 h-4 flex-shrink-0" />}
-                                    {cat.icon && <span className="text-2xl block">{cat.icon}</span>}
-                                    <span className="text-sm font-medium block">{cat.name}</span>
+                                    <span className="text-2xl shrink-0 w-10 h-10 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center">
+                                      {cat.icon || <Package className="w-5 h-5 text-[#F97316]" />}
+                                    </span>
+                                    <span className="flex-1 min-w-0">
+                                      <span className="text-sm font-semibold text-white block truncate">{cat.name}</span>
+                                      {isPrimary && isSelected && (
+                                        <span className="mt-1 inline-block text-[10px] font-bold tracking-wide uppercase px-1.5 py-0.5 rounded bg-[#F97316] text-black">
+                                          Primary
+                                        </span>
+                                      )}
+                                    </span>
+                                    {isSelected && (
+                                      <Check className="w-4 h-4 shrink-0 text-[#F97316]" />
+                                    )}
                                   </button>
                                 );
                               })}
@@ -1323,32 +1604,55 @@ export default function AddProductPage() {
                                 {errors.categoryIds}
                               </p>
                             )}
-                            {formData.categoryIds?.length > 0 && getSelectedCategory() && (
-                              <div className="mt-4 p-4 rounded-xl border border-[#ff6600]/30 bg-[#ff6600]/5">
-                                <p className="text-[#ffcc99] text-sm font-medium mb-2">Commission for this category</p>
-                                <p className="text-white text-lg font-semibold">
-                                  B2C: {(getSelectedCategory() as Category & { commissionB2C?: number }).commissionB2C ?? 15}%
-                                  {(getSelectedCategory() as Category & { commissionB2B?: number | null }).commissionB2B != null && (
-                                    <span className="ml-2 text-gray-300">
-                                      | B2B: {(getSelectedCategory() as Category & { commissionB2B?: number | null }).commissionB2B}%
-                                    </span>
-                                  )}
-                                </p>
-                                <p className="mt-2 text-gray-400 text-xs">
-                                  Platform commission is deducted from each sale. You receive (100 - commission)% after each order.
-                                </p>
-                              </div>
+                            {getEffectiveCommissionPercent() != null && formData.categoryIds.length > 0 && getSelectedCategory() && (
+                              <p className="mt-3 text-sm text-[#ffcc99] leading-relaxed">
+                                {mode === 'retail' ? (
+                                  <>
+                                    Your commission for{' '}
+                                    <span className="text-white font-medium">{getSelectedCategory()!.name}</span>:{' '}
+                                    {getEffectiveCommissionPercent()}%.
+                                    {getEarningsPerUnitNaira() != null ? (
+                                      <>
+                                        {' '}
+                                        You earn{' '}
+                                        <span className="text-[#F97316] font-semibold tabular-nums">₦{getEarningsPerUnitNaira()}</span>{' '}
+                                        per unit at this price.
+                                      </>
+                                    ) : (
+                                      <span className="text-[#A0A0A0]">
+                                        {' '}
+                                        Enter your price on the next step to see earnings per unit at that price.
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="text-white font-medium">Your commission: {getEffectiveCommissionPercent()}%.</span>
+                                    {getEarningsPerUnitNaira() != null ? (
+                                      <>
+                                        {' '}
+                                        At this price, you earn{' '}
+                                        <span className="text-[#F97316] font-semibold tabular-nums">₦{getEarningsPerUnitNaira()}</span>{' '}
+                                        per unit.
+                                      </>
+                                    ) : (
+                                      <span className="text-[#A0A0A0]"> Enter your price on the next step to see earnings per unit.</span>
+                                    )}
+                                  </>
+                                )}
+                              </p>
                             )}
                           </>
                         )}
                       </div>
                     </div>
                   </div>
+                  )}
 
-                  {/* Pricing & Inventory */}
-                  <div className="bg-[#1a1a1a] rounded-2xl border border-[#ff6600]/20 p-5">
+                  {wizardStep === 3 && (
+                  <div className="bg-[#1a1a1a] rounded-2xl border border-[#F97316]/20 p-5">
                     <div className="flex items-center gap-2 mb-5">
-                      <DollarSign className="w-5 h-5 text-[#ff6600]" />
+                      <DollarSign className="w-5 h-5 text-[#F97316]" />
                       <h2 className="text-white font-semibold">Pricing & Inventory</h2>
                     </div>
 
@@ -1372,9 +1676,21 @@ export default function AddProductPage() {
                               }`}
                           />
                         </div>
-                        {mode === 'retail' && (
-                          <p className="mt-1 text-[#A0A0A0] text-xs">
-                            Platform commission: 8–15% depending on category
+                        {mode === 'retail' && getSelectedCategory() && getEffectiveCommissionPercent() != null && (
+                          <p className="mt-2 text-xs text-[#ffcc99] leading-relaxed">
+                            Your commission for{' '}
+                            <span className="text-white font-medium">{getSelectedCategory()!.name}</span>:{' '}
+                            {getEffectiveCommissionPercent()}%.
+                            {getEarningsPerUnitNaira() != null ? (
+                              <>
+                                {' '}
+                                You earn{' '}
+                                <span className="text-[#F97316] font-semibold tabular-nums">₦{getEarningsPerUnitNaira()}</span>{' '}
+                                per unit at this price.
+                              </>
+                            ) : (
+                              <span className="text-[#A0A0A0]"> Enter a valid unit price to see earnings.</span>
+                            )}
                           </p>
                         )}
                         {errors.price && (
@@ -1382,6 +1698,79 @@ export default function AddProductPage() {
                             <AlertCircle className="w-3 h-3" />
                             {errors.price}
                           </p>
+                        )}
+
+                        {mode === 'wholesale' && (
+                          <div className="mt-4 pt-4 border-t border-[#2A2A2A] space-y-3">
+                            <p className="text-[#ffcc99] text-sm font-medium">Bulk pricing tiers (optional)</p>
+                            <p className="text-[#ffcc99]/60 text-xs">
+                              Define unit prices by quantity range (e.g. 1–10 units at one price, 11–50 at another). Use a high max (e.g. 999999) for &quot;and above&quot;.
+                            </p>
+                            {priceTiers.map((tier, idx) => (
+                              <div key={idx} className="flex flex-wrap items-center gap-2">
+                                <input
+                                  type="number"
+                                  min={1}
+                                  placeholder="Min qty"
+                                  value={tier.minQuantity}
+                                  onChange={(e) => {
+                                    const next = [...priceTiers];
+                                    next[idx] = { ...next[idx], minQuantity: e.target.value };
+                                    setPriceTiers(next);
+                                  }}
+                                  className="w-24 px-2 py-2 rounded-lg bg-black border border-[#F97316]/30 text-white text-sm"
+                                />
+                                <span className="text-[#ffcc99]">–</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  placeholder="Max qty"
+                                  value={tier.maxQuantity}
+                                  onChange={(e) => {
+                                    const next = [...priceTiers];
+                                    next[idx] = { ...next[idx], maxQuantity: e.target.value };
+                                    setPriceTiers(next);
+                                  }}
+                                  className="w-28 px-2 py-2 rounded-lg bg-black border border-[#F97316]/30 text-white text-sm"
+                                />
+                                <span className="text-[#ffcc99] text-sm">₦ / unit</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min={0}
+                                  placeholder="0.00"
+                                  value={tier.unitPrice}
+                                  onChange={(e) => {
+                                    const next = [...priceTiers];
+                                    next[idx] = { ...next[idx], unitPrice: e.target.value };
+                                    setPriceTiers(next);
+                                  }}
+                                  className="flex-1 min-w-[100px] px-2 py-2 rounded-lg bg-black border border-[#F97316]/30 text-white text-sm"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setPriceTiers((prev) => prev.filter((_, i) => i !== idx))}
+                                  className="p-2 text-red-400 hover:bg-red-500/15 rounded-lg"
+                                  aria-label="Remove tier"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPriceTiers((prev) => [
+                                  ...prev,
+                                  { minQuantity: '', maxQuantity: '', unitPrice: '' },
+                                ])
+                              }
+                              className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-dashed border-[#F97316]/50 text-[#F97316] text-sm font-medium hover:bg-[#F97316]/10 inline-flex items-center justify-center gap-2"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Add Price Tier
+                            </button>
+                          </div>
                         )}
                       </div>
 
@@ -1455,25 +1844,116 @@ export default function AddProductPage() {
                       </div>
                     </div>
 
-                    {/* Estimated Earnings - Retail only */}
-                    {mode === 'retail' && formData.price && parseFloat(formData.price) > 0 && (
-                      <div className="mt-4 p-4 bg-[#FF6B00]/10 rounded-xl border border-[#FF6B00]/20">
-                        <p className="text-[#ffcc99] text-xs mb-1">Estimated earnings per sale</p>
-                        <p className="text-white text-xl font-bold">
-                          You&apos;ll earn approx ₦
-                          {(() => {
-                            const price = parseFloat(formData.price) || 0;
-                            const commission = (getSelectedCategory() as Category & { commissionB2C?: number })?.commissionB2C ?? 12;
-                            const rate = 1 - commission / 100;
-                            return (price * rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                          })()}
-                          {' '}per sale
+                    {getEffectiveCommissionPercent() != null && formData.categoryIds.length > 0 && getSelectedCategory() && (
+                      <div className="mt-4 p-3 rounded-xl border border-[#F97316]/25 bg-[#F97316]/5">
+                        <p className="text-sm text-[#ffcc99] leading-relaxed">
+                          {mode === 'retail' ? (
+                            <>
+                              Your commission for{' '}
+                              <span className="text-white font-medium">{getSelectedCategory()!.name}</span>:{' '}
+                              {getEffectiveCommissionPercent()}%.
+                              {getEarningsPerUnitNaira() != null ? (
+                                <>
+                                  {' '}
+                                  You earn{' '}
+                                  <span className="text-[#F97316] font-semibold tabular-nums">₦{getEarningsPerUnitNaira()}</span>{' '}
+                                  per unit at this price.
+                                </>
+                              ) : (
+                                <span className="text-[#A0A0A0]"> Enter a valid unit price to see earnings.</span>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-white font-medium">Your commission: {getEffectiveCommissionPercent()}%.</span>
+                              {getEarningsPerUnitNaira() != null ? (
+                                <>
+                                  {' '}
+                                  At this price, you earn{' '}
+                                  <span className="text-[#F97316] font-semibold tabular-nums">₦{getEarningsPerUnitNaira()}</span>{' '}
+                                  per unit.
+                                </>
+                              ) : (
+                                <span className="text-[#A0A0A0]"> Enter a valid unit price to see your earnings per unit.</span>
+                              )}
+                            </>
+                          )}
                         </p>
                       </div>
                     )}
                   </div>
+                  )}
 
-                  {/* Action Buttons */}
+                  {wizardStep === 4 && (
+                    <div className="bg-[#1a1a1a] rounded-2xl border border-[#F97316]/20 p-5 space-y-4">
+                      <h2 className="text-white font-semibold text-lg">Review & publish</h2>
+                      <p className="text-[#ffcc99]/80 text-sm">
+                        Confirm your listing details before it goes live on Carryofy{mode === 'wholesale' ? ' for wholesale buyers' : ''}.
+                      </p>
+                      <ul className="space-y-2 text-sm text-[#ffcc99]">
+                        <li>
+                          <span className="text-[#A0A0A0]">Images:</span>{' '}
+                          <span className="text-white">{productImages.length} uploaded</span>
+                        </li>
+                        <li>
+                          <span className="text-[#A0A0A0]">Title:</span>{' '}
+                          <span className="text-white">{formData.title || '—'}</span>
+                        </li>
+                        <li>
+                          <span className="text-[#A0A0A0]">Primary category:</span>{' '}
+                          <span className="text-white">{getSelectedCategory()?.name ?? '—'}</span>
+                        </li>
+                        <li>
+                          <span className="text-[#A0A0A0]">Price:</span>{' '}
+                          <span className="text-white tabular-nums">
+                            ₦{formData.price ? parseFloat(formData.price).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                          </span>
+                          {mode === 'wholesale' && formData.moq && (
+                            <span className="text-[#A0A0A0]"> · MOQ {formData.moq}</span>
+                          )}
+                        </li>
+                        <li>
+                          <span className="text-[#A0A0A0]">Stock:</span>{' '}
+                          <span className="text-white">{formData.quantity || '—'}</span>
+                        </li>
+                        {mode === 'wholesale' && priceTiers.filter((t) => t.minQuantity && t.maxQuantity && t.unitPrice).length > 0 && (
+                          <li>
+                            <span className="text-[#A0A0A0]">Price tiers:</span>{' '}
+                            <span className="text-white">
+                              {priceTiers.filter((t) => t.minQuantity && t.maxQuantity && t.unitPrice).length} configured
+                            </span>
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2 items-stretch sm:items-center">
+                    {wizardStep > 1 && (
+                      <button
+                        type="button"
+                        onClick={goWizardBack}
+                        disabled={loading}
+                        className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-[#1a1a1a] border border-[#2A2A2A] text-[#ffcc99] font-medium hover:bg-[#222] inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Back
+                      </button>
+                    )}
+                    {wizardStep < 4 && (
+                      <button
+                        type="button"
+                        onClick={goWizardNext}
+                        disabled={loading}
+                        className="flex-1 sm:ml-auto px-6 py-3 rounded-xl bg-[#F97316] text-black font-semibold hover:bg-[#ea580c] inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {wizardStep === 4 && (
                   <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
                     <button
                       type="button"
@@ -1490,7 +1970,7 @@ export default function AddProductPage() {
                       <button
                         type="submit"
                         disabled={loading || !isFormValid()}
-                        className="w-full h-[52px] rounded-xl bg-gradient-to-r from-[#FF6B00] to-[#cc5200] text-white font-bold hover:from-[#cc5200] hover:to-[#FF6B00] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="w-full h-[52px] rounded-xl bg-gradient-to-r from-[#F97316] to-[#c2410c] text-white font-bold hover:from-[#ea580c] hover:to-[#F97316] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {loading ? (
                           <>
@@ -1511,6 +1991,7 @@ export default function AddProductPage() {
                       )}
                     </div>
                   </div>
+                  )}
 
                   {/* Cancel confirmation dialog */}
                   {showCancelConfirm && (
@@ -1528,7 +2009,11 @@ export default function AddProductPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => { setShowCancelConfirm(false); router.push('/seller/products'); }}
+                            onClick={() => {
+                              setShowCancelConfirm(false);
+                              clearDraftStorage();
+                              router.push('/seller/products');
+                            }}
                             className="flex-1 px-4 py-3 rounded-lg bg-red-600 text-white hover:bg-red-500 font-medium"
                           >
                             Discard

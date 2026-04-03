@@ -1321,3 +1321,33 @@ export async function fetchBroadcastProducts(
   const { data } = await apiClient.get('/admin/broadcast/products', { params });
   return normalizeResponse<BroadcastProductOption[]>(data) ?? [];
 }
+
+export interface AdminAuditLogRow {
+  id: string;
+  action: string;
+  performedBy: string;
+  performedByName?: string;
+  targetType: string;
+  targetId: string;
+  targetName?: string;
+  timestamp: string;
+}
+
+export async function fetchAdminAuditLogs(params: {
+  limit?: number;
+  offset?: number;
+  startDate?: string;
+  endDate?: string;
+  performedBy?: string;
+  action?: string;
+}): Promise<AdminAuditLogRow[]> {
+  const search = new URLSearchParams();
+  if (params.limit != null) search.set('limit', String(params.limit));
+  if (params.offset != null) search.set('offset', String(params.offset));
+  if (params.startDate) search.set('startDate', params.startDate);
+  if (params.endDate) search.set('endDate', params.endDate);
+  if (params.performedBy?.trim()) search.set('performedBy', params.performedBy.trim());
+  if (params.action?.trim()) search.set('action', params.action.trim());
+  const { data } = await apiClient.get(`/admin/audit-logs?${search.toString()}`);
+  return normalizeResponse<AdminAuditLogRow[]>(data) ?? [];
+}

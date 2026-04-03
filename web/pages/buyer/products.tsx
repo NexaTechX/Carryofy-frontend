@@ -77,6 +77,9 @@ export default function ProductsPage() {
   const [moqMax, setMoqMax] = useState<string>('');
   const [priceLow, setPriceLow] = useState(PRICE_MIN);
   const [priceHigh, setPriceHigh] = useState(PRICE_MAX);
+  const [vendors, setVendors] = useState<{ id: string; businessName: string }[]>([]);
+  const [vendorSearch, setVendorSearch] = useState('');
+  const [selectedSellerId, setSelectedSellerId] = useState('');
 
   const b2bOnly = purchaseType === 'B2B';
 
@@ -98,17 +101,50 @@ export default function ProductsPage() {
 
   useEffect(() => {
     if (mounted) {
-      const { category, search, page, b2bOnly: b2bParam } = router.query;
+      const { category, search, page, b2bOnly: b2bParam, sellerId } = router.query;
       if (category && typeof category === 'string') setSelectedCategory(category);
       if (search && typeof search === 'string') setSearchQuery(search);
       if (page && typeof page === 'string') setCurrentPage(parseInt(page));
       if (b2bParam === 'true' || b2bParam === '1') setPurchaseType('B2B');
+      if (sellerId && typeof sellerId === 'string') setSelectedSellerId(sellerId);
+      else if (!sellerId) setSelectedSellerId('');
     }
   }, [mounted, router.query]);
 
   useEffect(() => {
+    if (!mounted || !tokenManager.isAuthenticated()) return;
+    let cancelled = false;
+    apiClient
+      .get('/sellers/vendors-for-shop')
+      .then((res) => {
+        if (cancelled) return;
+        const raw = (res.data as { data?: unknown })?.data ?? res.data;
+        const list = Array.isArray(raw) ? raw : [];
+        setVendors(list as { id: string; businessName: string }[]);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted]);
+
+  useEffect(() => {
     if (mounted) fetchProducts();
-  }, [mounted, selectedCategory, sortBy, currentPage, searchQuery, b2bOnly, inStockOnly, verifiedSellersOnly, moqMin, moqMax, priceLow, priceHigh]);
+  }, [
+    mounted,
+    selectedCategory,
+    sortBy,
+    currentPage,
+    searchQuery,
+    b2bOnly,
+    inStockOnly,
+    verifiedSellersOnly,
+    moqMin,
+    moqMax,
+    priceLow,
+    priceHigh,
+    selectedSellerId,
+  ]);
 
   useEffect(() => {
     if (showFiltersMobile) {
@@ -152,6 +188,7 @@ export default function ProductsPage() {
         const n = parseInt(moqMax, 10);
         if (!isNaN(n) && n >= 0) params.append('moqMax', n.toString());
       }
+      if (selectedSellerId) params.append('sellerId', selectedSellerId);
 
       const response = await apiClient.get<ProductsResponse>(`/products?${params.toString()}`);
       const responseData = (response.data as any).data || response.data;
@@ -184,6 +221,12 @@ export default function ProductsPage() {
 
   const handleApplyFilters = () => {
     setCurrentPage(1);
+    const q: Record<string, string> = {};
+    if (selectedCategory) q.category = selectedCategory;
+    if (searchQuery.trim()) q.search = searchQuery.trim();
+    if (b2bOnly) q.b2bOnly = 'true';
+    if (selectedSellerId) q.sellerId = selectedSellerId;
+    router.replace({ pathname: '/buyer/products', query: q }, undefined, { shallow: true });
     fetchProducts();
     setShowFiltersMobile(false);
   };
@@ -200,7 +243,9 @@ export default function ProductsPage() {
     setPriceLow(PRICE_MIN);
     setPriceHigh(PRICE_MAX);
     setCurrentPage(1);
-    router.push('/buyer/products', undefined, { shallow: true });
+    setSelectedSellerId('');
+    setVendorSearch('');
+    router.replace({ pathname: '/buyer/products' }, undefined, { shallow: true });
     setTimeout(() => fetchProducts(), 0);
   };
 
@@ -255,6 +300,11 @@ export default function ProductsPage() {
           <div className="hidden lg:flex lg:flex-col lg:w-[260px] lg:shrink-0 lg:h-full lg:min-h-0 lg:overflow-hidden">
             <ShopFiltersPanel
               categories={categories}
+              vendors={vendors}
+              vendorSearch={vendorSearch}
+              onVendorSearchChange={setVendorSearch}
+              selectedSellerId={selectedSellerId}
+              onSellerIdChange={(id) => { setSelectedSellerId(id); setCurrentPage(1); }}
               selectedCategory={selectedCategory}
               onCategoryChange={(slug) => { setSelectedCategory(slug); setCurrentPage(1); }}
               purchaseType={purchaseType}
@@ -293,6 +343,11 @@ export default function ProductsPage() {
               >
                 <ShopFiltersPanel
                   categories={categories}
+                  vendors={vendors}
+                  vendorSearch={vendorSearch}
+                  onVendorSearchChange={setVendorSearch}
+                  selectedSellerId={selectedSellerId}
+                  onSellerIdChange={(id) => { setSelectedSellerId(id); setCurrentPage(1); }}
                   selectedCategory={selectedCategory}
                   onCategoryChange={(slug) => { setSelectedCategory(slug); setCurrentPage(1); }}
                   purchaseType={purchaseType}

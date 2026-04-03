@@ -59,12 +59,15 @@ interface Order {
   updatedAt: string;
 }
 
+// Align with Prisma OrderStatus
 const STATUS_TABS = [
   { value: 'all', label: 'All' },
+  { value: 'PENDING_PAYMENT', label: 'Pending payment' },
+  { value: 'PAID', label: 'Paid' },
   { value: 'PROCESSING', label: 'Processing' },
-  { value: 'SHIPPED', label: 'Shipped' },
+  { value: 'OUT_FOR_DELIVERY', label: 'Out for delivery' },
   { value: 'DELIVERED', label: 'Delivered' },
-  { value: 'CANCELLED', label: 'Cancelled' },
+  { value: 'CANCELED', label: 'Canceled' },
 ];
 
 const DATE_RANGE_OPTIONS = [
@@ -75,12 +78,15 @@ const DATE_RANGE_OPTIONS = [
 ];
 
 const STATUS_STYLES: Record<string, string> = {
-  PROCESSING: 'bg-amber-500/20 text-amber-400 border-amber-400/30',
-  SHIPPED: 'bg-blue-500/20 text-blue-400 border-blue-400/30',
-  DELIVERED: 'bg-green-500/20 text-green-400 border-green-400/30',
-  CANCELLED: 'bg-red-500/20 text-red-400 border-red-400/30',
   PENDING_PAYMENT: 'bg-amber-500/20 text-amber-400 border-amber-400/30',
+  PAYMENT_PENDING_VERIFICATION: 'bg-amber-500/20 text-amber-400 border-amber-400/30',
   PAID: 'bg-blue-500/20 text-blue-400 border-blue-400/30',
+  PROCESSING: 'bg-amber-500/20 text-amber-400 border-amber-400/30',
+  OUT_FOR_DELIVERY: 'bg-blue-500/20 text-blue-400 border-blue-400/30',
+  DELIVERED: 'bg-green-500/20 text-green-400 border-green-400/30',
+  CANCELED: 'bg-red-500/20 text-red-400 border-red-400/30',
+  FAILED_PAYMENT: 'bg-red-500/20 text-red-400 border-red-400/30',
+  REFUNDED: 'bg-gray-500/20 text-gray-400 border-gray-400/30',
 };
 
 const ITEMS_PER_PAGE = 6;
@@ -111,6 +117,7 @@ export default function OrdersPage() {
   const [showCount, setShowCount] = useState(ITEMS_PER_PAGE);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
   const confirmation = useConfirmation();
 
   const handleCancelOrder = async (orderId: string) => {
@@ -138,6 +145,44 @@ export default function OrdersPage() {
 
   const canCancelOrder = (status: string) =>
     ['PENDING_PAYMENT', 'PAID', 'PROCESSING'].includes(status);
+
+  const handleReorder = async (order: Order) => {
+    setReorderingId(order.id);
+    const skipped: string[] = [];
+    try {
+      for (const item of order.items) {
+        try {
+          await apiClient.post('/cart/items', {
+            productId: item.productId,
+            quantity: item.quantity,
+          });
+        } catch (err: any) {
+          const msg = err.response?.data?.message || '';
+          if (err.response?.status === 400 && /stock|quantity|insufficient|available/i.test(String(msg))) {
+            skipped.push(item.product.title);
+            continue;
+          }
+          throw err;
+        }
+      }
+      const added = order.items.length - skipped.length;
+      if (added === 0) {
+        showErrorToast(
+          skipped.length
+            ? `Could not add items (out of stock): ${skipped.join(', ')}`
+            : 'Could not add items to cart.',
+        );
+        return;
+      }
+      let msg = `Items added to cart (${added}). Open /buyer/cart to review.`;
+      if (skipped.length) msg += ` Skipped (unavailable): ${skipped.join(', ')}.`;
+      showSuccessToast(msg, { duration: 6000 });
+    } catch (err: any) {
+      showErrorToast(err.response?.data?.message || 'Failed to add items to cart');
+    } finally {
+      setReorderingId(null);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -436,7 +481,7 @@ export default function OrdersPage() {
                                 <Eye className="w-4 h-4" />
                                 View Details
                               </Link>
-                              {(order.status === 'SHIPPED' || order.status === 'PROCESSING') && (
+                              {order.status === 'OUT_FOR_DELIVERY' && (
                                 <Link
                                   href={`/buyer/track?orderId=${order.id}`}
                                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#FF6B00] text-black text-sm font-semibold rounded-lg hover:bg-[#ff8533] transition"
@@ -445,13 +490,19 @@ export default function OrdersPage() {
                                   Track
                                 </Link>
                               )}
-                              <Link
-                                href={`/buyer/products/${primaryItem.product.id}`}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[#ffcc99] text-sm font-medium border border-[#2a2a2a] rounded-lg hover:border-[#FF6B00]/40 transition"
+                              <button
+                                type="button"
+                                disabled={reorderingId === order.id}
+                                onClick={() => handleReorder(order)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[#ffcc99] text-sm font-medium border border-[#2a2a2a] rounded-lg hover:border-[#FF6B00]/40 transition disabled:opacity-50"
                               >
-                                <RotateCcw className="w-4 h-4" />
+                                {reorderingId === order.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <RotateCcw className="w-4 h-4" />
+                                )}
                                 Reorder
-                              </Link>
+                              </button>
                             </div>
                           </div>
                         </div>

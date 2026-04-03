@@ -127,27 +127,18 @@ function ProductCard({
 
   const productHref = href || `/buyer/products/${product.id}`;
 
-  // Rule: MOQ or tiered pricing or quote-only → Request Quote; else Add to Cart
-  const needsQuote =
-    product.requestQuoteOnly === true ||
-    (product.priceTiers != null && product.priceTiers.length > 0) ||
-    (product.moq != null && product.moq > 1);
+  // Only show Request Quote when the seller explicitly marks it as quote-only
+  const needsQuote = product.requestQuoteOnly === true;
 
-  // Price display: never show suspiciously low fixed price for bulk/quote products
-  const LOW_PRICE_THRESHOLD_KOBO = 100; // ₦1
+  const hasPriceTiers = product.priceTiers != null && product.priceTiers.length > 0;
+  const isWholesale = product.sellingMode === 'B2B_ONLY' || product.sellingMode === 'B2C_AND_B2B';
+
   const getPriceDisplay = (): string => {
     if (product.requestQuoteOnly) return 'Get a custom price';
-    if (product.priceTiers && product.priceTiers.length > 0) {
-      const sorted = [...product.priceTiers].sort((a, b) => a.minQuantity - b.minQuantity);
+    if (hasPriceTiers) {
+      const sorted = [...product.priceTiers!].sort((a, b) => a.minQuantity - b.minQuantity);
       const lowest = sorted[0];
       return `From ${formatPrice(lowest.priceKobo)}`;
-    }
-    if (
-      product.moq != null &&
-      product.moq > 1 &&
-      product.price < LOW_PRICE_THRESHOLD_KOBO
-    ) {
-      return 'Get a custom price';
     }
     return formatPrice(product.price);
   };
@@ -318,7 +309,7 @@ function ProductCard({
               </span>
             )}
             
-            {/* Retail-friendly → Add to Cart; Bulk/MOQ/tiered/quote → Request Quote */}
+            {/* Add to Cart by default; only show Get a Quote when requestQuoteOnly is true */}
             {product.quantity > 0 && (
               needsQuote ? (
                 <Link

@@ -51,20 +51,18 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
     return `₦${(priceInKobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const needsQuote =
-    product.requestQuoteOnly === true ||
-    (product.priceTiers != null && product.priceTiers.length > 0) ||
-    (product.moq != null && product.moq > 1);
+  // Only show Request Quote when the seller explicitly marks it as quote-only
+  const needsQuote = product.requestQuoteOnly === true;
+
+  const hasPriceTiers = product.priceTiers != null && product.priceTiers.length > 0;
+  const isWholesale = product.sellingMode === 'B2B_ONLY' || product.sellingMode === 'B2C_AND_B2B';
 
   const getPriceDisplay = (): string => {
     if (product.requestQuoteOnly) return 'Price on request';
-    if (product.priceTiers && product.priceTiers.length > 0) {
-      const sorted = [...product.priceTiers].sort((a, b) => a.minQuantity - b.minQuantity);
+    if (hasPriceTiers) {
+      const sorted = [...product.priceTiers!].sort((a, b) => a.minQuantity - b.minQuantity);
       const lowest = sorted[0];
       return `From ${formatPrice(lowest.priceKobo)}`;
-    }
-    if (product.moq != null && product.moq > 1 && product.price < 100) {
-      return 'Price on request';
     }
     return formatPrice(product.price);
   };
@@ -95,7 +93,7 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
       return;
     }
     if (product.quantity === 0) return;
-    const qty = needsQuote && product.moq ? product.moq : 1;
+    const qty = product.moq && product.moq > 1 ? product.moq : 1;
     try {
       setIsAddingToCart(true);
       await addToCart(product.id, qty);
@@ -154,7 +152,7 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
           )}
         </div>
 
-        {/* Info */}
+          {/* Info */}
         <div className="p-4 flex-1 flex flex-col">
           <h3 className="text-white font-semibold text-sm line-clamp-2 mb-2 group-hover:text-[#FF6B00] transition-colors min-h-[2.5rem]">
             {product.title}
@@ -180,20 +178,36 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
             )}
           </div>
 
-          <p className="text-[#FF6B00] font-bold text-lg mb-2">{priceDisplay}</p>
-
-          {product.moq != null && product.moq > 0 && (
-            <span className="inline-flex self-start px-2 py-0.5 bg-[#FF6B00]/20 text-[#FF6B00] text-[10px] font-medium rounded mb-2">
-              Min. {product.moq} units
-            </span>
+          {/* Wholesale details */}
+          {isWholesale && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              <span className="px-2 py-0.5 bg-[#FF6B00]/15 text-[#FF6B00] text-[10px] font-bold rounded">
+                {product.sellingMode === 'B2B_ONLY' ? 'Wholesale' : 'Retail & Wholesale'}
+              </span>
+              {hasPriceTiers && (
+                <span className="px-2 py-0.5 bg-green-500/15 text-green-400 text-[10px] font-medium rounded">
+                  Bulk pricing
+                </span>
+              )}
+            </div>
           )}
 
-          {product.quantity > 0 && (
-            <span className="flex items-center gap-1 text-green-400 text-xs mb-3">
-              <span className="w-2 h-2 bg-green-400 rounded-full" />
-              In Stock
-            </span>
-          )}
+          <p className="text-[#FF6B00] font-bold text-lg mb-1">{priceDisplay}</p>
+
+          {/* MOQ + stock row */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            {product.moq != null && product.moq > 0 && (
+              <span className="inline-flex px-2 py-0.5 bg-[#FF6B00]/20 text-[#FF6B00] text-[10px] font-medium rounded">
+                Min. {product.moq} units
+              </span>
+            )}
+            {product.quantity > 0 && (
+              <span className="flex items-center gap-1 text-green-400 text-xs">
+                <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+                In Stock
+              </span>
+            )}
+          </div>
 
           <div className="mt-auto flex gap-2">
             {product.quantity > 0 && (
@@ -204,7 +218,7 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
                     onClick={(e) => e.stopPropagation()}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-transparent border border-[#FF6B00] text-[#FF6B00] rounded-lg text-sm font-semibold hover:bg-[#FF6B00]/10 transition-colors"
                   >
-                    Request Quote
+                    Get a Quote
                   </Link>
                 ) : (
                   <button

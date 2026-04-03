@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -32,6 +32,7 @@ import { ProductSchema, BreadcrumbSchema } from '../../../components/seo/JsonLd'
 import { addToWishlist, removeFromWishlist, checkWishlist } from '../../../lib/api/wishlist';
 import { showSuccessToast, showErrorToast } from '../../../lib/ui/toast';
 import ShareButton from '../../../components/products/ShareButton';
+import ProductReviewModal from '../../../components/products/ProductReviewModal';
 import RelatedProducts from '../../../components/products/RelatedProducts';
 import { getBaseUrl, buildProductOgImageUrl, buildProductUrl } from '../../../lib/og';
 
@@ -39,6 +40,11 @@ interface PriceTier {
   minQuantity: number;
   maxQuantity: number;
   priceKobo: number;
+}
+
+interface ProductDetailSpecRow {
+  label: string;
+  value: string;
 }
 
 interface Product {
@@ -52,6 +58,12 @@ interface Product {
   material?: string;
   careInfo?: string;
   keyFeatures?: string[];
+  /** Seller-defined rows for the Product Details tab */
+  detailSpecifications?: ProductDetailSpecRow[];
+  weightKg?: number;
+  lengthCm?: number;
+  widthCm?: number;
+  heightCm?: number;
   seller: {
     id: string;
     businessName: string;
@@ -69,18 +81,42 @@ interface Product {
   tags?: string[];
 }
 
-// Placeholder specs for Product Details tab
-const PLACEHOLDER_SPECS: Record<string, string>[] = [
-  { Brand: 'AUX' },
-  { Material: 'Premium Leather' },
-  { Weight: '85kg' },
-  { Dimensions: '140×90×110cm' },
-  { Warranty: '12 months' },
-  { Origin: 'China' },
-];
-
 // Placeholder perfect-for tags
 const PLACEHOLDER_PERFECT_FOR = ['Home Use', 'Offices', 'Hotels', 'Spas'];
+
+function buildProductDetailRows(product: Product): { label: string; value: string }[] {
+  const raw = product.detailSpecifications;
+  if (Array.isArray(raw) && raw.length > 0) {
+    const rows = raw
+      .map((r) => {
+        if (!r || typeof r.label !== 'string' || typeof r.value !== 'string') return null;
+        const label = r.label.trim();
+        const value = r.value.trim();
+        if (!label || !value) return null;
+        return { label, value };
+      })
+      .filter((x): x is { label: string; value: string } => x != null);
+    if (rows.length > 0) return rows;
+  }
+  const fallback: { label: string; value: string }[] = [];
+  if (product.material?.trim()) {
+    fallback.push({ label: 'Material', value: product.material.trim() });
+  }
+  if (product.weightKg != null && !Number.isNaN(Number(product.weightKg))) {
+    fallback.push({ label: 'Weight', value: `${Number(product.weightKg)} kg` });
+  }
+  const { lengthCm: L, widthCm: W, heightCm: H } = product;
+  if (L != null && W != null && H != null) {
+    fallback.push({
+      label: 'Dimensions (L × W × H)',
+      value: `${Number(L)} × ${Number(W)} × ${Number(H)} cm`,
+    });
+  }
+  if (product.careInfo?.trim()) {
+    fallback.push({ label: 'Care', value: product.careInfo.trim() });
+  }
+  return fallback;
+}
 
 interface Review {
   id: string;
@@ -196,6 +232,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
   const [inWishlist, setInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'seller' | 'reviews'>('details');
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [fullDescriptionOpen, setFullDescriptionOpen] = useState(false);
   const { addToCart } = useCart();
   const { user: authUser, isAuthenticated: authAuthenticated, isLoading: authLoading } = useAuth();
@@ -242,6 +279,13 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
       }
     }
   }, [mounted, id, initialProduct, isAuthenticated]);
+
+  useEffect(() => {
+    if (!mounted || !product || router.query.writeReview !== '1') return;
+    setActiveTab('reviews');
+    setReviewModalOpen(true);
+    router.replace(`/buyer/products/${product.id}`, undefined, { shallow: true });
+  }, [mounted, product?.id, router.query.writeReview]);
 
   // Only enforce MOQ in quantity when we're showing B2B (authenticated); never for public
   const mayShowB2bFull = isAuthenticated && (product?.sellingMode === 'B2B_ONLY' || product?.sellingMode === 'B2C_AND_B2B');
@@ -439,10 +483,24 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
     return slug ? categoryDisplayName(slug, slug) : 'Uncategorized';
   };
 
-  // Calculate average rating from reviews
-  const averageRating = reviews.length > 0
-    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-    : 4.8;
+  // Calculate average rating from reviews only (no placeholder score)
+  const averageRating =
+    reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+
+  const ratingCounts = useMemo(() => {
+    const c = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    reviews.forEach((r) => {
+      if (r.rating >= 1 && r.rating <= 5) c[r.rating as keyof typeof c]++;
+    });
+    return c;
+  }, [reviews]);
+
+  const maxRatingBar = useMemo(
+    () => Math.max(1, ...[1, 2, 3, 4, 5].map((s) => ratingCounts[s as keyof typeof ratingCounts])),
+    [ratingCounts],
+  );
+
+  const detailRows = product ? buildProductDetailRows(product) : [];
 
   // SEO keywords based on product
   const productKeywords = product ? [
@@ -681,16 +739,24 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                     <span className="text-white font-medium">{product.seller.businessName}</span>
                   </div>
                   <button
+                    type="button"
                     onClick={() => document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' })}
                     className="flex items-center gap-1.5 text-[#ffcc99]/90 hover:text-[#FF6B00] transition-colors"
-                    itemProp="aggregateRating"
-                    itemScope
-                    itemType="https://schema.org/AggregateRating"
+                    {...(reviews.length > 0
+                      ? { itemProp: 'aggregateRating', itemScope: true, itemType: 'https://schema.org/AggregateRating' }
+                      : {})}
                   >
-                    <Star className="w-4 h-4 text-[#FF6B00] fill-[#FF6B00]" />
-                    <span className="font-semibold text-white" itemProp="ratingValue">{averageRating.toFixed(1)}</span>
-                    <span className="text-sm">({reviews.length} reviews)</span>
-                    <meta itemProp="reviewCount" content={String(reviews.length || 1)} />
+                    <Star className={`w-4 h-4 ${reviews.length > 0 ? 'text-[#FF6B00] fill-[#FF6B00]' : 'text-white/25'}`} />
+                    {reviews.length > 0 ? (
+                      <>
+                        <span className="font-semibold text-white" itemProp="ratingValue">{averageRating.toFixed(1)}</span>
+                        <span className="text-sm">({reviews.length} reviews)</span>
+                        <meta itemProp="reviewCount" content={String(reviews.length)} />
+                        <meta itemProp="bestRating" content="5" />
+                      </>
+                    ) : (
+                      <span className="text-sm text-[#ffcc99]/70">No reviews yet</span>
+                    )}
                   </button>
                   {product.seller?.isVerified !== false && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-medium rounded">
@@ -957,24 +1023,25 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                 ))}
               </div>
 
-              {/* Tab 1 - Product Details (default) */}
+              {/* Tab 1 - Product Details (seller-defined + fallbacks) */}
               {activeTab === 'details' && (
                 <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl overflow-hidden">
-                  <table className="w-full text-sm">
-                    <tbody>
-                      {PLACEHOLDER_SPECS.flatMap((obj, idx) =>
-                        Object.entries(obj).map(([k, v]) => {
-                          const value = k === 'Material' && product.material ? product.material : v;
-                          return (
-                            <tr key={`${k}-${idx}`} className={idx % 2 === 1 ? 'bg-white/[0.02]' : ''}>
-                              <td className="py-3 px-6 text-[#ffcc99]/70 font-medium w-1/3">{k}</td>
-                              <td className="py-3 px-6 text-white">{value}</td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
+                  {detailRows.length === 0 ? (
+                    <p className="py-12 px-6 text-center text-[#ffcc99]/70 text-sm">
+                      The seller has not added product specifications yet. See the description above for more information.
+                    </p>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {detailRows.map((row, idx) => (
+                          <tr key={`${row.label}-${idx}`} className={idx % 2 === 1 ? 'bg-white/[0.02]' : ''}>
+                            <td className="py-3 px-6 text-[#ffcc99]/70 font-medium w-1/3">{row.label}</td>
+                            <td className="py-3 px-6 text-white whitespace-pre-wrap">{row.value}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               )}
 
@@ -994,8 +1061,8 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                         </span>
                       )}
                       <div className="flex items-center gap-2 mt-1 text-[#ffcc99]/80">
-                        <Star className="w-4 h-4 text-[#FF6B00] fill-[#FF6B00]" />
-                        <span>{averageRating.toFixed(1)}</span>
+                        <Star className={`w-4 h-4 ${reviews.length > 0 ? 'text-[#FF6B00] fill-[#FF6B00]' : 'text-white/25'}`} />
+                        <span>{reviews.length > 0 ? averageRating.toFixed(1) : '—'}</span>
                         <span className="text-sm">· Member since {new Date(product.createdAt).getFullYear()}</span>
                       </div>
                     </div>
@@ -1022,36 +1089,49 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                 <section id="reviews-section" className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                     <div className="flex items-center gap-4">
-                      <span className="text-4xl font-bold text-white">{averageRating.toFixed(1)}</span>
+                      <span className="text-4xl font-bold text-white">
+                        {reviews.length > 0 ? averageRating.toFixed(1) : '—'}
+                      </span>
                       <div className="flex flex-col">
                         <div className="flex gap-0.5">
                           {[1, 2, 3, 4, 5].map((s) => (
-                            <Star key={s} className={`w-5 h-5 ${s <= Math.round(averageRating) ? 'text-[#FF6B00] fill-[#FF6B00]' : 'text-white/20'}`} />
+                            <Star
+                              key={s}
+                              className={`w-5 h-5 ${
+                                reviews.length > 0 && s <= Math.round(averageRating)
+                                  ? 'text-[#FF6B00] fill-[#FF6B00]'
+                                  : 'text-white/20'
+                              }`}
+                            />
                           ))}
                         </div>
                         <span className="text-[#ffcc99]/70 text-sm">{reviews.length} reviews</span>
                       </div>
-                      {/* Bar chart breakdown - placeholder */}
                       <div className="hidden md:flex flex-col gap-1 ml-6 text-sm">
-                        {[5, 4, 3, 2, 1].map((stars) => (
-                          <div key={stars} className="flex items-center gap-2 w-32">
-                            <span className="text-[#ffcc99]/70 w-8">{stars}★</span>
-                            <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-[#FF6B00] rounded-full"
-                                style={{ width: `${stars === 5 ? 70 : stars === 4 ? 20 : 10}%` }}
-                              />
+                        {[5, 4, 3, 2, 1].map((stars) => {
+                          const count = ratingCounts[stars as keyof typeof ratingCounts];
+                          const pct = maxRatingBar > 0 ? (count / maxRatingBar) * 100 : 0;
+                          return (
+                            <div key={stars} className="flex items-center gap-2 w-32">
+                              <span className="text-[#ffcc99]/70 w-8">{stars}★</span>
+                              <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-[#FF6B00] rounded-full transition-all"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
-                    <a
-                      href={`/buyer/products/${product.id}?writeReview=1`}
+                    <button
+                      type="button"
+                      onClick={() => setReviewModalOpen(true)}
                       className="shrink-0 px-4 py-2 border border-[#FF6B00] text-[#FF6B00] font-semibold rounded-xl hover:bg-[#FF6B00]/10 transition"
                     >
                       Write a Review
-                    </a>
+                    </button>
                   </div>
                   <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
                     {['All', '5★', '4★', '3★', 'Verified Purchases'].map((filter) => (
@@ -1073,13 +1153,16 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                   ) : reviews.length === 0 ? (
                     <div className="py-16 text-center">
                       <p className="text-white font-medium">No reviews yet</p>
-                      <p className="text-[#ffcc99]/70 text-sm mt-2">Be the first to review this product.</p>
-                      <a
-                        href={`/buyer/products/${product.id}?writeReview=1`}
+                      <p className="text-[#ffcc99]/70 text-sm mt-2">
+                        Be the first to review this product after you receive it (delivered order).
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setReviewModalOpen(true)}
                         className="inline-flex mt-4 px-6 py-3 bg-[#FF6B00] text-black font-bold rounded-xl hover:bg-[#E65F00] transition"
                       >
                         Write a Review
-                      </a>
+                      </button>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -1141,6 +1224,23 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
           )}
         </div>
       </BuyerLayout>
+
+      {product && (
+        <ProductReviewModal
+          productId={product.id}
+          productTitle={product.title}
+          open={reviewModalOpen}
+          onClose={() => setReviewModalOpen(false)}
+          onSubmitted={() => {
+            fetchReviews(product.id);
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(
+                new CustomEvent('reviews:updated', { detail: { productId: product.id } }),
+              );
+            }
+          }}
+        />
+      )}
     </>
   );
 }

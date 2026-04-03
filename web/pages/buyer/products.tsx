@@ -4,7 +4,7 @@ import Link from 'next/link';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager, useAuth } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
-import { ChevronLeft, ChevronRight, Filter, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, PanelLeftClose, PanelLeft, Search } from 'lucide-react';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
 import SEO from '../../components/seo/SEO';
 import { BreadcrumbSchema } from '../../components/seo/JsonLd';
@@ -66,6 +66,7 @@ export default function ProductsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
+  const [showFiltersDesktop, setShowFiltersDesktop] = useState(true);
   const { data: categoriesData } = useCategories();
   const categories = categoriesData?.categories?.filter(cat => cat.isActive) || [];
 
@@ -356,8 +357,17 @@ export default function ProductsPage() {
           </div>
         )}
         <div className="flex h-full min-h-0 -m-3 sm:-m-4 lg:-m-6 xl:-m-8">
-          {/* Filter Panel - Desktop */}
-          <div className="hidden lg:flex lg:flex-col lg:w-[260px] lg:shrink-0 lg:h-full lg:min-h-0 lg:overflow-hidden">
+          {/* Filter Panel - Desktop (max 260px, collapsible) */}
+          <div
+            id="shop-filters-desktop"
+            className={`hidden lg:flex lg:flex-col lg:shrink-0 lg:h-full lg:min-h-0 overflow-hidden border-r border-border-custom transition-[width] duration-300 ease-out ${
+              showFiltersDesktop ? 'lg:w-[260px] lg:max-w-[260px]' : 'lg:w-0 lg:max-w-0 lg:border-r-0'
+            }`}
+          >
+            <div
+              className="flex h-full min-h-0 w-[260px] max-w-[260px] flex-col shrink-0 overflow-hidden"
+              aria-hidden={!showFiltersDesktop}
+            >
             <ShopFiltersPanel
               categories={categories}
               vendors={vendors}
@@ -386,6 +396,7 @@ export default function ProductsPage() {
               onApply={handleApplyFilters}
               onReset={handleResetFilters}
             />
+            </div>
           </div>
 
           {/* Mobile Filter Overlay */}
@@ -452,6 +463,27 @@ export default function ProductsPage() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
+                  type="button"
+                  onClick={() => setShowFiltersDesktop((v) => !v)}
+                  className="hidden lg:inline-flex items-center gap-2 px-4 py-2.5 bg-[#FF6B00]/20 border border-[#FF6B00]/50 rounded-xl text-[#FF6B00] font-medium hover:bg-[#FF6B00]/30 hover:border-[#FF6B00] transition-colors justify-center"
+                  aria-expanded={showFiltersDesktop}
+                  aria-controls="shop-filters-desktop"
+                  aria-label={showFiltersDesktop ? 'Hide filters sidebar' : 'Show filters sidebar'}
+                >
+                  {showFiltersDesktop ? (
+                    <>
+                      <PanelLeftClose className="w-4 h-4 shrink-0" aria-hidden />
+                      <span className="hidden xl:inline">Hide filters</span>
+                    </>
+                  ) : (
+                    <>
+                      <PanelLeft className="w-4 h-4 shrink-0" aria-hidden />
+                      <span className="hidden xl:inline">Filters</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
                   onClick={() => setShowFiltersMobile(true)}
                   className="lg:hidden flex items-center gap-2 px-4 py-2.5 bg-[#FF6B00]/20 border border-[#FF6B00]/50 rounded-xl text-[#FF6B00] font-medium hover:bg-[#FF6B00]/30 hover:border-[#FF6B00] transition-colors min-w-[100px] justify-center"
                   aria-label="Open filters"
@@ -482,7 +514,11 @@ export default function ProductsPage() {
               {error && (
                 <div className="py-12 text-center">
                   <p className="text-red-400 mb-4">{error}</p>
-                  <button onClick={fetchProducts} className="px-6 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/80">
+                  <button
+                    type="button"
+                    onClick={() => void fetchProducts()}
+                    className="px-6 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/80"
+                  >
                     Try Again
                   </button>
                 </div>
@@ -497,7 +533,14 @@ export default function ProductsPage() {
                   <p className="text-foreground/60 text-sm mb-4">
                     Showing <span className="font-semibold text-foreground">{displayProducts.length}</span> of {displayTotal.toLocaleString()} products
                   </p>
-                  <section className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-5" aria-label="Products">
+                  <section
+                    className={`grid grid-cols-2 gap-4 sm:gap-4 lg:gap-5 md:grid-cols-3 ${
+                      showFiltersDesktop
+                        ? 'lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+                        : 'lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
+                    }`}
+                    aria-label="Products"
+                  >
                     {displayProducts.map((product) => (
                       <ShopProductCard key={product.id} product={product} href={`/buyer/products/${product.id}`} />
                     ))}

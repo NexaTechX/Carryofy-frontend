@@ -39,6 +39,8 @@ interface FormData {
   material?: string;
   careInfo?: string;
   keyFeatures?: string[];
+  /** Label/value rows shown in the buyer Product Details tab */
+  detailSpecifications?: { label: string; value: string }[];
   moq?: string;
 }
 
@@ -111,6 +113,7 @@ export interface ProductWizardInitialProduct {
   material?: string;
   careInfo?: string;
   keyFeatures?: string[];
+  detailSpecifications?: { label: string; value: string }[];
   sellingMode?: 'B2C_ONLY' | 'B2B_ONLY' | 'B2C_AND_B2B';
   moq?: number;
   priceTiers?: { minQuantity: number; maxQuantity: number; priceKobo: number }[];
@@ -149,12 +152,14 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
     material: '',
     careInfo: '',
     keyFeatures: [],
+    detailSpecifications: [],
     moq: '',
   });
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [aiGeneratingField, setAiGeneratingField] = useState<'description' | 'keyFeatures' | 'material' | 'careInfo' | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [draftKeyFeature, setDraftKeyFeature] = useState('');
+  const [detailSpecDraft, setDetailSpecDraft] = useState({ label: '', value: '' });
   const [mode, setMode] = useState<'retail' | 'wholesale'>('retail');
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
   const [priceTiers, setPriceTiers] = useState<WholesalePriceTierForm[]>([]);
@@ -184,6 +189,9 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
       material: initialProduct.material || '',
       careInfo: initialProduct.careInfo || '',
       keyFeatures: initialProduct.keyFeatures?.length ? [...initialProduct.keyFeatures] : [],
+      detailSpecifications: initialProduct.detailSpecifications?.length
+        ? initialProduct.detailSpecifications.map((r) => ({ ...r }))
+        : [],
       moq: initialProduct.moq != null ? String(initialProduct.moq) : '',
     });
     setPriceTiers(
@@ -730,6 +738,13 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
       const priceInKobo = Math.round(parseFloat(formData.price) * 100);
       const sellingMode = mode === 'wholesale' ? 'B2B_ONLY' : 'B2C_ONLY';
 
+      const specRows = (formData.detailSpecifications || [])
+        .map((r) => ({
+          label: r.label.trim().slice(0, 80),
+          value: r.value.trim().slice(0, 500),
+        }))
+        .filter((r) => r.label && r.value);
+
       const productData: Record<string, unknown> = {
         title: formData.title,
         description: formData.description || undefined,
@@ -744,6 +759,12 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
           : undefined,
         sellingMode,
       };
+
+      if (variant === 'edit') {
+        productData.detailSpecifications = specRows;
+      } else if (specRows.length > 0) {
+        productData.detailSpecifications = specRows;
+      }
 
       if (mode === 'wholesale' && formData.moq) {
         productData.moq = parseInt(formData.moq, 10);
@@ -807,6 +828,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
       formData.quantity !== '' ||
       (formData.material && formData.material.trim() !== '') ||
       (formData.careInfo && formData.careInfo.trim() !== '') ||
+      (formData.detailSpecifications && formData.detailSpecifications.some((r) => r.label.trim() || r.value.trim())) ||
       (formData.moq && formData.moq !== '') ||
       priceTiers.length > 0
     );
@@ -1472,6 +1494,112 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                         <p className="mt-1 text-[#ffcc99]/60 text-xs">
                           A good description helps customers make informed decisions
                         </p>
+                      </div>
+
+                      {/* Product details table (buyer-facing Product Details tab) */}
+                      <div>
+                        <label className="block text-[#ffcc99] text-sm font-medium mb-1">
+                          Product details (specifications)
+                        </label>
+                        <p className="text-[#ffcc99]/60 text-xs mb-3">
+                          Add rows such as Brand, Dimensions, or Warranty. These appear in the &quot;Product Details&quot;
+                          tab on your listing (up to 20 rows).
+                        </p>
+                        <div className="space-y-2 mb-3">
+                          {(formData.detailSpecifications || []).map((row, index) => (
+                            <div
+                              key={index}
+                              className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center"
+                            >
+                              <input
+                                type="text"
+                                value={row.label}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setFormData((prev) => {
+                                    const next = [...(prev.detailSpecifications || [])];
+                                    next[index] = { ...next[index], label: v };
+                                    return { ...prev, detailSpecifications: next };
+                                  });
+                                }}
+                                placeholder="Label (e.g. Brand)"
+                                maxLength={80}
+                                className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-black border border-[#2A2A2A] text-white text-sm"
+                              />
+                              <input
+                                type="text"
+                                value={row.value}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setFormData((prev) => {
+                                    const next = [...(prev.detailSpecifications || [])];
+                                    next[index] = { ...next[index], value: v };
+                                    return { ...prev, detailSpecifications: next };
+                                  });
+                                }}
+                                placeholder="Value"
+                                maxLength={500}
+                                className="flex-[2] min-w-0 px-3 py-2 rounded-xl bg-black border border-[#2A2A2A] text-white text-sm"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    detailSpecifications: (prev.detailSpecifications || []).filter((_, i) => i !== index),
+                                  }));
+                                }}
+                                className="shrink-0 px-3 py-2 rounded-xl border border-red-500/40 text-red-400 text-sm hover:bg-red-500/10"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        {(formData.detailSpecifications?.length ?? 0) < 20 && (
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <input
+                              type="text"
+                              value={detailSpecDraft.label}
+                              onChange={(e) => setDetailSpecDraft((d) => ({ ...d, label: e.target.value }))}
+                              placeholder="New label"
+                              maxLength={80}
+                              className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-black border border-[#2A2A2A] text-white text-sm"
+                            />
+                            <input
+                              type="text"
+                              value={detailSpecDraft.value}
+                              onChange={(e) => setDetailSpecDraft((d) => ({ ...d, value: e.target.value }))}
+                              placeholder="New value"
+                              maxLength={500}
+                              className="flex-[2] min-w-0 px-3 py-2 rounded-xl bg-black border border-[#2A2A2A] text-white text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const label = detailSpecDraft.label.trim();
+                                const value = detailSpecDraft.value.trim();
+                                if (!label || !value) {
+                                  toast.error('Enter both label and value');
+                                  return;
+                                }
+                                if ((formData.detailSpecifications?.length ?? 0) >= 20) {
+                                  toast.error('Maximum 20 specification rows');
+                                  return;
+                                }
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  detailSpecifications: [...(prev.detailSpecifications || []), { label, value }],
+                                }));
+                                setDetailSpecDraft({ label: '', value: '' });
+                              }}
+                              className="shrink-0 inline-flex items-center justify-center gap-1 px-4 py-2 rounded-xl border border-[#F97316]/40 text-[#F97316] text-sm font-medium hover:bg-[#F97316]/10"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Add row
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Material Information */}

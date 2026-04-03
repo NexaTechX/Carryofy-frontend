@@ -10,7 +10,6 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useAuth, tokenManager } from '../../lib/auth';
 import { getApiBaseUrl } from '../../lib/api/utils';
-import SellerCommissionRates from '../../components/seller/SellerCommissionRates';
 
 export default function SellerDashboard() {
   const router = useRouter();
@@ -122,8 +121,6 @@ export default function SellerDashboard() {
 
           {/* Stats Cards */}
           <DashboardStats />
-
-          <SellerCommissionRates sellerId={sellerId} />
 
           {/* Quick Actions */}
           <div className="flex items-center gap-3 h-10 px-4 rounded-[12px] bg-[#1A1A1A] border border-[#2A2A2A]">

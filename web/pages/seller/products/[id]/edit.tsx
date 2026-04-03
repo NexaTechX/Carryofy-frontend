@@ -53,6 +53,7 @@ export default function EditProductPage() {
           material: data.material,
           careInfo: data.careInfo,
           keyFeatures: data.keyFeatures || [],
+          detailSpecifications: Array.isArray(data.detailSpecifications) ? data.detailSpecifications : [],
           sellingMode: data.sellingMode,
           moq: data.moq,
           priceTiers: data.priceTiers,

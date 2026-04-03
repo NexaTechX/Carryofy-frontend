@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { Check, Heart, Package, ShoppingCart, ShieldCheck } from 'lucide-react';
+import { BadgeCheck, Check, Heart, Package, ShoppingCart } from 'lucide-react';
 import { useWishlist } from '../../../lib/hooks/useWishlist';
 import { useCart } from '../../../lib/contexts/CartContext';
 import { tokenManager } from '../../../lib/auth';
@@ -37,6 +37,8 @@ interface ShopProductCardProps {
   href?: string;
 }
 
+const IMG_H = 200;
+
 function ShopProductCard({ product, href }: ShopProductCardProps) {
   const router = useRouter();
   const isAuthenticated = tokenManager.isAuthenticated();
@@ -52,9 +54,7 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
     return `₦${(priceInKobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  // Only show Request Quote when the seller explicitly marks it as quote-only
   const needsQuote = product.requestQuoteOnly === true;
-
   const hasPriceTiers = product.priceTiers != null && product.priceTiers.length > 0;
   const isWholesale = product.sellingMode === 'B2B_ONLY' || product.sellingMode === 'B2C_AND_B2B';
 
@@ -71,6 +71,17 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
   const priceDisplay = getPriceDisplay();
   const productHref = href || `/buyer/products/${product.id}`;
   const fulfilled = product.fulfilledByCarryofy !== false;
+  const isVerified = product.seller?.isVerified !== false;
+  const qty = product.quantity ?? 0;
+  const lowStockThreshold = 5;
+  const stockLabel =
+    qty === 0 ? 'Out of stock' : qty <= lowStockThreshold ? 'Low stock' : 'In stock';
+  const stockClass =
+    qty === 0
+      ? 'bg-rose-500/15 text-rose-300 border-rose-500/25'
+      : qty <= lowStockThreshold
+        ? 'bg-amber-500/15 text-amber-300 border-amber-500/25'
+        : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25';
 
   const handleWishlistToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -93,11 +104,11 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
       router.push(`/auth/signup?redirect=${encodeURIComponent(router.asPath)}`);
       return;
     }
-    if (product.quantity === 0) return;
-    const qty = product.moq && product.moq > 1 ? product.moq : 1;
+    if (qty === 0) return;
+    const cartQty = product.moq && product.moq > 1 ? product.moq : 1;
     try {
       setIsAddingToCart(true);
-      const ok = await addToCart(product.id, qty);
+      const ok = await addToCart(product.id, cartQty);
       if (ok) {
         setJustAdded(true);
         window.setTimeout(() => setJustAdded(false), 2200);
@@ -107,143 +118,140 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
     }
   };
 
-  const features = (product.keyFeatures || []).slice(0, 2);
-  const isVerified = product.seller?.isVerified !== false;
+  const handleQuoteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    void router.push(productHref);
+  };
 
   return (
-    <article className="group bg-[#1A1A1A] border border-[#2a2a2a] rounded-xl overflow-hidden hover:border-[#FF6B00]/50 transition-all duration-300 flex flex-col">
-      <Link href={productHref} className="flex flex-col flex-1">
-        {/* Image */}
-        <div className="aspect-square bg-[#111111] relative overflow-hidden">
+    <article
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1A1A1A] shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#FF6B00]/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
+    >
+      {/* Image — link to product (no buttons inside) */}
+      <div className="relative shrink-0">
+        <Link href={productHref} className="relative block w-full overflow-hidden bg-[#111111]" style={{ height: IMG_H }}>
           {product.images?.length > 0 ? (
             <Image
               src={product.images[0]}
               alt={product.title}
               fill
-              sizes="(max-width: 768px) 50vw, 33vw"
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-[#ffcc99]/30">
-              <Package className="w-14 h-14" />
+            <div className="flex h-full w-full items-center justify-center text-[#ffcc99]/25">
+              <Package className="h-14 w-14" />
             </div>
           )}
+        </Link>
 
-          {fulfilled && (
-            <span className="absolute bottom-2 left-2 px-2 py-1 bg-[#FF6B00]/90 text-black text-[10px] font-bold rounded-md flex items-center gap-1 shadow-lg">
-              <Package className="w-3 h-3" />
-              Fulfilled by Carryofy
-            </span>
-          )}
+        {isAuthenticated && (
+          <button
+            type="button"
+            onClick={handleWishlistToggle}
+            disabled={isToggling || wishlistLoading}
+            className={`absolute right-2 top-2 z-10 rounded-full bg-black/65 p-2 transition-colors hover:bg-[#FF6B00] ${
+              inWishlist ? 'bg-[#FF6B00] text-black' : 'text-white'
+            } ${isToggling ? 'opacity-50' : ''}`}
+            aria-label={inWishlist ? 'Remove from saved list' : 'Add to saved list'}
+          >
+            <Heart className={`h-4 w-4 ${inWishlist ? 'fill-current' : ''}`} />
+          </button>
+        )}
+      </div>
 
-          {/* Wishlist */}
-          {isAuthenticated && (
-            <button
-              onClick={handleWishlistToggle}
-              disabled={isToggling || wishlistLoading}
-              className={`absolute top-2 right-2 p-2 rounded-full bg-black/70 hover:bg-[#FF6B00] transition-colors z-10 ${
-                inWishlist ? 'bg-[#FF6B00] text-black' : 'text-white'
-              } ${isToggling ? 'opacity-50' : ''}`}
-              aria-label={inWishlist ? 'Remove from saved list' : 'Add to saved list'}
-            >
-              <Heart className={`w-4 h-4 ${inWishlist ? 'fill-current' : ''}`} />
-            </button>
-          )}
-
-          {product.quantity === 0 && (
-            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-              <span className="text-red-400 font-semibold text-sm">Out of Stock</span>
-            </div>
-          )}
-        </div>
-
-          {/* Info */}
-        <div className="p-4 flex-1 flex flex-col">
-          <h3 className="text-white font-semibold text-sm line-clamp-2 mb-2 group-hover:text-[#FF6B00] transition-colors min-h-[2.5rem]">
+      {/* Details — link block (same href) keeps card body clickable without nesting buttons inside <a> */}
+      <div className="flex min-h-0 flex-1 flex-col p-4">
+        <Link href={productHref} className="block min-h-0 min-w-0 flex-1">
+          <h3 className="mb-2 line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-white transition-colors group-hover:text-[#FF6B00]">
             {product.title}
           </h3>
 
-          {features.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {features.map((f, i) => (
-                <span key={i} className="text-[#FF6B00] text-xs font-semibold px-1.5 py-0.5 rounded bg-[#FF6B00]/10">
-                  {f}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center gap-1.5 mb-2">
-            <span className="text-[#ffcc99] text-xs truncate">{product.seller?.businessName || 'Seller'}</span>
+          <div className="mb-3 flex min-w-0 items-center gap-1.5">
+            <span className="truncate text-xs text-[#ffcc99]/90">{product.seller?.businessName || 'Seller'}</span>
             {isVerified && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] text-green-400 shrink-0">
-                <ShieldCheck className="w-3 h-3" />
+              <span
+                className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400"
+                title="Verified seller"
+              >
+                <BadgeCheck className="h-3 w-3" aria-hidden />
                 Verified
               </span>
             )}
           </div>
 
-          {/* Wholesale details */}
-          {isWholesale && (
-            <div className="flex flex-wrap gap-1 mb-2">
-              <span className="px-2 py-0.5 bg-[#FF6B00]/15 text-[#FF6B00] text-[10px] font-bold rounded">
-                {product.sellingMode === 'B2B_ONLY' ? 'Wholesale' : 'Retail & Wholesale'}
+          <p className="mb-3 text-lg font-bold text-[#FF6B00]">{priceDisplay}</p>
+
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span
+              className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold ${stockClass}`}
+            >
+              {stockLabel}
+              {qty > 0 && <span className="ml-1 opacity-80">({qty} left)</span>}
+            </span>
+            {product.moq != null && product.moq > 1 && (
+              <span className="inline-flex rounded-md border border-[#FF6B00]/35 bg-[#FF6B00]/12 px-2 py-0.5 text-[11px] font-semibold text-[#FF6B00]">
+                Min. order: {product.moq} units
               </span>
-              {hasPriceTiers && (
-                <span className="px-2 py-0.5 bg-green-500/15 text-green-400 text-[10px] font-medium rounded">
-                  Bulk pricing
-                </span>
-              )}
+            )}
+          </div>
+
+          {isWholesale && (
+            <div className="mb-3">
+              <span className="inline-flex rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-[#ffcc99]/80">
+                {product.sellingMode === 'B2B_ONLY' ? 'Wholesale' : 'Retail & wholesale'}
+                {hasPriceTiers ? ' · Tiered pricing' : ''}
+              </span>
             </div>
           )}
 
-          <p className="text-[#FF6B00] font-bold text-lg mb-1">{priceDisplay}</p>
-
-          {/* MOQ + stock row */}
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            {product.moq != null && product.moq > 0 && (
-              <span className="inline-flex px-2 py-0.5 bg-[#FF6B00]/20 text-[#FF6B00] text-[10px] font-medium rounded">
-                Min. {product.moq} units
+          {fulfilled && (
+            <div className="mb-1">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-[#FF6B00]/45 bg-[#FF6B00]/12 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#FF6B00]">
+                <Package className="h-3.5 w-3.5" aria-hidden />
+                Fulfilled by Carryofy
               </span>
-            )}
-            {product.quantity > 0 && (
-              <span className="flex items-center gap-1 text-green-400 text-xs">
-                <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-                In Stock
-              </span>
-            )}
-          </div>
+            </div>
+          )}
+        </Link>
 
-          <div className="mt-auto flex gap-2">
-            {product.quantity > 0 && (
-              <>
-                {needsQuote ? (
-                  <Link
-                    href={productHref}
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-transparent border border-[#FF6B00] text-[#FF6B00] rounded-lg text-sm font-semibold hover:bg-[#FF6B00]/10 transition-colors"
-                  >
-                    Get a Quote
-                  </Link>
-                ) : (
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={!isAuthenticated || isAddingToCart}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${
-                      justAdded
-                        ? 'bg-green-600/90 text-white'
-                        : 'bg-[#FF6B00] text-black hover:bg-[#ff9955]'
-                    }`}
-                  >
-                    {justAdded ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
-                    {isAddingToCart ? 'Adding...' : justAdded ? 'Added' : 'Add to Cart'}
-                  </button>
-                )}
-              </>
-            )}
-          </div>
+        <div className="mt-auto border-t border-white/[0.06] pt-3">
+          {qty > 0 ? (
+            needsQuote ? (
+              <button
+                type="button"
+                onClick={handleQuoteClick}
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#FF6B00] bg-transparent py-2.5 text-sm font-semibold text-[#FF6B00] transition-colors hover:bg-[#FF6B00]/10"
+              >
+                Get a Quote
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={!isAuthenticated || isAddingToCart}
+                className={`flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-colors disabled:opacity-50 ${
+                  justAdded
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-600'
+                    : 'bg-[#FF6B00] text-black hover:bg-[#ff8533]'
+                }`}
+              >
+                {justAdded ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
+                {isAddingToCart ? 'Adding...' : justAdded ? 'Added' : 'Add to Cart'}
+              </button>
+            )
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 py-2.5 text-sm font-semibold text-[#ffcc99]/40"
+            >
+              Out of Stock
+            </button>
+          )}
         </div>
-      </Link>
+      </div>
     </article>
   );
 }

@@ -27,10 +27,26 @@ import {
   ExternalLink,
   ArrowUpRight,
   ArrowDownRight,
+  Wallet,
+  Laptop,
+  Home,
+  Gamepad2,
+  HeartPulse,
+  Dumbbell,
+  PawPrint,
+  Car,
+  Briefcase,
+  ShoppingBasket,
+  Baby,
+  Gem,
+  Watch,
 } from 'lucide-react';
 
-// Category slug to Lucide icon mapping (real icons, not generic box)
-const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+type CategoryIcon = React.ComponentType<{ className?: string }>;
+
+// Slug → Lucide icon (include aliases for API / seed variations)
+const CATEGORY_ICONS: Record<string, CategoryIcon> = {
+  // Legacy / grocery subcategories
   cream: Sparkles,
   'beauty-personal-care': Sparkles,
   'personal-care': Sparkles,
@@ -42,12 +58,76 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
   packaged: Package,
   spices: Flame,
   beverages: Coffee,
-  electronics: Smartphone,
   fashion: Shirt,
+  clothing: Shirt,
+  apparel: Shirt,
+
+  // Buyer catalog — primary slugs
+  'electronics-gadgets': Smartphone,
+  electronics: Smartphone,
+  'computers-accessories': Laptop,
+  computers: Laptop,
+  'clothing-accessories': Shirt,
+  'home-kitchen': Home,
+  home: Home,
+  kitchen: Home,
+  'toys-games': Gamepad2,
+  toys: Gamepad2,
+  'health-household': HeartPulse,
+  health: HeartPulse,
+  household: HeartPulse,
+  'sports-fitness': Dumbbell,
+  sports: Dumbbell,
+  fitness: Dumbbell,
+  'pet-supplies': PawPrint,
+  pets: PawPrint,
+  pet: PawPrint,
+  'automotive-tools': Car,
+  automotive: Car,
+  'office-school-supplies': Briefcase,
+  office: Briefcase,
+  school: Briefcase,
+  'grocery-gourmet-food': ShoppingBasket,
+  'grocery-gourmet': ShoppingBasket,
+  gourmet: ShoppingBasket,
+  'baby-products': Baby,
+  baby: Baby,
+  'jewelry-luxury-accessories': Gem,
+  jewelry: Gem,
+  luxury: Gem,
+  'watches-premium-timepieces': Watch,
+  watches: Watch,
+  timepieces: Watch,
 };
 
-const getCategoryIcon = (slug: string) =>
-  CATEGORY_ICONS[slug?.toLowerCase() || ''] || Package;
+/** Match display text when slug is missing from the map (order: most specific first). */
+function getCategoryIconByText(haystack: string): CategoryIcon | null {
+  const s = haystack.toLowerCase();
+  if (/watches|timepiece/.test(s)) return Watch;
+  if (/jewelry|luxury/.test(s)) return Gem;
+  if (/\bbaby\b/.test(s) || /baby\s+product/.test(s)) return Baby;
+  if (/grocery|gourmet/.test(s)) return ShoppingBasket;
+  if (/office|school\s+suppl/.test(s) || /\boffice\b.*\bschool\b/.test(s)) return Briefcase;
+  if (/automotive|car\s*&\s*tool|\btools?\b.*auto/.test(s)) return Car;
+  if (/pet\s+suppl|\bpet\b/.test(s)) return PawPrint;
+  if (/sports|fitness/.test(s)) return Dumbbell;
+  if (/health|household/.test(s)) return HeartPulse;
+  if (/beauty|personal\s+care|cosmetic/.test(s)) return Sparkles;
+  if (/toys|games/.test(s)) return Gamepad2;
+  if (/home|kitchen/.test(s)) return Home;
+  if (/computers|computer|laptop|pc\b/.test(s)) return Laptop;
+  if (/electronics|gadget/.test(s)) return Smartphone;
+  if (/clothing|apparel|fashion/.test(s)) return Shirt;
+  return null;
+}
+
+function getCategoryIcon(slug: string, name?: string): CategoryIcon {
+  const key = (slug || '').trim().toLowerCase().replace(/\s+/g, '-');
+  if (key && CATEGORY_ICONS[key]) return CATEGORY_ICONS[key];
+  const fromName = getCategoryIconByText(`${key} ${name || ''}`);
+  if (fromName) return fromName;
+  return Package;
+}
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -247,86 +327,175 @@ export default function BuyerDashboard() {
       </Head>
       <BuyerLayout>
         <div className="font-inter antialiased">
-          {/* ZONE A — Smart Greeting Bar */}
-          <div className="w-full rounded-xl bg-[#111111] border border-[#FF6B00]/20 px-4 py-6 sm:px-6 sm:py-8 mb-8">
-            <h1 className="text-white text-2xl sm:text-3xl font-bold mb-1" suppressHydrationWarning>
-              {greeting}, {firstName} 👋
-            </h1>
-            <p className="text-[#ffcc99]/80 text-sm sm:text-base mb-6">
-              Here&apos;s what&apos;s happening with your account today.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/buyer/products"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#FF6B00] text-black font-semibold rounded-lg hover:bg-[#ff8533] transition-colors"
+          {/* ZONE A — Welcome banner */}
+          <div className="relative mb-8 overflow-hidden rounded-2xl shadow-[0_20px_50px_-12px_rgba(232,99,10,0.45)] ring-1 ring-white/15">
+            <div
+              className="absolute inset-0 bg-gradient-to-br from-[#E8630A] via-[#f0781a] to-[#c45206]"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#ffb347]/35 blur-3xl"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -bottom-28 -left-16 h-64 w-64 rounded-full bg-[#8b2f00]/30 blur-3xl"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute inset-0 bg-[linear-gradient(105deg,rgba(255,255,255,0.14)_0%,transparent_45%,rgba(0,0,0,0.08)_100%)]"
+              aria-hidden
+            />
+            <div className="relative px-5 py-8 sm:px-8 sm:py-10">
+              <div className="mb-5 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white/95 ring-1 ring-white/25 backdrop-blur-sm">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-100" aria-hidden />
+                  Lagos marketplace
+                </span>
+              </div>
+              <h1
+                className="mb-3 max-w-3xl text-3xl font-bold tracking-tight text-white drop-shadow-sm sm:text-4xl"
+                suppressHydrationWarning
               >
-                <ShoppingBag className="w-4 h-4" />
-                Browse Products
-              </Link>
-              <Link
-                href="/buyer/bulk-order"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-transparent border border-[#FF6B00]/60 text-[#FF6B00] font-semibold rounded-lg hover:bg-[#FF6B00]/10 transition-colors"
-              >
-                <FileText className="w-4 h-4" />
-                Request a Quote
-              </Link>
+                {greeting}, {firstName}{' '}
+                <span className="inline-block" aria-hidden>
+                  👋
+                </span>
+              </h1>
+              <p className="mb-8 max-w-xl text-base font-medium leading-relaxed text-white/95 sm:text-lg">
+                Order from verified Lagos vendors — delivered to you.
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <Link
+                  href="/buyer/products"
+                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-base font-bold text-neutral-900 shadow-lg shadow-black/20 transition hover:bg-amber-50 hover:shadow-xl hover:shadow-black/25 active:scale-[0.99] sm:min-w-[200px]"
+                >
+                  <ShoppingBag className="h-5 w-5 shrink-0" />
+                  Browse Products
+                </Link>
+                <Link
+                  href="/buyer/bulk-order"
+                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 border-white/90 bg-white/10 px-6 py-3 text-base font-bold text-white backdrop-blur-sm transition hover:bg-white/20 hover:ring-2 hover:ring-white/40 active:scale-[0.99] sm:min-w-[200px]"
+                >
+                  <FileText className="h-5 w-5 shrink-0" />
+                  Request a Quote
+                </Link>
+              </div>
             </div>
           </div>
 
           {/* ZONE B — Activity Snapshot */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-            <Link
-              href="/buyer/orders"
-              className="rounded-xl bg-[#111111] border border-[#2a2a2a] p-4 sm:p-5 hover:border-[#FF6B00]/40 transition-colors"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Package className="w-5 h-5 text-[#FF6B00]" />
-                <span className="text-[#FF6B00] text-sm font-medium">View →</span>
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-white">{dashboardLoading ? '—' : stats.activeOrders}</p>
-              <p className="text-[#ffcc99]/70 text-sm">Active Orders</p>
-            </Link>
+            <div className="group flex min-h-[220px] flex-col rounded-xl border border-[#2a2a2a] bg-[#111111] transition-colors hover:border-[#FF6B00]/40">
+              <Link href="/buyer/orders" className="flex flex-1 flex-col p-4 sm:p-5">
+                <div className="mb-2 flex items-center justify-between">
+                  <Package className="h-5 w-5 text-[#FF6B00]" />
+                  <span className="text-sm font-medium text-[#FF6B00]">View →</span>
+                </div>
+                <p className="mb-1 text-2xl font-bold text-white sm:text-3xl">
+                  {dashboardLoading ? '—' : stats.activeOrders}
+                </p>
+                <p className="text-sm text-[#ffcc99]/70">Active Orders</p>
+              </Link>
+              {!dashboardLoading && stats.activeOrders === 0 && (
+                <div className="border-t border-[#2a2a2a] px-4 pb-4 pt-3 sm:px-5">
+                  <div className="flex gap-2.5">
+                    <Package className="mt-0.5 h-4 w-4 shrink-0 text-[#FF6B00]/35" aria-hidden />
+                    <p className="text-xs leading-snug text-[#ffcc99]/65">
+                      No active orders yet —{' '}
+                      <Link href="/buyer/products" className="font-medium text-[#FF6B00] hover:underline">
+                        Browse Products
+                      </Link>
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
 
-            <Link
-              href="/buyer/quotes"
-              className="rounded-xl bg-[#111111] border border-[#2a2a2a] p-4 sm:p-5 hover:border-[#FF6B00]/40 transition-colors"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <FileText className="w-5 h-5 text-[#FF6B00]" />
-                <span className="text-[#FF6B00] text-sm font-medium">Review →</span>
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-white">{dashboardLoading ? '—' : stats.pendingQuotes}</p>
-              <p className="text-[#ffcc99]/70 text-sm">Pending Quotes</p>
-            </Link>
+            <div className="group flex min-h-[220px] flex-col rounded-xl border border-[#2a2a2a] bg-[#111111] transition-colors hover:border-[#FF6B00]/40">
+              <Link href="/buyer/quotes" className="flex flex-1 flex-col p-4 sm:p-5">
+                <div className="mb-2 flex items-center justify-between">
+                  <FileText className="h-5 w-5 text-[#FF6B00]" />
+                  <span className="text-sm font-medium text-[#FF6B00]">Review →</span>
+                </div>
+                <p className="mb-1 text-2xl font-bold text-white sm:text-3xl">
+                  {dashboardLoading ? '—' : stats.pendingQuotes}
+                </p>
+                <p className="text-sm text-[#ffcc99]/70">Pending Quotes</p>
+              </Link>
+              {!dashboardLoading && stats.pendingQuotes === 0 && (
+                <div className="border-t border-[#2a2a2a] px-4 pb-4 pt-3 sm:px-5">
+                  <div className="flex gap-2.5">
+                    <FileText className="mt-0.5 h-4 w-4 shrink-0 text-[#FF6B00]/35" aria-hidden />
+                    <p className="text-xs leading-snug text-[#ffcc99]/65">
+                      No pending quotes —{' '}
+                      <Link href="/buyer/bulk-order" className="font-medium text-[#FF6B00] hover:underline">
+                        Request a Quote
+                      </Link>
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
 
-            <Link
-              href="/buyer/wishlist"
-              className="rounded-xl bg-[#111111] border border-[#2a2a2a] p-4 sm:p-5 hover:border-[#FF6B00]/40 transition-colors"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Bookmark className="w-5 h-5 text-[#FF6B00]" />
-                <span className="text-[#FF6B00] text-sm font-medium">View →</span>
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-white">{dashboardLoading ? '—' : stats.savedLists}</p>
-              <p className="text-[#ffcc99]/70 text-sm">Saved Lists</p>
-            </Link>
+            <div className="group flex min-h-[220px] flex-col rounded-xl border border-[#2a2a2a] bg-[#111111] transition-colors hover:border-[#FF6B00]/40">
+              <Link href="/buyer/wishlist" className="flex flex-1 flex-col p-4 sm:p-5">
+                <div className="mb-2 flex items-center justify-between">
+                  <Bookmark className="h-5 w-5 text-[#FF6B00]" />
+                  <span className="text-sm font-medium text-[#FF6B00]">View →</span>
+                </div>
+                <p className="mb-1 text-2xl font-bold text-white sm:text-3xl">
+                  {dashboardLoading ? '—' : stats.savedLists}
+                </p>
+                <p className="text-sm text-[#ffcc99]/70">Saved Lists</p>
+              </Link>
+              {!dashboardLoading && stats.savedLists === 0 && (
+                <div className="border-t border-[#2a2a2a] px-4 pb-4 pt-3 sm:px-5">
+                  <div className="flex gap-2.5">
+                    <Bookmark className="mt-0.5 h-4 w-4 shrink-0 text-[#FF6B00]/35" aria-hidden />
+                    <p className="text-xs leading-snug text-[#ffcc99]/65">
+                      Nothing saved yet —{' '}
+                      <Link href="/buyer/products" className="font-medium text-[#FF6B00] hover:underline">
+                        Browse Products
+                      </Link>
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
 
-            <div className="rounded-xl bg-[#111111] border border-[#2a2a2a] p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-5 h-5 text-[#FF6B00]" />
-                {stats.spendTrend === 'up' && (
-                  <span className="flex items-center gap-0.5 text-green-400 text-xs font-medium">
-                    <ArrowUpRight className="w-4 h-4" />
-                  </span>
-                )}
-                {stats.spendTrend === 'down' && (
-                  <span className="flex items-center gap-0.5 text-red-400 text-xs font-medium">
-                    <ArrowDownRight className="w-4 h-4" />
-                  </span>
-                )}
+            <div className="flex min-h-[220px] flex-col rounded-xl border border-[#2a2a2a] bg-[#111111] transition-colors hover:border-[#FF6B00]/40">
+              <div className="flex flex-1 flex-col p-4 sm:p-5">
+                <div className="mb-2 flex items-center justify-between">
+                  <TrendingUp className="h-5 w-5 text-[#FF6B00]" />
+                  {!dashboardLoading && stats.monthlySpend > 0 && stats.spendTrend === 'up' && (
+                    <span className="flex items-center gap-0.5 text-xs font-medium text-green-400">
+                      <ArrowUpRight className="h-4 w-4" aria-hidden />
+                    </span>
+                  )}
+                  {!dashboardLoading && stats.monthlySpend > 0 && stats.spendTrend === 'down' && (
+                    <span className="flex items-center gap-0.5 text-xs font-medium text-red-400">
+                      <ArrowDownRight className="h-4 w-4" aria-hidden />
+                    </span>
+                  )}
+                </div>
+                <p className="mb-1 text-2xl font-bold text-white sm:text-3xl">
+                  {dashboardLoading ? '—' : formatNgn(stats.monthlySpend)}
+                </p>
+                <p className="text-sm text-[#ffcc99]/70">Monthly Spend</p>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-white">{dashboardLoading ? '—' : formatNgn(stats.monthlySpend)}</p>
-              <p className="text-[#ffcc99]/70 text-sm">Monthly Spend</p>
+              {!dashboardLoading && stats.monthlySpend === 0 && (
+                <div className="border-t border-[#2a2a2a] px-4 pb-4 pt-3 sm:px-5">
+                  <div className="flex gap-2.5">
+                    <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-[#FF6B00]/35" aria-hidden />
+                    <p className="text-xs leading-snug text-[#ffcc99]/65">
+                      Start ordering to track your spend —{' '}
+                      <Link href="/buyer/products" className="font-medium text-[#FF6B00] hover:underline">
+                        Browse Products
+                      </Link>
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -474,7 +643,7 @@ export default function BuyerDashboard() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {displayCategories.map((cat) => {
-                  const Icon = getCategoryIcon(cat.slug);
+                  const Icon = getCategoryIcon(cat.slug, cat.name);
                   return (
                     <Link
                       key={cat.id}
@@ -482,14 +651,7 @@ export default function BuyerDashboard() {
                       className="group flex flex-col items-center rounded-xl bg-[#111111] border border-[#2a2a2a] p-4 hover:border-[#FF6B00]/40 transition-colors"
                     >
                       <div className="w-12 h-12 rounded-lg bg-[#1a1a1a] flex items-center justify-center mb-2 group-hover:bg-[#FF6B00]/20 transition-colors overflow-hidden shrink-0">
-                        {cat.icon ? (
-                          <div
-                            className="w-full h-full bg-cover bg-center"
-                            style={{ backgroundImage: `url(${cat.icon})` }}
-                          />
-                        ) : (
-                          <Icon className="w-6 h-6 text-[#FF6B00] shrink-0" />
-                        )}
+                        <Icon className="w-6 h-6 text-[#FF6B00] shrink-0" />
                       </div>
                       <span className="text-white text-xs font-medium text-center line-clamp-2">
                         {categoryDisplayName(cat.slug, cat.name)}

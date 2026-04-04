@@ -149,6 +149,18 @@ export default function CartPage() {
   const subtotal = calculateSubtotal();
   const total = subtotal - discount; // Shipping calculated at checkout
 
+  const B2B_MIN_KOBO = 5_000_000;
+  const D2C_MIN_KOBO = 1_000_000;
+  const u = userManager.getUser();
+  const b2bOnly =
+    cart?.items?.some((i) => i.product?.sellingMode === 'B2B_ONLY') ?? false;
+  const b2bCtx =
+    cart?.items?.some((i) => i.sellingContext === 'B2B') ?? false;
+  const isB2B = b2bOnly || b2bCtx || u?.accountType === 'BUSINESS';
+  const minOrderKobo = isB2B ? B2B_MIN_KOBO : D2C_MIN_KOBO;
+  const minOrderNaira = isB2B ? '₦50,000' : '₦10,000';
+  const belowMinimum = !!cart && cart.totalAmount < minOrderKobo;
+
   if (!mounted) {
     return null;
   }
@@ -383,12 +395,23 @@ export default function CartPage() {
                       {/* Action Buttons */}
                       <div className="space-y-3">
                         <button
+                          type="button"
                           onClick={() => router.push('/buyer/checkout')}
-                          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold text-lg hover:bg-[#cc5200] transition shadow-lg shadow-[#ff6600]/30"
+                          disabled={belowMinimum}
+                          className={`w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold text-lg transition shadow-lg shadow-[#ff6600]/30 ${
+                            belowMinimum
+                              ? 'opacity-50 cursor-not-allowed'
+                              : 'hover:bg-[#cc5200]'
+                          }`}
                         >
                           Proceed to Checkout
                           <ArrowRight className="w-5 h-5" />
                         </button>
+                        {belowMinimum && (
+                          <p className="text-sm text-[#ffcc99] border border-[#ff6600]/40 rounded-lg px-3 py-2 bg-[#ff6600]/10">
+                            Minimum order for checkout is {minOrderNaira}. Add more items to continue.
+                          </p>
+                        )}
                         <Link
                           href="/buyer/products"
                           className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#0d0d0d] border-2 border-[#ff6600]/50 text-white rounded-xl font-bold hover:bg-[#ff6600]/10 hover:border-[#ff6600] transition"

@@ -219,6 +219,14 @@ export default function CheckoutPage() {
       : 'CONSUMER';
   }, [quote, cart?.items]);
 
+  const B2B_MIN_KOBO = 5_000_000;
+  const D2C_MIN_KOBO = 1_000_000;
+  const isB2B = quote ? true : resolvedCheckoutOrderType === 'B2B';
+  const minOrderKobo = isB2B ? B2B_MIN_KOBO : D2C_MIN_KOBO;
+  const minOrderNaira = isB2B ? '₦50,000' : '₦10,000';
+  const cartSubtotal = quote ? quoteSubtotal : (cart?.totalAmount ?? 0);
+  const belowMinimum = cartSubtotal < minOrderKobo;
+
   // Fetch shipping quote when cart/quote, address and shipping method are available
   useEffect(() => {
     const items = quote
@@ -1011,6 +1019,11 @@ export default function CheckoutPage() {
                       )}
                     </div>
                     <div className="lg:col-span-1">
+                      {belowMinimum && (
+                        <p className="mb-4 text-sm text-[#ffcc99] border border-[#ff6600]/40 rounded-lg px-3 py-2 bg-[#ff6600]/10">
+                          Your order is below the minimum of {minOrderNaira}. Please go back and add more items.
+                        </p>
+                      )}
                       <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 sticky top-6 space-y-6">
                         <h2 className="text-white text-xl font-bold">Order summary</h2>
                         <div className="space-y-3 border-t border-[#ff6600]/30 pt-4">
@@ -1052,7 +1065,12 @@ export default function CheckoutPage() {
                         <button
                           type="button"
                           onClick={() => goToStep(2)}
-                          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
+                          disabled={belowMinimum}
+                          className={`w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold transition ${
+                            belowMinimum
+                              ? 'opacity-50 cursor-not-allowed'
+                              : 'hover:bg-[#cc5200]'
+                          }`}
                         >
                           Continue to delivery <ChevronRight className="w-5 h-5" />
                         </button>
@@ -1545,7 +1563,7 @@ export default function CheckoutPage() {
                           </button>
                           <button
                             type="submit"
-                            disabled={submitting || !!shippingQuoteError}
+                            disabled={submitting || !!shippingQuoteError || belowMinimum}
                             className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-[#ff6600]/30"
                           >
                             {submitting ? (

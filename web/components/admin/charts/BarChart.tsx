@@ -4,9 +4,23 @@ interface BarChartProps {
   data: Array<{ label: string; value: number }>;
   color?: string;
   valueFormatter?: (value: number) => string;
+  yAxisTickFormatter?: (value: number) => string;
 }
 
-export default function BarChart({ data, color = '#ff6600', valueFormatter }: BarChartProps) {
+export default function BarChart({
+  data,
+  color = '#ff6600',
+  valueFormatter,
+  yAxisTickFormatter,
+}: BarChartProps) {
+  const yFmt =
+    yAxisTickFormatter ??
+    ((value: number) =>
+      new Intl.NumberFormat('en-US', {
+        notation: 'compact',
+        compactDisplay: 'short',
+      }).format(value));
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <RechartsBarChart data={data} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
@@ -21,12 +35,7 @@ export default function BarChart({ data, color = '#ff6600', valueFormatter }: Ba
           stroke="#6b7280"
           tick={{ fill: '#6b7280', fontSize: 11 }}
           axisLine={{ stroke: '#1f1f1f' }}
-          tickFormatter={(value) =>
-            new Intl.NumberFormat('en-US', {
-              notation: 'compact',
-              compactDisplay: 'short',
-            }).format(value)
-          }
+          tickFormatter={yFmt}
         />
         <Tooltip
           contentStyle={{

@@ -58,6 +58,8 @@ const ADMIN_DASHBOARD_CACHE_TAG = 'admin-dashboard';
 
 export const adminDashboardKeys = {
   all: [ADMIN_DASHBOARD_CACHE_TAG] as const,
+  range: (params: ReportsQueryParams) =>
+    [ADMIN_DASHBOARD_CACHE_TAG, params.startDate ?? '', params.endDate ?? ''] as const,
 };
 
 /**
@@ -713,10 +715,9 @@ export async function fetchAdminProfile(): Promise<AdminProfile> {
   return normalizeResponse<AdminProfile>(data);
 }
 
-export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
+export async function fetchAdminDashboard(params?: ReportsQueryParams): Promise<AdminDashboardData> {
   try {
-    // Use the unified admin dashboard endpoint that returns all data in one call
-    const response = await apiClient.get('/admin/dashboard');
+    const response = await apiClient.get('/admin/dashboard', { params });
 
     // Log response in development for debugging
     if (process.env.NODE_ENV === 'development') {
@@ -787,8 +788,9 @@ export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
       if (sellersCount > 0) totalSellers = sellersCount;
     }
 
+    const hasDateRange = !!(params?.startDate && params?.endDate);
     let totalRevenue = (rawMetrics?.totalRevenue as number) ?? defaultMetrics.totalRevenue;
-    if (totalRevenue === 0) {
+    if (!hasDateRange && totalRevenue === 0) {
       const salesTotal = await fetchTotalSales();
       if (salesTotal > 0) totalRevenue = salesTotal;
     }
@@ -808,6 +810,13 @@ export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
       newCustomersThisMonth,
       activeCustomersThisMonth,
       customerRetentionRate,
+      periodProcessedGmvKobo: rawMetrics?.periodProcessedGmvKobo as number | undefined,
+      platformCommissionKobo: rawMetrics?.platformCommissionKobo as number | undefined,
+      activeSellersThisPeriod: rawMetrics?.activeSellersThisPeriod as number | undefined,
+      pendingPayoutsKobo: rawMetrics?.pendingPayoutsKobo as number | undefined,
+      repeatOrderRatePercent: rawMetrics?.repeatOrderRatePercent as number | undefined,
+      funnelUniqueVisitors: rawMetrics?.funnelUniqueVisitors as number | undefined,
+      priorPeriod: rawMetrics?.priorPeriod as DashboardMetrics['priorPeriod'],
     };
 
     // Fallback: fetch commission revenue from dedicated endpoint when dashboard returns empty
@@ -852,11 +861,13 @@ export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
       topCategories: (normalized?.topCategories as TopCategoriesResponse | undefined) ?? defaultTopCategories,
       commissionRevenue,
       orderDistribution: (Array.isArray(normalized?.orderDistribution) ? normalized.orderDistribution : []) as OrderDistributionEntry[],
+      cohortRetention: normalized?.cohortRetention as AdminDashboardData['cohortRetention'],
       lowStock: (Array.isArray(normalized?.lowStock) ? normalized.lowStock : []) as LowStockItem[],
       pendingSellerApprovals: typeof normalized?.pendingSellerApprovals === 'number' ? normalized.pendingSellerApprovals : 0,
       pendingPayments: typeof normalized?.pendingPayments === 'number' ? normalized.pendingPayments : 0,
       pendingQuoteRequestsCount: typeof normalized?.pendingQuoteRequestsCount === 'number' ? normalized.pendingQuoteRequestsCount : 0,
       b2bOrdersCount: typeof normalized?.b2bOrdersCount === 'number' ? normalized.b2bOrdersCount : 0,
+      dateRange: normalized?.dateRange as AdminDashboardData['dateRange'],
     };
 
     // Log final result in development

@@ -87,6 +87,8 @@ export interface PlatformWideAnalytics {
   sharesByPlatform: PlatformWideStats[];
   sharesByRole: RoleWideStats[];
   timeTrends: TimeTrendData[];
+  /** True when at least one share row exists in the database (API may omit on older backends). */
+  shareTrackingRecorded?: boolean;
 }
 
 export interface PlatformAnalyticsQuery {

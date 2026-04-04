@@ -62,9 +62,16 @@ export function getDateRangeForPreset(preset: DateRangePreset, customStart?: str
   return { preset, startDate, endDate, label };
 }
 
-export function dateRangeToReportParams(range: DateRangeValue): { startDate?: string; endDate?: string } {
-  if (range.preset === 'today' && range.startDate === range.endDate) {
-    return { startDate: range.startDate, endDate: range.endDate };
+/**
+ * Query params for `/admin/dashboard` and `/reports/*`.
+ * "Today" uses start of UTC day through now so intraday charts and revenue stay accurate.
+ */
+export function dateRangeToReportParams(range: DateRangeValue): { startDate: string; endDate: string } {
+  if (range.preset === 'today') {
+    return {
+      startDate: `${range.startDate}T00:00:00.000Z`,
+      endDate: new Date().toISOString(),
+    };
   }
   return { startDate: range.startDate, endDate: range.endDate };
 }

@@ -19,55 +19,72 @@ export type DailyOrderValueView = 'line' | 'bar' | 'area';
 export interface DailyOrderValuePoint {
   date: string;
   amount: number; // kobo
+  orderCount?: number;
 }
 
 interface DailyOrderValueChartProps {
-  /** This period (e.g. current 7d/30d) */
   data: DailyOrderValuePoint[];
-  /** Last period same length for comparison */
   comparisonData?: DailyOrderValuePoint[];
   view: DailyOrderValueView;
   showComparison: boolean;
   color?: string;
   comparisonColor?: string;
+  granularity?: 'hour' | 'day' | 'month';
 }
 
 const formatNgn = (value: number) =>
-  new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    maximumFractionDigits: 0,
-  }).format(value);
+  `₦${Math.round(value).toLocaleString('en-NG', { maximumFractionDigits: 0 })}`;
+
+function formatTickLabel(isoKey: string, granularity?: string): string {
+  const d = new Date(isoKey);
+  if (Number.isNaN(d.getTime())) return isoKey;
+  if (granularity === 'hour') {
+    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+  if (granularity === 'month') {
+    return d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+  }
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
 
 export default function DailyOrderValueChart({
   data,
   comparisonData = [],
   view,
   showComparison,
-  color = '#ff6600',
+  color = '#FF6B00',
   comparisonColor = '#6b7280',
+  granularity,
 }: DailyOrderValueChartProps) {
-  const thisPeriodMap = new Map(data.map((p) => [p.date, p.amount / 100]));
-  const compMap = new Map(comparisonData.map((p) => [p.date, p.amount / 100]));
+  const thisPeriodMap = new Map(data.map((p) => [p.date, p]));
+  const compMap = new Map(comparisonData.map((p) => [p.date, p]));
   const allDates = Array.from(
     new Set([...data.map((p) => p.date), ...comparisonData.map((p) => p.date)])
   ).sort();
 
-  const chartData = allDates.map((date) => ({
-    date,
-    label: new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-    value: thisPeriodMap.get(date) ?? 0,
-    comparison: compMap.get(date) ?? 0,
-  }));
+  const chartData = allDates.map((date) => {
+    const cur = thisPeriodMap.get(date);
+    const comp = compMap.get(date);
+    return {
+      date,
+      label: formatTickLabel(date, granularity),
+      value: cur ? cur.amount / 100 : 0,
+      orderCount: cur?.orderCount ?? 0,
+      comparison: comp ? comp.amount / 100 : 0,
+    };
+  });
 
   const hasComparison = showComparison && comparisonData.length > 0;
 
+  const yTickFmt = (v: number) =>
+    `₦${new Intl.NumberFormat('en-NG', { notation: 'compact', compactDisplay: 'short', maximumFractionDigits: 1 }).format(v)}`;
+
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+      <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 4, bottom: 4 }}>
         <defs>
-          <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={color} stopOpacity={0.4} />
+          <linearGradient id="dailyAreaFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={color} stopOpacity={0.45} />
             <stop offset="95%" stopColor={color} stopOpacity={0} />
           </linearGradient>
           <linearGradient id="areaFillComp" x1="0" y1="0" x2="0" y2="1">
@@ -75,33 +92,37 @@ export default function DailyOrderValueChart({
             <stop offset="95%" stopColor={comparisonColor} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#2a3142" vertical={false} />
         <XAxis
           dataKey="label"
           stroke="#6b7280"
-          tick={{ fill: '#6b7280', fontSize: 11 }}
-          axisLine={{ stroke: '#1f1f1f' }}
+          tick={{ fill: '#9ca3af', fontSize: 10 }}
+          axisLine={{ stroke: '#2a3142' }}
+          interval="preserveStartEnd"
+          minTickGap={24}
         />
         <YAxis
           stroke="#6b7280"
-          tick={{ fill: '#6b7280', fontSize: 11 }}
-          axisLine={{ stroke: '#1f1f1f' }}
-          tickFormatter={(v) =>
-            new Intl.NumberFormat('en-NG', { notation: 'compact', compactDisplay: 'short' }).format(v)
-          }
+          tick={{ fill: '#9ca3af', fontSize: 11 }}
+          axisLine={{ stroke: '#2a3142' }}
+          tickFormatter={yTickFmt}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: '#0a0a0a',
-            border: '1px solid #1f1f1f',
+            backgroundColor: '#0f1524',
+            border: '1px solid #2a3142',
             borderRadius: '8px',
             color: '#fff',
           }}
           labelStyle={{ color: '#9ca3af' }}
-          formatter={(value: number, name: string) => [
-            formatNgn(Number(value)),
-            name === 'value' ? 'This period' : 'Last period',
-          ]}
+          formatter={(value: number, name: string, item: { payload?: { orderCount?: number } }) => {
+            const oc = item?.payload?.orderCount;
+            if (name === 'value') {
+              const v = formatNgn(Number(value));
+              return oc != null && oc > 0 ? [`${v} · ${oc} orders`, 'This period'] : [v, 'This period'];
+            }
+            return [formatNgn(Number(value)), 'Last period'];
+          }}
           labelFormatter={(label) => label}
         />
         {hasComparison && (
@@ -113,22 +134,22 @@ export default function DailyOrderValueChart({
 
         {view === 'line' && (
           <Line
-            type="monotone"
+            type="natural"
             dataKey="value"
             stroke={color}
-            strokeWidth={2}
-            dot={{ fill: color, r: 4 }}
+            strokeWidth={2.5}
+            dot={{ fill: color, r: 3 }}
             name="value"
           />
         )}
         {view === 'line' && hasComparison && (
           <Line
-            type="monotone"
+            type="natural"
             dataKey="comparison"
             stroke={comparisonColor}
             strokeWidth={2}
             strokeDasharray="4 4"
-            dot={{ fill: comparisonColor, r: 3 }}
+            dot={{ fill: comparisonColor, r: 2 }}
             name="comparison"
           />
         )}
@@ -150,17 +171,17 @@ export default function DailyOrderValueChart({
 
         {view === 'area' && (
           <Area
-            type="monotone"
+            type="natural"
             dataKey="value"
             stroke={color}
             strokeWidth={2}
-            fill="url(#areaFill)"
+            fill="url(#dailyAreaFill)"
             name="value"
           />
         )}
         {view === 'area' && hasComparison && (
           <Area
-            type="monotone"
+            type="natural"
             dataKey="comparison"
             stroke={comparisonColor}
             strokeWidth={2}

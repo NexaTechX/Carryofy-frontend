@@ -14,11 +14,25 @@ export interface DashboardMetrics {
   newCustomersThisMonth?: number;
   activeCustomersThisMonth?: number;
   customerRetentionRate?: number;
+  /** Paid-through-delivered GMV in kobo (selected period) */
+  periodProcessedGmvKobo?: number;
+  platformCommissionKobo?: number;
+  activeSellersThisPeriod?: number;
+  pendingPayoutsKobo?: number;
+  repeatOrderRatePercent?: number;
+  funnelUniqueVisitors?: number;
+  priorPeriod?: {
+    totalOrders: number;
+    gmvKobo: number;
+    processedGmvKobo: number;
+    platformCommissionKobo: number;
+  };
 }
 
 export interface SalesTrendPoint {
   date: string;
   amount: number; // in kobo
+  orderCount?: number;
 }
 
 export interface SalesTrendResponse {
@@ -26,6 +40,7 @@ export interface SalesTrendResponse {
   totalSales: number;
   totalOrders: number;
   period: string;
+  granularity?: 'hour' | 'day' | 'month';
 }
 
 export interface TopCategoryEntry {
@@ -84,17 +99,25 @@ export interface SellerSummary {
   updatedAt: string;
 }
 
+export interface CohortRetentionResponse {
+  rows: Array<{ cohortLabel: string; retentionByMonth: number[] }>;
+  monthLabels: string[];
+  message?: string;
+}
+
 export interface AdminDashboardData {
   metrics: DashboardMetrics;
   salesTrend: SalesTrendResponse;
   topCategories: TopCategoriesResponse;
   commissionRevenue: CommissionRevenueResponse;
   orderDistribution: OrderDistributionEntry[];
+  cohortRetention?: CohortRetentionResponse;
   lowStock: LowStockItem[];
   pendingSellerApprovals: number;
   pendingPayments: number;
   pendingQuoteRequestsCount?: number;
   b2bOrdersCount?: number;
+  dateRange?: { startDate?: string; endDate?: string };
 }
 
 export interface AdminProfile {

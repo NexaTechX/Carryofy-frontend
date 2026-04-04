@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
 import {
   DateRangePreset,
@@ -31,6 +31,12 @@ export default function AnalyticsDateRangeSelector({
   const [showCustom, setShowCustom] = useState(value.preset === 'custom');
   const [customStart, setCustomStart] = useState(value.startDate);
   const [customEnd, setCustomEnd] = useState(value.endDate);
+
+  useEffect(() => {
+    setCustomStart(value.startDate);
+    setCustomEnd(value.endDate);
+    if (value.preset === 'custom') setShowCustom(true);
+  }, [value.startDate, value.endDate, value.preset]);
 
   const handlePreset = (preset: DateRangePreset) => {
     if (preset === 'custom') {

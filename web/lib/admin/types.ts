@@ -499,6 +499,35 @@ export interface UpdateTeamMemberPayload {
   role?: 'Admin' | 'Support' | 'Finance';
 }
 
+export type BannerPlacement = 'HERO' | 'SHOP' | 'BOTH';
+
+export interface MarketingBanner {
+  id: string;
+  imageUrl: string;
+  headline: string;
+  subline: string;
+  ctaLabel: string;
+  ctaUrl: string;
+  placement: BannerPlacement;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateBannerPayload {
+  imageUrl: string;
+  headline: string;
+  subline?: string;
+  ctaLabel: string;
+  ctaUrl: string;
+  placement: BannerPlacement;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export type UpdateBannerPayload = Partial<CreateBannerPayload>;
+
 export type SupportTicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 export type SupportTicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 

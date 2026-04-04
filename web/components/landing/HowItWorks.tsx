@@ -1,30 +1,24 @@
 import { motion } from 'framer-motion';
-import { Search, ShoppingCart, PackageCheck, Store } from 'lucide-react';
+import { Search, ShoppingCart, Truck } from 'lucide-react';
 
 const steps = [
   {
     id: 1,
     title: 'Browse',
-    description: 'Explore products from verified vendors across the categories your customers expect.',
+    description: 'Explore products from verified vendors.',
     icon: Search,
   },
   {
     id: 2,
     title: 'Order',
-    description: 'Place orders for your store in a few clicks — no market runs required.',
+    description: 'Place orders in a few clicks, no market trips.',
     icon: ShoppingCart,
   },
   {
     id: 3,
-    title: 'We dispatch',
-    description: 'Carryofy coordinates pickup and delivery with our logistics partners.',
-    icon: PackageCheck,
-  },
-  {
-    id: 4,
-    title: 'Delivered to your store',
-    description: 'Stock arrives at your location so you can sell with confidence.',
-    icon: Store,
+    title: 'Receive',
+    description: 'We coordinate delivery to your store.',
+    icon: Truck,
   },
 ];
 
@@ -47,32 +41,35 @@ export default function HowItWorks() {
             </p>
           </motion.div>
 
-          <div className="relative">
-            <div
-              className="hidden lg:block absolute top-24 left-0 right-0 h-0.5 bg-gradient-to-r from-[#FF6B00]/20 via-[#FF6B00]/40 to-[#FF6B00]/20"
-              style={{ left: '12.5%', right: '12.5%' }}
-              aria-hidden
-            />
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-              {steps.map((step, index) => (
-                <motion.div
-                  key={step.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="relative flex flex-col items-center text-center"
-                >
-                  <div className="w-16 h-16 rounded-2xl bg-[#FAFAFA] border-2 border-[#FF6B00]/20 shadow-md flex items-center justify-center mb-4 z-10">
-                    <step.icon className="w-8 h-8 text-[#FF6B00]" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 lg:gap-12 md:items-start">
+            {steps.map((step, index) => (
+              <motion.div
+                key={step.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="relative flex flex-col items-center text-center md:flex-1 md:min-w-0"
+              >
+                <div className="relative mb-5 flex shrink-0 flex-col items-center">
+                  <div
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-base font-bold text-white shadow-md ring-4 ring-white"
+                    aria-hidden
+                  >
+                    {step.id}
                   </div>
-                  <div className="text-sm font-bold text-[#FF6B00] mb-1">Step {step.id}</div>
-                  <h3 className="font-inter font-bold text-[#111111] text-base mb-2">{step.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{step.description}</p>
-                </motion.div>
-              ))}
-            </div>
+                  <div className="mt-4 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-primary/20 bg-[#FAFAFA] shadow-md">
+                    <step.icon className="h-8 w-8 text-primary" aria-hidden />
+                  </div>
+                </div>
+                <h3 className="font-inter mb-2 text-lg font-bold text-[#111111] sm:text-xl">
+                  {step.title}
+                </h3>
+                <p className="max-w-xs text-sm leading-relaxed text-gray-600 sm:max-w-none md:px-1">
+                  {step.description}
+                </p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </div>

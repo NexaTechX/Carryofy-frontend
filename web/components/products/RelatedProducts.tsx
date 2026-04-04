@@ -93,7 +93,8 @@ export default function RelatedProducts({ productId, title = 'Related Products',
     };
   }, [productId]);
 
-  if (error || (!loading && products.length === 0)) {
+  // Hide entirely when empty, errored, or only one item (weak social proof)
+  if (error || (!loading && products.length <= 1)) {
     return null;
   }
 

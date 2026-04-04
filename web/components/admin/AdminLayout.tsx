@@ -66,7 +66,7 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Payouts', href: '/admin/payouts', icon: DollarSign },
   { name: 'Finance', href: '/admin/finance', icon: FileBarChart2 },
   { name: 'Reports', href: '/admin/reports', icon: FileBarChart2 },
-  { name: 'Promotions', href: '/admin/promotions', icon: Megaphone },
+  { name: 'Banners', href: '/admin/banners', icon: Megaphone },
   { name: 'Broadcast', href: '/admin/broadcast', icon: Mail },
   { name: 'Broadcast History', href: '/admin/broadcast-history', icon: Calendar },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
@@ -96,6 +96,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const isActive = (href: string) => {
     if (href === '/admin') return router.pathname === '/admin';
+    if (href === '/admin/settings') return router.pathname === '/admin/settings';
     return router.pathname.startsWith(href);
   };
 
@@ -104,7 +105,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       return NAV_ITEMS[0];
     }
 
-    const matched = NAV_ITEMS.find((item) => item.href !== '/admin' && router.pathname.startsWith(item.href));
+    const candidates = NAV_ITEMS.filter(
+      (item) => item.href !== '/admin' && router.pathname.startsWith(item.href),
+    );
+    const matched = candidates.sort((a, b) => b.href.length - a.href.length)[0];
     if (matched) {
       return matched;
     }

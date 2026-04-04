@@ -5,6 +5,7 @@ import StatsBar from '../components/landing/StatsBar';
 import ProblemSection from '../components/landing/ProblemSection';
 import HowItWorks from '../components/landing/HowItWorks';
 import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
+import BetaTestimonials from '../components/landing/BetaTestimonials';
 import ValuePropositionsSection from '../components/landing/ValuePropositionsSection';
 import HomepageOnboardingNote from '../components/landing/HomepageOnboardingNote';
 import CallToAction from '../components/landing/CallToAction';
@@ -76,6 +77,7 @@ export default function Home() {
           <ProblemSection />
           <HowItWorks />
           <WhyChooseCarryofy />
+          <BetaTestimonials />
           <HomepageOnboardingNote />
           <CallToAction />
         </main>

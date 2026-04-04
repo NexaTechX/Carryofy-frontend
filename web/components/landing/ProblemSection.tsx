@@ -1,48 +1,51 @@
-import { MapPin, UserX, Truck } from 'lucide-react';
+import { MapPin, UserX, ShieldOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const retailerProblems = [
   {
     icon: UserX,
-    title: 'Unreliable suppliers',
+    title: 'Unreliable Suppliers',
     description:
-      'The market is fragmented — you never know who will deliver quality stock on time, or show up at all.',
-    iconColor: 'text-red-500',
-    bgColor: 'bg-red-50',
+      'Fragmented markets make it hard to know who will deliver quality stock on time — or show up at all.',
+    gradient: 'from-red-100/90 to-red-50',
+    iconWrap: 'bg-red-100',
+    iconColor: 'text-red-600',
   },
   {
     icon: MapPin,
-    title: 'Endless market trips',
+    title: 'Endless Market Trips',
     description:
-      'Hours lost traveling to markets and chasing stock — time you could spend serving customers and growing sales.',
-    iconColor: 'text-orange-500',
-    bgColor: 'bg-orange-50',
+      'Hours lost traveling and chasing stock — time better spent serving customers and growing sales.',
+    gradient: 'from-orange-100/90 to-orange-50',
+    iconWrap: 'bg-orange-100',
+    iconColor: 'text-orange-600',
   },
   {
-    icon: Truck,
-    title: 'No trust, no delivery',
+    icon: ShieldOff,
+    title: 'No Trust No Delivery',
     description:
-      'Without verified partners or reliable delivery, restocking stays risky, slow, and expensive.',
-    iconColor: 'text-red-500',
-    bgColor: 'bg-red-50',
+      'Without verified partners or reliable logistics, restocking stays risky, slow, and expensive.',
+    gradient: 'from-rose-100/90 to-rose-50',
+    iconWrap: 'bg-rose-100',
+    iconColor: 'text-rose-600',
   },
 ];
 
 export default function ProblemSection() {
   return (
-    <section className="py-16 sm:py-20 lg:py-24 bg-gray-50 relative">
+    <section className="relative bg-gray-50 py-16 sm:py-20 lg:py-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-left mb-12 sm:mb-16">
-            <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-left sm:mb-16">
+            <h2 className="font-heading mb-4 text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl">
               Commerce in Africa is fragmented.
             </h2>
-            <p className="text-base sm:text-lg text-gray-600 max-w-2xl">
+            <p className="max-w-2xl text-base text-gray-600 sm:text-lg">
               Lagos retailers face unreliable suppliers, repeated market trips, and no standard way to trust who they buy from — or how stock gets to the store.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:items-stretch">
             {retailerProblems.map((problem, index) => (
               <motion.div
                 key={problem.title}
@@ -50,31 +53,22 @@ export default function ProblemSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow"
+                className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-lg"
               >
-                <div className="relative h-40 overflow-hidden">
-                  <img
-                    src={
-                      index === 0
-                        ? 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop'
-                        : index === 1
-                          ? 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&h=400&fit=crop'
-                          : 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&h=400&fit=crop'
-                    }
-                    alt=""
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                  <div className="absolute top-4 left-4">
-                    <div className={`w-12 h-12 ${problem.bgColor} rounded-lg flex items-center justify-center shadow-lg`}>
-                      <problem.icon className={`w-6 h-6 ${problem.iconColor}`} />
-                    </div>
+                <div
+                  className={`relative flex h-44 w-full shrink-0 flex-col items-center justify-center bg-linear-to-br ${problem.gradient} px-6`}
+                  aria-hidden
+                >
+                  <div
+                    className={`flex h-20 w-20 items-center justify-center rounded-2xl ${problem.iconWrap} shadow-sm ring-1 ring-black/5`}
+                  >
+                    <problem.icon className={`h-10 w-10 ${problem.iconColor}`} strokeWidth={1.75} />
                   </div>
+                  <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/6 to-transparent" />
                 </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">{problem.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{problem.description}</p>
+                <div className="flex flex-1 flex-col p-6">
+                  <h3 className="mb-3 text-xl font-bold text-gray-900">{problem.title}</h3>
+                  <p className="text-sm leading-relaxed text-gray-700">{problem.description}</p>
                 </div>
               </motion.div>
             ))}

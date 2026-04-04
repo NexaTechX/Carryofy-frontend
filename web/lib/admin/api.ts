@@ -37,6 +37,9 @@ import {
   TeamMember,
   CreateTeamMemberPayload,
   UpdateTeamMemberPayload,
+  MarketingBanner,
+  CreateBannerPayload,
+  UpdateBannerPayload,
   CreateBroadcastPayload,
   BroadcastResult,
   BroadcastProductOption,
@@ -1237,6 +1240,43 @@ export async function updateTeamMember(memberId: string, payload: UpdateTeamMemb
 
 export async function deleteTeamMember(memberId: string): Promise<void> {
   await apiClient.delete(`/settings/team/${memberId}`);
+}
+
+export async function fetchAdminBanners(): Promise<MarketingBanner[]> {
+  const { data } = await apiClient.get('/admin/banners');
+  const normalized = normalizeResponse<{ banners?: MarketingBanner[] }>(data);
+  return normalized?.banners ?? [];
+}
+
+export async function fetchAdminBanner(id: string): Promise<MarketingBanner> {
+  const { data } = await apiClient.get(`/admin/banners/${id}`);
+  return normalizeResponse<MarketingBanner>(data);
+}
+
+export async function createBanner(payload: CreateBannerPayload): Promise<MarketingBanner> {
+  const { data } = await apiClient.post('/admin/banners', payload);
+  return normalizeResponse<MarketingBanner>(data);
+}
+
+export async function updateBanner(
+  id: string,
+  payload: UpdateBannerPayload,
+): Promise<MarketingBanner> {
+  const { data } = await apiClient.patch(`/admin/banners/${id}`, payload);
+  return normalizeResponse<MarketingBanner>(data);
+}
+
+export async function deleteBanner(id: string): Promise<void> {
+  await apiClient.delete(`/admin/banners/${id}`);
+}
+
+export async function uploadBannerImage(file: File): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append('image', file);
+  const { data } = await apiClient.post('/admin/banners/upload-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return normalizeResponse<{ url: string }>(data);
 }
 
 // Feedback API

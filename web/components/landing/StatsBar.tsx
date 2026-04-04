@@ -1,30 +1,49 @@
 import { motion } from 'framer-motion';
+import { Package, ShieldCheck, Truck } from 'lucide-react';
 
-const stats = ['Verified Vendors Only', 'Delivery Handled'];
+const stats = [
+  {
+    icon: Package,
+    line: '500+ Products Listed',
+  },
+  {
+    icon: ShieldCheck,
+    line: 'Verified Vendors Only',
+  },
+  {
+    icon: Truck,
+    line: 'Same-Day Delivery in Lagos',
+  },
+] as const;
 
 export default function StatsBar() {
   return (
-    <section className="py-8 sm:py-10 bg-white border-y border-gray-200/80">
+    <section className="border-y border-gray-200/80 bg-gray-100/90 py-7 sm:py-8">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
+        <div className="mx-auto max-w-5xl">
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="flex flex-wrap justify-center items-center gap-x-8 gap-y-4 sm:gap-x-12 lg:gap-16"
+            className="grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-6 md:gap-10"
           >
-            {stats.map((label, index) => (
+            {stats.map((item, index) => (
               <motion.div
-                key={label}
-                initial={{ opacity: 0, y: 16 }}
+                key={item.line}
+                initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05 }}
-                className="text-center px-2"
+                className="flex items-center justify-center gap-3 sm:flex-col sm:gap-2.5"
               >
-                <div className="font-inter font-semibold text-[#111111] text-sm sm:text-base">
-                  {label}
-                </div>
+                <item.icon
+                  className="h-5 w-5 shrink-0 text-gray-400"
+                  strokeWidth={1.75}
+                  aria-hidden
+                />
+                <p className="font-inter min-w-0 text-left text-base font-bold tracking-tight text-gray-900 sm:text-center sm:text-lg">
+                  {item.line}
+                </p>
               </motion.div>
             ))}
           </motion.div>

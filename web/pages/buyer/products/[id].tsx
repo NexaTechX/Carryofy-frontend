@@ -1215,13 +1215,6 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
             />
           )}
 
-          {/* Frequently Bought Together - placeholder for future API integration */}
-          {!loading && !error && product && (
-            <section className="mt-12" aria-label="Frequently bought together">
-              <h2 className="text-white text-2xl font-bold mb-6">Frequently Bought Together</h2>
-              <p className="text-[#ffcc99]/60 text-sm">Products that customers often buy together will appear here.</p>
-            </section>
-          )}
         </div>
       </BuyerLayout>
 

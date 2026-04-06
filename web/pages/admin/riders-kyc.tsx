@@ -180,9 +180,10 @@ export default function AdminRidersKycPage() {
                       </DataTableCell>
                       <DataTableCell className="text-zinc-300">{r.email}</DataTableCell>
                       <DataTableCell>
-                        <StatusBadge tone={statusTone[r.status] ?? 'neutral'}>
-                          {r.status}
-                        </StatusBadge>
+                        <StatusBadge
+                          tone={statusTone[r.status] ?? 'neutral'}
+                          label={r.status}
+                        />
                       </DataTableCell>
                       <DataTableCell className="text-zinc-400">
                         {formatDate(r.submittedAt)}

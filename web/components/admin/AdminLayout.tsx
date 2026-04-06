@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ReactNode, useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import useSWR from 'swr';
 import clsx from 'clsx';
 import {
   AlertTriangle,
@@ -30,11 +31,13 @@ import {
   Scale,
   Zap,
   UserCheck,
+  Shield,
 } from 'lucide-react';
 import GlobalSearch from './GlobalSearch';
 import NotificationsDropdown from './NotificationsDropdown';
 import { RealtimeProvider } from '../../lib/contexts/RealtimeContext';
 import { useAuth } from '../../lib/auth/context';
+import { fetchUnacknowledgedSosCount } from '../../lib/admin/api';
 
 
 interface AdminLayoutProps {
@@ -61,6 +64,7 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Disputes', href: '/admin/disputes', icon: Scale },
   { name: 'Deliveries', href: '/admin/deliveries', icon: Truck },
   { name: 'Rider KYC', href: '/admin/riders-kyc', icon: UserCheck },
+  { name: 'Safety Center', href: '/admin/safety', icon: Shield },
   { name: 'Dispatch', href: '/admin/dispatch', icon: Zap },
   { name: 'Delivery exceptions', href: '/admin/delivery-exceptions', icon: AlertTriangle },
   { name: 'Locations', href: '/admin/locations', icon: MapPin },
@@ -82,6 +86,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  const { data: safetySosBadge = 0 } = useSWR(
+    router.pathname.startsWith('/admin') ? 'safety-sos-badge' : null,
+    fetchUnacknowledgedSosCount,
+    { refreshInterval: 30000, dedupingInterval: 5000 },
+  );
 
   // Keyboard shortcut for search (Cmd/Ctrl + K)
   useEffect(() => {
@@ -141,14 +151,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 onClick={() => setSidebarOpen(false)}
               >
                 <Icon className={clsx('h-5 w-5 shrink-0', active ? 'text-primary' : 'text-gray-500 group-hover:text-foreground')} />
-                {name}
+                <span className="min-w-0 flex-1 truncate">{name}</span>
+                {href === '/admin/safety' && safetySosBadge > 0 ? (
+                  <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white">
+                    {safetySosBadge > 99 ? '99+' : safetySosBadge}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
         </div>
       </nav>
     ),
-    [sidebarOpen, router.asPath]
+    [sidebarOpen, router.asPath, safetySosBadge]
   );
 
   return (

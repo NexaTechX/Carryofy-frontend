@@ -1447,3 +1447,191 @@ export async function rejectAdminRiderKyc(
   });
   return normalizeResponse<{ status: string }>(data) as { status: string };
 }
+
+// --- Safety Center (admin) ---
+
+export type SafetySummary = {
+  activeSosCount: number;
+  openIncidentReportsCount: number;
+  missedCheckInsTodayCount: number;
+  ridersOnShiftCount: number;
+};
+
+export async function fetchSafetySummary(): Promise<SafetySummary> {
+  const { data } = await apiClient.get('/admin/safety/summary');
+  return normalizeResponse<SafetySummary>(data) as SafetySummary;
+}
+
+export async function fetchUnacknowledgedSosCount(): Promise<number> {
+  const { data } = await apiClient.get('/admin/safety/unacknowledged-sos-count');
+  const n = normalizeResponse<{ count: number }>(data);
+  return n?.count ?? 0;
+}
+
+export type AdminSosAlertRow = {
+  id: string;
+  source: 'SOS_ALERT' | 'LEGACY_SAFETY_INCIDENT';
+  riderId: string;
+  riderName: string;
+  riderPhone: string;
+  orderId: string | null;
+  lat: number | null;
+  lng: number | null;
+  reason: string | null;
+  status: 'ACTIVE' | 'ACKNOWLEDGED' | 'RESOLVED';
+  triggeredAt: string;
+  acknowledgedAt: string | null;
+  acknowledgedBy: { id: string; name: string } | null;
+  resolvedAt: string | null;
+  resolvedBy: { id: string; name: string } | null;
+  resolutionNote: string | null;
+};
+
+export async function fetchSafetySosList(params?: {
+  status?: string;
+  search?: string;
+  skip?: number;
+  take?: number;
+}): Promise<{ items: AdminSosAlertRow[]; total: number }> {
+  const { data } = await apiClient.get('/admin/safety/sos', { params });
+  return normalizeResponse<{ items: AdminSosAlertRow[]; total: number }>(data) as {
+    items: AdminSosAlertRow[];
+    total: number;
+  };
+}
+
+export async function acknowledgeSafetySos(
+  id: string,
+  source: 'SOS_ALERT' | 'LEGACY_SAFETY_INCIDENT',
+): Promise<{ ok: boolean }> {
+  const { data } = await apiClient.post(`/admin/safety/sos/${id}/acknowledge`, { source });
+  return normalizeResponse<{ ok: boolean }>(data) as { ok: boolean };
+}
+
+export async function resolveSafetySos(
+  id: string,
+  resolutionNote: string,
+  source: 'SOS_ALERT' | 'LEGACY_SAFETY_INCIDENT',
+): Promise<{ ok: boolean }> {
+  const { data } = await apiClient.post(`/admin/safety/sos/${id}/resolve`, {
+    resolutionNote,
+    source,
+  });
+  return normalizeResponse<{ ok: boolean }>(data) as { ok: boolean };
+}
+
+export type SafetyCheckInRow = {
+  id: string;
+  riderId: string;
+  riderName: string;
+  lat: number;
+  lng: number;
+  deliveryStatus: string;
+  helpRequested: boolean;
+  createdAt: string;
+  missedCheckInBadge: boolean;
+};
+
+export async function fetchSafetyCheckIns(params?: {
+  riderName?: string;
+  from?: string;
+  to?: string;
+  status?: 'on_time' | 'missed' | 'all';
+  skip?: number;
+  take?: number;
+}): Promise<{ items: SafetyCheckInRow[]; total: number }> {
+  const { data } = await apiClient.get('/admin/safety/check-ins', { params });
+  return normalizeResponse<{ items: SafetyCheckInRow[]; total: number }>(data) as {
+    items: SafetyCheckInRow[];
+    total: number;
+  };
+}
+
+export async function fetchSafetyCheckInSettings(): Promise<{
+  checkInIntervalMinutes: number;
+  updatedAt: string;
+}> {
+  const { data } = await apiClient.get('/admin/safety/check-in-settings');
+  return normalizeResponse(data) as { checkInIntervalMinutes: number; updatedAt: string };
+}
+
+export async function updateSafetyCheckInSettings(checkInIntervalMinutes: number): Promise<{
+  checkInIntervalMinutes: number;
+  updatedAt: string;
+}> {
+  const { data } = await apiClient.patch('/admin/safety/check-in-settings', {
+    checkInIntervalMinutes,
+  });
+  return normalizeResponse(data) as { checkInIntervalMinutes: number; updatedAt: string };
+}
+
+export type SafetyIncidentRow = {
+  id: string;
+  reportNumber: number;
+  riderId: string;
+  riderName: string;
+  riderPhone: string;
+  orderId: string | null;
+  type: string;
+  description: string;
+  lat: number | null;
+  lng: number | null;
+  photos: string[];
+  status: string;
+  incidentAt: string;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+  assignedTo: { id: string; name: string; email: string } | null;
+  resolvedBy: { id: string; name: string } | null;
+  notes: {
+    id: string;
+    body: string;
+    createdAt: string;
+    author: { id: string; name: string };
+  }[];
+};
+
+export async function fetchSafetyIncidents(params?: {
+  q?: string;
+  type?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+  skip?: number;
+  take?: number;
+}): Promise<{ items: SafetyIncidentRow[]; total: number }> {
+  const { data } = await apiClient.get('/admin/safety/incidents', { params });
+  return normalizeResponse<{ items: SafetyIncidentRow[]; total: number }>(data) as {
+    items: SafetyIncidentRow[];
+    total: number;
+  };
+}
+
+export async function updateSafetyIncident(
+  id: string,
+  body: { status?: string; assignedToId?: string | null },
+): Promise<{ ok: boolean }> {
+  const { data } = await apiClient.patch(`/admin/safety/incidents/${id}`, body);
+  return normalizeResponse<{ ok: boolean }>(data) as { ok: boolean };
+}
+
+export async function addSafetyIncidentNote(
+  incidentId: string,
+  body: string,
+): Promise<{ id: string; body: string; createdAt: string; author: { id: string; name: string } }> {
+  const { data } = await apiClient.post(`/admin/safety/incidents/${incidentId}/notes`, { body });
+  return normalizeResponse(data) as {
+    id: string;
+    body: string;
+    createdAt: string;
+    author: { id: string; name: string };
+  };
+}
+
+export async function fetchAssignableSafetyAdmins(): Promise<
+  { id: string; name: string; email: string }[]
+> {
+  const { data } = await apiClient.get('/admin/safety/assignable-admins');
+  return normalizeResponse<{ id: string; name: string; email: string }[]>(data) ?? [];
+}

@@ -170,9 +170,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     <RealtimeProvider enabled={true} interval={15000}>
       <div className="flex min-h-screen bg-background text-foreground">
         {/* Desktop Sidebar - fixed, nav content scrollable */}
-        <aside className="fixed inset-y-0 left-0 z-20 hidden h-screen w-72 flex flex-col border-r border-border-custom bg-card lg:flex">
+        <aside className="fixed inset-y-0 left-0 z-20 hidden h-screen w-72 flex-col border-r border-border-custom bg-card lg:flex">
           <div className="flex shrink-0 items-center gap-3 border-b border-border-custom px-6 py-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
               CF
             </div>
             <div>
@@ -208,7 +208,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         >
           <div className="flex shrink-0 items-center justify-between border-b border-border-custom px-5 py-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
                 CF
               </div>
               <div>
@@ -294,7 +294,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   <LogOut className="h-5 w-5" />
                 </button>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
                   AD
                 </div>
               </div>

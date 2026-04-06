@@ -1402,3 +1402,48 @@ export async function fetchAdminAuditLogs(params: {
   const { data } = await apiClient.get(`/admin/audit-logs?${search.toString()}`);
   return normalizeResponse<AdminAuditLogRow[]>(data) ?? [];
 }
+
+/** Rider KYC row from GET /admin/riders/kyc/queue */
+export type AdminRiderKycRow = {
+  riderId: string;
+  name: string | null;
+  email: string;
+  phone: string | null;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  submittedAt: string;
+  idType: string;
+  idNumber: string;
+  idImage: string;
+  licenseNumber: string | null;
+  licenseImage: string | null;
+  vehicleInsurance: string | null;
+  vehicleRegImage: string | null;
+  rejectionReason: string | null;
+  rejectedAt: string | null;
+};
+
+export async function fetchAdminRiderKycQueue(
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL',
+): Promise<AdminRiderKycRow[]> {
+  const { data } = await apiClient.get('/admin/riders/kyc/queue', {
+    params: status && status !== 'ALL' ? { status } : {},
+  });
+  return normalizeResponse<AdminRiderKycRow[]>(data) ?? [];
+}
+
+export async function approveAdminRiderKyc(
+  riderId: string,
+): Promise<{ status: string }> {
+  const { data } = await apiClient.post(`/admin/riders/${riderId}/kyc/approve`);
+  return normalizeResponse<{ status: string }>(data) as { status: string };
+}
+
+export async function rejectAdminRiderKyc(
+  riderId: string,
+  reason: string,
+): Promise<{ status: string }> {
+  const { data } = await apiClient.post(`/admin/riders/${riderId}/kyc/reject`, {
+    reason,
+  });
+  return normalizeResponse<{ status: string }>(data) as { status: string };
+}

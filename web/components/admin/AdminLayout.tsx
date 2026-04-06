@@ -29,6 +29,7 @@ import {
   LogOut,
   Scale,
   Zap,
+  UserCheck,
 } from 'lucide-react';
 import GlobalSearch from './GlobalSearch';
 import NotificationsDropdown from './NotificationsDropdown';
@@ -59,6 +60,7 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Refunds', href: '/admin/refunds', icon: DollarSign },
   { name: 'Disputes', href: '/admin/disputes', icon: Scale },
   { name: 'Deliveries', href: '/admin/deliveries', icon: Truck },
+  { name: 'Rider KYC', href: '/admin/riders-kyc', icon: UserCheck },
   { name: 'Dispatch', href: '/admin/dispatch', icon: Zap },
   { name: 'Delivery exceptions', href: '/admin/delivery-exceptions', icon: AlertTriangle },
   { name: 'Locations', href: '/admin/locations', icon: MapPin },

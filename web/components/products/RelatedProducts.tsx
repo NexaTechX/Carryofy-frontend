@@ -16,6 +16,20 @@ interface RelatedResponse {
   data?: { products?: ProductCardProduct[] };
 }
 
+interface ProductListResponse {
+  products?: ProductCardProduct[];
+  data?: { products?: ProductCardProduct[] };
+}
+
+function extractProducts(payload: unknown): ProductCardProduct[] {
+  const data = payload as {
+    products?: unknown;
+    data?: { products?: unknown };
+  };
+  const list = data?.data?.products ?? data?.products ?? [];
+  return Array.isArray(list) ? (list as ProductCardProduct[]) : [];
+}
+
 function RelatedProductsSkeleton({ horizontal }: { horizontal?: boolean }) {
   if (horizontal) {
     return (
@@ -23,7 +37,7 @@ function RelatedProductsSkeleton({ horizontal }: { horizontal?: boolean }) {
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <div
             key={i}
-            className="flex-shrink-0 w-[200px] sm:w-[220px] bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden animate-pulse"
+            className="shrink-0 w-[200px] sm:w-[220px] bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden animate-pulse"
           >
             <div className="aspect-square bg-white/5" />
             <div className="p-4 space-y-2">
@@ -67,34 +81,45 @@ export default function RelatedProducts({ productId, title = 'Related Products',
     setLoading(true);
     setError(null);
 
-    apiClient
-      .get<RelatedResponse>(`/products/${productId}/related`, {
-        params: { limit: 8 },
-      })
-      .then((response) => {
-        if (cancelled) return;
-        const data = response.data as any;
-        const list =
-          data?.data?.products ?? data?.products ?? [];
-        setProducts(Array.isArray(list) ? list : []);
-      })
-      .catch((err) => {
+    const loadProducts = async () => {
+      try {
+        // Primary source: related endpoint tuned for product context.
+        const relatedResponse = await apiClient.get<RelatedResponse>(`/products/${productId}/related`, {
+          params: { limit: 8 },
+        });
+        const relatedProducts = extractProducts(relatedResponse.data);
+        if (!cancelled && relatedProducts.length > 0) {
+          setProducts(relatedProducts);
+          return;
+        }
+
+        // Fallback source: popular catalog products so the section never disappears.
+        const fallbackResponse = await apiClient.get<ProductListResponse>('/products', {
+          params: { sortBy: 'popular', limit: 8, inStockOnly: true },
+        });
+        const fallbackProducts = extractProducts(fallbackResponse.data).filter((item) => item.id !== productId);
+        if (!cancelled) {
+          setProducts(fallbackProducts);
+        }
+      } catch (err: any) {
         if (cancelled) return;
         console.error('Failed to load related products:', err);
         setError(err.response?.data?.message ?? err.message ?? 'Failed to load');
         setProducts([]);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    };
+
+    loadProducts();
 
     return () => {
       cancelled = true;
     };
   }, [productId]);
 
-  // Hide entirely when empty, errored, or only one item (weak social proof)
-  if (error || (!loading && products.length <= 1)) {
+  // Hide entirely when empty or errored.
+  if (error || (!loading && products.length === 0)) {
     return null;
   }
 
@@ -106,7 +131,7 @@ export default function RelatedProducts({ productId, title = 'Related Products',
       ) : horizontalScroll ? (
         <div className="flex gap-4 md:gap-6 overflow-x-auto pb-2 -mx-1 scrollbar-thin scrollbar-thumb-[#FF6B00]/50 scrollbar-track-transparent">
           {products.slice(0, 6).map((product) => (
-            <div key={product.id} className="flex-shrink-0 w-[200px] sm:w-[240px] md:w-[260px]">
+            <div key={product.id} className="shrink-0 w-[200px] sm:w-[240px] md:w-[260px]">
               <ProductCard product={product} showFeatures={true} />
             </div>
           ))}

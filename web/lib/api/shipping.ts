@@ -20,6 +20,7 @@ export interface ShippingQuoteResponse {
   quoteExpiresAt?: string;
   riderCostKobo?: number;
   pricingTier?: string;
+  appliedDiscount?: string | null;
 }
 
 /** Backend only accepts STANDARD | PICKUP. Map EXPRESS/SCHEDULED to STANDARD. */

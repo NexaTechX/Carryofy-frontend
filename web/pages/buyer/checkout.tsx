@@ -88,6 +88,7 @@ export default function CheckoutPage() {
 
   const [shippingMethod] = useState<'STANDARD' | 'EXPRESS' | 'SCHEDULED'>('STANDARD');
   const [shippingFee, setShippingFee] = useState<number>(0);
+  const [shippingAppliedDiscount, setShippingAppliedDiscount] = useState<string | null>(null);
   const [shippingQuoteLoading, setShippingQuoteLoading] = useState(false);
   const [shippingQuoteError, setShippingQuoteError] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState('');
@@ -234,6 +235,7 @@ export default function CheckoutPage() {
       : cart?.items?.map((i) => ({ productId: i.productId, quantity: i.quantity })) ?? [];
     if (!items.length) {
       setShippingFee(0);
+      setShippingAppliedDiscount(null);
       setShippingQuoteError(null);
       return;
     }
@@ -241,6 +243,7 @@ export default function CheckoutPage() {
     if (!addressId) {
       setShippingQuoteError('Select address to see shipping cost');
       setShippingFee(0);
+      setShippingAppliedDiscount(null);
       return;
     }
     let cancelled = false;
@@ -257,11 +260,13 @@ export default function CheckoutPage() {
         if (!cancelled) {
           const fee = Number(res?.shippingFeeKobo);
           setShippingFee(Number.isFinite(fee) ? fee : 0);
+          setShippingAppliedDiscount(res?.appliedDiscount ?? null);
         }
       })
       .catch((err) => {
         if (!cancelled) {
           setShippingFee(0);
+          setShippingAppliedDiscount(null);
           setShippingQuoteError(err.response?.data?.message || 'Could not get shipping quote');
         }
       })
@@ -406,16 +411,35 @@ export default function CheckoutPage() {
 
   const discount = couponDiscount;
 
+  const isDeliveryDiscountEligible = useMemo(() => {
+    return cartSubtotalKobo >= FREE_SHIPPING_THRESHOLD_KOBO && shippingFee > 0;
+  }, [cartSubtotalKobo, shippingFee]);
+
+  const deliveryDiscountKobo = useMemo(() => {
+    if (!isDeliveryDiscountEligible) return 0;
+    // If backend already applied threshold discount, avoid double-discounting in UI.
+    if (shippingAppliedDiscount === 'FREE_SHIPPING_THRESHOLD') return 0;
+    return Math.round(shippingFee * 0.2);
+  }, [isDeliveryDiscountEligible, shippingAppliedDiscount, shippingFee]);
+
+  const effectiveShippingFeeKobo = useMemo(() => {
+    return Math.max(0, shippingFee - deliveryDiscountKobo);
+  }, [shippingFee, deliveryDiscountKobo]);
+
+  const rewardAppliedToShippingKobo = useMemo(() => {
+    return Math.min(rewardAppliedKobo, effectiveShippingFeeKobo);
+  }, [rewardAppliedKobo, effectiveShippingFeeKobo]);
+
   const hasB2BOnlyItems = useMemo(() => {
     if (quote) return true;
     return cart?.items?.some((i) => i.product?.sellingMode === 'B2B_ONLY') ?? false;
   }, [cart?.items, quote]);
 
   const totalAmount = useMemo(() => {
-    if (quote) return quoteSubtotal + shippingFee - discount - rewardAppliedKobo;
+    if (quote) return quoteSubtotal + effectiveShippingFeeKobo - discount - rewardAppliedToShippingKobo;
     if (!cart) return 0;
-    return cart.totalAmount + shippingFee - discount - rewardAppliedKobo;
-  }, [cart, quote, quoteSubtotal, shippingFee, discount, rewardAppliedKobo]);
+    return cart.totalAmount + effectiveShippingFeeKobo - discount - rewardAppliedToShippingKobo;
+  }, [cart, quote, quoteSubtotal, effectiveShippingFeeKobo, discount, rewardAppliedToShippingKobo]);
 
   const formatPrice = (priceInKobo: number) => {
     const n = Number(priceInKobo);
@@ -673,7 +697,7 @@ export default function CheckoutPage() {
         shippingMethod,
         quotedShippingFeeKobo: shippingFee,
         couponCode: couponApplied ? couponCode.trim() || undefined : undefined,
-        ...(rewardAppliedKobo > 0 && { walletApplyKobo: rewardAppliedKobo }),
+        ...(rewardAppliedToShippingKobo > 0 && { walletApplyKobo: rewardAppliedToShippingKobo }),
       };
       if (isQuoteCheckout) {
         orderPayload.quoteId = quoteId;
@@ -935,12 +959,12 @@ export default function CheckoutPage() {
                             )}
                           </span>
                         </div>
-                        {!quote && cartSubtotalKobo < FREE_SHIPPING_THRESHOLD_KOBO && (
+                        {cartSubtotalKobo < FREE_SHIPPING_THRESHOLD_KOBO && (
                           <div className="mt-3 p-3 rounded-lg bg-[#ff6600]/10 border border-[#ff6600]/30 text-[#ffcc99] text-sm">
                             Add {formatPrice(FREE_SHIPPING_THRESHOLD_KOBO - cartSubtotalKobo)} more to get 20% off delivery
                           </div>
                         )}
-                        {!quote && cartSubtotalKobo >= FREE_SHIPPING_THRESHOLD_KOBO && shippingFee > 0 && (
+                        {isDeliveryDiscountEligible && (
                           <div className="mt-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
                             You qualify for 20% off delivery!
                           </div>
@@ -1008,9 +1032,9 @@ export default function CheckoutPage() {
                             <div className="mt-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
                               <p className="text-green-400 text-sm flex items-center gap-2">
                                 <CheckCircle2 className="w-4 h-4" />
-                                {rewardAppliedKobo >= shippingFee
+                                {rewardAppliedToShippingKobo >= effectiveShippingFeeKobo
                                   ? 'Delivery fee fully covered from your Carryofy wallet!'
-                                  : <>Wallet covers {formatPrice(rewardAppliedKobo)} of {formatPrice(shippingFee)} delivery — you pay <span className="font-semibold">{formatPrice(shippingFee - rewardAppliedKobo)}</span> for delivery</>
+                                  : <>Wallet covers {formatPrice(rewardAppliedToShippingKobo)} of {formatPrice(effectiveShippingFeeKobo)} delivery — you pay <span className="font-semibold">{formatPrice(effectiveShippingFeeKobo - rewardAppliedToShippingKobo)}</span> for delivery</>
                                 }
                               </p>
                             </div>
@@ -1038,22 +1062,28 @@ export default function CheckoutPage() {
                                 </span>
                               ) : shippingQuoteError ? (
                                 '—'
-                              ) : shippingFee === 0 ? (
+                              ) : effectiveShippingFeeKobo === 0 ? (
                                 'Free'
-                              ) : rewardAppliedKobo > 0 ? (
+                              ) : rewardAppliedToShippingKobo > 0 ? (
                                 <span className="flex items-center gap-2">
-                                  <span className="line-through text-[#ffcc99]/60">{formatPrice(shippingFee)}</span>
-                                  <span className="text-green-400">{rewardAppliedKobo >= shippingFee ? 'Free' : formatPrice(shippingFee - rewardAppliedKobo)}</span>
+                                  {deliveryDiscountKobo > 0 && <span className="line-through text-[#ffcc99]/60">{formatPrice(shippingFee)}</span>}
+                                  <span className="text-green-400">{rewardAppliedToShippingKobo >= effectiveShippingFeeKobo ? 'Free' : formatPrice(effectiveShippingFeeKobo - rewardAppliedToShippingKobo)}</span>
                                 </span>
                               ) : (
-                                formatPrice(shippingFee)
+                                formatPrice(effectiveShippingFeeKobo)
                               )}
                             </span>
                           </div>
                           {shippingQuoteError && (
                             <p className="text-amber-400 text-xs">{shippingQuoteError}</p>
                           )}
-                          {rewardAppliedKobo > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Delivery reward</span><span className="text-green-400 font-semibold">- {formatPrice(rewardAppliedKobo)}</span></div>}
+                          {deliveryDiscountKobo > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-[#ffcc99]">Delivery discount (20%)</span>
+                              <span className="text-green-400 font-semibold">- {formatPrice(deliveryDiscountKobo)}</span>
+                            </div>
+                          )}
+                          {rewardAppliedToShippingKobo > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Delivery reward</span><span className="text-green-400 font-semibold">- {formatPrice(rewardAppliedToShippingKobo)}</span></div>}
                           {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Coupon discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
                           <div className="border-t border-[#ff6600]/30 pt-3 flex justify-between">
                             <span className="text-white font-bold">Total</span><span className="text-[#ff6600] text-xl font-bold">{formatPrice(totalAmount)}</span>
@@ -1435,15 +1465,16 @@ export default function CheckoutPage() {
                           <div className="flex justify-between">
                             <span className="text-[#ffcc99]">Shipping</span>
                             <span className="text-white font-semibold">
-                              {shippingQuoteError ? '—' : shippingFee === 0 ? 'Free' : rewardAppliedKobo > 0 ? (
+                              {shippingQuoteError ? '—' : effectiveShippingFeeKobo === 0 ? 'Free' : rewardAppliedToShippingKobo > 0 ? (
                                 <span className="flex items-center gap-2">
-                                  <span className="line-through text-[#ffcc99]/60">{formatPrice(shippingFee)}</span>
-                                  <span className="text-green-400">{rewardAppliedKobo >= shippingFee ? 'Free' : formatPrice(shippingFee - rewardAppliedKobo)}</span>
+                                  {deliveryDiscountKobo > 0 && <span className="line-through text-[#ffcc99]/60">{formatPrice(shippingFee)}</span>}
+                                  <span className="text-green-400">{rewardAppliedToShippingKobo >= effectiveShippingFeeKobo ? 'Free' : formatPrice(effectiveShippingFeeKobo - rewardAppliedToShippingKobo)}</span>
                                 </span>
-                              ) : formatPrice(shippingFee)}
+                              ) : formatPrice(effectiveShippingFeeKobo)}
                             </span>
                           </div>
-                          {rewardAppliedKobo > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Delivery reward</span><span className="text-green-400 font-semibold">- {formatPrice(rewardAppliedKobo)}</span></div>}
+                          {deliveryDiscountKobo > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Delivery discount (20%)</span><span className="text-green-400 font-semibold">- {formatPrice(deliveryDiscountKobo)}</span></div>}
+                          {rewardAppliedToShippingKobo > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Delivery reward</span><span className="text-green-400 font-semibold">- {formatPrice(rewardAppliedToShippingKobo)}</span></div>}
                           {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Coupon discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
                           <div className="border-t border-[#ff6600]/30 pt-3 flex justify-between">
                             <span className="text-white font-bold">Total</span><span className="text-[#ff6600] text-xl font-bold">{formatPrice(totalAmount)}</span>
@@ -1532,15 +1563,16 @@ export default function CheckoutPage() {
                           <div className="flex justify-between">
                             <span className="text-[#ffcc99]">Shipping</span>
                             <span className="text-white font-semibold">
-                              {shippingQuoteError ? '—' : shippingFee === 0 ? 'Free' : rewardAppliedKobo > 0 ? (
+                              {shippingQuoteError ? '—' : effectiveShippingFeeKobo === 0 ? 'Free' : rewardAppliedToShippingKobo > 0 ? (
                                 <span className="flex items-center gap-2">
-                                  <span className="line-through text-[#ffcc99]/60">{formatPrice(shippingFee)}</span>
-                                  <span className="text-green-400">{rewardAppliedKobo >= shippingFee ? 'Free' : formatPrice(shippingFee - rewardAppliedKobo)}</span>
+                                  {deliveryDiscountKobo > 0 && <span className="line-through text-[#ffcc99]/60">{formatPrice(shippingFee)}</span>}
+                                  <span className="text-green-400">{rewardAppliedToShippingKobo >= effectiveShippingFeeKobo ? 'Free' : formatPrice(effectiveShippingFeeKobo - rewardAppliedToShippingKobo)}</span>
                                 </span>
-                              ) : formatPrice(shippingFee)}
+                              ) : formatPrice(effectiveShippingFeeKobo)}
                             </span>
                           </div>
-                          {rewardAppliedKobo > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Delivery reward</span><span className="text-green-400 font-semibold">- {formatPrice(rewardAppliedKobo)}</span></div>}
+                          {deliveryDiscountKobo > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Delivery discount (20%)</span><span className="text-green-400 font-semibold">- {formatPrice(deliveryDiscountKobo)}</span></div>}
+                          {rewardAppliedToShippingKobo > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Delivery reward</span><span className="text-green-400 font-semibold">- {formatPrice(rewardAppliedToShippingKobo)}</span></div>}
                           {discount > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Coupon discount</span><span className="text-green-400 font-semibold">- {formatPrice(discount)}</span></div>}
                           <div className="border-t border-[#ff6600]/30 pt-3 flex justify-between">
                             <span className="text-white font-bold">Total</span><span className="text-[#ff6600] text-xl font-bold">{formatPrice(totalAmount)}</span>

@@ -12,15 +12,7 @@ import posthog from 'posthog-js';
 import { PostHogProvider } from 'posthog-js/react';
 import { useRouter } from 'next/router';
 
-
-
-if (typeof window !== 'undefined') {
-  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
-    capture_pageview: false, // handled manually below
-    capture_pageleave: true,
-  });
-}
+// PostHog initializes in instrumentation-client.ts (Next.js client bundle entry).
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();

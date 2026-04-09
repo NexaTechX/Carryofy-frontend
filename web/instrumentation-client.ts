@@ -3,6 +3,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import posthog from "posthog-js";
 import { shouldDropFirebaseIndexedDbEvent } from "./lib/sentryFirebaseIdbFilter";
 
 Sentry.init({
@@ -43,6 +44,14 @@ Sentry.init({
     }
     return event;
   },
+});
+
+// PostHog (client): https://posthog.com/docs/libraries/next-js
+posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+  api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
+  capture_pageview: false,
+  capture_pageleave: true,
+  defaults: "2026-01-30",
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

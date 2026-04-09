@@ -8,10 +8,29 @@ import { AdminGuard } from '../components/auth/AdminGuard';
 import { AuthProvider } from '../lib/auth';
 import { CartProvider } from '../lib/contexts/CartContext';
 import { initAnalytics } from '../lib/firebase/config';
+import posthog from 'posthog-js';
+import { PostHogProvider } from 'posthog-js/react';
+import { useRouter } from 'next/router';
 
 
+
+if (typeof window !== 'undefined') {
+  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+    capture_pageview: false, // handled manually below
+    capture_pageleave: true,
+  });
+}
 
 export default function App({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+
+  useEffect(() => {
+    const handleRouteChange = () => posthog.capture('$pageview');
+    router.events.on('routeChangeComplete', handleRouteChange);
+    return () => router.events.off('routeChangeComplete', handleRouteChange);
+  }, [router.events]);
+
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -45,6 +64,7 @@ export default function App({ Component, pageProps }: AppProps) {
   }, []);
 
   return (
+    <PostHogProvider client={posthog}>
     <QueryClientProvider client={queryClient}>
 
       <AuthProvider>
@@ -111,6 +131,7 @@ export default function App({ Component, pageProps }: AppProps) {
         )}
       </Toaster>
     </QueryClientProvider>
+    </PostHogProvider>
   );
 }
 

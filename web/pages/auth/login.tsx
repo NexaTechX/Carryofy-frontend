@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { authService, tokenManager, useAuth, getRoleRedirect } from '../../lib/auth';
+import { getApiBaseUrl } from '../../lib/api/utils';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
 import SEO from '../../components/seo/SEO';
 import { BreadcrumbSchema } from '../../components/seo/JsonLd';
@@ -91,12 +92,9 @@ export default function Login() {
 
       // Handle network errors specifically
       if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.message === 'Network Error') {
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
-        message = `Cannot connect to the server. Please check:\n\n` +
-          `1. Is the backend server running? (Expected: ${apiBase})\n` +
-          `2. Check your browser console for more details\n` +
-          `3. Verify NEXT_PUBLIC_API_BASE is set correctly in your .env file (should be: http://localhost:3000/api/v1)\n` +
-          `4. Restart your Next.js dev server after changing .env file`;
+        const apiBase = getApiBaseUrl();
+        message =
+          `Cannot reach the API at ${apiBase}. Start the backend (Nest on port 3000 by default), or set NEXT_PUBLIC_API_BASE in .env.local and restart Next.js.`;
         console.error('Network Error Details:', {
           code: error.code,
           message: error.message,

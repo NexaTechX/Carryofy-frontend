@@ -1,8 +1,9 @@
 // SECTION 1.4 — resolved: REST uses NEXT_PUBLIC_API_BASE (includes /api/v1)
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { tokenManager } from '../auth/token';
+import { getApiBaseUrl } from './utils';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
+const API_BASE_URL = getApiBaseUrl();
 
 // Log API URL in development for debugging (only on client-side)
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {

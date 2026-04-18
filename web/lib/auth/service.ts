@@ -1,4 +1,5 @@
 import apiClient from '../api/client';
+import { getApiBaseUrl } from '../api/utils';
 import {
     AuthResponse,
     ForgotPasswordRequest,
@@ -48,13 +49,13 @@ export const authService = {
         } catch (error: any) {
             // Enhanced error logging for login
             if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
-                const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
+                const apiBase = getApiBaseUrl();
                 console.error('🚨 Login Network Error:', {
                     code: error.code,
                     message: error.message,
                     apiBase,
                     fullURL: `${apiBase}/auth/login`,
-                    hint: 'Make sure the backend is running on port 3000'
+                    hint: 'Start the API (e.g. CB/apps/api on PORT 3000) or set NEXT_PUBLIC_API_BASE in .env.local',
                 });
             }
             throw error;

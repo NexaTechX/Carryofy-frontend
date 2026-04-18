@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
@@ -130,7 +130,7 @@ export default function SettingsPage() {
   });
   const [loadingPreferences, setLoadingPreferences] = useState(false);
   const [savingPreferences, setSavingPreferences] = useState(false);
-
+  const welcomeKycToastShown = useRef(false);
 
   // Nigerian Banks list (common banks for Paystack)
   const nigerianBanks = [
@@ -161,6 +161,18 @@ export default function SettingsPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!router.isReady || !mounted || welcomeKycToastShown.current) return;
+    if (router.query.welcome === '1' && router.query.tab === 'kyc') {
+      welcomeKycToastShown.current = true;
+      toast.success(
+        'Welcome! Complete your identity verification (KYC) below to activate your store.',
+        { duration: 6000 },
+      );
+      router.replace('/seller/settings?tab=kyc', undefined, { shallow: true });
+    }
+  }, [router.isReady, mounted, router.query.welcome, router.query.tab, router]);
 
   useEffect(() => {
     // Wait for auth to finish loading

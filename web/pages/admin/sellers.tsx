@@ -29,10 +29,11 @@ import { Download, ChevronDown, ChevronRight, MoreVertical, Send, Eye, CheckCirc
 import { bulkApproveSellersRequest, bulkRejectSellersRequest, sendKycReminderRequest } from '../../lib/admin/api';
 import { formatDate } from '../../lib/api/utils';
 
-const SELLER_FILTERS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'KYC_EXPIRING'] as const;
+const SELLER_FILTERS = ['ALL', 'PENDING', 'NOT_SUBMITTED', 'APPROVED', 'REJECTED', 'KYC_EXPIRING'] as const;
 type SellerFilter = (typeof SELLER_FILTERS)[number];
 
 const statusTone: Record<string, 'neutral' | 'success' | 'warning' | 'danger'> = {
+  NOT_SUBMITTED: 'neutral',
   PENDING: 'warning',
   APPROVED: 'success',
   REJECTED: 'danger',
@@ -40,7 +41,8 @@ const statusTone: Record<string, 'neutral' | 'success' | 'warning' | 'danger'> =
 };
 
 const statusLabel: Record<string, string> = {
-  PENDING: 'Pending',
+  NOT_SUBMITTED: 'Not submitted',
+  PENDING: 'Pending review',
   APPROVED: 'Verified',
   REJECTED: 'Rejected',
   EXPIRED: 'Expired',
@@ -54,6 +56,7 @@ function getRiskScore(seller: AdminSeller): SellerRiskScore {
   if (seller.riskScore) return seller.riskScore;
   if (seller.kycStatus === 'REJECTED') return 'High';
   if (seller.kycStatus === 'PENDING') return 'Medium';
+  if (seller.kycStatus === 'NOT_SUBMITTED') return 'Low';
   return 'Low';
 }
 
@@ -123,6 +126,7 @@ export default function AdminSellers() {
   const { data: auditLogs, isLoading: auditLogsLoading } = useKycAuditLog(selectedSeller?.id || null);
 
   const pendingCount = sellers?.filter((seller) => seller.kycStatus === 'PENDING').length ?? 0;
+  const notSubmittedCount = sellers?.filter((seller) => seller.kycStatus === 'NOT_SUBMITTED').length ?? 0;
   const approvedCount = sellers?.filter((seller) => seller.kycStatus === 'APPROVED').length ?? 0;
   const rejectedCount = sellers?.filter((seller) => seller.kycStatus === 'REJECTED').length ?? 0;
   const expiringSoonCount =
@@ -498,15 +502,23 @@ export default function AdminSellers() {
             subtitle="Review incoming KYC submissions, manage existing merchants, and keep the marketplace compliant."
           />
 
-          <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <AdminCard
               title="Awaiting Review"
-              description="New sellers requiring an approval decision."
+              description="KYC submitted and waiting for your decision."
               className="border-[#3a2a1f] bg-[#15100d]"
               pulseBorder={pendingCount > 0}
               onClick={() => setFilter('PENDING')}
             >
               <p className="text-3xl font-semibold text-primary">{pendingCount}</p>
+            </AdminCard>
+            <AdminCard
+              title="Not Submitted"
+              description="Registered sellers who have not applied for KYC yet."
+              className="border-[#2a2f3a] bg-[#0f1419]"
+              onClick={() => setFilter('NOT_SUBMITTED')}
+            >
+              <p className="text-3xl font-semibold text-gray-300">{notSubmittedCount}</p>
             </AdminCard>
             <AdminCard
               title="Approved Sellers"
@@ -551,7 +563,7 @@ export default function AdminSellers() {
                         ? 'All Sellers'
                         : item === 'KYC_EXPIRING'
                           ? 'KYC Expiring Soon'
-                          : statusLabel[item]}
+                          : statusLabel[item] ?? item}
                     </AdminFilterChip>
                   ))}
                 </div>
@@ -1037,7 +1049,9 @@ export default function AdminSellers() {
               </div>
             )}
 
-            {!selectedSeller.kyc && selectedSeller.kycStatus === 'PENDING' && (
+            {!selectedSeller.kyc &&
+              (selectedSeller.kycStatus === 'NOT_SUBMITTED' ||
+                selectedSeller.kycStatus === 'PENDING') && (
               <div className="rounded-xl border border-yellow-800/30 bg-yellow-900/10 p-4">
                 <p className="text-xs text-yellow-400">
                   KYC documents not yet submitted by seller.

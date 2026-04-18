@@ -1350,13 +1350,17 @@ export async function getAudienceCount(
   audience: BroadcastAudience[],
   filters?: AudienceFilters,
 ): Promise<AudienceCount> {
-  const params: any = {
-    audience: audience.join(','),
-  };
-  if (filters) {
-    params.filters = JSON.stringify(filters);
+  const search = new URLSearchParams();
+  for (const a of audience) {
+    search.append('audience', a);
   }
-  const { data } = await apiClient.get('/admin/broadcast/audience/count', { params });
+  if (filters) {
+    search.set('filters', JSON.stringify(filters));
+  }
+  const qs = search.toString();
+  const { data } = await apiClient.get(
+    qs ? `/admin/broadcast/audience/count?${qs}` : '/admin/broadcast/audience/count',
+  );
   return normalizeResponse<AudienceCount>(data);
 }
 

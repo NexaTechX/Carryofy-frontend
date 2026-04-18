@@ -77,7 +77,10 @@ export default function EmailVerification() {
             if (typeof window !== 'undefined') {
               localStorage.setItem('user', JSON.stringify(updatedUser));
             }
-            const redirectPath = getRoleRedirect(updatedUser.role);
+            const redirectPath =
+              updatedUser.role === 'SELLER'
+                ? '/seller/settings?tab=kyc&welcome=1'
+                : getRoleRedirect(updatedUser.role);
             router.push(redirectPath);
           } else {
             // No token, redirect to login

@@ -1,10 +1,34 @@
 // SECTION 1.4 — resolved: API_URL (origin) vs API_BASE (/api/v1) convention
 
 /**
+ * When `NEXT_PUBLIC_API_BASE` is unset, use local Nest API in development so login/API calls
+ * work without copying `.env.example` (avoids Axios "Network Error" to production from localhost).
+ */
+function defaultRestApiBase(): string {
+  if (process.env.NEXT_PUBLIC_API_BASE) {
+    return process.env.NEXT_PUBLIC_API_BASE;
+  }
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:3000/api/v1';
+  }
+  return 'https://api.carryofy.com/api/v1';
+}
+
+function defaultApiOrigin(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
+  }
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:3000';
+  }
+  return 'https://api.carryofy.com';
+}
+
+/**
  * REST API base including `/api/v1` — use for axios `apiClient`, server fetch to JSON API, etc.
  */
 export const getApiBaseUrl = (): string => {
-  return process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
+  return defaultRestApiBase();
 };
 
 /**
@@ -12,8 +36,7 @@ export const getApiBaseUrl = (): string => {
  * Prefer `NEXT_PUBLIC_API_URL`; do not use `NEXT_PUBLIC_API_BASE` as a fallback (wrong semantics).
  */
 export const getApiBaseUrlWithoutSuffix = (): string => {
-  const raw =
-    process.env.NEXT_PUBLIC_API_URL || 'https://api.carryofy.com';
+  const raw = defaultApiOrigin();
   return raw.replace(/\/api\/v1\/?$/, '').replace(/\/$/, '');
 };
 

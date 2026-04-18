@@ -90,11 +90,13 @@ export interface LowStockItem {
   sellerName: string;
 }
 
+export type SellerKycStatus = 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface SellerSummary {
   id: string;
   userId: string;
   businessName: string;
-  kycStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+  kycStatus: SellerKycStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -129,8 +131,6 @@ export interface AdminProfile {
   verified: boolean;
   createdAt: string;
 }
-
-export type SellerKycStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export type SellerRiskScore = 'Low' | 'Medium' | 'High';
 

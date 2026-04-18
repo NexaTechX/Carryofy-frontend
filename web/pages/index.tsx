@@ -30,8 +30,8 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="Carryofy | The B2B Marketplace for Lagos Retailers"
-        description="The B2B marketplace for Lagos retailers. Source everything — fashion, beauty, electronics, grocery — from verified vendors. We handle delivery."
+        title="Carryofy | AI-Powered B2B Commerce & Supply for Lagos Retail"
+        description="Procurement and fulfilment for Lagos retailers — verified vendors, coordinated delivery, and AI-assisted sourcing across fashion, beauty, electronics, and grocery."
         keywords={fullKeywords}
         canonical="https://carryofy.com"
         ogType="website"
@@ -68,7 +68,7 @@ export default function Home() {
         ]}
       />
 
-      <div className="min-h-screen flex flex-col font-inter bg-[#FAFAFA]">
+      <div className="flex min-h-screen flex-col bg-stone-50 font-inter text-zinc-900 antialiased">
         <Header />
         <main className="grow">
           <HeroSection />

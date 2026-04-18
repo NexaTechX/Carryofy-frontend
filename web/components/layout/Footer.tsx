@@ -47,7 +47,8 @@ export default function Footer() {
               <span className="font-inter text-xl font-bold">Carryofy</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
-              Lagos&apos; B2B sourcing marketplace. Verified vendors, delivery included.
+              AI-native B2B commerce for Lagos — verified supply, orchestrated logistics, built for
+              operators.
             </p>
             <div className="flex gap-3">
               {socialLinks.map(({ Icon, href, label }) => (

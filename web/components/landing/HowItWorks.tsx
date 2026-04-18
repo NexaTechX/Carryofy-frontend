@@ -1,76 +1,85 @@
+import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Search, ShoppingCart, Truck } from 'lucide-react';
 
 const steps = [
   {
     id: 1,
-    title: 'Browse',
-    description: 'Explore products from verified vendors.',
-    icon: Search,
+    title: 'Discover',
+    description: 'Search across categories and suppliers we verify for quality and fulfilment.',
+    image:
+      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1200&auto=format&fit=crop',
+    imageAlt: 'Analytics dashboard on a laptop',
   },
   {
     id: 2,
     title: 'Order',
-    description: 'Place orders in a few clicks, no market trips.',
-    icon: ShoppingCart,
+    description: 'Purchase in clicks with clear pricing — built for repeat baskets, not one-offs.',
+    image:
+      'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=1200&auto=format&fit=crop',
+    imageAlt: 'Payment terminal at checkout counter',
   },
   {
     id: 3,
     title: 'Receive',
-    description: 'We coordinate delivery to your store.',
-    icon: Truck,
+    description: 'We coordinate dispatch and last-mile delivery so stock shows up where it sells.',
+    image:
+      'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1200&auto=format&fit=crop',
+    imageAlt: 'Delivery and logistics in a warehouse',
   },
-];
+] as const;
 
 export default function HowItWorks() {
   return (
-    <section className="py-16 sm:py-20 lg:py-24 bg-white">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12 sm:mb-16"
-          >
-            <h2 className="font-inter text-3xl sm:text-4xl lg:text-5xl font-bold text-[#111111] mb-4">
-              How it works
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              From browse to doorstep — built for Lagos retailers.
-            </p>
-          </motion.div>
+    <section className="border-y border-zinc-200/80 bg-stone-50 py-20 sm:py-24 lg:py-28">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mx-auto mb-14 max-w-2xl text-center sm:mb-20"
+        >
+          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.28em] text-zinc-500">
+            Workflow
+          </p>
+          <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl lg:text-[2.75rem]">
+            From signal to shelf — without the chaos.
+          </h2>
+          <p className="mt-4 text-base leading-relaxed text-zinc-600 sm:text-lg">
+            A closed loop for modern Lagos retail: browse, buy, and inbound stock with a team behind
+            the routing.
+          </p>
+        </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 lg:gap-12 md:items-start">
-            {steps.map((step, index) => (
-              <motion.div
-                key={step.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="relative flex flex-col items-center text-center md:flex-1 md:min-w-0"
-              >
-                <div className="relative mb-5 flex shrink-0 flex-col items-center">
-                  <div
-                    className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-base font-bold text-white shadow-md ring-4 ring-white"
-                    aria-hidden
-                  >
-                    {step.id}
-                  </div>
-                  <div className="mt-4 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-primary/20 bg-[#FAFAFA] shadow-md">
-                    <step.icon className="h-8 w-8 text-primary" aria-hidden />
-                  </div>
+        <div className="grid gap-10 md:grid-cols-3 md:gap-8 lg:gap-10">
+          {steps.map((step, index) => (
+            <motion.div
+              key={step.id}
+              initial={{ opacity: 0, y: 22 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.07 }}
+              className="group flex flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-950/[0.03]"
+            >
+              <div className="relative aspect-[16/10] overflow-hidden">
+                <Image
+                  src={step.image}
+                  alt={step.imageAlt}
+                  fill
+                  className="object-cover transition duration-700 group-hover:scale-[1.03]"
+                  sizes="(min-width: 768px) 33vw, 100vw"
+                />
+                <div className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-zinc-950/70 text-sm font-semibold text-white backdrop-blur-sm">
+                  {step.id}
                 </div>
-                <h3 className="font-inter mb-2 text-lg font-bold text-[#111111] sm:text-xl">
+              </div>
+              <div className="flex flex-1 flex-col p-6 sm:p-7">
+                <h3 className="font-heading text-xl font-semibold tracking-tight text-zinc-950">
                   {step.title}
                 </h3>
-                <p className="max-w-xs text-sm leading-relaxed text-gray-600 sm:max-w-none md:px-1">
-                  {step.description}
-                </p>
-              </motion.div>
-            ))}
-          </div>
+                <p className="mt-3 text-sm leading-relaxed text-zinc-600">{step.description}</p>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>

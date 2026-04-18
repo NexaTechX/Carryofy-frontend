@@ -1,14 +1,18 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 
 export default function Header() {
+  const router = useRouter();
+  const isHome = router.pathname === '/';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  const transparentNav = isHome && !scrolled && !mobileMenuOpen;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -45,9 +49,33 @@ export default function Header() {
     { name: 'Contact', href: '/contact' },
   ];
 
-  const navBgClass = scrolled
-    ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200 py-3'
-    : 'bg-white py-4';
+  const navBgClass = transparentNav
+    ? 'bg-transparent py-4 border-b border-transparent'
+    : scrolled
+      ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200 py-3'
+      : 'bg-white py-4';
+
+  const navLinkClass = transparentNav
+    ? 'text-white/90 hover:text-white font-medium transition-colors py-2'
+    : 'text-[#111111] font-medium hover:text-[#FF6B00] transition-colors py-2';
+
+  const navButtonClass = transparentNav
+    ? 'flex items-center text-white/90 hover:text-white font-medium transition-colors py-2 focus:outline-none'
+    : 'flex items-center text-[#111111] font-medium hover:text-[#FF6B00] transition-colors py-2 focus:outline-none';
+
+  const brandTextClass = transparentNav ? 'text-white' : 'text-[#111111]';
+
+  const secondaryLinkClass = transparentNav
+    ? 'px-5 py-2.5 text-white/90 font-medium hover:text-white transition-colors'
+    : 'px-5 py-2.5 text-[#111111] font-medium hover:text-[#FF6B00] transition-colors';
+
+  const primaryCtaClass = transparentNav
+    ? 'px-6 py-2.5 bg-white text-zinc-950 rounded-full font-semibold hover:bg-zinc-100 transition-colors shadow-sm'
+    : 'px-6 py-2.5 bg-[#FF6B00] text-black rounded-full font-semibold hover:bg-[#E65F00] transition-colors';
+
+  const sellerCtaClass = transparentNav
+    ? 'px-6 py-2.5 rounded-full font-semibold border border-white/30 text-white hover:bg-white/10 transition-colors'
+    : 'px-6 py-2.5 bg-[#111111] text-white rounded-full font-semibold hover:opacity-90 transition-opacity';
 
   return (
     <header
@@ -66,7 +94,7 @@ export default function Header() {
                 priority
               />
             </div>
-            <span className="font-inter text-xl sm:text-2xl font-bold text-[#111111]">
+            <span className={`font-inter text-xl sm:text-2xl font-bold transition-colors ${brandTextClass}`}>
               Carryofy
             </span>
           </Link>
@@ -78,7 +106,7 @@ export default function Header() {
                 {item.children ? (
                   <button
                     type="button"
-                    className="flex items-center text-[#111111] font-medium hover:text-[#FF6B00] transition-colors py-2 focus:outline-none"
+                    className={`${navButtonClass}`}
                     onMouseEnter={() => setResourcesOpen(true)}
                     onMouseLeave={() => setResourcesOpen(false)}
                   >
@@ -86,10 +114,7 @@ export default function Header() {
                     <ChevronDown className="w-4 h-4 ml-1" />
                   </button>
                 ) : (
-                  <Link
-                    href={item.href}
-                    className="text-[#111111] font-medium hover:text-[#FF6B00] transition-colors py-2"
-                  >
+                  <Link href={item.href} className={navLinkClass}>
                     {item.name}
                   </Link>
                 )}
@@ -120,22 +145,13 @@ export default function Header() {
 
           {/* CTA Buttons */}
           <div className="hidden lg:flex items-center gap-3">
-            <Link
-              href="/auth/login"
-              className="px-5 py-2.5 text-[#111111] font-medium hover:text-[#FF6B00] transition-colors"
-            >
+            <Link href="/auth/login" className={secondaryLinkClass}>
               Sign In
             </Link>
-            <Link
-              href="/auth/signup"
-              className="px-6 py-2.5 bg-[#FF6B00] text-black rounded-full font-semibold hover:bg-[#E65F00] transition-colors"
-            >
+            <Link href="/auth/signup" className={primaryCtaClass}>
               Start Sourcing
             </Link>
-            <Link
-              href="/auth/signup?role=SELLER"
-              className="px-6 py-2.5 bg-[#111111] text-white rounded-full font-semibold hover:opacity-90 transition-opacity"
-            >
+            <Link href="/auth/signup?role=SELLER" className={sellerCtaClass}>
               Sell on Carryofy
             </Link>
           </div>
@@ -143,7 +159,9 @@ export default function Header() {
           {/* Mobile Menu Button */}
           <button
             type="button"
-            className="lg:hidden text-[#111111] focus:outline-none p-2 touch-target btn-mobile rounded-lg hover:bg-gray-100 transition-colors"
+            className={`lg:hidden focus:outline-none p-2 touch-target btn-mobile rounded-lg transition-colors ${
+              transparentNav ? 'text-white hover:bg-white/10' : 'text-[#111111] hover:bg-gray-100'
+            }`}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileMenuOpen}

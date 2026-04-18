@@ -1,67 +1,118 @@
+import Image from 'next/image';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Store, Package } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
+
+const retailImg =
+  'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1600&auto=format&fit=crop';
+const vendorImg =
+  'https://images.unsplash.com/photo-1553413077-190dd305871c?q=80&w=1600&auto=format&fit=crop';
 
 export default function ValuePropositionsSection() {
   return (
-    <section className="py-16 sm:py-20 lg:py-24 bg-white">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
+    <section className="bg-stone-50 py-20 sm:py-24 lg:py-28">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mx-auto mb-14 max-w-2xl text-center sm:mb-20"
+        >
+          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.28em] text-zinc-500">
+            Who it serves
+          </p>
+          <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl lg:text-[2.75rem]">
+            One platform. Two sides of the aisle.
+          </h2>
+          <p className="mt-4 text-base leading-relaxed text-zinc-600 sm:text-lg">
+            Procurement for retailers. Distribution rails for vendors — with fulfilment that matches
+            how Lagos actually runs.
+          </p>
+        </motion.div>
+
+        <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+          <motion.article
+            initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12 sm:mb-16"
+            className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm ring-1 ring-zinc-950/[0.04]"
           >
-            <h2 className="font-inter text-3xl sm:text-4xl lg:text-5xl font-bold text-[#111111] mb-4">
-              Who is it for?
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              The B2B marketplace for Lagos retailers. Source from verified vendors, we handle delivery.
-            </p>
-          </motion.div>
-
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="group relative bg-gradient-to-br from-[#FF6B00]/5 to-white rounded-3xl p-8 sm:p-10 border-2 border-[#FF6B00]/10 hover:border-[#FF6B00]/25 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-48 h-48 bg-[#FF6B00]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-              <div className="relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-[#FF6B00]/10 flex items-center justify-center mb-6">
-                  <Store className="w-7 h-7 text-[#FF6B00]" />
-                </div>
-                <h3 className="font-inter text-2xl sm:text-3xl font-bold text-[#111111] mb-3">
-                  Retailers
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Stop making market trips. Browse verified vendors, place orders, and receive stock at your store.
+            <div className="relative aspect-[16/11] sm:aspect-[16/10]">
+              <Image
+                src={retailImg}
+                alt="Modern retail floor with shelving and inventory"
+                fill
+                className="object-cover transition duration-700 group-hover:scale-[1.02]"
+                sizes="(min-width: 1024px) 50vw, 100vw"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/85 via-zinc-950/25 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
+                <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.25em] text-white/70">
+                  For retailers
                 </p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.08 }}
-              className="group relative bg-gradient-to-br from-[#111111]/5 to-white rounded-3xl p-8 sm:p-10 border-2 border-gray-200 hover:border-[#111111]/20 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-48 h-48 bg-[#111111]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-              <div className="relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-[#111111]/10 flex items-center justify-center mb-6">
-                  <Package className="w-7 h-7 text-[#111111]" />
-                </div>
-                <h3 className="font-inter text-2xl sm:text-3xl font-bold text-[#111111] mb-3">
-                  Vendors
+                <h3 className="mt-2 font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                  Restock without the market marathon.
                 </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  List your products, reach retailers across Lagos, and we handle logistics.
-                </p>
               </div>
-            </motion.div>
-          </div>
+            </div>
+            <div className="border-t border-zinc-100 p-6 sm:p-8">
+              <p className="text-sm leading-relaxed text-zinc-600 sm:text-[15px]">
+                Browse verified vendors, compare lines, and place orders from the store — we
+                coordinate delivery so your team stays on the floor.
+              </p>
+              <Link
+                href="/auth/signup"
+                className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-zinc-900 transition hover:text-[#FF6B00]"
+              >
+                <span className="border-b border-zinc-900/30 transition group-hover/link:border-[#FF6B00]/50">
+                  Explore buyer experience
+                </span>
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-[#FF6B00]" strokeWidth={2} />
+              </Link>
+            </div>
+          </motion.article>
+
+          <motion.article
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.06 }}
+            className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm ring-1 ring-zinc-950/[0.04]"
+          >
+            <div className="relative aspect-[16/11] sm:aspect-[16/10]">
+              <Image
+                src={vendorImg}
+                alt="Warehouse pallets and logistics"
+                fill
+                className="object-cover transition duration-700 group-hover:scale-[1.02]"
+                sizes="(min-width: 1024px) 50vw, 100vw"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/85 via-zinc-950/25 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
+                <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.25em] text-white/70">
+                  For vendors
+                </p>
+                <h3 className="mt-2 font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                  Reach shelves through trusted rails.
+                </h3>
+              </div>
+            </div>
+            <div className="border-t border-zinc-100 p-6 sm:p-8">
+              <p className="text-sm leading-relaxed text-zinc-600 sm:text-[15px]">
+                List SKU depth with confidence. We bring demand, delivery orchestration, and the
+                operational rigour retailers expect.
+              </p>
+              <Link
+                href="/merchant-onboarding"
+                className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-zinc-900 transition hover:text-[#FF6B00]"
+              >
+                <span className="border-b border-zinc-900/30 transition group-hover/link:border-[#FF6B00]/50">
+                  Partner as a seller
+                </span>
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-[#FF6B00]" strokeWidth={2} />
+              </Link>
+            </div>
+          </motion.article>
         </div>
       </div>
     </section>

@@ -15,7 +15,7 @@ export default function HeroSection() {
       <div className="landing-vignette pointer-events-none absolute inset-0" aria-hidden />
       <div className="landing-grid-dark pointer-events-none absolute inset-0 opacity-90" aria-hidden />
       <div
-        className="pointer-events-none absolute -right-24 top-24 h-96 w-96 rounded-full bg-[#FF6B00]/10 blur-3xl"
+        className="pointer-events-none absolute -right-24 top-24 h-96 w-96 rounded-full bg-[#FF6600]/10 blur-3xl"
         aria-hidden
       />
       <div
@@ -31,7 +31,7 @@ export default function HeroSection() {
             transition={{ duration: 0.55 }}
           >
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-300 sm:text-xs">
-              <span className="text-[#FF6B00]">B2B</span>
+              <span className="text-[#FF6600]">B2B</span>
               <span className="h-1 w-1 rounded-full bg-white/25" aria-hidden />
               <span className="text-zinc-400">Commerce · Supply · Lagos</span>
             </div>
@@ -46,33 +46,32 @@ export default function HeroSection() {
               fulfilment, and AI-assisted sourcing — built for shelves, stockrooms, and last-mile
               reality.
             </p>
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-500 sm:text-[15px]">
+              No cold calls to market. No cash upfront to strangers. Every vendor verified, every
+              delivery tracked.
+            </p>
 
-            <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
               <Link
+                id="hero-primary-cta"
                 href="/auth/signup"
-                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF6B00] px-7 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-[#FF6B00]/20 transition hover:bg-[#E65F00] sm:text-[15px]"
+                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF6600] px-7 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-[#FF6600]/20 transition hover:bg-[#E65E00] sm:text-[15px]"
               >
                 Start sourcing
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link
                 href="/auth/login"
-                className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/25 hover:bg-white/10 sm:text-[15px]"
+                className="text-sm font-medium text-zinc-300 underline decoration-white/25 underline-offset-4 transition hover:text-white sm:text-[15px]"
               >
                 Sign in
-              </Link>
-              <Link
-                href="/merchant-onboarding"
-                className="inline-flex items-center justify-center rounded-xl border border-transparent px-7 py-3.5 text-sm font-semibold text-zinc-300 underline decoration-white/20 underline-offset-4 transition hover:text-white sm:text-[15px]"
-              >
-                Sell on Carryofy
               </Link>
             </div>
 
             <dl className="mt-12 grid max-w-lg grid-cols-2 gap-6 border-t border-white/10 pt-10 sm:max-w-none sm:grid-cols-3">
               <div>
                 <dt className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                  <LineChart className="h-4 w-4 text-[#FF6B00]" aria-hidden />
+                  <LineChart className="h-4 w-4 text-[#FF6600]" aria-hidden />
                   Throughput
                 </dt>
                 <dd className="mt-2 font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
@@ -92,12 +91,12 @@ export default function HeroSection() {
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <dt className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                  Coverage
+                  Trust
                 </dt>
                 <dd className="mt-2 font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  500+ SKUs
+                  Vetted vendors only
                 </dd>
-                <dd className="mt-1 text-xs text-zinc-500">listed &amp; scaling</dd>
+                <dd className="mt-1 text-xs text-zinc-500">Every supplier is quality-screened.</dd>
               </div>
             </dl>
           </motion.div>

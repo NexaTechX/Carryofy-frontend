@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Sparkles, Truck } from 'lucide-react';
 
-const features = [
+const imageFeatures = [
   {
     icon: ShieldCheck,
     title: 'Verified vendor graph',
@@ -11,7 +11,6 @@ const features = [
     image:
       'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?q=80&w=1400&auto=format&fit=crop',
     imageAlt: 'Quality inspection and documents on a desk',
-    wide: false,
   },
   {
     icon: Truck,
@@ -21,17 +20,6 @@ const features = [
     image:
       'https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c0?q=80&w=1400&auto=format&fit=crop',
     imageAlt: 'Shipping containers at port',
-    wide: false,
-  },
-  {
-    icon: Sparkles,
-    title: 'AI-assisted procurement',
-    description:
-      'Compare lines, spot gaps in your basket, and move faster as new tools ship — without changing how you run the floor.',
-    image:
-      'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1400&auto=format&fit=crop',
-    imageAlt: 'Operations dashboard with charts',
-    wide: true,
   },
 ] as const;
 
@@ -49,63 +37,88 @@ export default function WhyChooseCarryofy() {
             Why operators choose Carryofy
           </p>
           <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl lg:text-[2.75rem]">
-            Trust, throughput, intelligence — in one spine.
+            Trust, throughput, <span className="text-[#FF6600]">intelligence</span> — in one spine.
           </h2>
         </motion.div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-          {features.map((feature, index) => (
+        <div className="grid gap-6 md:grid-cols-3 md:gap-8">
+          {imageFeatures.map((feature, index) => (
             <motion.div
               key={feature.title}
               initial={{ opacity: 0, y: 22 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.06 }}
-              className={`group flex overflow-hidden rounded-2xl border border-zinc-200/90 bg-stone-50 shadow-sm ring-1 ring-zinc-950/[0.03] ${
-                feature.wide
-                  ? 'min-h-[280px] flex-col sm:col-span-2 sm:flex-row lg:col-span-3 lg:min-h-[240px]'
-                  : 'flex-col'
-              }`}
+              className="group flex h-full min-h-[420px] flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-stone-50 shadow-sm ring-1 ring-zinc-950/[0.03]"
             >
-              <div
-                className={`relative shrink-0 overflow-hidden bg-zinc-200 ${
-                  feature.wide ? 'aspect-[16/10] w-full sm:aspect-auto sm:h-auto sm:w-[44%] lg:w-[42%]' : 'aspect-[16/10] w-full'
-                }`}
-              >
+              <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-zinc-200">
                 <Image
                   src={feature.image}
                   alt={feature.imageAlt}
                   fill
                   className="object-cover transition duration-700 group-hover:scale-[1.03]"
-                  sizes={
-                    feature.wide
-                      ? '(min-width: 1024px) 35vw, 100vw'
-                      : '(min-width: 1024px) 30vw, 100vw'
-                  }
+                  sizes="(min-width: 1024px) 33vw, 50vw"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/55 via-transparent to-transparent sm:bg-gradient-to-r sm:from-transparent sm:via-transparent sm:to-zinc-950/25" />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/55 via-transparent to-transparent" />
               </div>
 
-              <div
-                className={`flex flex-1 flex-col justify-center ${
-                  feature.wide ? 'p-7 sm:p-8 lg:p-10' : 'p-6 sm:p-7'
-                }`}
-              >
-                <div
-                  className={`flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-200/80 bg-white shadow-sm ${
-                    feature.wide ? 'mb-4' : 'mb-4'
-                  }`}
-                >
-                  <feature.icon className="h-5 w-5 text-[#FF6B00]" strokeWidth={1.75} aria-hidden />
+              <div className="flex flex-1 flex-col p-6 sm:p-7">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-200/80 bg-white shadow-sm">
+                  <feature.icon className="h-5 w-5 text-[#FF6600]" strokeWidth={1.75} aria-hidden />
                 </div>
-                <h3 className="font-heading text-lg font-semibold tracking-tight text-zinc-950 sm:text-xl">
+                <h3 className="mt-4 font-heading text-lg font-semibold tracking-tight text-zinc-950 sm:text-xl">
                   {feature.title}
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-zinc-600">{feature.description}</p>
               </div>
             </motion.div>
           ))}
+
+          <motion.div
+            initial={{ opacity: 0, y: 22 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.12 }}
+            className="flex h-full min-h-[420px] flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-[#111111] shadow-sm ring-1 ring-zinc-950/[0.03]"
+          >
+            <div className="relative flex aspect-[16/10] w-full shrink-0 items-center justify-center bg-[#111111]">
+              <div className="relative flex h-16 w-16 items-center justify-center">
+                <span className="absolute inline-flex h-5 w-5 animate-ping rounded-full bg-[#FF6600] opacity-40" />
+                <span className="relative inline-flex h-4 w-4 rounded-full bg-[#FF6600]" />
+              </div>
+              <Sparkles className="absolute right-5 top-5 h-5 w-5 text-[#FF6600]/40" aria-hidden />
+            </div>
+            <div className="flex flex-1 flex-col p-6 sm:p-7">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 shadow-sm">
+                <Sparkles className="h-5 w-5 text-[#FF6600]" strokeWidth={1.75} aria-hidden />
+              </div>
+              <h3 className="mt-4 font-heading text-lg font-semibold tracking-tight text-white sm:text-xl">
+                AI-assisted procurement
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+                Describe what you need in plain English. Carryofy&apos;s AI matches you to the right
+                vendor, quantity, and price — before you even open a WhatsApp chat.
+              </p>
+            </div>
+          </motion.div>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mx-auto mt-12 flex max-w-4xl flex-col items-center justify-center gap-3 border-t border-zinc-200/90 pt-10 text-center sm:flex-row sm:flex-wrap sm:gap-6 sm:gap-x-10"
+        >
+          <p className="text-xs text-zinc-500 sm:text-sm">Industry-leading order accuracy</p>
+          <span className="hidden text-zinc-300 sm:inline" aria-hidden>
+            |
+          </span>
+          <p className="text-xs text-zinc-500 sm:text-sm">&lt; 4hr avg. response time</p>
+          <span className="hidden text-zinc-300 sm:inline" aria-hidden>
+            |
+          </span>
+          <p className="text-xs text-zinc-500 sm:text-sm">100% vendor-verified</p>
+        </motion.div>
       </div>
     </section>
   );

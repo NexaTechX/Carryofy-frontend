@@ -83,7 +83,10 @@ export default function Signup() {
     if (typeof router.query.referralCode === 'string' && router.query.referralCode.trim()) {
       setValue('referralCode', router.query.referralCode.trim());
     }
-  }, [router.query.role, router.query.referralCode, setValue]);
+    if (typeof router.query.email === 'string' && router.query.email.includes('@')) {
+      setValue('email', router.query.email.trim());
+    }
+  }, [router.query.role, router.query.referralCode, router.query.email, setValue]);
 
   const onSubmit = async (data: SignupFormData) => {
     setIsSubmitting(true);

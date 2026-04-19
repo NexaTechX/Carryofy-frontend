@@ -1,8 +1,8 @@
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
-import StatsBar from '../components/landing/StatsBar';
 import ProblemSection from '../components/landing/ProblemSection';
+import TrustQuoteBreak from '../components/landing/TrustQuoteBreak';
 import HowItWorks from '../components/landing/HowItWorks';
 import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
 import BetaTestimonials from '../components/landing/BetaTestimonials';
@@ -72,9 +72,9 @@ export default function Home() {
         <Header />
         <main className="grow">
           <HeroSection />
-          <StatsBar />
           <ValuePropositionsSection />
           <ProblemSection />
+          <TrustQuoteBreak />
           <HowItWorks />
           <WhyChooseCarryofy />
           <BetaTestimonials />

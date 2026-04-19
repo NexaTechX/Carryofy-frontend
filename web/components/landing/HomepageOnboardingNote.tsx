@@ -12,7 +12,7 @@ export default function HomepageOnboardingNote() {
           className="inline-flex flex-col items-center gap-3 rounded-2xl border border-zinc-200/90 bg-stone-50 px-6 py-5 sm:flex-row sm:gap-4 sm:px-8 sm:py-6"
         >
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white shadow-sm">
-            <MapPin className="h-5 w-5 text-[#FF6B00]" strokeWidth={1.75} aria-hidden />
+            <MapPin className="h-5 w-5 text-[#FF6600]" strokeWidth={1.75} aria-hidden />
           </div>
           <p className="text-sm leading-relaxed text-zinc-600 sm:text-left sm:text-[15px]">
             <span className="font-semibold text-zinc-900">Now onboarding retailers and vendors</span>{' '}

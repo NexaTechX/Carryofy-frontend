@@ -2,16 +2,17 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Menu, X, ChevronDown } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const HERO_CTA_ID = 'hero-primary-cta';
 
 export default function Header() {
   const router = useRouter();
   const isHome = router.pathname === '/';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [heroCtaInView, setHeroCtaInView] = useState(true);
   const transparentNav = isHome && !scrolled && !mobileMenuOpen;
 
   useEffect(() => {
@@ -21,6 +22,33 @@ export default function Header() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (!isHome) {
+      setHeroCtaInView(false);
+      return;
+    }
+
+    setHeroCtaInView(true);
+
+    const el = document.getElementById(HERO_CTA_ID);
+    if (!el) {
+      setHeroCtaInView(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setHeroCtaInView(entry.isIntersecting);
+      },
+      { root: null, rootMargin: '0px 0px -10% 0px', threshold: [0, 0.01, 0.1, 1] }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isHome, router.asPath]);
+
+  const showNavStartSourcing = !isHome || !heroCtaInView;
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -36,15 +64,6 @@ export default function Header() {
   const navLinks = [
     { name: 'Home', href: '/' },
     { name: 'Sell', href: '/merchant-onboarding' },
-    {
-      name: 'Resources',
-      href: '#',
-      children: [
-        { name: 'Blog', href: '/blog' },
-        { name: 'Help Center', href: '/help' },
-        { name: 'Careers', href: '/careers' },
-      ],
-    },
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
   ];
@@ -57,25 +76,17 @@ export default function Header() {
 
   const navLinkClass = transparentNav
     ? 'text-white/90 hover:text-white font-medium transition-colors py-2'
-    : 'text-[#111111] font-medium hover:text-[#FF6B00] transition-colors py-2';
-
-  const navButtonClass = transparentNav
-    ? 'flex items-center text-white/90 hover:text-white font-medium transition-colors py-2 focus:outline-none'
-    : 'flex items-center text-[#111111] font-medium hover:text-[#FF6B00] transition-colors py-2 focus:outline-none';
+    : 'text-[#111111] font-medium hover:text-[#FF6600] transition-colors py-2';
 
   const brandTextClass = transparentNav ? 'text-white' : 'text-[#111111]';
 
   const secondaryLinkClass = transparentNav
     ? 'px-5 py-2.5 text-white/90 font-medium hover:text-white transition-colors'
-    : 'px-5 py-2.5 text-[#111111] font-medium hover:text-[#FF6B00] transition-colors';
+    : 'px-5 py-2.5 text-[#111111] font-medium hover:text-[#FF6600] transition-colors';
 
   const primaryCtaClass = transparentNav
     ? 'px-6 py-2.5 bg-white text-zinc-950 rounded-full font-semibold hover:bg-zinc-100 transition-colors shadow-sm'
-    : 'px-6 py-2.5 bg-[#FF6B00] text-black rounded-full font-semibold hover:bg-[#E65F00] transition-colors';
-
-  const sellerCtaClass = transparentNav
-    ? 'px-6 py-2.5 rounded-full font-semibold border border-white/30 text-white hover:bg-white/10 transition-colors'
-    : 'px-6 py-2.5 bg-[#111111] text-white rounded-full font-semibold hover:opacity-90 transition-opacity';
+    : 'px-6 py-2.5 bg-[#FF6600] text-black rounded-full font-semibold hover:bg-[#E65E00] transition-colors';
 
   return (
     <header
@@ -102,72 +113,49 @@ export default function Header() {
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-8">
             {navLinks.map((item) => (
-              <div key={item.name} className="relative group">
-                {item.children ? (
-                  <button
-                    type="button"
-                    className={`${navButtonClass}`}
-                    onMouseEnter={() => setResourcesOpen(true)}
-                    onMouseLeave={() => setResourcesOpen(false)}
-                  >
-                    {item.name}
-                    <ChevronDown className="w-4 h-4 ml-1" />
-                  </button>
-                ) : (
-                  <Link href={item.href} className={navLinkClass}>
-                    {item.name}
-                  </Link>
-                )}
-
-                {item.children && (
-                  <div
-                    className={`absolute top-full left-0 w-48 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden transition-all duration-200 origin-top ${resourcesOpen ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'
-                      }`}
-                    onMouseEnter={() => setResourcesOpen(true)}
-                    onMouseLeave={() => setResourcesOpen(false)}
-                  >
-                    <div className="py-2">
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.name}
-                          href={child.href}
-                          className="block px-4 py-2 text-sm text-gray-600 hover:bg-[#FF6B00]/5 hover:text-[#FF6B00] transition-colors"
-                        >
-                          {child.name}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <Link key={item.name} href={item.href} className={navLinkClass}>
+                {item.name}
+              </Link>
             ))}
           </div>
 
           {/* CTA Buttons */}
           <div className="hidden lg:flex items-center gap-3">
             <Link href="/auth/login" className={secondaryLinkClass}>
-              Sign In
+              Sign in
             </Link>
-            <Link href="/auth/signup" className={primaryCtaClass}>
-              Start Sourcing
-            </Link>
-            <Link href="/auth/signup?role=SELLER" className={sellerCtaClass}>
-              Sell on Carryofy
-            </Link>
+            {showNavStartSourcing && (
+              <Link href="/auth/signup" className={primaryCtaClass}>
+                Start sourcing
+              </Link>
+            )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            type="button"
-            className={`lg:hidden focus:outline-none p-2 touch-target btn-mobile rounded-lg transition-colors ${
-              transparentNav ? 'text-white hover:bg-white/10' : 'text-[#111111] hover:bg-gray-100'
-            }`}
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          <div className="flex items-center gap-2 lg:hidden">
+            {showNavStartSourcing && (
+              <Link
+                href="/auth/signup"
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  transparentNav
+                    ? 'bg-white text-zinc-950 hover:bg-zinc-100'
+                    : 'bg-[#FF6600] text-black hover:bg-[#E65E00]'
+                }`}
+              >
+                Start sourcing
+              </Link>
+            )}
+            <button
+              type="button"
+              className={`focus:outline-none p-2 touch-target btn-mobile rounded-lg transition-colors ${
+                transparentNav ? 'text-white hover:bg-white/10' : 'text-[#111111] hover:bg-gray-100'
+              }`}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu Overlay */}
@@ -190,58 +178,30 @@ export default function Header() {
               >
                 <div className="flex flex-col p-4 space-y-1 safe-bottom">
                   {navLinks.map((item) => (
-                    <div key={item.name}>
-                      {item.children ? (
-                        <div className="space-y-1">
-                          <div className="px-4 py-3 text-[#111111] font-semibold text-base">
-                            {item.name}
-                          </div>
-                          <div className="pl-4 border-l-2 border-[#FF6B00]/20 ml-4 space-y-1">
-                            {item.children.map((child) => (
-                              <Link
-                                key={child.name}
-                                href={child.href}
-                                className="block py-3 px-4 text-gray-600 hover:text-[#FF6B00] hover:bg-[#FF6B00]/5 rounded-lg transition-colors touch-target btn-mobile"
-                                onClick={() => setMobileMenuOpen(false)}
-                              >
-                                {child.name}
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <Link
-                          href={item.href}
-                          className="block py-3 px-4 text-[#111111] hover:text-[#FF6B00] hover:bg-[#FF6B00]/5 rounded-xl transition-colors font-medium touch-target btn-mobile"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          {item.name}
-                        </Link>
-                      )}
-                    </div>
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className="block py-3 px-4 text-[#111111] hover:text-[#FF6600] hover:bg-[#FF6600]/5 rounded-xl transition-colors font-medium touch-target btn-mobile"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {item.name}
+                    </Link>
                   ))}
 
                   <div className="pt-4 mt-2 border-t border-gray-100 space-y-2">
                     <Link
                       href="/auth/login"
-                      className="block w-full py-3 text-center text-[#111111] font-semibold rounded-xl border border-gray-200 hover:border-[#FF6B00] hover:text-[#FF6B00] transition-colors touch-target btn-mobile"
+                      className="block w-full py-3 text-center text-[#111111] font-semibold rounded-xl border border-gray-200 hover:border-[#FF6600] hover:text-[#FF6600] transition-colors touch-target btn-mobile"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Sign In
+                      Sign in
                     </Link>
                     <Link
                       href="/auth/signup"
-                      className="block w-full py-3 text-center bg-[#FF6B00] text-black rounded-xl font-semibold touch-target btn-mobile"
+                      className="block w-full py-3 text-center bg-[#FF6600] text-black rounded-xl font-semibold touch-target btn-mobile"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Start Sourcing
-                    </Link>
-                    <Link
-                      href="/auth/signup?role=SELLER"
-                      className="block w-full py-3 text-center bg-[#111111] text-white rounded-xl font-semibold touch-target btn-mobile"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Sell on Carryofy
+                      Start sourcing
                     </Link>
                   </div>
                 </div>

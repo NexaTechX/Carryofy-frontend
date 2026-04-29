@@ -240,7 +240,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* Overlay */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+            className="fixed inset-0 z-30 bg-[#FF6600]/15 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}

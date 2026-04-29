@@ -558,7 +558,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
         {/* Overlay for mobile */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+            className="fixed inset-0 bg-[#FF6600]/15 backdrop-blur-sm z-30 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -572,26 +572,26 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                 <div
                   className={`h-10 flex items-center justify-between gap-3 rounded-lg px-4 ${
                     kycStatus === 'REJECTED'
-                      ? 'bg-red-900/40 border border-red-500/30'
-                      : 'bg-blue-900/40 border border-blue-500/30'
+                      ? 'bg-[#fff0e6] border border-[#ff944d]'
+                      : 'bg-[#fff6ef] border border-[#ffb27a]'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <span className="text-white text-sm font-medium truncate">
+                    <span className="text-[#111111] text-sm font-medium truncate">
                       {kycStatus === 'REJECTED'
                         ? 'Verification Rejected — Please resubmit'
                         : 'Complete your KYC verification to activate your store and start receiving orders.'}
                     </span>
                     <Link
                       href="/seller/settings?tab=kyc"
-                      className="shrink-0 text-xs font-bold px-3 py-1 rounded-md transition bg-blue-600 hover:bg-blue-700 text-white"
+                      className="shrink-0 text-xs font-bold px-3 py-1 rounded-md transition bg-[#FF6600] hover:bg-[#E65E00] text-black"
                     >
                       {kycStatus === 'REJECTED' ? 'Resubmit' : 'Complete KYC'}
                     </Link>
                   </div>
                   <button
                     onClick={dismissKycBanner}
-                    className="shrink-0 p-1 rounded hover:bg-white/10 text-white/80 hover:text-white transition"
+                    className="shrink-0 p-1 rounded hover:bg-[#FF6600]/10 text-[#8a4f1a] hover:text-[#111111] transition"
                     aria-label="Dismiss"
                   >
                     <X className="w-4 h-4" />

@@ -31,7 +31,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-[#111111] text-white pt-16 pb-8 safe-bottom">
+    <footer className="bg-white text-[#111111] pt-16 pb-8 safe-bottom border-t border-[#ffd4b5]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 lg:gap-12 mb-14">
           {/* Brand */}
@@ -46,7 +46,7 @@ export default function Footer() {
               />
               <span className="font-inter text-xl font-bold">Carryofy</span>
             </div>
-            <p className="text-gray-400 text-sm leading-relaxed mb-6">
+            <p className="text-[#7a4a1d] text-sm leading-relaxed mb-6">
               AI-native B2B commerce for Lagos — verified supply, orchestrated logistics, built for
               operators.
             </p>
@@ -58,7 +58,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#FF6B00] transition-colors"
+                  className="w-10 h-10 rounded-full bg-[#fff3ea] text-[#ff6b00] flex items-center justify-center hover:bg-primary hover:text-white transition-colors"
                 >
                   <Icon className="w-5 h-5" />
                 </a>
@@ -74,7 +74,7 @@ export default function Footer() {
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
+                    className="text-[#7a4a1d] hover:text-primary transition-colors text-sm"
                   >
                     {item.name}
                   </Link>
@@ -91,7 +91,7 @@ export default function Footer() {
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
+                    className="text-[#7a4a1d] hover:text-primary transition-colors text-sm"
                   >
                     {item.name}
                   </Link>
@@ -108,7 +108,7 @@ export default function Footer() {
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
+                    className="text-[#7a4a1d] hover:text-primary transition-colors text-sm"
                   >
                     {item.name}
                   </Link>
@@ -125,7 +125,7 @@ export default function Footer() {
                 <li key={item.name}>
                   <a
                     href={item.href}
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
+                    className="text-[#7a4a1d] hover:text-primary transition-colors text-sm"
                   >
                     {item.name}
                   </a>
@@ -136,26 +136,26 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-white/10 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-gray-500 text-sm text-center sm:text-left">
+        <div className="border-t border-[#ffd4b5] pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-[#9a6a3d] text-sm text-center sm:text-left">
             &copy; {new Date().getFullYear()} Carryofy. All rights reserved.
           </p>
-          <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500">
-            <Link href="/privacy-policy" className="hover:text-white transition-colors">
+          <div className="flex flex-wrap justify-center gap-6 text-sm text-[#9a6a3d]">
+            <Link href="/privacy-policy" className="hover:text-primary transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/terms-of-service" className="hover:text-white transition-colors">
+            <Link href="/terms-of-service" className="hover:text-primary transition-colors">
               Terms of Service
             </Link>
-            <Link href="/vendor-partnership-terms" className="hover:text-white transition-colors">
+            <Link href="/vendor-partnership-terms" className="hover:text-primary transition-colors">
               Vendor Partnership Terms
             </Link>
-            <Link href="#" className="hover:text-white transition-colors">
+            <Link href="#" className="hover:text-primary transition-colors">
               Cookie Policy
             </Link>
           </div>
         </div>
-        <p className="text-center text-gray-500 text-sm mt-6">
+        <p className="text-center text-[#9a6a3d] text-sm mt-6">
           Nigeria&apos;s Smart Marketplace · Est. 2026
         </p>
       </div>

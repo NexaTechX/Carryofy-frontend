@@ -72,19 +72,19 @@ export default function App({ Component, pageProps }: AppProps) {
         toastOptions={{
           duration: 2500,
           style: {
-            background: '#1a1a1a',
-            color: '#ffcc99',
-            border: '1px solid rgba(255, 102, 0, 0.3)',
+            background: '#ffffff',
+            color: '#111111',
+            border: '1px solid rgba(255, 102, 0, 0.45)',
             borderRadius: '12px',
             padding: '16px',
             paddingRight: '40px',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
+            boxShadow: '0 8px 24px -8px rgba(255, 107, 0, 0.35)',
           },
           success: {
             duration: 2500,
             iconTheme: {
               primary: '#ff6600',
-              secondary: '#1a1a1a',
+              secondary: '#ffffff',
             },
             style: {
               border: '1px solid rgba(255, 102, 0, 0.5)',
@@ -94,7 +94,7 @@ export default function App({ Component, pageProps }: AppProps) {
             duration: 3500,
             iconTheme: {
               primary: '#ef4444',
-              secondary: '#1a1a1a',
+              secondary: '#ffffff',
             },
             style: {
               border: '1px solid rgba(239, 68, 68, 0.5)',
@@ -111,10 +111,10 @@ export default function App({ Component, pageProps }: AppProps) {
                 {t.type !== 'loading' && (
                   <button
                     onClick={() => toast.dismiss(t.id)}
-                    className="absolute top-2 right-2 p-1 rounded-full hover:bg-[#ff6600]/20 transition-colors group flex-shrink-0"
+                    className="absolute top-2 right-2 p-1 rounded-full hover:bg-[#ff6600]/20 transition-colors group shrink-0"
                     aria-label="Close notification"
                   >
-                    <X className="w-4 h-4 text-[#ffcc99] group-hover:text-white transition-colors" />
+                    <X className="w-4 h-4 text-[#ff6600] group-hover:text-[#111111] transition-colors" />
                   </button>
                 )}
               </div>

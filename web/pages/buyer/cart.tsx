@@ -231,7 +231,7 @@ export default function CartPage() {
             <>
               {cart.items.length === 0 ? (
                 // Empty Cart State
-                <div className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-2xl p-12 text-center">
+                <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-2xl p-12 text-center">
                   <ShoppingBag className="w-20 h-20 text-[#ffcc99] mx-auto mb-4" />
                   <h2 className="text-white text-2xl font-bold mb-2">Your cart is empty</h2>
                   <p className="text-[#ffcc99] mb-6">
@@ -259,7 +259,7 @@ export default function CartPage() {
                       {cart.items.map((item) => (
                         <div
                           key={item.id}
-                          className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6 hover:border-[#ff6600] transition"
+                          className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 hover:border-[#ff6600] transition"
                         >
                           <div className="flex flex-col md:flex-row gap-6">
                             {/* Product Image */}
@@ -365,7 +365,7 @@ export default function CartPage() {
 
                   {/* Order Summary - Right Column (1/3) */}
                   <div className="lg:col-span-1">
-                    <div className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6 lg:sticky lg:top-6">
+                    <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 lg:sticky lg:top-6">
                       <h2 className="text-white text-2xl font-bold mb-6">Order Summary</h2>
 
                       {/* Summary Items */}

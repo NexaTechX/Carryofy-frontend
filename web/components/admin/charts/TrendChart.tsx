@@ -1,20 +1,11 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import {
-  CHART_AXIS,
-  CHART_AXIS_LINE,
-  CHART_GRID,
-  CHART_PRIMARY,
-  CHART_TOOLTIP_BG,
-  CHART_TOOLTIP_BORDER,
-  CHART_TOOLTIP_TEXT,
-} from '../../../lib/chartTheme';
 
 interface TrendChartProps {
   data: Array<{ date: string; amount: number }>;
   color?: string;
 }
 
-export default function TrendChart({ data, color = CHART_PRIMARY }: TrendChartProps) {
+export default function TrendChart({ data, color = '#ff6600' }: TrendChartProps) {
   const chartData = data.map((point) => ({
     date: new Date(point.date).toLocaleDateString('en-US', { weekday: 'short' }),
     value: point.amount / 100,
@@ -23,17 +14,23 @@ export default function TrendChart({ data, color = CHART_PRIMARY }: TrendChartPr
   return (
     <ResponsiveContainer width="100%" height="100%">
       <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
+        <defs>
+          <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={color} stopOpacity={0.4} />
+            <stop offset="95%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
         <XAxis
           dataKey="date"
-          stroke={CHART_AXIS}
-          tick={{ fill: CHART_AXIS, fontSize: 11 }}
-          axisLine={{ stroke: CHART_AXIS_LINE }}
+          stroke="#6b7280"
+          tick={{ fill: '#6b7280', fontSize: 11 }}
+          axisLine={{ stroke: '#1f1f1f' }}
         />
         <YAxis
-          stroke={CHART_AXIS}
-          tick={{ fill: CHART_AXIS, fontSize: 11 }}
-          axisLine={{ stroke: CHART_AXIS_LINE }}
+          stroke="#6b7280"
+          tick={{ fill: '#6b7280', fontSize: 11 }}
+          axisLine={{ stroke: '#1f1f1f' }}
           tickFormatter={(value) =>
             new Intl.NumberFormat('en-NG', {
               notation: 'compact',
@@ -43,11 +40,10 @@ export default function TrendChart({ data, color = CHART_PRIMARY }: TrendChartPr
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: CHART_TOOLTIP_BG,
-            border: `1px solid ${CHART_TOOLTIP_BORDER}`,
+            backgroundColor: '#0a0a0a',
+            border: '1px solid #1f1f1f',
             borderRadius: '8px',
-            color: CHART_TOOLTIP_TEXT,
-            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+            color: '#fff',
           }}
           formatter={(value: number) =>
             new Intl.NumberFormat('en-NG', {
@@ -62,10 +58,11 @@ export default function TrendChart({ data, color = CHART_PRIMARY }: TrendChartPr
           dataKey="value"
           stroke={color}
           strokeWidth={2}
-          fill={color}
-          fillOpacity={0.12}
+          fillOpacity={1}
+          fill="url(#colorValue)"
         />
       </AreaChart>
     </ResponsiveContainer>
   );
 }
+

@@ -1,14 +1,4 @@
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
-import {
-  CHART_AXIS,
-  CHART_AXIS_LINE,
-  CHART_CURSOR_FILL,
-  CHART_GRID,
-  CHART_PRIMARY,
-  CHART_TOOLTIP_BG,
-  CHART_TOOLTIP_BORDER,
-  CHART_TOOLTIP_TEXT,
-} from '../../../lib/chartTheme';
 
 interface BarChartProps {
   data: Array<{ label: string; value: number }>;
@@ -19,7 +9,7 @@ interface BarChartProps {
 
 export default function BarChart({
   data,
-  color = CHART_PRIMARY,
+  color = '#ff6600',
   valueFormatter,
   yAxisTickFormatter,
 }: BarChartProps) {
@@ -34,36 +24,36 @@ export default function BarChart({
   return (
     <ResponsiveContainer width="100%" height="100%">
       <RechartsBarChart data={data} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
         <XAxis
           dataKey="label"
-          stroke={CHART_AXIS}
-          tick={{ fill: CHART_AXIS, fontSize: 11 }}
-          axisLine={{ stroke: CHART_AXIS_LINE }}
+          stroke="#6b7280"
+          tick={{ fill: '#6b7280', fontSize: 11 }}
+          axisLine={{ stroke: '#1f1f1f' }}
         />
         <YAxis
-          stroke={CHART_AXIS}
-          tick={{ fill: CHART_AXIS, fontSize: 11 }}
-          axisLine={{ stroke: CHART_AXIS_LINE }}
+          stroke="#6b7280"
+          tick={{ fill: '#6b7280', fontSize: 11 }}
+          axisLine={{ stroke: '#1f1f1f' }}
           tickFormatter={yFmt}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: CHART_TOOLTIP_BG,
-            border: `1px solid ${CHART_TOOLTIP_BORDER}`,
+            backgroundColor: '#0a0a0a',
+            border: '1px solid #1f1f1f',
             borderRadius: '8px',
-            color: CHART_TOOLTIP_TEXT,
-            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+            color: '#fff',
           }}
           formatter={(value: number) => (valueFormatter ? valueFormatter(value) : value.toLocaleString())}
-          cursor={{ fill: CHART_CURSOR_FILL }}
+          cursor={{ fill: '#1a1a1a' }}
         />
         <Bar dataKey="value" radius={[8, 8, 0, 0]}>
           {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={color} />
+            <Cell key={`cell-${index}`} fill={color} opacity={0.8 + index * 0.05} />
           ))}
         </Bar>
       </RechartsBarChart>
     </ResponsiveContainer>
   );
 }
+

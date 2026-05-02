@@ -13,16 +13,6 @@ import {
   Legend,
   Cell,
 } from 'recharts';
-import {
-  CHART_AXIS,
-  CHART_AXIS_LINE,
-  CHART_GRID,
-  CHART_PRIMARY,
-  CHART_SECONDARY,
-  CHART_TOOLTIP_BG,
-  CHART_TOOLTIP_BORDER,
-  CHART_TOOLTIP_TEXT,
-} from '../../../lib/chartTheme';
 
 export type DailyOrderValueView = 'line' | 'bar' | 'area';
 
@@ -62,8 +52,8 @@ export default function DailyOrderValueChart({
   comparisonData = [],
   view,
   showComparison,
-  color = CHART_PRIMARY,
-  comparisonColor = CHART_SECONDARY,
+  color = '#FF6B00',
+  comparisonColor = '#6b7280',
   granularity,
 }: DailyOrderValueChartProps) {
   const thisPeriodMap = new Map(data.map((p) => [p.date, p]));
@@ -92,30 +82,39 @@ export default function DailyOrderValueChart({
   return (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 4, bottom: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
+        <defs>
+          <linearGradient id="dailyAreaFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={color} stopOpacity={0.45} />
+            <stop offset="95%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="areaFillComp" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={comparisonColor} stopOpacity={0.25} />
+            <stop offset="95%" stopColor={comparisonColor} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#2a3142" vertical={false} />
         <XAxis
           dataKey="label"
-          stroke={CHART_AXIS}
-          tick={{ fill: CHART_AXIS, fontSize: 10 }}
-          axisLine={{ stroke: CHART_AXIS_LINE }}
+          stroke="#6b7280"
+          tick={{ fill: '#9ca3af', fontSize: 10 }}
+          axisLine={{ stroke: '#2a3142' }}
           interval="preserveStartEnd"
           minTickGap={24}
         />
         <YAxis
-          stroke={CHART_AXIS}
-          tick={{ fill: CHART_AXIS, fontSize: 11 }}
-          axisLine={{ stroke: CHART_AXIS_LINE }}
+          stroke="#6b7280"
+          tick={{ fill: '#9ca3af', fontSize: 11 }}
+          axisLine={{ stroke: '#2a3142' }}
           tickFormatter={yTickFmt}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: CHART_TOOLTIP_BG,
-            border: `1px solid ${CHART_TOOLTIP_BORDER}`,
+            backgroundColor: '#0f1524',
+            border: '1px solid #2a3142',
             borderRadius: '8px',
-            color: CHART_TOOLTIP_TEXT,
-            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+            color: '#fff',
           }}
-          labelStyle={{ color: CHART_AXIS }}
+          labelStyle={{ color: '#9ca3af' }}
           formatter={(value: number, name: string, item: { payload?: { orderCount?: number } }) => {
             const oc = item?.payload?.orderCount;
             if (name === 'value') {
@@ -129,7 +128,7 @@ export default function DailyOrderValueChart({
         {hasComparison && (
           <Legend
             formatter={(value) => (value === 'value' ? 'This period' : 'Last period')}
-            wrapperStyle={{ fontSize: 12, color: CHART_TOOLTIP_TEXT }}
+            wrapperStyle={{ fontSize: 12 }}
           />
         )}
 
@@ -158,14 +157,14 @@ export default function DailyOrderValueChart({
         {view === 'bar' && (
           <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} name="value">
             {chartData.map((_, i) => (
-              <Cell key={`v-${i}`} fill={color} />
+              <Cell key={`v-${i}`} fill={color} opacity={0.9} />
             ))}
           </Bar>
         )}
         {view === 'bar' && hasComparison && (
           <Bar dataKey="comparison" fill={comparisonColor} radius={[4, 4, 0, 0]} name="comparison">
             {chartData.map((_, i) => (
-              <Cell key={`c-${i}`} fill={comparisonColor} opacity={0.55} />
+              <Cell key={`c-${i}`} fill={comparisonColor} opacity={0.5} />
             ))}
           </Bar>
         )}
@@ -176,8 +175,7 @@ export default function DailyOrderValueChart({
             dataKey="value"
             stroke={color}
             strokeWidth={2}
-            fill={color}
-            fillOpacity={0.12}
+            fill="url(#dailyAreaFill)"
             name="value"
           />
         )}
@@ -188,8 +186,7 @@ export default function DailyOrderValueChart({
             stroke={comparisonColor}
             strokeWidth={2}
             strokeDasharray="4 4"
-            fill={comparisonColor}
-            fillOpacity={0.08}
+            fill="url(#areaFillComp)"
             name="comparison"
           />
         )}

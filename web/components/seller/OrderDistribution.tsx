@@ -50,32 +50,33 @@ export default function OrderDistribution() {
   };
 
   const getBarHeight = (percentage: number) => {
+    // Ensure minimum visibility for non-zero values
     if (percentage === 0) return '0%';
     return `${Math.max(percentage, 5)}%`;
   };
 
   return (
-    <div className="flex min-w-72 flex-1 flex-col gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="flex min-w-72 flex-1 flex-col gap-4 rounded-[12px] border border-[#2A2A2A] bg-[#1A1A1A] p-6">
       <div>
-        <p className="mb-2 text-base font-medium text-gray-900">Order distribution</p>
+        <p className="text-white text-base font-medium leading-normal mb-2">Order Distribution</p>
         {loading ? (
-          <div className="h-8 w-24 animate-pulse rounded bg-gray-100"></div>
+          <div className="h-8 w-24 bg-[#1a1a1a] animate-pulse rounded"></div>
         ) : (
           <>
-            <p className="text-3xl font-bold leading-tight tracking-tight text-gray-900">
+            <p className="text-white tracking-light text-[32px] font-bold leading-tight">
               {distributionData?.total || 0}
             </p>
-            <p className="text-sm text-gray-500">Total orders</p>
+            <p className="text-[#ffcc99] text-sm font-normal leading-normal">Total Orders</p>
           </>
         )}
       </div>
 
       {loading ? (
-        <div className="mt-4 space-y-3">
+        <div className="space-y-3 mt-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="space-y-2">
-              <div className="h-4 w-24 animate-pulse rounded bg-gray-100"></div>
-              <div className="h-8 animate-pulse rounded bg-gray-100"></div>
+              <div className="h-4 w-24 bg-[#1a1a1a] animate-pulse rounded"></div>
+              <div className="h-8 bg-[#1a1a1a] animate-pulse rounded"></div>
             </div>
           ))}
         </div>
@@ -86,37 +87,41 @@ export default function OrderDistribution() {
           distributionData.distribution.every((d) => d.count === 0) ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-gray-500">Awaiting first order</span>
+                <span className="text-[#A0A0A0] font-medium">Awaiting first order</span>
               </div>
-              <div className="h-3 overflow-hidden rounded-full bg-gray-100">
-                <div className="h-full rounded-full bg-gray-200" style={{ width: '100%' }} />
+              <div className="h-3 bg-[#1a1a1a] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#2A2A2A] rounded-full"
+                  style={{ width: '100%' }}
+                />
               </div>
             </div>
           ) : (
             distributionData.distribution.map((item, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-gray-800">{item.status}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500">{item.count}</span>
-                    <span className="font-semibold text-orange-600">{item.percentage}%</span>
-                  </div>
-                </div>
-                <div className="h-3 overflow-hidden rounded-full bg-gray-100">
-                  <div
-                    className="h-full rounded-full bg-orange-500 transition-all duration-500 ease-out"
-                    style={{ width: getBarHeight(item.percentage) }}
-                  />
+            <div key={index} className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-white font-medium">{item.status}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#ffcc99]">{item.count}</span>
+                  <span className="text-[#ff6600] font-bold">{item.percentage}%</span>
                 </div>
               </div>
+              <div className="h-3 bg-[#1a1a1a] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#ff6600] to-[#ff9933] rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${item.percentage}%` }}
+                />
+              </div>
+            </div>
             ))
           )}
         </div>
       ) : (
-        <div className="py-8 text-center text-sm text-gray-400">
+        <div className="text-center text-[#ffcc99] py-8">
           <p>No order data available</p>
         </div>
       )}
     </div>
   );
 }
+

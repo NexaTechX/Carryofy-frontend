@@ -12,15 +12,6 @@ import {
   Legend,
   Cell,
 } from 'recharts';
-import {
-  CHART_AXIS,
-  CHART_AXIS_LINE,
-  CHART_GRID,
-  CHART_PRIMARY,
-  CHART_TOOLTIP_BG,
-  CHART_TOOLTIP_BORDER,
-  CHART_TOOLTIP_TEXT,
-} from '../../../lib/chartTheme';
 
 export type SalesTrendView = 'line' | 'bar';
 
@@ -50,11 +41,14 @@ export default function SalesTrendChart({
   earningsTrend = [],
   view,
   showEarningsOverlay,
-  salesColor = CHART_PRIMARY,
-  earningsColor = '#22c55e',
+  salesColor = '#ff6600',
+  earningsColor = '#10b981',
 }: SalesTrendChartProps) {
   const dates = Array.from(
-    new Set([...salesTrend.map((p) => p.date), ...earningsTrend.map((p) => p.date)])
+    new Set([
+      ...salesTrend.map((p) => p.date),
+      ...earningsTrend.map((p) => p.date),
+    ])
   ).sort();
 
   const chartData = dates.map((date) => {
@@ -62,11 +56,7 @@ export default function SalesTrendChart({
     const earningsPoint = earningsTrend.find((p) => p.date === date);
     return {
       date,
-      label: new Date(date).toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-      }),
+      label: new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
       sales: salesPoint ? salesPoint.amount / 100 : 0,
       earnings: earningsPoint ? earningsPoint.amount / 100 : 0,
     };
@@ -77,17 +67,17 @@ export default function SalesTrendChart({
   return (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
         <XAxis
           dataKey="label"
-          stroke={CHART_AXIS}
-          tick={{ fill: CHART_AXIS, fontSize: 11 }}
-          axisLine={{ stroke: CHART_AXIS_LINE }}
+          stroke="#6b7280"
+          tick={{ fill: '#6b7280', fontSize: 11 }}
+          axisLine={{ stroke: '#1f1f1f' }}
         />
         <YAxis
-          stroke={CHART_AXIS}
-          tick={{ fill: CHART_AXIS, fontSize: 11 }}
-          axisLine={{ stroke: CHART_AXIS_LINE }}
+          stroke="#6b7280"
+          tick={{ fill: '#6b7280', fontSize: 11 }}
+          axisLine={{ stroke: '#1f1f1f' }}
           tickFormatter={(value) =>
             new Intl.NumberFormat('en-NG', {
               notation: 'compact',
@@ -97,20 +87,19 @@ export default function SalesTrendChart({
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: CHART_TOOLTIP_BG,
-            border: `1px solid ${CHART_TOOLTIP_BORDER}`,
+            backgroundColor: '#0a0a0a',
+            border: '1px solid #1f1f1f',
             borderRadius: '8px',
-            color: CHART_TOOLTIP_TEXT,
-            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+            color: '#fff',
           }}
-          labelStyle={{ color: CHART_AXIS }}
+          labelStyle={{ color: '#9ca3af' }}
           formatter={(value: number, name: string) => [formatNgn(value), name === 'sales' ? 'Sales' : 'Earnings']}
           labelFormatter={(label) => label}
         />
         {hasEarnings && (
           <Legend
             formatter={(value) => (value === 'sales' ? 'Sales' : 'Earnings')}
-            wrapperStyle={{ fontSize: 12, color: CHART_TOOLTIP_TEXT }}
+            wrapperStyle={{ fontSize: 12 }}
           />
         )}
         {view === 'line' && (
@@ -137,14 +126,14 @@ export default function SalesTrendChart({
         {view === 'bar' && (
           <Bar dataKey="sales" fill={salesColor} radius={[4, 4, 0, 0]} name="sales">
             {chartData.map((_, index) => (
-              <Cell key={`sales-${index}`} fill={salesColor} />
+              <Cell key={`sales-${index}`} fill={salesColor} opacity={0.85} />
             ))}
           </Bar>
         )}
         {view === 'bar' && hasEarnings && (
           <Bar dataKey="earnings" fill={earningsColor} radius={[4, 4, 0, 0]} name="earnings">
             {chartData.map((_, index) => (
-              <Cell key={`earnings-${index}`} fill={earningsColor} opacity={0.85} />
+              <Cell key={`earnings-${index}`} fill={earningsColor} opacity={0.75} />
             ))}
           </Bar>
         )}

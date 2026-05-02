@@ -1,11 +1,6 @@
 'use client';
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import {
-  CHART_TOOLTIP_BG,
-  CHART_TOOLTIP_BORDER,
-  CHART_TOOLTIP_TEXT,
-} from '../../../lib/chartTheme';
 
 export interface DonutChartItem {
   name: string;
@@ -21,6 +16,8 @@ interface DonutChartProps {
   valueFormatter?: (value: number) => string;
 }
 
+const DEFAULT_COLORS = ['#25D366', '#1DA1F2', '#1877F2', '#6b7280']; // WhatsApp, Twitter, Facebook, Other
+
 export default function DonutChart({
   data,
   height = 280,
@@ -29,8 +26,8 @@ export default function DonutChart({
 }: DonutChartProps) {
   if (!data.length) {
     return (
-      <div className="flex items-center justify-center text-sm text-gray-400" style={{ height }}>
-        No data available yet
+      <div className="flex items-center justify-center text-gray-400" style={{ height }}>
+        No data
       </div>
     );
   }
@@ -51,16 +48,15 @@ export default function DonutChart({
           nameKey="name"
         >
           {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
+            <Cell key={`cell-${index}`} fill={entry.color} stroke="#0f1524" strokeWidth={2} />
           ))}
         </Pie>
         <Tooltip
           contentStyle={{
-            backgroundColor: CHART_TOOLTIP_BG,
-            border: `1px solid ${CHART_TOOLTIP_BORDER}`,
+            backgroundColor: '#0a0a0a',
+            border: '1px solid #1f1f1f',
             borderRadius: '8px',
-            color: CHART_TOOLTIP_TEXT,
-            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+            color: '#fff',
           }}
           formatter={(value: number, name: string, props: { payload?: { percentage?: number } }) => [
             `${valueFormatter(value)} (${(props.payload?.percentage ?? 0).toFixed(1)}%)`,
@@ -75,7 +71,7 @@ export default function DonutChart({
             formatter={(value, entry) => {
               const p = (entry?.payload as unknown) as DonutChartItem | undefined;
               return (
-                <span className="text-sm text-gray-600">
+                <span className="text-gray-300 text-sm">
                   {value} — {p?.percentage != null ? p.percentage.toFixed(1) : 0}%
                 </span>
               );

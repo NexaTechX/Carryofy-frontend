@@ -99,12 +99,12 @@ export default function BuyerCategoryStrip({
   if (loading) {
     return (
       <section className="mb-8" aria-label="Shop by category" aria-busy="true">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Categories</h2>
+        <h2 className="mb-4 text-lg font-bold text-white">Categories</h2>
         <div className="flex gap-3 overflow-hidden pb-2">
           {Array.from({ length: 10 }).map((_, i) => (
             <div
               key={i}
-              className="shrink-0 animate-pulse rounded-xl bg-gray-100"
+              className="shrink-0 animate-pulse rounded-xl bg-[#1a1a1a]"
               style={{ width: CARD_W, height: CARD_H }}
             />
           ))}
@@ -116,8 +116,8 @@ export default function BuyerCategoryStrip({
   if (categories.length === 0) {
     return (
       <section className="mb-8" aria-label="Shop by category">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Categories</h2>
-        <div className="rounded-xl border border-gray-200 bg-white py-8 text-center text-sm text-gray-500 shadow-sm">
+        <h2 className="mb-4 text-lg font-bold text-white">Categories</h2>
+        <div className="rounded-xl border border-[#2a2a2a] bg-[#111111] py-8 text-center text-sm text-[#ffcc99]/70">
           Categories coming soon
         </div>
       </section>
@@ -126,7 +126,7 @@ export default function BuyerCategoryStrip({
 
   return (
     <section className="mb-8" aria-label="Shop by category">
-      <h2 className="mb-4 text-lg font-semibold text-gray-900">Categories</h2>
+      <h2 className="mb-4 text-lg font-bold text-white">Categories</h2>
 
       <div className="relative mx-auto w-full max-w-[min(100%,1044px)]">
         {/* Left arrow */}
@@ -135,7 +135,7 @@ export default function BuyerCategoryStrip({
           aria-label="Scroll categories left"
           onClick={() => scrollBy('left')}
           disabled={!canLeft}
-          className="absolute left-0 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-md transition hover:border-orange-200 hover:text-orange-600 disabled:pointer-events-none disabled:opacity-0 sm:h-10 sm:w-10"
+          className="absolute left-0 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-[#111111]/95 text-white shadow-lg backdrop-blur-sm transition hover:bg-[#1a1a1a] disabled:pointer-events-none disabled:opacity-0 sm:h-10 sm:w-10"
         >
           <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>
@@ -144,7 +144,7 @@ export default function BuyerCategoryStrip({
           aria-label="Scroll categories right"
           onClick={() => scrollBy('right')}
           disabled={!canRight}
-          className="absolute right-0 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-md transition hover:border-orange-200 hover:text-orange-600 disabled:pointer-events-none disabled:opacity-0 sm:h-10 sm:w-10"
+          className="absolute right-0 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-[#111111]/95 text-white shadow-lg backdrop-blur-sm transition hover:bg-[#1a1a1a] disabled:pointer-events-none disabled:opacity-0 sm:h-10 sm:w-10"
         >
           <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>

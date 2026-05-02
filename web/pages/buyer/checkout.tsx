@@ -816,7 +816,7 @@ export default function CheckoutPage() {
               </div>
             </div>
           ) : quoteId && loadingQuote ? (
-            <div className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-2xl p-12 text-center">
+            <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-2xl p-12 text-center">
               <Loader2 className="w-12 h-12 text-[#ff6600] mx-auto mb-4 animate-spin" />
               <p className="text-[#ffcc99]">Loading quote...</p>
             </div>
@@ -831,7 +831,7 @@ export default function CheckoutPage() {
               </button>
             </div>
           ) : !quote && (!cart || cart.items.length === 0) ? (
-            <div className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-2xl p-12 text-center">
+            <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-2xl p-12 text-center">
               <Package className="w-16 h-16 text-[#ffcc99] mx-auto mb-4" />
               <h2 className="text-white text-2xl font-bold mb-2">Your cart is empty</h2>
               <p className="text-[#ffcc99] mb-6">Add items to your cart to proceed to checkout.</p>
@@ -857,7 +857,7 @@ export default function CheckoutPage() {
               )}
 
               {/* Step indicator */}
-              <div className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6">
+              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                 <div className="flex items-center justify-between max-w-2xl mx-auto">
                   {STEPS.map((step, index) => {
                     const isActive = currentStep === step.id;
@@ -890,7 +890,7 @@ export default function CheckoutPage() {
                   <>
                     <div className="lg:col-span-2 space-y-6">
                       {/* Cart items + shipping + coupon */}
-                      <section className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6">
+                      <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                         <div className="flex items-center gap-3 mb-4">
                           <ClipboardList className="w-5 h-5 text-[#ff6600]" />
                           <h2 className="text-white text-xl font-bold">Your order</h2>
@@ -938,7 +938,7 @@ export default function CheckoutPage() {
                         </div>
                       </section>
 
-                      <section className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6">
+                      <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                         <div className="flex items-center gap-3 mb-4">
                           <Truck className="w-5 h-5 text-[#ff6600]" />
                           <h2 className="text-white text-xl font-bold">Shipping</h2>
@@ -971,7 +971,7 @@ export default function CheckoutPage() {
                         )}
                       </section>
 
-                      <section className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6">
+                      <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                         <div className="flex items-center gap-3 mb-4">
                           <Gift className="w-5 h-5 text-[#ff6600]" />
                           <h2 className="text-white text-xl font-bold">Coupon code</h2>
@@ -1003,7 +1003,7 @@ export default function CheckoutPage() {
 
                       {/* SECTION 5.3 — resolved: wallet label aligned with walletAppliedKobo / rewards balance */}
                       {rewardBalanceKobo > 0 && (
-                        <section className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6">
+                        <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                           <div className="flex items-center gap-3 mb-4">
                             <Wallet className="w-5 h-5 text-[#ff6600]" />
                             <h2 className="text-white text-xl font-bold">Carryofy wallet</h2>
@@ -1048,7 +1048,7 @@ export default function CheckoutPage() {
                           Your order is below the minimum of {minOrderNaira}. Please go back and add more items.
                         </p>
                       )}
-                      <div className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6 sticky top-6 space-y-6">
+                      <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 sticky top-6 space-y-6">
                         <h2 className="text-white text-xl font-bold">Order summary</h2>
                         <div className="space-y-3 border-t border-[#ff6600]/30 pt-4">
                           <div className="flex justify-between"><span className="text-[#ffcc99]">Subtotal</span><span className="text-white font-semibold">{formatPrice(quote ? quoteSubtotal : (cart?.totalAmount ?? 0))}</span></div>
@@ -1113,7 +1113,7 @@ export default function CheckoutPage() {
                 {currentStep === 2 && (
                   <>
                     <div className="lg:col-span-2 space-y-6">
-                      <section className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6">
+                      <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                         <div className="flex items-center gap-3 mb-4">
                           <Phone className="w-5 h-5 text-[#ff6600]" />
                           <h2 className="text-white text-xl font-bold">Contact information</h2>
@@ -1159,7 +1159,7 @@ export default function CheckoutPage() {
                       </section>
 
                       {hasB2BOnlyItems && (
-                        <section className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6">
+                        <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                           <div className="flex items-center gap-3 mb-4">
                             <Package className="w-5 h-5 text-[#ff6600]" />
                             <h2 className="text-white text-xl font-bold">Business details</h2>
@@ -1190,7 +1190,7 @@ export default function CheckoutPage() {
                         </section>
                       )}
 
-                      <section className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6">
+                      <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                         <div className="flex items-center gap-3 mb-4">
                           <MapPin className="w-5 h-5 text-[#ff6600]" />
                           <h2 className="text-white text-xl font-bold">Delivery address</h2>
@@ -1443,7 +1443,7 @@ export default function CheckoutPage() {
                         </>
                       </section>
 
-                      <section className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6">
+                      <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                         <div className="flex items-center gap-3 mb-4">
                           <ClipboardList className="w-5 h-5 text-[#ff6600]" />
                           <h2 className="text-white text-xl font-bold">Order notes (optional)</h2>
@@ -1458,7 +1458,7 @@ export default function CheckoutPage() {
                       </section>
                     </div>
                     <div className="lg:col-span-1">
-                      <div className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6 sticky top-6 space-y-6">
+                      <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 sticky top-6 space-y-6">
                         <h2 className="text-white text-xl font-bold">Summary</h2>
                         <div className="space-y-3 border-t border-[#ff6600]/30 pt-4">
                           <div className="flex justify-between"><span className="text-[#ffcc99]">Subtotal</span><span className="text-white font-semibold">{formatPrice(quote ? quoteSubtotal : (cart?.totalAmount ?? 0))}</span></div>
@@ -1505,7 +1505,7 @@ export default function CheckoutPage() {
                 {currentStep === 3 && (
                   <>
                     <div className="lg:col-span-2 space-y-6">
-                      <section className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6">
+                      <section className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                         <div className="flex items-center gap-3 mb-4">
                           <ShieldCheck className="w-5 h-5 text-[#ff6600]" />
                           <h2 className="text-white text-xl font-bold">Review your order</h2>
@@ -1556,7 +1556,7 @@ export default function CheckoutPage() {
                     </div>
 
                     <div className="lg:col-span-1">
-                      <div className="rounded-xl border border-gray-200 bg-white shadow-sm rounded-xl p-6 sticky top-6 space-y-6">
+                      <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 sticky top-6 space-y-6">
                         <h2 className="text-white text-xl font-bold">Total</h2>
                         <div className="space-y-3 border-t border-[#ff6600]/30 pt-4">
                           <div className="flex justify-between"><span className="text-[#ffcc99]">Subtotal</span><span className="text-white font-semibold">{formatPrice(quote ? quoteSubtotal : (cart?.totalAmount ?? 0))}</span></div>

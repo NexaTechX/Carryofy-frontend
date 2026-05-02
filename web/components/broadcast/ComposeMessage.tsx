@@ -26,8 +26,8 @@ export function ComposeMessage({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <h2 className="mb-3 text-sm font-semibold text-gray-900">Compose Message</h2>
+    <section className="rounded-lg border border-[#2a2a2a] bg-[#111111] p-4">
+      <h2 className="mb-3 text-sm font-semibold text-white">Compose Message</h2>
 
       {showSubject ? (
         <div className="mb-3">
@@ -36,7 +36,7 @@ export function ComposeMessage({
             value={subject}
             onChange={(event) => onSubjectChange(event.target.value)}
             placeholder="e.g. Important update from Carryofy"
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            className="w-full rounded-md border border-[#2a2a2a] bg-[#1a1a1a] px-3 py-2 text-sm text-white placeholder:text-[#9ca3af] focus:border-[#F97316] focus:outline-none"
           />
           {errors?.subject ? (
             <div className="mt-2 inline-flex rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300">
@@ -52,7 +52,7 @@ export function ComposeMessage({
           value={message}
           onChange={(event) => onMessageChange(event.target.value)}
           placeholder={placeholder}
-          className="min-h-[160px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 pr-16 text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
+          className="min-h-[160px] w-full rounded-md border border-[#2a2a2a] bg-[#1a1a1a] px-3 py-2 pr-16 text-sm text-white placeholder:text-[#9ca3af] focus:border-[#F97316] focus:outline-none"
         />
         <span className="absolute bottom-2 right-2 text-xs text-[#9ca3af]">{message.length}</span>
       </div>
@@ -69,7 +69,7 @@ export function ComposeMessage({
             key={variable}
             type="button"
             onClick={() => onInsertVariable(variable, textareaRef.current)}
-            className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600 transition-all duration-150 ease-in hover:border-orange-200 hover:text-orange-600"
+            className="rounded-[20px] border border-[#2a2a2a] bg-[#111111] px-3 py-1 text-xs text-[#9ca3af] transition-all duration-150 ease-in hover:border-[#F97316] hover:text-white"
           >
             {variable}
           </button>

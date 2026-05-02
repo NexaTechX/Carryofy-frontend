@@ -5,7 +5,7 @@ export function DataTableContainer({ className, ...props }: HTMLAttributes<HTMLD
   return (
     <div
       className={clsx(
-        'overflow-x-auto overflow-y-visible rounded-xl border border-gray-200 bg-white shadow-sm',
+        'overflow-x-auto overflow-y-visible rounded-2xl border border-[#1f1f1f] bg-[#111111] shadow-[0_18px_38px_-24px_rgba(0,0,0,0.6)]',
         className
       )}
       {...props}
@@ -18,7 +18,7 @@ export function DataTable(props: TableHTMLAttributes<HTMLTableElement>) {
   return (
     <table
       className={clsx(
-        'w-max min-w-full divide-y divide-gray-100 text-left text-sm text-gray-800',
+        'w-max min-w-full divide-y divide-[#1f1f1f] text-left text-sm text-gray-200',
         className
       )}
       {...rest}
@@ -34,10 +34,7 @@ export function DataTableHead(props: DataTableHeadProps) {
   const { className, columns, children, ...rest } = props;
   return (
     <thead
-      className={clsx(
-        'bg-gray-50 text-xs font-medium uppercase tracking-wider text-gray-500',
-        className
-      )}
+      className={clsx('bg-[#161616] text-xs font-semibold uppercase tracking-[0.16em] text-gray-500', className)}
       {...rest}
     >
       {columns ? (
@@ -47,7 +44,7 @@ export function DataTableHead(props: DataTableHeadProps) {
               key={`${label}-${index}`}
               className={clsx(
                 'px-6 py-4',
-                index === columns.length - 1 ? 'text-right text-gray-500' : 'text-left text-gray-700'
+                index === columns.length - 1 ? 'text-right text-gray-500' : 'text-left text-white'
               )}
             >
               {label}
@@ -63,15 +60,12 @@ export function DataTableHead(props: DataTableHeadProps) {
 
 export function DataTableBody(props: HTMLAttributes<HTMLTableSectionElement>) {
   const { className, ...rest } = props;
-  return (
-    <tbody
-      className={clsx('divide-y divide-gray-100 text-sm text-gray-800 [&_tr:hover]:bg-orange-50', className)}
-      {...rest}
-    />
-  );
+  return <tbody className={clsx('divide-y divide-[#1f1f1f] text-sm text-gray-300', className)} {...rest} />;
 }
 
 export function DataTableCell(props: HTMLAttributes<HTMLTableCellElement>) {
   const { className, ...rest } = props;
   return <td className={clsx('px-6 py-4 align-middle', className)} {...rest} />;
 }
+
+

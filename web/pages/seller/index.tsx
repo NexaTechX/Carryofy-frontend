@@ -90,10 +90,10 @@ export default function SellerDashboard() {
   // Show loading state while auth is initializing
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-orange-200 border-t-orange-500"></div>
-          <p className="text-sm text-gray-500">Loading...</p>
+          <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#ffcc99]">Loading...</p>
         </div>
       </div>
     );
@@ -116,46 +116,38 @@ export default function SellerDashboard() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <SellerLayout>
-        <div className="mx-auto flex max-w-[1200px] flex-col gap-6">
-          <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Dashboard</h1>
+        <div className="mx-auto max-w-[1200px] px-8 flex flex-col gap-6">
+          <p className="text-white tracking-light text-[32px] font-bold leading-tight">Dashboard</p>
 
           {/* Stats Cards */}
           <DashboardStats />
 
           {/* Quick Actions */}
-          <div>
-            <h2 className="dashboard-section-title">Quick actions</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Link
-                href="/seller/products/new"
-                className="flex flex-col items-center rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:bg-orange-50"
-              >
-                <div className="rounded-lg bg-orange-100 p-2">
-                  <Plus className="h-5 w-5 text-orange-500" />
-                </div>
-                <span className="mt-2 text-center text-xs font-medium text-gray-600">Add product</span>
-              </Link>
-              <button
-                type="button"
-                onClick={handleShareStore}
-                disabled={!sellerId}
-                className="flex flex-col items-center rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <div className="rounded-lg bg-orange-100 p-2">
-                  <Share2 className="h-5 w-5 text-orange-500" />
-                </div>
-                <span className="mt-2 text-center text-xs font-medium text-gray-600">Share store link</span>
-              </button>
-              <Link
-                href={sellerId ? `/buyer/products?seller=${sellerId}` : '#'}
-                className={`flex flex-col items-center rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 ${!sellerId ? 'pointer-events-none opacity-50' : ''}`}
-              >
-                <div className="rounded-lg bg-orange-100 p-2">
-                  <Eye className="h-5 w-5 text-orange-500" />
-                </div>
-                <span className="mt-2 text-center text-xs font-medium text-gray-600">View store</span>
-              </Link>
-            </div>
+          <div className="flex items-center gap-3 h-10 px-4 rounded-[12px] bg-[#1A1A1A] border border-[#2A2A2A]">
+            <Link
+              href="/seller/products/new"
+              className="flex items-center gap-2 text-[#FF6B00] hover:text-[#FF6B00]/80 transition"
+            >
+              <Plus className="h-4 w-4 shrink-0" />
+              <span className="text-[13px] font-medium text-white">Add Product</span>
+            </Link>
+            <span className="w-px h-5 bg-[#2A2A2A]" />
+            <button
+              onClick={handleShareStore}
+              disabled={!sellerId}
+              className="flex items-center gap-2 text-[#FF6B00] hover:text-[#FF6B00]/80 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Share2 className="h-4 w-4 shrink-0" />
+              <span className="text-[13px] font-medium text-white">Share Store Link</span>
+            </button>
+            <span className="w-px h-5 bg-[#2A2A2A]" />
+            <Link
+              href={sellerId ? `/buyer/products?seller=${sellerId}` : '#'}
+              className={`flex items-center gap-2 ${sellerId ? 'text-[#FF6B00] hover:text-[#FF6B00]/80' : 'text-[#A0A0A0] cursor-not-allowed pointer-events-none'} transition`}
+            >
+              <Eye className="h-4 w-4 shrink-0" />
+              <span className="text-[13px] font-medium text-white">View Store</span>
+            </Link>
           </div>
 
           {/* Charts */}
@@ -169,18 +161,18 @@ export default function SellerDashboard() {
         {kycStatus === 'APPROVED' ? (
           <Link
             href="/seller/products/new"
-            className="fixed bottom-6 right-6 z-50 flex items-center space-x-2 rounded-xl bg-orange-500 px-6 py-3 font-medium text-white shadow-lg transition hover:bg-orange-600"
+            className="fixed bottom-6 right-6 bg-[#ff6600] hover:bg-[#cc5200] text-black px-6 py-3 rounded-xl shadow-lg flex items-center space-x-2 font-bold transition transform hover:scale-105 z-50"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="w-5 h-5" />
             <span>Add Product</span>
           </Link>
         ) : (
           <button
             disabled
             title="Complete KYC verification to add products"
-            className="fixed bottom-6 right-6 z-50 flex cursor-not-allowed items-center space-x-2 rounded-xl border border-gray-200 bg-gray-100 px-6 py-3 font-medium text-gray-400 shadow-sm"
+            className="fixed bottom-6 right-6 bg-[#333]/70 text-[#ffcc99]/30 px-6 py-3 rounded-xl shadow-lg flex items-center space-x-2 font-bold cursor-not-allowed z-50 border border-[#ff6600]/10"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="w-5 h-5" />
             <span>Add Product</span>
           </button>
         )}

@@ -68,18 +68,25 @@ export default function Header() {
     { name: 'Contact', href: '/contact' },
   ];
 
-  const navBgClass = scrolled
-    ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-[#ffd4b5] py-3'
-    : 'bg-white py-4 border-b border-[#ffe8d8]';
+  const navBgClass = transparentNav
+    ? 'bg-transparent py-4 border-b border-transparent'
+    : scrolled
+      ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200 py-3'
+      : 'bg-white py-4';
 
-  const navLinkClass = 'text-[#111111] font-medium hover:text-[#FF6600] transition-colors py-2';
+  const navLinkClass = transparentNav
+    ? 'text-white/90 hover:text-white font-medium transition-colors py-2'
+    : 'text-[#111111] font-medium hover:text-[#FF6600] transition-colors py-2';
 
-  const brandTextClass = 'text-[#111111]';
+  const brandTextClass = transparentNav ? 'text-white' : 'text-[#111111]';
 
-  const secondaryLinkClass = 'px-5 py-2.5 text-[#111111] font-medium hover:text-[#FF6600] transition-colors';
+  const secondaryLinkClass = transparentNav
+    ? 'px-5 py-2.5 text-white/90 font-medium hover:text-white transition-colors'
+    : 'px-5 py-2.5 text-[#111111] font-medium hover:text-[#FF6600] transition-colors';
 
-  const primaryCtaClass =
-    'px-6 py-2.5 bg-[#FF6600] text-black rounded-full font-semibold hover:bg-[#E65E00] transition-colors';
+  const primaryCtaClass = transparentNav
+    ? 'px-6 py-2.5 bg-white text-zinc-950 rounded-full font-semibold hover:bg-zinc-100 transition-colors shadow-sm'
+    : 'px-6 py-2.5 bg-[#FF6600] text-black rounded-full font-semibold hover:bg-[#E65E00] transition-colors';
 
   return (
     <header
@@ -129,7 +136,9 @@ export default function Header() {
               <Link
                 href="/auth/signup"
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                  'bg-[#FF6600] text-black hover:bg-[#E65E00]'
+                  transparentNav
+                    ? 'bg-white text-zinc-950 hover:bg-zinc-100'
+                    : 'bg-[#FF6600] text-black hover:bg-[#E65E00]'
                 }`}
               >
                 Start sourcing
@@ -138,7 +147,7 @@ export default function Header() {
             <button
               type="button"
               className={`focus:outline-none p-2 touch-target btn-mobile rounded-lg transition-colors ${
-                'text-[#111111] hover:bg-[#FFF1E8]'
+                transparentNav ? 'text-white hover:bg-white/10' : 'text-[#111111] hover:bg-gray-100'
               }`}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
@@ -157,7 +166,7 @@ export default function Header() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-[#FF6600]/10 backdrop-blur-sm lg:hidden z-40"
+                className="fixed inset-0 bg-black/20 backdrop-blur-sm lg:hidden z-40"
                 onClick={() => setMobileMenuOpen(false)}
               />
               <motion.div

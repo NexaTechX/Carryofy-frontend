@@ -143,14 +143,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 key={href}
                 href={href}
                 className={clsx(
-                  'group flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition-colors',
+                  'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
                   active
-                    ? 'bg-border-custom text-foreground shadow-[0_8px_18px_rgba(255,102,0,0.15)]'
-                    : 'text-gray-400 hover:bg-border-custom hover:text-foreground'
+                    ? 'bg-orange-500 text-white'
+                    : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600'
                 )}
                 onClick={() => setSidebarOpen(false)}
               >
-                <Icon className={clsx('h-5 w-5 shrink-0', active ? 'text-primary' : 'text-gray-500 group-hover:text-foreground')} />
+                <Icon
+                  className={clsx(
+                    'h-5 w-5 shrink-0',
+                    active ? 'text-white' : 'text-gray-500 group-hover:text-orange-600'
+                  )}
+                />
                 <span className="min-w-0 flex-1 truncate">{name}</span>
                 {href === '/admin/safety' && safetySosBadge > 0 ? (
                   <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white">
@@ -170,28 +175,28 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     <RealtimeProvider enabled={true} interval={15000}>
       <div className="flex min-h-screen bg-background text-foreground">
         {/* Desktop Sidebar - fixed, nav content scrollable */}
-        <aside className="fixed inset-y-0 left-0 z-20 hidden h-screen w-72 flex-col border-r border-border-custom bg-card lg:flex">
-          <div className="flex shrink-0 items-center gap-3 border-b border-border-custom px-6 py-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
+        <aside className="fixed inset-y-0 left-0 z-20 hidden h-screen w-72 flex-col border-r border-gray-200 bg-white lg:flex">
+          <div className="flex shrink-0 items-center gap-3 border-b border-gray-200 bg-white px-6 py-5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-500 text-sm font-semibold text-white">
               CF
             </div>
             <div>
-              <p className="text-sm font-semibold tracking-wide">Carryofy Admin</p>
-              <p className="text-xs text-gray-500">Control Center</p>
+              <p className="text-sm font-semibold tracking-wide text-orange-500">Carryofy Admin</p>
+              <p className="text-xs uppercase tracking-wider text-gray-400">Control Center</p>
             </div>
           </div>
           {navContent}
-          <div className="shrink-0 border-t border-border-custom px-6 py-6 space-y-4">
-            <div className="flex items-center justify-between rounded-full border border-border-custom px-4 py-2 text-xs font-medium text-gray-400">
+          <div className="shrink-0 border-t border-gray-200 px-6 py-6 space-y-4">
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-2 text-xs font-medium text-gray-500">
               <span className="flex items-center gap-2">
-                <Store className="h-4 w-4 text-primary" />
+                <Store className="h-4 w-4 text-orange-500" />
                 Live Mode
               </span>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">ON</span>
+              <span className="rounded-full bg-orange-50 px-2 py-0.5 text-orange-600">ON</span>
             </div>
             <button
               onClick={handleLogout}
-              className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-gray-400 transition-colors hover:bg-border-custom hover:text-red-400"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-red-600"
             >
               <LogOut className="h-5 w-5" />
               Logout
@@ -202,34 +207,34 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* Mobile Sidebar - fixed, nav content scrollable */}
         <div
           className={clsx(
-            'fixed inset-y-0 left-0 z-40 flex h-screen w-72 flex-col border-r border-border-custom bg-card transition-transform duration-200 lg:hidden',
+            'fixed inset-y-0 left-0 z-40 flex h-screen w-72 flex-col border-r border-gray-200 bg-white transition-transform duration-200 lg:hidden',
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           )}
         >
-          <div className="flex shrink-0 items-center justify-between border-b border-border-custom px-5 py-4">
+          <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-5 py-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-500 text-sm font-semibold text-white">
                 CF
               </div>
               <div>
-                <p className="text-sm font-semibold tracking-wide">Carryofy Admin</p>
-                <p className="text-xs text-gray-500">Control Center</p>
+                <p className="text-sm font-semibold tracking-wide text-orange-500">Carryofy Admin</p>
+                <p className="text-xs uppercase tracking-wider text-gray-400">Control Center</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}
-              className="rounded-full p-2 text-gray-400 transition hover:bg-border-custom hover:text-foreground"
+              className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
               aria-label="Close navigation"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
           {navContent}
-          <div className="shrink-0 border-t border-border-custom px-6 py-6">
+          <div className="shrink-0 border-t border-gray-200 px-6 py-6">
             <button
               onClick={handleLogout}
-              className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-gray-400 transition-colors hover:bg-border-custom hover:text-red-400"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-red-600"
             >
               <LogOut className="h-5 w-5" />
               Logout
@@ -248,30 +253,30 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* Main Content */}
         <div className="flex flex-1 flex-col lg:ml-72">
           {/* Header */}
-          <header className="sticky top-0 z-20 border-b border-border-custom bg-background/90 backdrop-blur">
-            <div className="flex items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <header className="sticky top-0 z-20 border-b border-gray-200 bg-white">
+            <div className="flex items-center gap-4 px-6 py-4 lg:px-8">
               <button
                 type="button"
                 onClick={() => setSidebarOpen(true)}
-                className="rounded-full border border-border-custom p-2 text-gray-400 transition hover:border-primary hover:text-foreground lg:hidden"
+                className="rounded-lg border border-gray-200 p-2 text-gray-500 transition hover:border-orange-200 hover:text-orange-600 lg:hidden"
                 aria-label="Open navigation"
               >
                 <Menu className="h-5 w-5" />
               </button>
 
-              <div className="hidden items-center gap-3 text-sm font-semibold text-gray-300 sm:flex">
-                <span className="text-[#ff9955]">Carryofy</span>
-                <span className="text-gray-600">/</span>
-                <span className="text-foreground">{currentPage?.name ?? 'Admin'}</span>
+              <div className="hidden items-center gap-2 text-sm sm:flex">
+                <span className="font-medium text-gray-400">Carryofy</span>
+                <span className="text-gray-300">/</span>
+                <span className="font-semibold text-gray-900">{currentPage?.name ?? 'Admin'}</span>
               </div>
 
               <div className="ml-auto flex flex-1 items-center gap-3 sm:ml-0 sm:gap-4">
                 <button
                   onClick={() => setSearchOpen(true)}
-                  className="relative flex-1 max-w-xs rounded-full border border-border-custom bg-card px-4 py-2 text-left text-sm text-gray-500 hover:border-primary sm:max-w-md"
+                  className="relative flex-1 max-w-xs rounded-lg bg-gray-100 px-4 py-2.5 text-left text-sm text-gray-500 transition focus:outline-none focus:ring-2 focus:ring-orange-400 sm:max-w-md"
                 >
                   <span>Search across analytics, sellers, orders...</span>
-                  <kbd className="absolute right-3 top-1/2 -translate-y-1/2 rounded border border-border-custom bg-background px-2 py-0.5 text-xs">
+                  <kbd className="absolute right-3 top-1/2 -translate-y-1/2 rounded border border-gray-200 bg-white px-2 py-0.5 text-xs text-gray-500">
                     ⌘K
                   </kbd>
                 </button>
@@ -280,28 +285,27 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   <NotificationsDropdown />
                 </div>
 
-
-                <button className="hidden rounded-full border border-border-custom p-2 text-gray-400 transition hover:border-primary hover:text-foreground sm:flex">
+                <button className="hidden rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-orange-500 sm:flex">
                   <HelpCircle className="h-5 w-5" />
                 </button>
 
                 <button
                   onClick={handleLogout}
-                  className="hidden rounded-full border border-border-custom p-2 text-gray-400 transition hover:border-red-500/50 hover:text-red-400 sm:flex"
+                  className="hidden rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-red-600 sm:flex"
                   title="Logout"
                   aria-label="Logout"
                 >
                   <LogOut className="h-5 w-5" />
                 </button>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 text-sm font-semibold text-white">
                   AD
                 </div>
               </div>
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto bg-background pb-16">
+          <main className="dashboard-page-padding flex-1 overflow-y-auto bg-background pb-16">
             {children}
           </main>
         </div>

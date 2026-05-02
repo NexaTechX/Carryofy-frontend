@@ -9,18 +9,18 @@ interface StatusBadgeProps {
 }
 
 const toneStyles: Record<StatusTone, string> = {
-  neutral: 'border-[#2a2a2a] bg-[#151515] text-gray-300',
-  success: 'border-[#1f3a27] bg-[#132019] text-[#6ef2a1]',
-  warning: 'border-[#3a2a1f] bg-[#21170f] text-[#ffb169]',
-  danger: 'border-[#3a1f1f] bg-[#211010] text-[#ff8484]',
-  info: 'border-[#1f303a] bg-[#101d24] text-[#7ecbff]',
+  neutral: 'bg-gray-100 text-gray-600',
+  success: 'bg-green-100 text-green-700',
+  warning: 'bg-orange-100 text-orange-700',
+  danger: 'bg-red-100 text-red-700',
+  info: 'bg-gray-100 text-gray-700',
 };
 
 export function StatusBadge({ tone = 'neutral', label, className }: StatusBadgeProps) {
   return (
     <span
       className={clsx(
-        'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]',
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
         toneStyles[tone],
         className
       )}
@@ -29,5 +29,3 @@ export function StatusBadge({ tone = 'neutral', label, className }: StatusBadgeP
     </span>
   );
 }
-
-

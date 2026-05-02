@@ -11,6 +11,16 @@ import {
   Cell,
   LabelList,
 } from 'recharts';
+import {
+  CHART_AXIS,
+  CHART_AXIS_LINE,
+  CHART_CURSOR_FILL,
+  CHART_GRID,
+  CHART_PRIMARY,
+  CHART_TOOLTIP_BG,
+  CHART_TOOLTIP_BORDER,
+  CHART_TOOLTIP_TEXT,
+} from '../../../lib/chartTheme';
 
 export interface OrderDistributionItem {
   status: string;
@@ -26,7 +36,7 @@ interface OrderDistributionChartProps {
 
 export default function OrderDistributionChart({
   data,
-  color = '#ff6600',
+  color = CHART_PRIMARY,
   onBarClick,
 }: OrderDistributionChartProps) {
   const chartData = data.map((entry) => ({
@@ -39,30 +49,34 @@ export default function OrderDistributionChart({
   return (
     <ResponsiveContainer width="100%" height="100%">
       <RechartsBarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
         <XAxis
           dataKey="label"
-          stroke="#6b7280"
-          tick={{ fill: '#6b7280', fontSize: 11 }}
-          axisLine={{ stroke: '#1f1f1f' }}
+          stroke={CHART_AXIS}
+          tick={{ fill: CHART_AXIS, fontSize: 11 }}
+          axisLine={{ stroke: CHART_AXIS_LINE }}
         />
         <YAxis
-          stroke="#6b7280"
-          tick={{ fill: '#6b7280', fontSize: 11 }}
-          axisLine={{ stroke: '#1f1f1f' }}
+          stroke={CHART_AXIS}
+          tick={{ fill: CHART_AXIS, fontSize: 11 }}
+          axisLine={{ stroke: CHART_AXIS_LINE }}
           tickFormatter={(v) => (Number.isFinite(v) ? v.toLocaleString() : '')}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: '#0a0a0a',
-            border: '1px solid #1f1f1f',
+            backgroundColor: CHART_TOOLTIP_BG,
+            border: `1px solid ${CHART_TOOLTIP_BORDER}`,
             borderRadius: '8px',
-            color: '#fff',
+            color: CHART_TOOLTIP_TEXT,
+            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
           }}
           formatter={(value: number, _name: string, props: { payload?: { percentage?: number } }) =>
-            [`${value.toLocaleString()} (${props.payload?.percentage != null ? props.payload.percentage.toFixed(1) : 0}%)`, 'Orders']
+            [
+              `${value.toLocaleString()} (${props.payload?.percentage != null ? props.payload.percentage.toFixed(1) : 0}%)`,
+              'Orders',
+            ]
           }
-          cursor={{ fill: '#1a1a1a' }}
+          cursor={{ fill: CHART_CURSOR_FILL }}
         />
         <Bar
           dataKey="value"
@@ -71,13 +85,13 @@ export default function OrderDistributionChart({
           cursor={onBarClick ? 'pointer' : 'default'}
         >
           {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={color} opacity={0.8 + index * 0.04} />
+            <Cell key={`cell-${index}`} fill={color} />
           ))}
           <LabelList
             dataKey="percentage"
             position="top"
             formatter={(p: number) => `${p.toFixed(1)}%`}
-            fill="#9ca3af"
+            fill="#6b7280"
             fontSize={11}
           />
         </Bar>

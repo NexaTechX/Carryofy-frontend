@@ -90,20 +90,21 @@ export default function SalesTrend() {
   };
 
   return (
-    <div className="flex min-w-72 flex-1 flex-col gap-4 rounded-[12px] border border-[#2A2A2A] bg-[#1A1A1A] p-6">
+    <div className="flex min-w-72 flex-1 flex-col gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <div>
-        <p className="text-white text-base font-medium leading-normal mb-2">Sales Trend</p>
+        <p className="mb-2 text-base font-medium text-gray-900">Sales trend</p>
         {loading ? (
-          <div className="h-8 w-24 bg-[#1a1a1a] animate-pulse rounded"></div>
+          <div className="h-8 w-24 animate-pulse rounded bg-gray-100"></div>
         ) : (
           <>
-            <p className="text-white tracking-light text-[32px] font-bold leading-tight">
+            <p className="text-3xl font-bold leading-tight tracking-tight text-gray-900">
               {formatPrice(trendData?.totalSales || 0)}
             </p>
-            <div className="flex items-center gap-2 mt-1">
-              <p className="text-[#ffcc99] text-sm font-normal leading-normal">Last 30 Days</p>
-              <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${isPositive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                }`}>
+            <div className="mt-1 flex items-center gap-2">
+              <p className="text-sm text-gray-500">Last 30 days</p>
+              <div
+                className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+              >
                 <span>{isPositive ? '↑' : '↓'}</span>
                 <span>{Math.abs(trendPercentage)}%</span>
               </div>
@@ -113,106 +114,91 @@ export default function SalesTrend() {
       </div>
 
       {loading ? (
-        <div className="h-32 bg-[#1a1a1a] animate-pulse rounded"></div>
+        <div className="h-32 animate-pulse rounded bg-gray-100"></div>
       ) : !trendData || trendData.totalOrders === 0 || trendData.trend.length === 0 ? (
-        <div
-          className="flex flex-col items-center justify-center gap-3 rounded-[12px] border-2 border-dashed border-[#2A2A2A] py-12 px-6"
-          style={{ borderStyle: 'dashed' }}
-        >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FF6B00]/15">
-            <TrendingUp className="h-8 w-8 text-[#FF6B00]" strokeWidth={1.5} />
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-gray-200 px-6 py-12">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-50">
+            <TrendingUp className="h-8 w-8 text-orange-500" strokeWidth={1.5} />
           </div>
-          <p className="text-center text-base font-bold text-white">No sales yet</p>
-          <p className="text-center text-sm text-[#A0A0A0] max-w-[280px]">
+          <p className="text-center text-sm font-medium text-gray-500">No sales yet</p>
+          <p className="max-w-[280px] text-center text-xs text-gray-400">
             Your sales trend will appear here once you receive your first order
           </p>
           <Link
             href="/seller/products/new"
-            className="mt-2 inline-flex items-center gap-2 rounded-lg bg-[#FF6B00] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#E65100] transition"
+            className="mt-2 inline-flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600"
           >
-            Add Your First Product →
+            Add your first product →
           </Link>
         </div>
       ) : trendData && trendData.trend.length > 0 ? (
         <div className="relative h-32">
           <svg
             viewBox="0 0 400 80"
-            className="w-full h-full"
+            className="h-full w-full"
             preserveAspectRatio="none"
             style={{ pointerEvents: 'none' }}
           >
-            <defs>
-              <linearGradient id="salesGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" style={{ stopColor: '#ff6600', stopOpacity: 0.3 }} />
-                <stop offset="100%" style={{ stopColor: '#ff6600', stopOpacity: 0 }} />
-              </linearGradient>
-            </defs>
-
-            {/* Area under the line */}
-            <polygon
-              points={`0,80 ${getSparklinePoints()} 400,80`}
-              fill="url(#salesGradient)"
-            />
-
-            {/* Line */}
             <polyline
               points={getSparklinePoints()}
               fill="none"
-              stroke="#ff6600"
+              stroke="#F97316"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
 
-            {/* Dots on data points */}
             {trendData.trend.map((point, index) => {
               const data = trendData.trend;
-              const maxAmount = Math.max(...data.map(d => d.amount), 1);
+              const maxAmount = Math.max(...data.map((d) => d.amount), 1);
               const width = 400;
               const height = 80;
               const padding = 10;
               const x = (index / (data.length - 1)) * (width - 2 * padding) + padding;
-              const y = height - padding - ((point.amount / maxAmount) * (height - 2 * padding));
+              const y = height - padding - (point.amount / maxAmount) * (height - 2 * padding);
 
-              // Only show dots for every 5th point to avoid clutter
               if (index % 5 === 0 || index === data.length - 1) {
                 return (
-                  <circle
-                    key={index}
-                    cx={x}
-                    cy={y}
-                    r="3"
-                    fill="#ff6600"
-                    stroke="#000"
-                    strokeWidth="1"
-                  />
+                  <circle key={index} cx={x} cy={y} r="3" fill="#F97316" stroke="#fff" strokeWidth="1" />
                 );
               }
               return null;
             })}
           </svg>
 
-          {/* Labels */}
-          <div className="flex justify-between mt-2 px-2">
-            <span className="text-[#ffcc99] text-xs">
-              {trendData.trend[0]?.date ? new Date(trendData.trend[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+          <div className="mt-2 flex justify-between px-2">
+            <span className="text-xs text-gray-400">
+              {trendData.trend[0]?.date
+                ? new Date(trendData.trend[0].date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })
+                : ''}
             </span>
-            <span className="text-[#ffcc99] text-xs">
-              {trendData.trend[Math.floor(trendData.trend.length / 2)]?.date ?
-                new Date(trendData.trend[Math.floor(trendData.trend.length / 2)].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+            <span className="text-xs text-gray-400">
+              {trendData.trend[Math.floor(trendData.trend.length / 2)]?.date
+                ? new Date(trendData.trend[Math.floor(trendData.trend.length / 2)].date).toLocaleDateString(
+                    'en-US',
+                    { month: 'short', day: 'numeric' },
+                  )
+                : ''}
             </span>
-            <span className="text-[#ffcc99] text-xs">
-              {trendData.trend[trendData.trend.length - 1]?.date ?
-                new Date(trendData.trend[trendData.trend.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+            <span className="text-xs text-gray-400">
+              {trendData.trend[trendData.trend.length - 1]?.date
+                ? new Date(trendData.trend[trendData.trend.length - 1].date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })
+                : ''}
             </span>
           </div>
         </div>
       ) : null}
 
       {!loading && trendData && (
-        <div className="flex items-center justify-between text-sm pt-2 border-t border-[#ff6600]/20">
-          <span className="text-[#ffcc99]">Total Orders</span>
-          <span className="text-white font-bold">{trendData.totalOrders}</span>
+        <div className="flex items-center justify-between border-t border-gray-100 pt-2 text-sm">
+          <span className="text-gray-500">Total orders</span>
+          <span className="font-semibold text-gray-900">{trendData.totalOrders}</span>
         </div>
       )}
     </div>

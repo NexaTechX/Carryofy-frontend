@@ -28,7 +28,7 @@ export function BroadcastPage() {
   } = useBroadcast();
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 px-6 py-6 lg:px-8">
       {successBanner ? (
         <div
           role="status"
@@ -100,7 +100,7 @@ export function BroadcastPage() {
             type="button"
             onClick={() => void submit()}
             disabled={state.isSubmitting}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#F97316] px-4 py-3 text-sm font-semibold text-white transition-all duration-150 ease-in hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {state.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {state.isScheduled ? 'Schedule Broadcast' : 'Send Broadcast'}

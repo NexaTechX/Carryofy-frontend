@@ -11,14 +11,16 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import {
+  CHART_AXIS,
+  CHART_AXIS_LINE,
+  CHART_GRID,
+  CHART_TOOLTIP_BG,
+  CHART_TOOLTIP_BORDER,
+  CHART_TOOLTIP_TEXT,
+} from '../../../lib/chartTheme';
 
-const STATUS_ORDER = [
-  'Pending',
-  'Processing',
-  'Out for Delivery',
-  'Delivered',
-  'Cancelled',
-] as const;
+const STATUS_ORDER = ['Pending', 'Processing', 'Out for Delivery', 'Delivered', 'Cancelled'] as const;
 
 const STATUS_COLORS: Record<string, string> = {
   Pending: '#f59e0b',
@@ -52,29 +54,30 @@ export default function OrderStatusBarChart({ data }: OrderStatusBarChartProps) 
   return (
     <ResponsiveContainer width="100%" height="100%">
       <RechartsBarChart data={chartData} margin={{ top: 28, right: 8, left: 0, bottom: 8 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
         <XAxis
           dataKey="label"
-          stroke="#6b7280"
-          tick={{ fill: '#9ca3af', fontSize: 10 }}
-          axisLine={{ stroke: '#1f1f1f' }}
+          stroke={CHART_AXIS}
+          tick={{ fill: CHART_AXIS, fontSize: 10 }}
+          axisLine={{ stroke: CHART_AXIS_LINE }}
           interval={0}
           angle={-18}
           textAnchor="end"
           height={56}
         />
         <YAxis
-          stroke="#6b7280"
-          tick={{ fill: '#6b7280', fontSize: 11 }}
-          axisLine={{ stroke: '#1f1f1f' }}
+          stroke={CHART_AXIS}
+          tick={{ fill: CHART_AXIS, fontSize: 11 }}
+          axisLine={{ stroke: CHART_AXIS_LINE }}
           allowDecimals={false}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: '#0a0a0a',
-            border: '1px solid #2a3142',
+            backgroundColor: CHART_TOOLTIP_BG,
+            border: `1px solid ${CHART_TOOLTIP_BORDER}`,
             borderRadius: '8px',
-            color: '#fff',
+            color: CHART_TOOLTIP_TEXT,
+            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
           }}
           formatter={(value: number) => [`${value} orders`, 'Count']}
         />
@@ -85,7 +88,7 @@ export default function OrderStatusBarChart({ data }: OrderStatusBarChartProps) 
           <LabelList
             dataKey="value"
             position="top"
-            fill="#e5e7eb"
+            fill="#374151"
             fontSize={11}
             formatter={(v: number) => (v > 0 ? String(v) : '')}
           />

@@ -97,8 +97,8 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col font-inter">
       {/* Top Header */}
-      <header className="bg-background border-b border-border-custom sticky top-0 z-50 safe-top">
-        <div className="flex items-center gap-4 px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white safe-top">
+        <div className="flex items-center gap-4 px-6 py-3 sm:py-4 lg:px-8">
           {/* Logo and Mobile Menu */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <button
@@ -119,7 +119,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
                   priority
                 />
               </div>
-              <span className="text-primary text-lg sm:text-2xl font-bold">Carryofy</span>
+              <span className="text-lg font-bold text-orange-500 sm:text-2xl">Carryofy</span>
             </Link>
           </div>
 
@@ -128,14 +128,14 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
             onSubmit={handleSearch}
             className="hidden md:flex flex-1 max-w-xl mx-4"
           >
-            <div className="flex-1 flex items-center bg-card rounded-lg border border-border-custom focus-within:border-primary/50 transition-colors">
-              <Search className="w-4 h-4 text-foreground/50 ml-3 shrink-0" />
+            <div className="flex flex-1 items-center rounded-lg bg-gray-100 focus-within:ring-2 focus-within:ring-orange-400">
+              <Search className="ml-3 h-4 w-4 shrink-0 text-gray-500" />
               <input
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products..."
-                className="flex-1 bg-transparent text-foreground placeholder:text-foreground/40 py-2.5 px-3 text-sm focus:outline-none"
+                className="flex-1 border-0 bg-transparent py-2.5 px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
                 aria-label="Search products"
               />
             </div>
@@ -147,12 +147,12 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
             {/* Cart */}
             <button
               onClick={openDrawer}
-              className="relative p-2 text-foreground/70 hover:text-foreground transition touch-target btn-mobile"
+              className="relative p-2 text-gray-500 transition hover:text-orange-500 touch-target btn-mobile"
               aria-label={`Cart ${cartCount > 0 ? `(${cartCount} items)` : ''}`}
             >
               <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
               {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-primary text-black text-[10px] sm:text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white sm:-top-1 sm:-right-1 sm:h-5 sm:w-5 sm:text-xs">
                   {cartCount > 9 ? '9+' : cartCount}
                 </span>
               )}
@@ -166,7 +166,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
             {mounted && !user && (
               <Link
                 href="/auth/login"
-                className="text-sm font-semibold text-primary hover:underline px-2"
+                className="px-2 text-sm font-semibold text-orange-500 hover:underline"
               >
                 Sign in
               </Link>
@@ -175,12 +175,10 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
             {/* User Menu */}
             {mounted && user && (
               <div className="flex items-center gap-2 sm:gap-3">
-                <span className="hidden md:block text-foreground text-sm truncate max-w-[100px]">
-                  {user.name}
-                </span>
+                <span className="hidden max-w-[100px] truncate text-sm text-gray-900 md:block">{user.name}</span>
                 <button
                   onClick={handleLogout}
-                  className="p-2 text-foreground/70 hover:text-foreground transition touch-target btn-mobile"
+                  className="p-2 text-gray-500 transition hover:text-gray-900 touch-target btn-mobile"
                   title="Logout"
                   aria-label="Logout"
                 >
@@ -195,27 +193,27 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside
-          className={`fixed lg:static inset-y-0 left-0 z-40 w-[280px] sm:w-64 bg-card border-r border-border-custom transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          className={`fixed inset-y-0 left-0 z-40 w-[280px] transform border-r border-gray-200 bg-white transition-transform duration-300 ease-in-out sm:w-64 lg:static lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
             } overflow-y-auto`}
         >
           <div className="flex flex-col h-full">
             {/* Mobile Close Button */}
-            <div className="lg:hidden flex justify-between items-center p-4 border-b border-border-custom">
+            <div className="flex items-center justify-between border-b border-gray-200 p-4 lg:hidden">
               <Link href="/buyer" className="flex items-center gap-2">
-                <div className="w-7 h-7 relative">
+                <div className="relative h-7 w-7">
                   <Image
                     src="/logo.png"
                     alt="Carryofy"
                     width={28}
                     height={28}
-                    className="w-full h-full object-contain"
+                    className="h-full w-full object-contain"
                   />
                 </div>
-                <span className="text-primary text-lg font-bold">Carryofy</span>
+                <span className="text-lg font-bold text-orange-500">Carryofy</span>
               </Link>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="text-foreground/70 hover:text-foreground p-2 touch-target btn-mobile"
+                className="p-2 text-gray-500 hover:text-gray-900 touch-target btn-mobile"
                 aria-label="Close menu"
               >
                 <X className="w-5 h-5" />
@@ -231,9 +229,9 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
                     key={item.name}
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center space-x-3 px-4 py-3 sm:py-3 rounded-xl transition touch-target btn-mobile ${isActive(item.href)
-                      ? 'bg-primary text-black font-semibold'
-                      : 'text-foreground/70 hover:bg-background hover:text-foreground'
+                    className={`flex items-center space-x-3 rounded-lg px-4 py-3 transition touch-target btn-mobile sm:py-3 ${isActive(item.href)
+                      ? 'bg-orange-500 font-medium text-white'
+                      : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600'
                       }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -248,15 +246,15 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
         {/* Overlay for mobile */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-[#FF6600]/15 backdrop-blur-sm z-30 lg:hidden"
+            className="fixed inset-0 z-30 bg-gray-900/20 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto scroll-smooth relative bg-background">
+        <main className="relative flex-1 scroll-smooth overflow-y-auto bg-background">
           <ErrorBoundary>
-            <div className="relative p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom">{children}</div>
+            <div className="dashboard-page-padding relative py-6 safe-bottom lg:py-8">{children}</div>
           </ErrorBoundary>
         </main>
       </div>

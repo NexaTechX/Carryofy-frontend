@@ -49,7 +49,7 @@ const formatNumber = (value: number) => value.toLocaleString('en-NG');
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-10 border-l-4 border-[#FF6B00] pl-3 text-xl font-bold leading-tight text-white">
+    <h2 className="mb-10 border-l-4 border-orange-500 pl-3 text-xl font-bold leading-tight text-gray-900">
       {children}
     </h2>
   );
@@ -89,13 +89,13 @@ function KpiCard(props: {
 
   if (error && onRetry) {
     return (
-      <div className="flex flex-col gap-3 rounded-2xl border-2 border-red-500/50 bg-[#121826] p-6 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)]">
-        <p className="text-xs font-semibold uppercase tracking-wider text-red-300">{label}</p>
-        <p className="text-sm text-gray-300">Could not load this metric.</p>
+      <div className="flex flex-col gap-3 rounded-xl border-2 border-red-200 bg-white p-6 shadow-sm">
+        <p className="text-xs font-medium uppercase tracking-wider text-red-600">{label}</p>
+        <p className="text-sm text-gray-600">Could not load this metric.</p>
         <button
           type="button"
           onClick={onRetry}
-          className="inline-flex items-center gap-2 self-start rounded-lg border border-red-500/40 px-3 py-1.5 text-sm text-red-200 hover:bg-red-500/10"
+          className="inline-flex items-center gap-2 self-start rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
         >
           <RefreshCw className="h-4 w-4" />
           Retry
@@ -107,11 +107,11 @@ function KpiCard(props: {
   return (
     <div
       className={clsx(
-        'flex flex-col gap-2 rounded-2xl border border-[#2a3142] bg-[#121826] p-6 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)] transition',
+        'flex min-h-[120px] flex-col gap-2 rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition',
         fetching && 'opacity-75'
       )}
     >
-      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</p>
       {description ? <p className="text-xs text-gray-500">{description}</p> : null}
       {loading ? (
         <>
@@ -120,19 +120,19 @@ function KpiCard(props: {
         </>
       ) : (
         <>
-          <div className="text-3xl font-bold tracking-tight text-white">{children}</div>
+          <div className="text-3xl font-bold tracking-tight text-gray-900">{children}</div>
           {!loading &&
             (trendPct != null && trendPct !== 0 ? (
               <p
                 className={clsx(
                   'text-xs font-medium',
-                  trendGood ? 'text-emerald-400' : 'text-rose-400'
+                  trendGood ? 'text-green-500' : 'text-red-500'
                 )}
               >
                 {trendPct > 0 ? '↑' : '↓'} {Math.abs(trendPct)}%{trendSuffix}
               </p>
             ) : (
-              <p className="text-xs text-gray-500">—{trendSuffix}</p>
+              <p className="text-xs text-gray-400">—{trendSuffix}</p>
             ))}
         </>
       )}
@@ -260,7 +260,7 @@ export default function AdminAnalytics() {
     return (
       <AdminLayout>
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4 text-center">
-          <p className="text-gray-300">Failed to load analytics.</p>
+          <p className="text-gray-600">Failed to load analytics.</p>
           <button
             type="button"
             onClick={() => refetchDashboard()}
@@ -276,7 +276,7 @@ export default function AdminAnalytics() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-[#090c11]">
+      <div className="min-h-screen bg-white">
         <div className="mx-auto w-full max-w-[1440px] px-4 pb-16 pt-10 sm:px-6 lg:px-10">
           <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <AdminPageHeader
@@ -288,14 +288,14 @@ export default function AdminAnalytics() {
                   <button
                     type="button"
                     onClick={() => setShowSharingFilters(!showSharingFilters)}
-                    className="flex items-center gap-2 rounded-full border border-[#2a3142] px-4 py-2 text-xs font-medium text-gray-300 transition hover:border-[#FF6B00]/50"
+                    className="flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-medium text-gray-600 transition hover:border-orange-500/50"
                   >
                     <Filter className="h-4 w-4" />
                     Sharing Filters
                   </button>
                   <Link
                     href="/admin/reports"
-                    className="flex items-center gap-2 rounded-full border border-[#2a3142] px-4 py-2 text-xs font-medium text-gray-300 transition hover:border-[#FF6B00]/50"
+                    className="flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-medium text-gray-600 transition hover:border-orange-500/50"
                   >
                     <BarChart2 className="h-4 w-4" />
                     Reports
@@ -309,7 +309,7 @@ export default function AdminAnalytics() {
           </div>
 
           {showSharingFilters && (
-            <div className="mb-10 rounded-2xl border border-[#2a3142] bg-[#121826] p-4">
+            <div className="mb-10 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <label className="mb-2 block text-xs font-medium text-gray-400">Start Date</label>
@@ -319,7 +319,7 @@ export default function AdminAnalytics() {
                     onChange={(e) =>
                       setSharingFilters({ ...sharingFilters, startDate: e.target.value || undefined })
                     }
-                    className="w-full rounded-lg border border-[#2a3142] bg-[#090c11] px-3 py-2 text-sm text-white focus:border-[#FF6B00] focus:outline-none"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
                   />
                 </div>
                 <div>
@@ -330,7 +330,7 @@ export default function AdminAnalytics() {
                     onChange={(e) =>
                       setSharingFilters({ ...sharingFilters, endDate: e.target.value || undefined })
                     }
-                    className="w-full rounded-lg border border-[#2a3142] bg-[#090c11] px-3 py-2 text-sm text-white focus:border-[#FF6B00] focus:outline-none"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
                   />
                 </div>
                 <div>
@@ -340,7 +340,7 @@ export default function AdminAnalytics() {
                     onChange={(e) =>
                       setSharingFilters({ ...sharingFilters, platform: e.target.value || undefined })
                     }
-                    className="w-full rounded-lg border border-[#2a3142] bg-[#090c11] px-3 py-2 text-sm text-white focus:border-[#FF6B00] focus:outline-none"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
                   >
                     <option value="">All Platforms</option>
                     <option value="whatsapp">WhatsApp</option>
@@ -358,7 +358,7 @@ export default function AdminAnalytics() {
                     onChange={(e) =>
                       setSharingFilters({ ...sharingFilters, role: e.target.value || undefined })
                     }
-                    className="w-full rounded-lg border border-[#2a3142] bg-[#090c11] px-3 py-2 text-sm text-white focus:border-[#FF6B00] focus:outline-none"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
                   >
                     <option value="">All Roles</option>
                     <option value="BUYER">Buyer</option>
@@ -374,7 +374,7 @@ export default function AdminAnalytics() {
                     setSharingFilters({});
                     setShowSharingFilters(false);
                   }}
-                  className="rounded-lg border border-[#2a3142] px-4 py-2 text-sm text-gray-300 hover:border-[#FF6B00]/50"
+                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-300 hover:border-orange-500/50"
                 >
                   Clear Filters
                 </button>
@@ -399,7 +399,7 @@ export default function AdminAnalytics() {
                 fetching={dashboardFetching}
               >
                 <span className="flex items-center gap-2">
-                  <ShoppingCart className="h-6 w-6 text-[#FF6B00]" />
+                  <ShoppingCart className="h-6 w-6 text-orange-500" />
                   {formatNumber(totalOrders)}
                 </span>
               </KpiCard>
@@ -568,9 +568,9 @@ export default function AdminAnalytics() {
 
           <section className="mb-10">
             <SectionTitle>Sales &amp; revenue trends</SectionTitle>
-            <div className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)]">
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="text-lg font-semibold text-white">Daily order value</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Daily order value</h3>
                 <div className="flex flex-wrap items-center gap-2">
                   {(['line', 'bar', 'area'] as const).map((v) => (
                     <button
@@ -580,8 +580,8 @@ export default function AdminAnalytics() {
                       className={clsx(
                         'rounded-lg px-2.5 py-1 text-xs font-medium capitalize',
                         dailyChartView === v
-                          ? 'bg-[#FF6B00] text-white'
-                          : 'bg-[#1f2534] text-gray-400 hover:text-gray-200'
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-100 text-gray-400 hover:text-gray-200'
                       )}
                     >
                       {v}
@@ -592,7 +592,7 @@ export default function AdminAnalytics() {
                     onClick={() => setShowComparison(!showComparison)}
                     className={clsx(
                       'ml-1 rounded-lg px-2.5 py-1 text-xs font-medium',
-                      showComparison ? 'bg-[#FF6B00] text-white' : 'bg-[#1f2534] text-gray-400'
+                      showComparison ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400'
                     )}
                   >
                     vs prior period
@@ -611,7 +611,7 @@ export default function AdminAnalytics() {
                       comparisonData={previousSalesTrend?.trend}
                       view={dailyChartView}
                       showComparison={showComparison}
-                      color="#FF6B00"
+                      color="#F97316"
                       comparisonColor="#6b7280"
                       granularity={salesTrend.granularity}
                     />
@@ -626,8 +626,8 @@ export default function AdminAnalytics() {
           </section>
 
           <section className="mb-10 grid grid-cols-1 gap-10 lg:grid-cols-2">
-            <div className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)]">
-              <h3 className="mb-4 text-lg font-semibold text-white">Order status distribution</h3>
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900">Order status distribution</h3>
               {kpiLoading ? (
                 <Skeleton className="h-[320px] w-full" />
               ) : (
@@ -636,15 +636,15 @@ export default function AdminAnalytics() {
                 </div>
               )}
             </div>
-            <div className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)]">
-              <h3 className="mb-4 text-lg font-semibold text-white">Top categories by sales</h3>
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900">Top categories by sales</h3>
               {kpiLoading ? (
                 <Skeleton className="h-[320px] w-full" />
               ) : categoryChartData.length > 0 ? (
                 <div className="h-[320px]">
                   <BarChart
                     data={categoryChartData}
-                    color="#FF6B00"
+                    color="#F97316"
                     valueFormatter={(v) => formatNairaKobo(v)}
                     yAxisTickFormatter={(v) =>
                       `₦${new Intl.NumberFormat('en-NG', { notation: 'compact', compactDisplay: 'short', maximumFractionDigits: 1 }).format(v / 100)}`
@@ -662,26 +662,26 @@ export default function AdminAnalytics() {
           <section className="mb-10">
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                <h2 className="border-l-4 border-[#FF6B00] pl-3 text-xl font-bold text-white">
+                <h2 className="border-l-4 border-orange-500 pl-3 text-xl font-bold text-gray-900">
                   Product sharing
                 </h2>
                 {shareBadge ? (
-                  <span className="w-fit rounded-full border border-[#2a3142] bg-[#1a1f2e] px-3 py-1 text-xs font-medium text-gray-400">
+                  <span className="w-fit rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-medium text-gray-400">
                     Coming soon — connect in-app Share actions to the API
                   </span>
                 ) : null}
               </div>
               <Link
                 href="/admin/sharing/analytics"
-                className="flex items-center gap-2 text-sm font-medium text-[#FF6B00] hover:underline"
+                className="flex items-center gap-2 text-sm font-medium text-orange-500 hover:underline"
               >
                 Full sharing analytics
                 <ExternalLink className="h-4 w-4" />
               </Link>
             </div>
             {sharingError ? (
-              <div className="rounded-2xl border-2 border-red-500/40 bg-[#121826] p-6 text-center">
-                <p className="text-gray-300">Sharing analytics failed to load.</p>
+              <div className="rounded-2xl border-2 border-red-500/40 bg-white p-6 text-center">
+                <p className="text-gray-600">Sharing analytics failed to load.</p>
                 <button
                   type="button"
                   onClick={() => refetchSharing()}
@@ -725,15 +725,15 @@ export default function AdminAnalytics() {
                   ].map((card) => (
                     <div
                       key={card.title}
-                      className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)]"
+                      className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
                     >
                       <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{card.title}</p>
                       <p className="text-xs text-gray-500">{card.sub}</p>
                       {sharingLoading ? (
                         <Skeleton className="mt-3 h-9 w-20" />
                       ) : (
-                        <p className="mt-2 flex items-center gap-2 text-3xl font-bold text-white">
-                          <card.icon className="h-6 w-6 text-[#FF6B00]" />
+                        <p className="mt-2 flex items-center gap-2 text-3xl font-bold text-gray-900">
+                          <card.icon className="h-6 w-6 text-orange-500" />
                           {card.v}
                         </p>
                       )}
@@ -741,8 +741,8 @@ export default function AdminAnalytics() {
                   ))}
                 </div>
                 <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-2">
-                  <div className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6">
-                    <h4 className="mb-4 font-semibold text-white">Platform breakdown</h4>
+                  <div className="rounded-2xl border border-gray-200 bg-white p-6">
+                    <h4 className="mb-4 font-semibold text-gray-900">Platform breakdown</h4>
                     {sharingLoading ? (
                       <Skeleton className="h-[280px] w-full" />
                     ) : sharingAnalytics?.sharesByPlatform && sharingAnalytics.sharesByPlatform.length > 0 ? (
@@ -751,8 +751,8 @@ export default function AdminAnalytics() {
                       <p className="py-12 text-center text-gray-400">No platform data in this range</p>
                     )}
                   </div>
-                  <div className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6">
-                    <h4 className="mb-4 font-semibold text-white">Shares by role</h4>
+                  <div className="rounded-2xl border border-gray-200 bg-white p-6">
+                    <h4 className="mb-4 font-semibold text-gray-900">Shares by role</h4>
                     {sharingLoading ? (
                       <Skeleton className="h-[280px] w-full" />
                     ) : sharingAnalytics?.sharesByRole && sharingAnalytics.sharesByRole.length > 0 ? (
@@ -771,10 +771,10 @@ export default function AdminAnalytics() {
                   </div>
                 </div>
                 {sharingTimeChartData.length > 0 && (
-                  <div className="mt-10 rounded-2xl border border-[#2a3142] bg-[#121826] p-6">
-                    <h4 className="mb-4 font-semibold text-white">Sharing trends</h4>
+                  <div className="mt-10 rounded-2xl border border-gray-200 bg-white p-6">
+                    <h4 className="mb-4 font-semibold text-gray-900">Sharing trends</h4>
                     <div className="h-[260px]">
-                      <BarChart data={sharingTimeChartData} color="#FF6B00" />
+                      <BarChart data={sharingTimeChartData} color="#F97316" />
                     </div>
                   </div>
                 )}
@@ -787,7 +787,7 @@ export default function AdminAnalytics() {
               <SectionTitle>Broadcast engagement</SectionTitle>
               <Link
                 href="/admin/broadcast-history"
-                className="flex items-center gap-2 text-sm font-medium text-[#FF6B00] hover:underline"
+                className="flex items-center gap-2 text-sm font-medium text-orange-500 hover:underline"
               >
                 Broadcast history
                 <ExternalLink className="h-4 w-4" />
@@ -805,21 +805,21 @@ export default function AdminAnalytics() {
                     ].map((x) => (
                       <div
                         key={x.t}
-                        className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)]"
+                        className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
                       >
                         <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{x.t}</p>
-                        <p className="mt-2 flex items-center gap-2 text-2xl font-bold text-white">
-                          <x.icon className="h-5 w-5 text-[#FF6B00]" />
+                        <p className="mt-2 flex items-center gap-2 text-2xl font-bold text-gray-900">
+                          <x.icon className="h-5 w-5 text-orange-500" />
                           {x.v}
                         </p>
                       </div>
                     ))}
                   </div>
                 )}
-                <div className="overflow-x-auto rounded-2xl border border-[#2a3142]">
+                <div className="overflow-x-auto rounded-2xl border border-gray-200">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-[#2a3142] bg-[#121826]">
+                      <tr className="border-b border-gray-200 bg-white">
                         <th className="px-4 py-3 text-left font-medium text-gray-400">Subject / Type</th>
                         <th className="px-4 py-3 text-right font-medium text-gray-400">Audience</th>
                         <th className="px-4 py-3 text-right font-medium text-gray-400">Open rate</th>
@@ -835,12 +835,12 @@ export default function AdminAnalytics() {
                           sent > 0 && b.emailClicks != null ? ((b.emailClicks / sent) * 100).toFixed(1) : '—';
                         const audience = b.recipientCount ?? (b.sentInApp + b.sentEmail);
                         return (
-                          <tr key={b.id} className="border-b border-[#2a3142] hover:bg-[#121826]/80">
+                          <tr key={b.id} className="border-b border-gray-200 hover:bg-white/80">
                             <td className="px-4 py-3">
-                              <p className="font-medium text-white">{b.subject}</p>
+                              <p className="font-medium text-gray-900">{b.subject}</p>
                               <p className="text-xs text-gray-400">{b.type}</p>
                             </td>
-                            <td className="px-4 py-3 text-right text-gray-300">
+                            <td className="px-4 py-3 text-right text-gray-600">
                               {typeof audience === 'number' ? formatNumber(audience) : audience}
                             </td>
                             <td className="px-4 py-3 text-right text-emerald-400">
@@ -857,9 +857,9 @@ export default function AdminAnalytics() {
                 </div>
               </>
             ) : (
-              <div className="rounded-2xl border border-[#2a3142] bg-[#121826] p-8 text-center text-gray-400">
+              <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-400">
                 <p>No broadcast data yet.</p>
-                <Link href="/admin/broadcast" className="mt-3 inline-block text-[#FF6B00] hover:underline">
+                <Link href="/admin/broadcast" className="mt-3 inline-block text-orange-500 hover:underline">
                   Create broadcast
                 </Link>
               </div>
@@ -867,34 +867,34 @@ export default function AdminAnalytics() {
           </section>
 
           <section className="mb-10 grid grid-cols-1 gap-10 lg:grid-cols-2">
-            <div className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)]">
-              <h3 className="mb-4 text-lg font-semibold text-white">Customer metrics</h3>
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900">Customer metrics</h3>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-xs font-medium text-gray-500">New this month</p>
-                  <p className="text-xl font-bold text-white">
+                  <p className="text-xl font-bold text-gray-900">
                     {formatNumber(metrics?.newCustomersThisMonth ?? 0)}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-gray-500">Active this month</p>
-                  <p className="text-xl font-bold text-white">
+                  <p className="text-xl font-bold text-gray-900">
                     {formatNumber(metrics?.activeCustomersThisMonth ?? 0)}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-gray-500">Retention rate</p>
-                  <p className="text-xl font-bold text-[#FF6B00]">
+                  <p className="text-xl font-bold text-orange-500">
                     {(metrics?.customerRetentionRate ?? 0).toFixed(1)}%
                   </p>
                 </div>
               </div>
               <div className="mt-8">
-                <h4 className="mb-3 text-sm font-medium text-gray-300">Cohort retention (monthly)</h4>
+                <h4 className="mb-3 text-sm font-medium text-gray-700">Cohort retention (monthly)</h4>
                 {kpiLoading ? (
                   <Skeleton className="h-[200px] w-full" />
                 ) : cohort?.message ? (
-                  <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-[#2a3142] bg-[#0f1524] p-6 text-center text-gray-400">
+                  <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-gray-200 bg-gray-50 p-6 text-center text-gray-400">
                     {cohort.message}
                   </div>
                 ) : (
@@ -906,8 +906,8 @@ export default function AdminAnalytics() {
                 )}
               </div>
             </div>
-            <div className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)]">
-              <h3 className="mb-4 text-lg font-semibold text-white">Inventory health</h3>
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900">Inventory health</h3>
               {kpiLoading || inventoryLoading ? (
                 <Skeleton className="h-40 w-full" />
               ) : (
@@ -926,7 +926,7 @@ export default function AdminAnalytics() {
                   </div>
                   <div>
                     <p className="text-xs font-medium text-gray-500">Total products</p>
-                    <p className="text-xl font-bold text-white">
+                    <p className="text-xl font-bold text-gray-900">
                       {formatNumber(inventoryReport?.totalProducts ?? 0)}
                     </p>
                   </div>
@@ -947,12 +947,12 @@ export default function AdminAnalytics() {
                 <Link
                   key={l.href}
                   href={l.href}
-                  className="group flex flex-col rounded-2xl border border-[#2a3142] bg-[#121826] p-6 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)] transition hover:border-[#FF6B00]/40"
+                  className="group flex flex-col rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:border-orange-500/40"
                 >
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#FF6B00]/15 text-[#FF6B00]">
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/15 text-orange-500">
                     <l.icon className="h-5 w-5" />
                   </div>
-                  <h3 className="font-semibold text-white">{l.title}</h3>
+                  <h3 className="font-semibold text-gray-900">{l.title}</h3>
                   <p className="mt-1 text-sm text-gray-400">{l.desc}</p>
                 </Link>
               ))}

@@ -157,11 +157,11 @@ function ProductCard({
 
   return (
     <article
-      className={`group bg-[#1a1a1a] border border-[#ff6600]/20 rounded-xl overflow-hidden hover:border-[#ff6600] hover:shadow-lg hover:shadow-[#ff6600]/20 transition-all duration-300 ${className}`}
+      className={`group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:border-orange-200 hover:shadow-md ${className}`}
     >
       <Link href={productHref} className="h-full flex flex-col">
         {/* Product Image */}
-        <div className="aspect-square bg-linear-to-br from-black to-[#1a1a1a] relative overflow-hidden">
+        <div className="relative aspect-square overflow-hidden bg-gray-100">
           {product.images && product.images.length > 0 ? (
             <Image
               src={product.images[0]}
@@ -171,7 +171,7 @@ function ProductCard({
               className="object-cover group-hover:scale-110 transition-transform duration-500"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-[#ffcc99]/50">
+            <div className="flex h-full w-full items-center justify-center text-gray-300">
               <Package className="w-12 h-12" />
             </div>
           )}
@@ -251,7 +251,7 @@ function ProductCard({
 
         {/* Product Info */}
         <div className="p-4 flex-1 flex flex-col">
-          <h3 className="text-white font-bold text-base mb-2 line-clamp-2 group-hover:text-[#ff6600] transition-colors leading-snug min-h-10">
+          <h3 className="mb-2 min-h-10 line-clamp-2 text-base font-bold leading-snug text-gray-900 transition-colors group-hover:text-orange-600">
             {product.title}
           </h3>
           
@@ -259,7 +259,7 @@ function ProductCard({
           {showFeatures && product.keyFeatures && product.keyFeatures.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2">
               {product.keyFeatures.slice(0, 2).map((feature, idx) => (
-                <span key={idx} className="text-[#ff6600] text-xs font-semibold px-1.5 py-0.5 rounded bg-[#ff6600]/10 line-clamp-1">
+                <span key={idx} className="line-clamp-1 rounded px-1.5 py-0.5 text-xs font-semibold text-orange-600 bg-orange-50">
                   {feature}
                 </span>
               ))}
@@ -274,7 +274,7 @@ function ProductCard({
                 e.stopPropagation();
                 router.push(`/buyer/products?seller=${product.seller.id}`);
               }}
-              className="text-[#ffcc99] hover:text-[#ff6600] text-xs font-medium truncate transition-colors text-left"
+              className="truncate text-left text-xs font-medium text-gray-600 transition-colors hover:text-orange-600"
             >
               {product.seller.businessName}
             </button>
@@ -299,7 +299,7 @@ function ProductCard({
           )}
 
           <div className="mt-auto">
-            <p className="text-[#ff6600] font-bold text-lg mb-2">
+            <p className="mb-2 text-lg font-bold text-orange-600">
               {priceDisplay}
             </p>
             {product.quantity > 0 && (
@@ -315,7 +315,7 @@ function ProductCard({
                 <Link
                   href={productHref}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0d0d0d] border-2 border-[#ff6600]/50 text-white rounded-lg font-semibold hover:bg-[#ff6600]/10 hover:border-[#ff6600] transition-all duration-200 text-sm"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-orange-500 bg-white px-4 py-2.5 text-sm font-semibold text-orange-600 transition-all duration-200 hover:bg-orange-50"
                   title="Get a custom price from the seller"
                 >
                   Get a custom price
@@ -324,7 +324,7 @@ function ProductCard({
                 <Link
                   href={`/auth/signup?redirect=${encodeURIComponent(router.asPath || '/')}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#ff6600] text-white rounded-lg font-semibold hover:bg-[#cc5200] transition-all duration-200 text-sm"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-orange-600"
                   title="Sign up to add to cart"
                 >
                   <ShoppingCart className="w-4 h-4" />
@@ -343,7 +343,7 @@ function ProductCard({
               )
             )}
             {product.quantity === 0 && (
-              <div className="w-full px-4 py-2.5 bg-gray-700/50 text-gray-400 rounded-lg text-center text-sm font-medium cursor-not-allowed">
+              <div className="w-full cursor-not-allowed rounded-lg bg-gray-100 px-4 py-2.5 text-center text-sm font-medium text-gray-400">
                 Out of Stock
               </div>
             )}

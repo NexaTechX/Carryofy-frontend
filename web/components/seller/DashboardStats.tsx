@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { tokenManager } from '../../lib/auth';
 import {
   Package,
@@ -9,49 +8,8 @@ import {
   Clock,
   FileText,
   Building2,
-  LucideIcon,
 } from 'lucide-react';
-
-interface StatCardProps {
-  title: string;
-  value: string;
-  description?: string;
-  loading?: boolean;
-  icon: LucideIcon;
-  isRevenue?: boolean;
-  href?: string;
-}
-
-function StatCard({ title, value, description, loading, icon: Icon, isRevenue, href }: StatCardProps) {
-  const cardClass =
-    'flex flex-col gap-2 rounded-[12px] p-[20px] bg-[#1A1A1A] border border-[#2A2A2A] relative overflow-hidden' +
-    (isRevenue ? ' border-l-4 border-l-[#FF6B00]' : '');
-  const content = (
-    <>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FF6B01]/15">
-          <Icon className="h-4 w-4 text-[#FF6B00]" strokeWidth={2} />
-        </div>
-      </div>
-      {loading ? (
-        <div className="h-7 w-20 bg-[#2A2A2A] animate-pulse rounded" />
-      ) : (
-        <p className="font-dm-mono text-[28px] font-bold leading-tight text-white">{value}</p>
-      )}
-      <p className="text-[11px] font-medium uppercase tracking-wider text-[#A0A0A0]">{title}</p>
-      {description ? <p className="text-xs text-[#A0A0A0] leading-snug">{description}</p> : null}
-    </>
-  );
-
-  if (href) {
-    return (
-      <Link href={href} className={`${cardClass} hover:border-[#2A2A2A]/80 transition`}>
-        {content}
-      </Link>
-    );
-  }
-  return <div className={cardClass}>{content}</div>;
-}
+import { StatMetricCard } from '../ui/StatMetricCard';
 
 interface DashboardKPIs {
   totalProducts: number;
@@ -83,7 +41,6 @@ export default function DashboardStats() {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
-      // Fetch dashboard KPIs, payouts, reports, seller product count, seller stats (pending quotes), and B2B orders
       const [
         dashboardResponse,
         payoutsResponse,
@@ -134,7 +91,6 @@ export default function DashboardStats() {
         );
       }
 
-      // API wraps response in { data: DTO }; support both wrapped and raw
       const dashboardData = dashboardJson?.data ?? dashboardJson ?? {};
       const salesTrendData = salesTrendJson?.data ?? salesTrendJson ?? {};
       const orderDistributionData = orderDistributionJson?.data ?? orderDistributionJson ?? {};
@@ -143,36 +99,29 @@ export default function DashboardStats() {
         ? (payoutRequestsJson?.data || payoutRequestsJson)
         : [];
 
-      // Available balance is derived from pending earnings (source of truth remains earnings)
       const availableBalance = payoutsList
-        .filter((p: any) => p?.status === 'PENDING')
-        .reduce((sum: number, p: any) => sum + (p?.net || 0), 0);
+        .filter((p: { status?: string }) => p?.status === 'PENDING')
+        .reduce((sum: number, p: { net?: number }) => sum + (p?.net || 0), 0);
 
       const pendingRequestStatuses = new Set(['REQUESTED', 'APPROVED', 'PROCESSING']);
-      const pendingPayoutRequests = payoutRequestsList.filter((r: any) => pendingRequestStatuses.has(r?.status));
+      const pendingPayoutRequests = payoutRequestsList.filter((r: { status?: string }) => {
+        const s = r?.status;
+        return s != null && pendingRequestStatuses.has(s);
+      });
       const pendingPayoutRequestsCount = pendingPayoutRequests.length;
       const pendingPayoutRequestsTotal = pendingPayoutRequests.reduce(
-        (sum: number, r: any) => sum + (r?.amount || 0),
+        (sum: number, r: { amount?: number }) => sum + (r?.amount || 0),
         0,
       );
 
-      // Total products: from seller-product-count (same auth as sales-trend/order-distribution)
       const productCountData = productCountJson?.data ?? productCountJson ?? {};
       const totalProducts =
-        Number(productCountData?.count) ??
-        Number(dashboardData.totalProducts) ??
-        0;
+        Number(productCountData?.count) ?? Number(dashboardData.totalProducts) ?? 0;
 
-      // Prefer sales-trend and order-distribution (same data as the charts) so cards
-      // show correct numbers
       const totalOrders =
-        Number(orderDistributionData.total) ??
-        Number(dashboardData.totalOrders) ??
-        0;
+        Number(orderDistributionData.total) ?? Number(dashboardData.totalOrders) ?? 0;
       const totalRevenue =
-        Number(salesTrendData.totalSales) ??
-        Number(dashboardData.totalRevenue) ??
-        0;
+        Number(salesTrendData.totalSales) ?? Number(dashboardData.totalRevenue) ?? 0;
 
       setStats({
         totalProducts,
@@ -196,58 +145,56 @@ export default function DashboardStats() {
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <StatCard
-        title="Total Products"
+    <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <StatMetricCard
+        label="Total products"
         value={stats ? stats.totalProducts.toString() : '0'}
         loading={loading}
         icon={Package}
       />
-      <StatCard
-        title="Total Orders"
+      <StatMetricCard
+        label="Total orders"
         value={stats ? stats.totalOrders.toString() : '0'}
         loading={loading}
         icon={ShoppingCart}
       />
-      <StatCard
-        title="Total Revenue"
+      <StatMetricCard
+        label="Total revenue"
         value={stats ? formatPrice(stats.totalRevenue) : '₦0.00'}
         loading={loading}
         icon={DollarSign}
-        isRevenue
       />
-      <StatCard
-        title="Available Balance"
+      <StatMetricCard
+        label="Available balance"
         value={stats ? formatPrice(stats.availableBalance) : '₦0.00'}
-        description="Available to request for payout"
+        comparison="Available to request for payout"
         loading={loading}
         icon={Wallet}
-        isRevenue
       />
-      <StatCard
-        title="Pending Requests"
+      <StatMetricCard
+        label="Pending payout requests"
         value={stats ? `${stats.pendingPayoutRequestsCount}` : '0'}
-        description={stats ? `Total: ${formatPrice(stats.pendingPayoutRequestsTotal)}` : 'Total: ₦0.00'}
+        comparison={
+          stats ? `Total requested: ${formatPrice(stats.pendingPayoutRequestsTotal)}` : 'Total requested: ₦0.00'
+        }
         loading={loading}
         icon={Clock}
-        isRevenue
       />
-      <StatCard
-        title="Pending Quotes"
+      <StatMetricCard
+        label="Pending quotes"
         value={stats ? String(stats.pendingQuoteRequestsCount ?? 0) : '0'}
-        description="Awaiting your response"
+        comparison="Awaiting your response"
         loading={loading}
         icon={FileText}
         href="/seller/quotes"
       />
-      <StatCard
-        title="B2B Orders"
+      <StatMetricCard
+        label="B2B orders"
         value={stats ? String(stats.b2bOrdersCount ?? 0) : '0'}
-        description="Bulk / business orders"
+        comparison="Bulk / business orders"
         loading={loading}
         icon={Building2}
       />
     </div>
   );
 }
-

@@ -164,6 +164,7 @@ export default function AdminRidersKycPage() {
                   <tr>
                     <DataTableCell>Rider</DataTableCell>
                     <DataTableCell>Email</DataTableCell>
+                    <DataTableCell>Fleet</DataTableCell>
                     <DataTableCell>Status</DataTableCell>
                     <DataTableCell>Submitted</DataTableCell>
                     <DataTableCell className="text-right">Actions</DataTableCell>
@@ -179,6 +180,11 @@ export default function AdminRidersKycPage() {
                         )}
                       </DataTableCell>
                       <DataTableCell className="text-zinc-300">{r.email}</DataTableCell>
+                      <DataTableCell>
+                        <span className="rounded-full border border-zinc-600 px-2 py-0.5 text-xs text-zinc-300">
+                          {r.fleetLabel ?? 'Independent'}
+                        </span>
+                      </DataTableCell>
                       <DataTableCell>
                         <StatusBadge
                           tone={statusTone[r.status] ?? 'neutral'}

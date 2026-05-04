@@ -45,6 +45,7 @@ const DELIVERY_TABLE_COLUMNS = [
   { id: 'deliveryId', label: 'Delivery ID' },
   { id: 'orderId', label: 'Order ID' },
   { id: 'rider', label: 'Rider' },
+  { id: 'fleet', label: 'Fleet' },
   { id: 'pickup', label: 'Pickup' },
   { id: 'dropoff', label: 'Drop-off' },
   { id: 'status', label: 'Status' },
@@ -93,6 +94,16 @@ function getRiderDisplayName(
   if (r) return r.name;
   if (typeof delivery.rider === 'string') return delivery.rider;
   return delivery.rider?.name ?? 'Unknown Rider';
+}
+
+function getRiderFleetLabel(
+  delivery: AdminDelivery,
+  riders: AvailableRider[] | undefined
+): string {
+  if (!delivery.riderId) return '—';
+  const r = riders?.find((x) => x.id === delivery.riderId);
+  if (!r?.riderProfile?.isFleetOwned) return 'Independent';
+  return r.riderProfile.fleetOperator?.name ?? 'Fleet';
 }
 
 function RiderAvatar({ name }: { name: string }) {
@@ -157,6 +168,7 @@ export default function AdminDeliveries() {
       deliveryId: d.id,
       orderId: d.orderId,
       rider: getRiderDisplayName(d, availableRiders),
+      fleet: getRiderFleetLabel(d, availableRiders),
       pickup: d.vendorName || 'Vendor (Unknown)',
       dropoff: getDropoffLabel(d),
       status: DELIVERY_LABEL[d.status] ?? d.status,
@@ -483,6 +495,13 @@ export default function AdminDeliveries() {
                                 <RiderAvatar name={riderName} />
                                 <span className="text-sm text-gray-200">{riderName}</span>
                               </div>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'fleet') && (
+                            <DataTableCell>
+                              <span className="text-xs text-gray-400">
+                                {getRiderFleetLabel(delivery, availableRiders)}
+                              </span>
                             </DataTableCell>
                           )}
                           {visibleCols.some((c) => c.id === 'pickup') && (

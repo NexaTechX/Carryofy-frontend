@@ -32,6 +32,7 @@ import {
   Zap,
   UserCheck,
   Shield,
+  Building2,
 } from 'lucide-react';
 import GlobalSearch from './GlobalSearch';
 import NotificationsDropdown from './NotificationsDropdown';
@@ -64,6 +65,7 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Disputes', href: '/admin/disputes', icon: Scale },
   { name: 'Deliveries', href: '/admin/deliveries', icon: Truck },
   { name: 'Rider KYC', href: '/admin/riders-kyc', icon: UserCheck },
+  { name: 'Fleet operators', href: '/admin/fleet', icon: Building2 },
   { name: 'Safety Center', href: '/admin/safety', icon: Shield },
   { name: 'Dispatch', href: '/admin/dispatch', icon: Zap },
   { name: 'Delivery exceptions', href: '/admin/delivery-exceptions', icon: AlertTriangle },

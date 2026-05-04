@@ -413,6 +413,8 @@ export interface AvailableRider {
     currentLat?: number;
     currentLng?: number;
     lastLocationUpdate?: string;
+    isFleetOwned?: boolean;
+    fleetOperator?: { id: string; name: string };
   };
 }
 
@@ -1424,6 +1426,7 @@ export type AdminRiderKycRow = {
   vehicleRegImage: string | null;
   rejectionReason: string | null;
   rejectedAt: string | null;
+  fleetLabel?: string;
 };
 
 export async function fetchAdminRiderKycQueue(
@@ -1638,4 +1641,100 @@ export async function fetchAssignableSafetyAdmins(): Promise<
 > {
   const { data } = await apiClient.get('/admin/safety/assignable-admins');
   return normalizeResponse<{ id: string; name: string; email: string }[]>(data) ?? [];
+}
+
+/* --- Fleet operators (admin) --- */
+
+export type AdminFleetOperatorRow = {
+  id: string;
+  name: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  logoUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  riderCount: number;
+  totalEarningsKobo: number;
+};
+
+export async function fetchAdminFleetOperators(): Promise<AdminFleetOperatorRow[]> {
+  const { data } = await apiClient.get('/admin/fleet/operators');
+  return normalizeResponse<AdminFleetOperatorRow[]>(data) ?? [];
+}
+
+export async function fetchAdminFleetOperatorDetail(fleetId: string): Promise<unknown> {
+  const { data } = await apiClient.get(`/admin/fleet/operators/${fleetId}`);
+  return normalizeResponse(data);
+}
+
+export async function createAdminFleetOperator(payload: {
+  name: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  logoUrl?: string;
+  password?: string;
+}): Promise<{ fleetOperatorId: string; userId: string; temporaryPassword?: string }> {
+  const { data } = await apiClient.post('/admin/fleet/operators', payload);
+  return normalizeResponse(data) as {
+    fleetOperatorId: string;
+    userId: string;
+    temporaryPassword?: string;
+  };
+}
+
+export async function adminAssignRiderToFleet(
+  fleetOperatorId: string,
+  riderId: string,
+): Promise<{ message: string }> {
+  const { data } = await apiClient.post(
+    `/admin/fleet/operators/${fleetOperatorId}/assign-rider`,
+    { riderId },
+  );
+  return normalizeResponse(data) as { message: string };
+}
+
+export async function adminRemoveRiderFromFleet(
+  riderUserId: string,
+): Promise<{ message: string }> {
+  const { data } = await apiClient.post(
+    `/admin/fleet/riders/${riderUserId}/remove-from-fleet`,
+  );
+  return normalizeResponse(data) as { message: string };
+}
+
+export async function adminSetFleetActive(
+  fleetId: string,
+  isActive: boolean,
+): Promise<{ message: string }> {
+  const { data } = await apiClient.patch(`/admin/fleet/operators/${fleetId}/active`, {
+    isActive,
+  });
+  return normalizeResponse(data) as { message: string };
+}
+
+export async function adminApproveFleetPayout(payoutRequestId: string): Promise<{ message: string }> {
+  const { data } = await apiClient.post(
+    `/admin/fleet/payout-requests/${payoutRequestId}/approve`,
+  );
+  return normalizeResponse(data) as { message: string };
+}
+
+export async function adminProcessFleetPayout(payoutRequestId: string): Promise<{ message: string }> {
+  const { data } = await apiClient.post(
+    `/admin/fleet/payout-requests/${payoutRequestId}/process`,
+  );
+  return normalizeResponse(data) as { message: string };
+}
+
+export async function adminRejectFleetPayout(
+  payoutRequestId: string,
+  reason?: string,
+): Promise<{ message: string }> {
+  const { data } = await apiClient.post(
+    `/admin/fleet/payout-requests/${payoutRequestId}/reject`,
+    reason ? { reason } : {},
+  );
+  return normalizeResponse(data) as { message: string };
 }

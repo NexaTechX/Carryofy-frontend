@@ -25,7 +25,6 @@ const signupSchema = z
     }, z.string().min(1, 'Phone number is required')),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
-    role: z.enum(['BUYER', 'SELLER']),
     referralCode: z.string().max(20).optional().or(z.literal('')),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -65,20 +64,15 @@ export default function Signup() {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema) as Resolver<SignupFormData>,
-    defaultValues: {
-      role: (router.query.role as 'BUYER' | 'SELLER') || 'BUYER',
-    },
   });
 
-  const selectedRole = watch('role');
-
   useEffect(() => {
-    if (router.query.role) {
-      setValue('role', router.query.role as 'BUYER' | 'SELLER');
+    if (router.query.role === 'SELLER') {
+      void router.replace('/merchant-onboarding');
+      return;
     }
     if (typeof router.query.referralCode === 'string' && router.query.referralCode.trim()) {
       setValue('referralCode', router.query.referralCode.trim());
@@ -86,7 +80,7 @@ export default function Signup() {
     if (typeof router.query.email === 'string' && router.query.email.includes('@')) {
       setValue('email', router.query.email.trim());
     }
-  }, [router.query.role, router.query.referralCode, router.query.email, setValue]);
+  }, [router.query.role, router.query.referralCode, router.query.email, router, setValue]);
 
   const onSubmit = async (data: SignupFormData) => {
     setIsSubmitting(true);
@@ -100,7 +94,6 @@ export default function Signup() {
         email: data.email,
         password: data.password,
         phone: data.phone,
-        role: data.role,
         ...(referralCode && { referralCode }),
       });
 
@@ -380,90 +373,6 @@ export default function Signup() {
                   </div>
                   <p className="mt-1 text-xs text-gray-500">Got a code from a friend? Enter it to earn Rewards after your first qualifying order.</p>
                 </div>
-
-                {/* Role Selection Field */}
-                <fieldset>
-                  <legend className="block text-sm font-medium text-gray-700 mb-3">
-                    I want to join as:
-                  </legend>
-                  <div className="grid grid-cols-2 gap-4">
-                    <label
-                      className={`flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition ${errors.role
-                        ? 'border-red-300'
-                        : selectedRole === 'BUYER'
-                          ? 'border-primary bg-primary/5'
-                          : 'border-gray-300 hover:border-primary'
-                        }`}
-                    >
-                      <input
-                        type="radio"
-                        value="BUYER"
-                        {...register('role')}
-                        className="sr-only"
-                      />
-                      <div
-                        className={`w-full h-full flex flex-col items-center justify-center ${selectedRole === 'BUYER' ? 'text-primary' : 'text-gray-600'
-                          }`}
-                      >
-                        <svg
-                          className="w-8 h-8 mb-2"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                          />
-                        </svg>
-                        <span className="font-semibold text-sm">Buyer</span>
-                        <span className="text-xs text-gray-500 mt-1">Shop & Order</span>
-                      </div>
-                    </label>
-                    <label
-                      className={`flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition ${errors.role
-                        ? 'border-red-300'
-                        : selectedRole === 'SELLER'
-                          ? 'border-primary bg-primary/5'
-                          : 'border-gray-300 hover:border-primary'
-                        }`}
-                    >
-                      <input
-                        type="radio"
-                        value="SELLER"
-                        {...register('role')}
-                        className="sr-only"
-                      />
-                      <div
-                        className={`w-full h-full flex flex-col items-center justify-center ${selectedRole === 'SELLER' ? 'text-primary' : 'text-gray-600'
-                          }`}
-                      >
-                        <svg
-                          className="w-8 h-8 mb-2"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                          />
-                        </svg>
-                        <span className="font-semibold text-sm">Seller</span>
-                        <span className="text-xs text-gray-500 mt-1">Sell Products</span>
-                      </div>
-                    </label>
-                  </div>
-                  {errors.role && (
-                    <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
-                  )}
-                </fieldset>
 
                 {/* Submit Button */}
                 <button

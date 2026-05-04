@@ -25,7 +25,7 @@ export interface SignupRequest {
     email: string;
     password: string;
     phone?: string;
-    role: UserRole;
+    referralCode?: string;
 }
 
 export interface LoginRequest {

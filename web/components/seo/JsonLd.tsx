@@ -1,5 +1,10 @@
 import Head from 'next/head';
 
+/** Prevent `</script>` breaking out of JSON-LD when embedding user-controlled strings. */
+function jsonLdStringify(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c');
+}
+
 const SITE_URL = 'https://carryofy.com';
 const SITE_NAME = 'Carryofy';
 const LOGO_URL = `${SITE_URL}/logo.png`;
@@ -87,7 +92,7 @@ export function OrganizationSchema({
     <Head>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdStringify(schema) }}
       />
     </Head>
   );
@@ -136,7 +141,7 @@ export function WebsiteSchema({
     <Head>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdStringify(schema) }}
       />
     </Head>
   );
@@ -247,7 +252,7 @@ export function LocalBusinessSchema({
     <Head>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdStringify(schema) }}
       />
     </Head>
   );
@@ -378,7 +383,7 @@ export function ProductSchema({
     <Head>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdStringify(schema) }}
       />
     </Head>
   );
@@ -410,7 +415,7 @@ export function BreadcrumbSchema({ items }: BreadcrumbSchemaProps) {
     <Head>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdStringify(schema) }}
       />
     </Head>
   );
@@ -444,7 +449,7 @@ export function FAQSchema({ faqs }: FAQSchemaProps) {
     <Head>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdStringify(schema) }}
       />
     </Head>
   );
@@ -494,7 +499,7 @@ export function HowToSchema({
     <Head>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdStringify(schema) }}
       />
     </Head>
   );
@@ -554,7 +559,7 @@ export function ArticleSchema({
     <Head>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdStringify(schema) }}
       />
     </Head>
   );
@@ -596,7 +601,7 @@ export function SoftwareApplicationSchema() {
     <Head>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdStringify(schema) }}
       />
     </Head>
   );

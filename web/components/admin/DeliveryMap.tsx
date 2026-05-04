@@ -144,11 +144,17 @@ export default function DeliveryMap({ trips, center = [-122.4194, 37.7749] }: De
         const popupContent = document.createElement('div');
         popupContent.className =
           'rounded-xl border border-white/10 bg-[#0f1729]/90 px-3 py-2 text-xs text-white';
-        popupContent.innerHTML = `
-          <div class="font-semibold text-sm">${trip.driver}</div>
-          <div class="text-[11px] text-gray-300 uppercase tracking-[0.18em] mt-1">${trip.routeName}</div>
-          <div class="mt-1 text-[11px] text-gray-400">ETA: ${trip.eta}</div>
-        `;
+        const titleEl = document.createElement('div');
+        titleEl.className = 'font-semibold text-sm';
+        titleEl.textContent = trip.driver;
+        const routeEl = document.createElement('div');
+        routeEl.className =
+          'text-[11px] text-gray-300 uppercase tracking-[0.18em] mt-1';
+        routeEl.textContent = trip.routeName;
+        const etaEl = document.createElement('div');
+        etaEl.className = 'mt-1 text-[11px] text-gray-400';
+        etaEl.textContent = `ETA: ${trip.eta}`;
+        popupContent.append(titleEl, routeEl, etaEl);
 
         const marker = new maplibregl.Marker({ element: markerEl })
           .setLngLat(trip.coordinates[0])

@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
+import type { GetServerSideProps } from 'next';
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.ENABLE_DEBUG_ENV_PAGE !== 'true'
+  ) {
+    return { notFound: true };
+  }
+  return { props: {} };
+};
 
 export default function DebugEnvPage() {
   const [envVars, setEnvVars] = useState<Record<string, string>>({});

@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import { useForm, Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Mail, Lock, User, Eye, EyeOff, Phone, Gift } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, Phone, Gift, ShoppingBag, Store } from 'lucide-react';
 import { authService, tokenManager, useAuth } from '../../lib/auth';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
 import SEO from '../../components/seo/SEO';
@@ -13,6 +13,11 @@ import { BreadcrumbSchema } from '../../components/seo/JsonLd';
 
 const signupSchema = z
   .object({
+    role: z.enum(['BUYER', 'SELLER'], {
+      errorMap: () => ({
+        message: 'Choose whether you are signing up as a buyer or a seller.',
+      }),
+    }),
     name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Please enter a valid email address'),
     phone: z.preprocess((val) => {
@@ -64,15 +69,21 @@ export default function Signup() {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema) as Resolver<SignupFormData>,
+    defaultValues: {
+      role: 'BUYER',
+    },
   });
 
   useEffect(() => {
-    if (router.query.role === 'SELLER') {
-      void router.replace('/merchant-onboarding');
-      return;
+    const q = router.query.role;
+    if (q === 'SELLER' || q === 'seller') {
+      setValue('role', 'SELLER');
+    } else if (q === 'BUYER' || q === 'buyer') {
+      setValue('role', 'BUYER');
     }
     if (typeof router.query.referralCode === 'string' && router.query.referralCode.trim()) {
       setValue('referralCode', router.query.referralCode.trim());
@@ -81,6 +92,8 @@ export default function Signup() {
       setValue('email', router.query.email.trim());
     }
   }, [router.query.role, router.query.referralCode, router.query.email, router, setValue]);
+
+  const selectedRole = watch('role');
 
   const onSubmit = async (data: SignupFormData) => {
     setIsSubmitting(true);
@@ -94,6 +107,7 @@ export default function Signup() {
         email: data.email,
         password: data.password,
         phone: data.phone,
+        role: data.role,
         ...(referralCode && { referralCode }),
       });
 
@@ -222,6 +236,60 @@ export default function Signup() {
               )}
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                {/* Buyer vs Seller */}
+                <div>
+                  <span className="block text-sm font-medium text-gray-700 mb-3">
+                    I want to sign up as
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label
+                      className={`relative flex cursor-pointer rounded-xl border-2 p-4 transition ${
+                        errors.role ? 'border-red-300' : selectedRole === 'BUYER' ? 'border-primary bg-primary/5' : 'border-gray-200'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value="BUYER"
+                        className="sr-only"
+                        {...register('role')}
+                      />
+                      <div className="flex gap-3 items-start">
+                        <ShoppingBag className="w-6 h-6 text-primary shrink-0 mt-0.5" aria-hidden />
+                        <div>
+                          <span className="font-semibold text-gray-900">Buyer</span>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Shop products and get delivery
+                          </p>
+                        </div>
+                      </div>
+                    </label>
+                    <label
+                      className={`relative flex cursor-pointer rounded-xl border-2 p-4 transition ${
+                        errors.role ? 'border-red-300' : selectedRole === 'SELLER' ? 'border-primary bg-primary/5' : 'border-gray-200'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value="SELLER"
+                        className="sr-only"
+                        {...register('role')}
+                      />
+                      <div className="flex gap-3 items-start">
+                        <Store className="w-6 h-6 text-primary shrink-0 mt-0.5" aria-hidden />
+                        <div>
+                          <span className="font-semibold text-gray-900">Seller</span>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Sell on Carryofy (you can complete store setup after verifying email)
+                          </p>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                  {errors.role && (
+                    <p className="mt-2 text-sm text-red-600">{errors.role.message}</p>
+                  )}
+                </div>
+
                 {/* Name Field */}
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">

@@ -20,11 +20,15 @@ export interface AuthResponse {
     refreshToken: string;
 }
 
+/** Web signup: buyer vs seller only (riders use rider-app; admins are internal). */
+export type SignupRole = 'BUYER' | 'SELLER';
+
 export interface SignupRequest {
     name: string;
     email: string;
     password: string;
     phone?: string;
+    role: SignupRole;
     referralCode?: string;
 }
 

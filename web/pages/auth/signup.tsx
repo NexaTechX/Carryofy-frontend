@@ -14,9 +14,7 @@ import { BreadcrumbSchema } from '../../components/seo/JsonLd';
 const signupSchema = z
   .object({
     role: z.enum(['BUYER', 'SELLER'], {
-      errorMap: () => ({
-        message: 'Choose whether you are signing up as a buyer or a seller.',
-      }),
+      message: 'Choose whether you are signing up as a buyer or a seller.',
     }),
     name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Please enter a valid email address'),

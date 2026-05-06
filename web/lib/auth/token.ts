@@ -8,7 +8,8 @@ function setAccessTokenCookie(accessToken: string) {
     if (typeof document === 'undefined') return;
     const maxAge = 60 * 60 * 24 * 7;
     const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(accessToken)}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
+    // JWTs are cookie-safe; keep raw value so edge middleware can parse it reliably.
+    document.cookie = `${ACCESS_TOKEN_COOKIE}=${accessToken}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
 }
 
 function clearAccessTokenCookie() {

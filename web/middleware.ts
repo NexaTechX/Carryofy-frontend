@@ -2,9 +2,21 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { ACCESS_TOKEN_COOKIE } from './lib/auth/token';
 
+function getJwtFromCookie(rawToken: string): string {
+  if (!rawToken) return '';
+  if (rawToken.includes('.')) return rawToken;
+  try {
+    const decoded = decodeURIComponent(rawToken);
+    return decoded.includes('.') ? decoded : rawToken;
+  } catch {
+    return rawToken;
+  }
+}
+
 function decodeJwtRole(token: string): string | null {
   try {
-    const parts = token.split('.');
+    const jwt = getJwtFromCookie(token);
+    const parts = jwt.split('.');
     if (parts.length < 2) return null;
     const p = parts[1];
     const b64 = p.replace(/-/g, '+').replace(/_/g, '/');

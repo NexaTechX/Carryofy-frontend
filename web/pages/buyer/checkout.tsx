@@ -172,6 +172,8 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!hasMultipleSellersInCart) setMultiVendorFromApi(false);
   }, [hasMultipleSellersInCart]);
+
+  useEffect(() => {
     setMounted(true);
 
     if (!tokenManager.isAuthenticated()) {

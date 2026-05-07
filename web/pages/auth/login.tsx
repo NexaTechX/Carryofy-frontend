@@ -22,6 +22,28 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
+function getSafeRedirectPath(redirect: string | string[] | undefined): string | null {
+  if (typeof redirect !== 'string') return null;
+
+  const trimmedRedirect = redirect.trim();
+  if (
+    !trimmedRedirect.startsWith('/') ||
+    trimmedRedirect.startsWith('//') ||
+    trimmedRedirect.startsWith('/\\')
+  ) {
+    return null;
+  }
+
+  try {
+    const origin = window.location.origin;
+    const targetUrl = new URL(trimmedRedirect, origin);
+    if (targetUrl.origin !== origin) return null;
+    return `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 export default function Login() {
   const router = useRouter();
   const { setUser } = useAuth();
@@ -77,8 +99,7 @@ export default function Login() {
 
       showSuccessToast('Login successful!');
 
-      // Check for redirect parameter
-      const redirectUrl = router.query.redirect as string;
+      const redirectUrl = getSafeRedirectPath(router.query.redirect);
       if (redirectUrl) {
         router.push(redirectUrl);
       } else {

@@ -40,6 +40,10 @@ function isFleetRole(role: string): boolean {
   return role === 'FLEET' || role === 'FLEET_OPERATOR' || role === 'ADMIN';
 }
 
+function isPublicBuyerRoute(pathname: string): boolean {
+  return pathname === '/buyer/products' || pathname.startsWith('/buyer/products/');
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -47,6 +51,7 @@ export function middleware(request: NextRequest) {
   const role = token ? decodeJwtRole(token) : null;
 
   if (pathname.startsWith('/buyer')) {
+    if (isPublicBuyerRoute(pathname)) return NextResponse.next();
     if (!token || !role) return loginRedirect(request, pathname);
     if (role !== 'BUYER' && role !== 'ADMIN') return loginRedirect(request, pathname);
   }

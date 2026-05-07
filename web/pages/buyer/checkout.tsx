@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   Locate,
   Wallet,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface CartItem {
@@ -39,6 +40,8 @@ interface CartItem {
     images: string[];
     sellingMode?: string;
     moq?: number;
+    sellerId?: string;
+    sellerBusinessName?: string | null;
   };
 }
 
@@ -50,6 +53,10 @@ interface Cart {
 }
 
 const FREE_SHIPPING_THRESHOLD_KOBO = 5000000; // ₦50,000 (aligned with backend)
+
+/** Must stay aligned with `BadRequestException` in CB orders API */
+const MULTI_VENDOR_CHECKOUT_MESSAGE =
+  'Multi-vendor orders are not yet supported. Please checkout one seller at a time.';
 
 const STEPS = [
   { id: 1, label: 'Order summary', icon: ClipboardList },
@@ -122,8 +129,49 @@ export default function CheckoutPage() {
   const [businessName, setBusinessName] = useState('');
   const [businessPurpose, setBusinessPurpose] = useState('');
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [multiVendorFromApi, setMultiVendorFromApi] = useState(false);
+
+  type CartSellerGroup = {
+    key: string;
+    label: string;
+    items: CartItem[];
+    lineTotalKobo: number;
+  };
+
+  const cartSellerGroups = useMemo((): CartSellerGroup[] => {
+    if (!cart?.items?.length || quote) return [];
+    const map = new Map<string, CartSellerGroup>();
+    for (const item of cart.items) {
+      const sellerId = item.product?.sellerId?.trim() || '';
+      const key = sellerId || `product:${item.productId}`;
+      const label =
+        item.product?.sellerBusinessName?.trim() ||
+        (sellerId ? `Seller ${sellerId.slice(0, 8)}…` : 'Unknown seller');
+      const lineKobo =
+        item.resolvedTotalPrice ??
+        (item.resolvedUnitPrice ?? item.product?.price ?? 0) * item.quantity;
+      const existing = map.get(key);
+      if (existing) {
+        existing.items.push(item);
+        existing.lineTotalKobo += lineKobo;
+      } else {
+        map.set(key, {
+          key,
+          label,
+          items: [item],
+          lineTotalKobo: lineKobo,
+        });
+      }
+    }
+    return [...map.values()];
+  }, [cart?.items, quote]);
+
+  const hasMultipleSellersInCart = !quote && cartSellerGroups.length > 1;
+  const showCartSplitSuggestion = hasMultipleSellersInCart || multiVendorFromApi;
 
   useEffect(() => {
+    if (!hasMultipleSellersInCart) setMultiVendorFromApi(false);
+  }, [hasMultipleSellersInCart]);
     setMounted(true);
 
     if (!tokenManager.isAuthenticated()) {
@@ -239,6 +287,13 @@ export default function CheckoutPage() {
       setShippingQuoteError(null);
       return;
     }
+    if (!quote && hasMultipleSellersInCart) {
+      setShippingFee(0);
+      setShippingAppliedDiscount(null);
+      setShippingQuoteError(MULTI_VENDOR_CHECKOUT_MESSAGE);
+      setShippingQuoteLoading(false);
+      return;
+    }
     const addressId = selectedAddressId;
     if (!addressId) {
       setShippingQuoteError('Select address to see shipping cost');
@@ -274,7 +329,7 @@ export default function CheckoutPage() {
         if (!cancelled) setShippingQuoteLoading(false);
       });
     return () => { cancelled = true; };
-  }, [cart?.items, quote, selectedAddressId, shippingMethod, cartSubtotalKobo, resolvedCheckoutOrderType]);
+  }, [cart?.items, quote, selectedAddressId, shippingMethod, cartSubtotalKobo, resolvedCheckoutOrderType, hasMultipleSellersInCart]);
 
   const fetchAddresses = async () => {
     // Only fetch addresses if user is authenticated
@@ -379,6 +434,7 @@ export default function CheckoutPage() {
       const response = await apiClient.get('/cart');
       const cartData = response.data.data || response.data;
       setCart(cartData);
+      setMultiVendorFromApi(false);
     } catch (err: any) {
 
       // Handle network errors specifically
@@ -551,6 +607,11 @@ export default function CheckoutPage() {
   };
 
   const validateForm = () => {
+    if (!quote && hasMultipleSellersInCart) {
+      setOrderMessage({ type: 'error', text: MULTI_VENDOR_CHECKOUT_MESSAGE });
+      return false;
+    }
+
     if (!contactInfo.fullName || !contactInfo.email || !contactInfo.phone) {
       setOrderMessage({ type: 'error', text: 'Please provide your contact information.' });
       return false;
@@ -601,6 +662,10 @@ export default function CheckoutPage() {
 
   const goToStep = (step: 1 | 2 | 3) => {
     if (step === 2 && currentStep === 1) {
+      if (!quote && hasMultipleSellersInCart) {
+        setOrderMessage({ type: 'error', text: MULTI_VENDOR_CHECKOUT_MESSAGE });
+        return;
+      }
       setOrderMessage(null);
       setCurrentStep(2);
     } else if (step === 3 && currentStep === 2) {
@@ -618,6 +683,11 @@ export default function CheckoutPage() {
     const isQuoteCheckout = !!(quote && quoteId);
     if (!isQuoteCheckout && (!cart || cart.items.length === 0)) {
       setOrderMessage({ type: 'error', text: 'Your cart is empty. Add products before checking out.' });
+      return;
+    }
+
+    if (!isQuoteCheckout && hasMultipleSellersInCart) {
+      setOrderMessage({ type: 'error', text: MULTI_VENDOR_CHECKOUT_MESSAGE });
       return;
     }
 
@@ -749,6 +819,13 @@ export default function CheckoutPage() {
           errorMessage = 'Invalid data provided. Please check your input and try again.';
         }
 
+        if (
+          typeof errorMessage === 'string' &&
+          errorMessage.includes('Multi-vendor orders are not yet supported')
+        ) {
+          setMultiVendorFromApi(true);
+        }
+
         setOrderMessage({
           type: 'error',
           text: errorMessage || 'Validation failed. Please check your card details and try again.',
@@ -856,6 +933,49 @@ export default function CheckoutPage() {
                 </div>
               )}
 
+              {showCartSplitSuggestion && !quote && (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-5 text-[#ffecb3]"
+                >
+                  <div className="flex gap-3">
+                    <AlertTriangle className="w-6 h-6 shrink-0 text-amber-400 mt-0.5" aria-hidden />
+                    <div className="space-y-3 min-w-0">
+                      <div>
+                        <h2 className="text-white font-bold text-lg">One seller per checkout</h2>
+                        <p className="text-sm mt-1 text-[#ffecb3]/95">{MULTI_VENDOR_CHECKOUT_MESSAGE}</p>
+                        <p className="text-sm mt-2 text-[#ffecb3]/85">
+                          Split your cart: complete checkout for one seller, then return to your cart for the rest.
+                        </p>
+                      </div>
+                      {cartSellerGroups.length > 1 ? (
+                        <ul className="text-sm space-y-2 border border-amber-500/30 rounded-lg p-3 bg-black/20">
+                          {cartSellerGroups.map((g) => (
+                            <li key={g.key} className="flex flex-wrap gap-x-2 gap-y-1 justify-between">
+                              <span className="text-white font-medium">{g.label}</span>
+                              <span className="text-[#ffcc99]">
+                                {g.items.length} line{g.items.length === 1 ? '' : 's'} · {formatPrice(g.lineTotalKobo)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-[#ffecb3]/85">
+                          Open your cart and keep items from only one seller, then try again.
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => router.push('/buyer/cart')}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff6600] text-black rounded-xl font-bold text-sm hover:bg-[#cc5200] transition"
+                      >
+                        Edit cart
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Step indicator */}
               <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                 <div className="flex items-center justify-between max-w-2xl mx-auto">
@@ -928,9 +1048,16 @@ export default function CheckoutPage() {
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-white font-medium text-sm truncate">{item.product.title}</p>
-                                  <p className="text-[#ffcc99] text-xs">Qty: {item.quantity}</p>
-                                </div>
+                                    <p className="text-white font-medium text-sm truncate">{item.product.title}</p>
+                                    {(item.product.sellerBusinessName?.trim() || item.product.sellerId) && (
+                                      <p className="text-[#ffcc99]/80 text-xs mt-0.5 truncate">
+                                        Sold by{' '}
+                                        {item.product.sellerBusinessName?.trim()
+                                          || (item.product.sellerId ? `Seller (${item.product.sellerId.slice(0, 8)}…)` : '')}
+                                      </p>
+                                    )}
+                                    <p className="text-[#ffcc99] text-xs">Qty: {item.quantity}</p>
+                                  </div>
                                 <p className="text-[#ff6600] font-bold">{formatPrice(item.resolvedTotalPrice ?? (item.resolvedUnitPrice ?? item.product?.price ?? 0) * item.quantity)}</p>
                               </div>
                             ))
@@ -1095,15 +1222,20 @@ export default function CheckoutPage() {
                         <button
                           type="button"
                           onClick={() => goToStep(2)}
-                          disabled={belowMinimum}
+                          disabled={belowMinimum || hasMultipleSellersInCart}
                           className={`w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold transition ${
-                            belowMinimum
+                            belowMinimum || hasMultipleSellersInCart
                               ? 'opacity-50 cursor-not-allowed'
                               : 'hover:bg-[#cc5200]'
                           }`}
                         >
                           Continue to delivery <ChevronRight className="w-5 h-5" />
                         </button>
+                        {hasMultipleSellersInCart && (
+                          <p className="text-amber-400/95 text-xs mt-2 text-center">
+                            Use Edit cart to keep items from one seller only.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </>
@@ -1491,7 +1623,8 @@ export default function CheckoutPage() {
                           <button
                             type="button"
                             onClick={() => goToStep(3)}
-                            className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
+                            disabled={hasMultipleSellersInCart}
+                            className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition ${hasMultipleSellersInCart ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             Continue to confirmation <ChevronRight className="w-5 h-5" />
                           </button>
@@ -1545,6 +1678,13 @@ export default function CheckoutPage() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-white text-sm font-medium truncate">{item.product.title}</p>
+                                  {(item.product.sellerBusinessName?.trim() || item.product.sellerId) && (
+                                    <p className="text-[#ffcc99]/80 text-xs mt-0.5 truncate">
+                                      Sold by{' '}
+                                      {item.product.sellerBusinessName?.trim()
+                                        || (item.product.sellerId ? `Seller (${item.product.sellerId.slice(0, 8)}…)` : '')}
+                                    </p>
+                                  )}
                                   <p className="text-[#ffcc99] text-xs">Qty: {item.quantity}</p>
                                 </div>
                                 <p className="text-[#ff6600] font-bold text-sm">{formatPrice(item.resolvedTotalPrice ?? (item.resolvedUnitPrice ?? item.product?.price ?? 0) * item.quantity)}</p>
@@ -1595,7 +1735,7 @@ export default function CheckoutPage() {
                           </button>
                           <button
                             type="submit"
-                            disabled={submitting || !!shippingQuoteError || belowMinimum}
+                            disabled={submitting || !!shippingQuoteError || belowMinimum || hasMultipleSellersInCart}
                             className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-[#ff6600]/30"
                           >
                             {submitting ? (

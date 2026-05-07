@@ -7,29 +7,39 @@ import { useAuth } from '../../lib/auth';
 import { fetchFleetOverview } from '../../lib/api/fleet';
 import { formatNgnFromKobo } from '../../lib/api/utils';
 
+function isFleetPortalUser(role: string | undefined): boolean {
+  return role === 'FLEET_OPERATOR' || role === 'FLEET' || role === 'ADMIN';
+}
+
 export default function FleetOverviewPage() {
   const router = useRouter();
   const { user, isLoading, isAuthenticated } = useAuth();
 
+  const fleetPortal = isFleetPortalUser(user?.role);
+
   const { data, isLoading: loadingData } = useSWR(
-    isAuthenticated && user?.role === 'FLEET_OPERATOR' ? 'fleet-overview' : null,
+    isAuthenticated && fleetPortal ? 'fleet-overview' : null,
     fetchFleetOverview,
     { refreshInterval: 60000 },
   );
 
+  // Secondary UX fallback only (edge auth/session desync); primary guard is middleware.
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated || !user) {
-      router.push('/auth/login');
+      const q = new URLSearchParams({ redirect: router.asPath });
+      void router.replace(`/auth/login?${q.toString()}`);
       return;
     }
-    if (user.role !== 'FLEET_OPERATOR') {
-      router.push('/');
-    }
-  }, [isLoading, isAuthenticated, user, router]);
+    if (!fleetPortal) void router.replace('/');
+  }, [isLoading, isAuthenticated, user, fleetPortal, router]);
 
-  if (!user || user.role !== 'FLEET_OPERATOR') {
-    return null;
+  if (isLoading || !user || !fleetPortal) {
+    return isLoading ? (
+      <FleetLayout>
+        <p className="text-zinc-500">Loading…</p>
+      </FleetLayout>
+    ) : null;
   }
 
   const dash = data?.dashboard;

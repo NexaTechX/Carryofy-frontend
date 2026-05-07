@@ -36,6 +36,10 @@ function loginRedirect(request: NextRequest, pathname: string) {
   return NextResponse.redirect(url);
 }
 
+function isFleetRole(role: string): boolean {
+  return role === 'FLEET' || role === 'FLEET_OPERATOR' || role === 'ADMIN';
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -57,9 +61,25 @@ export function middleware(request: NextRequest) {
     if (role !== 'ADMIN') return loginRedirect(request, pathname);
   }
 
+  if (pathname.startsWith('/fleet')) {
+    if (!token || !role) return loginRedirect(request, pathname);
+    if (!isFleetRole(role)) return loginRedirect(request, pathname);
+  }
+
+  if (pathname.startsWith('/rider')) {
+    if (!token || !role) return loginRedirect(request, pathname);
+    if (role !== 'RIDER') return loginRedirect(request, pathname);
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/buyer/:path*', '/seller/:path*', '/admin/:path*'],
+  matcher: [
+    '/buyer/:path*',
+    '/seller/:path*',
+    '/admin/:path*',
+    '/fleet/:path*',
+    '/rider/:path*',
+  ],
 };

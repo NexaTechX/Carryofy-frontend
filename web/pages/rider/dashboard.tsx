@@ -14,18 +14,20 @@ export default function RiderDashboard() {
     const [socket, setSocket] = useState<Socket | null>(null);
     const watchIdRef = useRef<number | null>(null);
 
+    // Secondary UX fallback only (edge auth/session desync); primary guard is middleware.
     useEffect(() => {
-        if (!isLoading && !isAuthenticated) {
-            router.push('/auth/login');
+        if (isLoading) return;
+        if (!isAuthenticated || !user) {
+            const q = new URLSearchParams({ redirect: router.asPath });
+            void router.replace(`/auth/login?${q.toString()}`);
+            return;
         }
-        if (!isLoading && user && user.role !== 'RIDER' && user.role !== 'ADMIN') {
-            router.push('/');
-        }
+        if (user.role !== 'RIDER') void router.replace('/');
     }, [user, isAuthenticated, isLoading, router]);
 
     // Socket connection
     useEffect(() => {
-        if (isAuthenticated && user) {
+        if (isAuthenticated && user?.role === 'RIDER') {
             // Connect to the 'location' namespace
             const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000').replace(/\/$/, '');
             const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '';

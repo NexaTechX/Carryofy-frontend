@@ -216,7 +216,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <RealtimeProvider enabled={true} interval={15000}>
       <div className="flex min-h-screen bg-background font-inter text-foreground antialiased">
-        <aside className="fixed inset-y-0 left-0 z-20 hidden h-screen w-70 flex-col border-r border-border-custom bg-card lg:flex">
+        <aside className="fixed inset-y-0 left-0 z-20 hidden h-screen w-70 flex-col border-r border-sidebar-border bg-sidebar-bg lg:flex">
           <div className="flex shrink-0 items-center gap-3 border-b border-border-custom px-5 py-4">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary-light text-sm font-semibold text-black">
               CF
@@ -232,7 +232,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         <div
           className={clsx(
-            'fixed inset-y-0 left-0 z-40 flex h-screen w-70 flex-col border-r border-border-custom bg-card transition-transform duration-200 lg:hidden',
+            'fixed inset-y-0 left-0 z-40 flex h-screen w-70 flex-col border-r border-sidebar-border bg-sidebar-bg transition-transform duration-200 lg:hidden',
             sidebarOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >

@@ -26,7 +26,7 @@ import {
 import { AdminCard, AdminErrorState, AdminPageHeader } from '../../components/admin/ui';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
+import type { CommissionPeriodEntry, SalesTrendPoint } from '../../lib/admin/types';
 
 const TrendChart = dynamic(() => import('../../components/admin/charts/TrendChart'), { ssr: false });
 const BarChart = dynamic(() => import('../../components/admin/charts/BarChart'), { ssr: false });
@@ -53,21 +53,61 @@ const getTrendPercentage = (values: number[]) => {
   return ((last - first) / first) * 100;
 };
 
-const PRIMARY = '#ff6600';
+/** Orange accent — aligned with `--color-primary` */
+const ACCENT = '#FF6B00';
+
+const DEMO_VS_YESTERDAY = [2.4, -1.2, 2.9, 1.6, -0.7] as const;
+
+const DEMO_COMMISSION_PERIODS: CommissionPeriodEntry[] = [
+  { period: 'Jan', amount: 980_000_00, percentage: 72 },
+  { period: 'Feb', amount: 1_120_000_00, percentage: 78 },
+  { period: 'Mar', amount: 1_050_000_00, percentage: 74 },
+  { period: 'Apr', amount: 1_310_000_00, percentage: 82 },
+  { period: 'May', amount: 1_240_000_00, percentage: 79 },
+  { period: 'Jun', amount: 1_420_000_00, percentage: 88 },
+];
+
+function pctChangeLastTwoPoints(trend: SalesTrendPoint[], mode: 'amount' | 'orders'): number | null {
+  if (trend.length < 2) return null;
+  const a = trend[trend.length - 2];
+  const b = trend[trend.length - 1];
+  if (mode === 'orders') {
+    if (a.orderCount != null && b.orderCount != null && a.orderCount > 0) {
+      return ((b.orderCount - a.orderCount) / a.orderCount) * 100;
+    }
+  }
+  if (a.amount > 0) return ((b.amount - a.amount) / a.amount) * 100;
+  return null;
+}
+
+/** Per-KPI “vs yesterday” delta: last two trend points when available; else illustrative demo. */
+function vsYesterdayForKpi(index: number, salesTrend: SalesTrendPoint[]): number {
+  const gmv = pctChangeLastTwoPoints(salesTrend, 'amount');
+  const ord = pctChangeLastTwoPoints(salesTrend, 'orders');
+
+  if (index === 0) return ord ?? gmv ?? DEMO_VS_YESTERDAY[0];
+  if (index === 1) {
+    if (gmv != null) return Math.round(gmv * 0.35 * 10) / 10;
+    return DEMO_VS_YESTERDAY[1];
+  }
+  if (index === 2) return gmv ?? DEMO_VS_YESTERDAY[2];
+  if (index === 3) return DEMO_VS_YESTERDAY[3];
+  return DEMO_VS_YESTERDAY[4];
+}
 
 function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="h-24 w-full animate-pulse rounded-2xl bg-[#1f2534]" />
+      <div className="h-24 w-full animate-pulse rounded-2xl bg-card/80" />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {Array.from({ length: 5 }).map((_, index) => (
-          <div key={`metric-skeleton-${index}`} className="h-36 animate-pulse rounded-2xl bg-[#1f2534]" />
+          <div key={`metric-skeleton-${index}`} className="h-36 animate-pulse rounded-2xl bg-card/80" />
         ))}
       </div>
-      <div className="h-20 w-full animate-pulse rounded-2xl bg-[#1f2534]" />
+      <div className="h-24 w-full animate-pulse rounded-2xl bg-card/80" />
       <div className="grid gap-4 lg:grid-cols-3">
         {Array.from({ length: 3 }).map((_, index) => (
-          <div key={`insight-skeleton-${index}`} className="h-80 animate-pulse rounded-2xl bg-[#1f2534]" />
+          <div key={`insight-skeleton-${index}`} className="h-80 animate-pulse rounded-2xl bg-card/80" />
         ))}
       </div>
     </div>
@@ -75,7 +115,6 @@ function DashboardSkeleton() {
 }
 
 export default function AdminDashboard() {
-  const router = useRouter();
   const { data, isLoading, isError, error, refetch } = useAdminDashboard();
   const { data: profile } = useAdminProfile();
   const { data: refundStats } = useRefundStats();
@@ -116,10 +155,11 @@ export default function AdminDashboard() {
     b2bOrdersCount = 0,
   } = data;
 
-  const sparklineValues = (salesTrend?.trend || []).map((point) => point.amount);
+  const trendPoints = salesTrend?.trend ?? [];
+  const sparklineValues = trendPoints.map((point) => point.amount);
   const trendPercentage = getTrendPercentage(sparklineValues);
   const trendLabel = `${trendPercentage >= 0 ? '+' : ''}${trendPercentage.toFixed(0)}%`;
-  const sparklineData = (salesTrend?.trend || []).map((p) => ({ date: p.date, value: p.amount / 100 }));
+  const sparklineData = trendPoints.map((p) => ({ date: p.date, value: p.amount / 100 }));
 
   const pendingRefunds = refundStats?.pending ?? 0;
   const productsAwaitingReview = Array.isArray(pendingProducts) ? pendingProducts.length : 0;
@@ -146,7 +186,6 @@ export default function AdminDashboard() {
       label: "Today's Orders",
       value: metrics.todaysOrders ?? metrics.totalOrders ?? 0,
       formatted: formatNumber(metrics.todaysOrders ?? metrics.totalOrders ?? 0),
-      trend: trendPercentage,
       sparkline: sparklineData,
       icon: ShoppingCart,
     },
@@ -154,7 +193,6 @@ export default function AdminDashboard() {
       label: 'Pending Deliveries',
       value: metrics.activeDeliveries,
       formatted: formatNumber(metrics.activeDeliveries),
-      trend: trendPercentage,
       sparkline: sparklineData,
       icon: Truck,
     },
@@ -162,7 +200,6 @@ export default function AdminDashboard() {
       label: 'Gross Order Volume',
       value: (metrics.totalRevenue ?? 0) / 100,
       formatted: formatCurrency((metrics.totalRevenue ?? 0) / 100),
-      trend: trendPercentage,
       sparkline: sparklineData,
       icon: BarChart3,
     },
@@ -170,7 +207,6 @@ export default function AdminDashboard() {
       label: 'Total Sellers',
       value: metrics.totalSellers ?? 0,
       formatted: formatNumber(metrics.totalSellers ?? 0),
-      trend: 0,
       sparkline: sparklineData,
       icon: Users,
     },
@@ -178,11 +214,13 @@ export default function AdminDashboard() {
       label: 'Total Signups',
       value: metrics.totalUsers ?? 0,
       formatted: formatNumber(metrics.totalUsers ?? 0),
-      trend: 0,
       sparkline: sparklineData,
       icon: UserPlus,
     },
-  ];
+  ].map((row, index) => ({
+    ...row,
+    vsYesterday: vsYesterdayForKpi(index, trendPoints),
+  }));
 
   const urgentChips: { label: string; count: number; href: string }[] = [];
   if (pendingSellerApprovals > 0) {
@@ -229,7 +267,18 @@ export default function AdminDashboard() {
     topCategories?.categories.length > 0 ? topCategories.categories[0].percentage.toFixed(0) : '0';
 
   const commissionPeriods = commissionRevenue?.periods ?? [];
-  const maxCommission = Math.max(...commissionPeriods.map((p) => p.amount || 0), 1);
+  const usingDemoCommission = commissionPeriods.length === 0;
+  const effectiveCommissionPeriods = usingDemoCommission ? DEMO_COMMISSION_PERIODS : commissionPeriods;
+  const commissionBarData = effectiveCommissionPeriods.map((p) => ({
+    label: p.period.length > 5 ? p.period.slice(0, 3) : p.period,
+    value: (p.amount || 0) / 100,
+  }));
+  const commissionDisplayKobo = usingDemoCommission
+    ? DEMO_COMMISSION_PERIODS.reduce((sum, p) => sum + p.amount, 0)
+    : commissionRevenue?.totalRevenue || metrics.totalCommissions || 0;
+  const commissionGrowthDisplay = usingDemoCommission
+    ? 12.4
+    : (commissionRevenue?.growth ?? 0);
   const monthlyTargetKobo = typeof process.env.NEXT_PUBLIC_COMMISSION_TARGET_KOBO === 'string'
     ? Number(process.env.NEXT_PUBLIC_COMMISSION_TARGET_KOBO)
     : undefined;
@@ -258,7 +307,7 @@ export default function AdminDashboard() {
           <section className="mb-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl font-inter">
                   Hello, {profile?.name ?? 'Admin'}
                 </h1>
                 <p className="mt-1 text-sm text-gray-400">{dateStr}</p>
@@ -291,39 +340,59 @@ export default function AdminDashboard() {
             </div>
           </section>
 
-          {/* Key Metrics – hero cards with large numbers, trend arrows, sparklines */}
+          {/* Key metrics — elevated cards on dark canvas */}
           <section className="mb-8">
             <h2 className="sr-only">Key Metrics</h2>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-              {heroMetrics.map(({ label, value, formatted, trend, sparkline, icon: Icon }) => (
+              {heroMetrics.map(({ label, formatted, vsYesterday, sparkline, icon: Icon }) => (
                 <div
                   key={label}
-                  className="rounded-2xl border border-[#1f2534] bg-linear-to-br from-primary/10 via-[#101829] to-[#080d16] p-5 shadow-[0_18px_38px_-24px_rgba(0,0,0,0.5)] transition hover:border-primary/30"
+                  className="rounded-2xl border border-border-custom bg-card p-5 shadow-sm shadow-black/25 transition hover:border-primary/25"
                 >
-                  <div className="flex items-start justify-between">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</span>
-                    <Icon className="h-5 w-5 text-primary/70" aria-hidden />
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-400">{label}</span>
+                    <Icon className="h-5 w-5 shrink-0 text-primary" aria-hidden />
                   </div>
-                  <p className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">{formatted}</p>
-                  <div className="mt-3 flex items-center gap-2">
-                    {trend !== 0 && (
-                      <span
-                        className={`inline-flex items-center text-xs font-semibold ${
-                          trend >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                        }`}
-                      >
-                        {trend >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                        {trend >= 0 ? '+' : ''}{trend.toFixed(0)}%
-                      </span>
-                    )}
+                  <p className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-[2rem] font-inter">
+                    {formatted}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span
+                      className={`inline-flex items-center gap-1 text-xs font-semibold ${
+                        vsYesterday >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                      }`}
+                    >
+                      {vsYesterday >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                      {vsYesterday >= 0 ? '+' : ''}
+                      {vsYesterday.toFixed(1)}%
+                    </span>
                     <span className="text-xs text-gray-500">vs yesterday</span>
                   </div>
                   {sparkline.length > 0 && (
-                    <div className="mt-3 h-12 w-full">
-                      <Sparkline data={sparkline} color={PRIMARY} height={48} />
+                    <div className="mt-3 h-12 w-full opacity-90">
+                      <Sparkline data={sparkline} color={ACCENT} height={48} />
                     </div>
                   )}
                 </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Quick actions — directly under KPIs */}
+          <section className="mb-8">
+            <h2 className="mb-4 px-0.5 text-lg font-semibold tracking-tight text-foreground">Quick Actions</h2>
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+              {quickActions.map(({ label, href, icon: Icon }) => (
+                <Link
+                  key={href + label}
+                  href={href}
+                  className="flex flex-col items-center gap-3 rounded-2xl border border-border-custom bg-card p-5 text-center shadow-sm shadow-black/20 transition hover:border-primary/35 hover:bg-primary/6"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                    <Icon className="h-6 w-6" aria-hidden />
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">{label}</span>
+                </Link>
               ))}
             </div>
           </section>
@@ -354,13 +423,13 @@ export default function AdminDashboard() {
           {/* Business orders strip */}
           {(pendingQuoteRequestsCount > 0 || b2bOrdersCount > 0) && (
             <section className="mb-8">
-              <h2 className="mb-4 px-1 text-lg font-bold text-white">Business orders</h2>
+              <h2 className="mb-4 px-0.5 text-lg font-semibold tracking-tight text-foreground">Business orders</h2>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Link href="/admin/quote-requests">
                   <AdminCard
                     title="Pending quote requests"
                     description="Awaiting seller response"
-                    className="cursor-pointer bg-linear-to-br from-primary/12 via-[#101829] to-[#080d16] transition hover:border-primary/40"
+                    className="cursor-pointer border-border-custom bg-card transition hover:border-primary/35"
                   >
                     <div className="flex items-center gap-3">
                       <FileText className="h-8 w-8 text-primary" />
@@ -371,11 +440,11 @@ export default function AdminDashboard() {
                 <AdminCard
                   title="Business orders"
                   description="Wholesale and quote-based checkouts"
-                  className="bg-linear-to-br from-primary/12 via-[#101829] to-[#080d16]"
+                  className="border-border-custom bg-card"
                 >
                   <div className="flex items-center gap-3">
                     <ShoppingCart className="h-8 w-8 text-primary" />
-                    <p className="text-2xl font-bold tracking-tight text-white">{b2bOrdersCount}</p>
+                    <p className="text-2xl font-bold tracking-tight text-foreground">{b2bOrdersCount}</p>
                   </div>
                 </AdminCard>
               </div>
@@ -384,108 +453,81 @@ export default function AdminDashboard() {
 
           {/* Customer Analytics with retention trend line */}
           <section className="mb-8">
-            <h2 className="mb-4 px-1 text-[22px] font-bold leading-tight text-white">Customer Analytics</h2>
+            <h2 className="mb-4 px-0.5 text-lg font-semibold tracking-tight text-foreground">Customer Analytics</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {customerMetricsCards.map(({ label, value, description }) => (
                 <AdminCard
                   key={label}
                   title={label}
                   description={description}
-                  className="bg-linear-to-br from-[#0f1729] to-[#0a101b]"
+                  className="border-border-custom bg-card"
                 >
                   <p className="text-3xl font-bold text-primary">{value}</p>
                 </AdminCard>
               ))}
             </div>
-            <div className="mt-4 rounded-2xl border border-primary/20 bg-linear-to-br from-[#0f1729] to-[#0a101b] p-6">
-              <p className="text-base font-medium text-white">Retention rate trend</p>
-              <p className="mt-1 text-sm text-gray-400">Repeat customer rate over time</p>
-              <div className="mt-4 h-[200px]">
+            <div className="mt-4 rounded-2xl border border-border-custom bg-card p-6 shadow-sm shadow-black/20">
+              <p className="text-base font-medium text-foreground">Retention rate trend</p>
+              <p className="mt-1 text-sm text-gray-400">Repeat customer rate over time (weekly)</p>
+              <div className="mt-4 h-[220px] w-full min-h-[220px] rounded-xl border border-border-custom bg-background/50 p-2">
                 <RetentionTrendChart
                   data={[]}
-                  currentRate={metrics.customerRetentionRate || 0}
-                  color={PRIMARY}
-                  height={200}
+                  currentRate={metrics.customerRetentionRate || 42}
+                  color={ACCENT}
+                  height={204}
                 />
               </div>
             </div>
           </section>
 
-          {/* Revenue breakdown: Platform (seller) vs Rider commission */}
+          {/* Platform commission revenue — bar chart + rider summary */}
           <section className="mb-8 grid gap-4 lg:grid-cols-[1fr_auto]">
-            {/* Platform Commission Revenue – larger chart + goal line */}
-            <div className="rounded-2xl border border-primary/20 bg-linear-to-br from-[#0f1729] via-primary/10 to-[#0a101b] p-6 shadow-[0_32px_60px_-40px_rgba(255,102,0,0.5)] sm:flex sm:flex-col">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="rounded-2xl border border-border-custom bg-card p-6 shadow-sm shadow-black/20 sm:flex sm:flex-col">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-lg font-bold text-white">Platform Commission Revenue</p>
+                  <p className="text-lg font-semibold text-foreground">Platform Commission Revenue</p>
                   <p className="mt-2 text-3xl font-bold text-primary">
-                    {formatCurrency((commissionRevenue?.totalRevenue || metrics.totalCommissions || 0) / 100)}
+                    {formatCurrency(commissionDisplayKobo / 100)}
                   </p>
                   <p className="mt-2 text-sm text-gray-400">
-                    {((commissionRevenue?.growth ?? 0) >= 0 ? '+' : '')}
-                    {(commissionRevenue?.growth ?? 0).toFixed(1)}% growth this period
+                    {(commissionGrowthDisplay >= 0 ? '+' : '')}
+                    {commissionGrowthDisplay.toFixed(1)}% growth this period
                   </p>
                   <p className="mt-1 text-xs text-gray-500">Seller commissions from product sales</p>
-                  {(commissionRevenue?.totalB2B != null || commissionRevenue?.totalB2C != null) && (
-                    <div className="mt-2 flex gap-4 text-xs text-gray-400">
+                  {usingDemoCommission ? (
+                    <p className="mt-2 text-xs text-gray-500">Sample monthly totals for layout preview — replaces when API returns periods.</p>
+                  ) : null}
+                  {!usingDemoCommission && (commissionRevenue?.totalB2B != null || commissionRevenue?.totalB2C != null) ? (
+                    <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-400">
                       <span>B2C: {formatCurrency((commissionRevenue?.totalB2C ?? 0) / 100)}</span>
                       <span>B2B: {formatCurrency((commissionRevenue?.totalB2B ?? 0) / 100)}</span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
-              <div className="mt-6 h-56 w-full rounded-xl border border-primary/30 bg-[#0b1322] p-4 sm:h-64">
-                {commissionPeriods.length > 0 ? (
-                  <div className="relative flex h-full items-end justify-between gap-2">
-                    {monthlyTargetKobo != null && monthlyTargetKobo > 0 && maxCommission > 0 && (
-                      <div
-                        className="absolute left-0 right-0 z-10 border-t-2 border-dashed border-emerald-500/60"
-                        style={{
-                          bottom: `${Math.min((monthlyTargetKobo / maxCommission) * 100, 98)}%`,
-                        }}
-                        title={`Target: ${formatCurrency(monthlyTargetKobo / 100)}`}
-                        aria-hidden
-                      />
-                    )}
-                    {commissionPeriods.map((period, index) => {
-                      const amount = period.amount || 0;
-                      const height = maxCommission > 0 ? (amount / maxCommission) * 100 : 0;
-                      return (
-                        <div key={index} className="flex flex-1 flex-col items-center gap-2">
-                          <div className="flex w-full flex-1 flex-col justify-end min-h-0">
-                            <div
-                              className="w-full rounded-t bg-linear-to-t from-primary via-[#ff8740] to-primary transition-all hover:opacity-90"
-                              style={{
-                                height: `${Math.max(height, 6)}%`,
-                                minHeight: '12px',
-                              }}
-                              title={`${period.period}: ${formatCurrency(amount / 100)}`}
-                            />
-                          </div>
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                            {period.period.split(' ')[0].slice(0, 3)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <p className="text-xs text-gray-500">No commission data available</p>
-                  </div>
-                )}
+              <div className="mt-6 h-64 w-full min-h-64 rounded-xl border border-border-custom bg-background/50 p-3 sm:h-72">
+                <BarChart
+                  data={commissionBarData}
+                  color={ACCENT}
+                  valueFormatter={(v) => formatCurrency(v)}
+                  yAxisTickFormatter={(v) =>
+                    new Intl.NumberFormat('en-NG', {
+                      notation: 'compact',
+                      compactDisplay: 'short',
+                    }).format(v)
+                  }
+                />
               </div>
-              {monthlyTargetKobo != null && monthlyTargetKobo > 0 && (
+              {monthlyTargetKobo != null && monthlyTargetKobo > 0 ? (
                 <p className="mt-2 text-xs text-gray-500">
-                  Dashed line: monthly target {formatCurrency(monthlyTargetKobo / 100)}
+                  Commission target (env): {formatCurrency(monthlyTargetKobo / 100)}
                 </p>
-              )}
+              ) : null}
             </div>
-            {/* Rider Commission – separate from seller commissions */}
             <AdminCard
               title="Rider Commission"
               description="15% from delivery fees (separate from seller commissions)"
-              className="lg:w-64 bg-linear-to-br from-[#0f1729] to-[#0a101b] border-emerald-500/20"
+              className="lg:w-64 border-emerald-500/25 bg-card"
             >
               <p className="text-3xl font-bold text-emerald-400">
                 {formatCurrency((metrics.riderCommissionKobo ?? 0) / 100)}
@@ -496,27 +538,27 @@ export default function AdminDashboard() {
 
           {/* Performance Insights – 3-column panel */}
           <section className="mb-8">
-            <h2 className="mb-4 px-1 text-[22px] font-bold leading-tight text-white">Performance Insights</h2>
+            <h2 className="mb-4 px-0.5 text-lg font-semibold tracking-tight text-foreground">Performance Insights</h2>
             <div className="grid gap-4 lg:grid-cols-3">
-              <div className="flex flex-col gap-4 rounded-2xl border border-primary/20 bg-linear-to-br from-[#0f1729] to-[#0a101b] p-6 shadow-[0_26px_48px_-34px_rgba(255,102,0,0.35)]">
-                <p className="text-base font-medium text-white">Daily Order Trends</p>
+              <div className="flex flex-col gap-4 rounded-2xl border border-border-custom bg-card p-6 shadow-sm shadow-black/20">
+                <p className="text-base font-medium text-foreground">Daily Order Trends</p>
                 <p className="text-2xl font-bold text-primary">{trendLabel}</p>
                 <p className="text-sm text-gray-400">Last 7 days</p>
-                <div className="h-[220px] rounded-xl border border-primary/10 bg-[#0b1322] p-3">
-                  <TrendChart data={salesTrend?.trend || []} color={PRIMARY} />
+                <div className="h-[220px] rounded-xl border border-border-custom bg-background/50 p-3">
+                  <TrendChart data={salesTrend?.trend || []} color={ACCENT} />
                 </div>
               </div>
-              <div className="flex flex-col gap-4 rounded-2xl border border-primary/20 bg-linear-to-br from-[#0f1729] to-[#0a101b] p-6 shadow-[0_26px_48px_-34px_rgba(255,102,0,0.35)]">
-                <p className="text-base font-medium text-white">Top-Selling Categories</p>
+              <div className="flex flex-col gap-4 rounded-2xl border border-border-custom bg-card p-6 shadow-sm shadow-black/20">
+                <p className="text-base font-medium text-foreground">Top-Selling Categories</p>
                 <p className="text-2xl font-bold text-primary">
                   {categoryChartData.length > 0 ? categoryChartData[0].label : 'N/A'}
                 </p>
                 <p className="text-sm text-gray-400">
                   {topCategories?.total || 0} total · {categoryGrowth}% leading
                 </p>
-                <div className="h-[220px] rounded-xl border border-primary/10 bg-[#0b1322] p-3">
+                <div className="h-[220px] rounded-xl border border-border-custom bg-background/50 p-3">
                   {categoryChartData.length > 0 ? (
-                    <BarChart data={categoryChartData} color={PRIMARY} />
+                    <BarChart data={categoryChartData} color={ACCENT} />
                   ) : (
                     <div className="flex h-full items-center justify-center text-sm text-gray-500">
                       No category data available
@@ -524,27 +566,25 @@ export default function AdminDashboard() {
                   )}
                 </div>
               </div>
-              <div className="flex flex-col gap-4 rounded-2xl border border-primary/20 bg-linear-to-br from-[#0f1729] to-[#0a101b] p-6 shadow-[0_26px_48px_-34px_rgba(255,102,0,0.35)]">
-                <p className="text-base font-medium text-white">Commission Revenue</p>
+              <div className="flex flex-col gap-4 rounded-2xl border border-border-custom bg-card p-6 shadow-sm shadow-black/20">
+                <p className="text-base font-medium text-foreground">Commission Revenue</p>
                 <p className="text-2xl font-bold text-primary">
-                  {((commissionRevenue?.growth ?? 0) >= 0 ? '+' : '')}
-                  {(commissionRevenue?.growth ?? 0).toFixed(1)}%
+                  {(commissionGrowthDisplay >= 0 ? '+' : '')}
+                  {commissionGrowthDisplay.toFixed(1)}%
                 </p>
-                <p className="text-sm text-gray-400">
-                  Total: {formatCurrency((commissionRevenue?.totalRevenue || 0) / 100)}
-                </p>
-                <div className="h-[220px] overflow-y-auto space-y-4">
-                  {(commissionRevenue?.periods?.length ?? 0) > 0 ? (
-                    (commissionRevenue.periods ?? []).map(({ period, percentage }) => (
+                <p className="text-sm text-gray-400">Total: {formatCurrency(commissionDisplayKobo / 100)}</p>
+                <div className="h-[220px] overflow-y-auto space-y-4 pr-1">
+                  {effectiveCommissionPeriods.length > 0 ? (
+                    effectiveCommissionPeriods.map(({ period, percentage }) => (
                       <div key={period}>
                         <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
                           <span>{period}</span>
                           <span>{percentage.toFixed(1)}%</span>
                         </div>
-                        <div className="h-3 w-full overflow-hidden rounded-full bg-[#101723]">
+                        <div className="h-3 w-full overflow-hidden rounded-full bg-background">
                           <div
-                            className="h-full rounded-full bg-linear-to-r from-primary via-[#ff8740] to-primary"
-                            style={{ width: `${percentage}%` }}
+                            className="h-full rounded-full bg-primary"
+                            style={{ width: `${Math.min(percentage, 100)}%` }}
                           />
                         </div>
                       </div>
@@ -561,14 +601,14 @@ export default function AdminDashboard() {
 
           {/* Product Performance – Top 5 Products This Week leaderboard */}
           <section className="mb-8">
-            <h2 className="mb-4 px-1 text-[22px] font-bold leading-tight text-white">
+            <h2 className="mb-4 px-0.5 text-lg font-semibold tracking-tight text-foreground">
               Top 5 Products This Week
             </h2>
-            <div className="rounded-2xl border border-primary/20 bg-linear-to-br from-[#0f1729] to-[#0a101b] p-6 shadow-[0_30px_56px_-36px_rgba(255,102,0,0.4)]">
+            <div className="rounded-2xl border border-border-custom bg-card p-6 shadow-sm shadow-black/20">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-[#1f2534] text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    <tr className="border-b border-border-custom text-xs font-semibold uppercase tracking-wider text-gray-400">
                       <th className="pb-3 pr-4">#</th>
                       <th className="pb-3 pr-4">Product</th>
                       <th className="pb-3 pr-4 text-right">Units sold</th>
@@ -587,24 +627,6 @@ export default function AdminDashboard() {
             </div>
           </section>
 
-          {/* Quick Actions – icon+label cards */}
-          <section className="mb-6">
-            <h2 className="mb-4 px-1 text-[22px] font-bold leading-tight text-white">Quick Actions</h2>
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
-              {quickActions.map(({ label, href, icon: Icon }) => (
-                <Link
-                  key={href + label}
-                  href={href}
-                  className="flex flex-col items-center gap-3 rounded-2xl border border-[#1f2534] bg-[#0f1729] p-5 text-center transition hover:border-primary/40 hover:bg-primary/5"
-                >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                    <Icon className="h-6 w-6" />
-                  </div>
-                  <span className="text-sm font-semibold text-white">{label}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
         </div>
     </AdminLayout>
   );

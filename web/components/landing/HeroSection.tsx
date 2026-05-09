@@ -1,13 +1,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { ArrowRight, Cpu, LineChart } from 'lucide-react';
+import { ArrowRight, LineChart, Shield } from 'lucide-react';
 
 const heroPrimary =
-  'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2000&auto=format&fit=crop';
+  'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2000&auto=format&fit=crop';
 
 const heroSecondary =
-  'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=1200&auto=format&fit=crop';
+  'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1200&auto=format&fit=crop';
 
 export default function HeroSection() {
   return (
@@ -15,7 +15,7 @@ export default function HeroSection() {
       <div className="landing-vignette pointer-events-none absolute inset-0" aria-hidden />
       <div className="landing-grid-dark pointer-events-none absolute inset-0 opacity-90" aria-hidden />
       <div
-        className="pointer-events-none absolute -right-24 top-24 h-96 w-96 rounded-full bg-[#FF6600]/10 blur-3xl"
+        className="pointer-events-none absolute -right-24 top-24 h-96 w-96 rounded-full bg-[#FF6B00]/12 blur-3xl"
         aria-hidden
       />
       <div
@@ -31,31 +31,32 @@ export default function HeroSection() {
             transition={{ duration: 0.55 }}
           >
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-300 sm:text-xs">
-              <span className="text-[#FF6600]">B2B</span>
+              <span className="text-[#FF6B00]">B2B marketplace</span>
               <span className="h-1 w-1 rounded-full bg-white/25" aria-hidden />
-              <span className="text-zinc-400">Commerce · Supply · Lagos</span>
+              <span className="text-zinc-400">Lagos retailers · Verified suppliers</span>
             </div>
 
             <h1 className="font-heading text-[2rem] font-semibold leading-[1.12] tracking-tight text-white sm:text-4xl lg:text-[2.75rem] xl:text-[3rem]">
-              <span className="block">Carryofy: Your Trusted Partner for B2B Trade in Lagos.</span>
+              <span className="block">
+                Carryofy: Your Trusted Partner for Seamless B2B Trade in Lagos.
+              </span>
               <span className="mt-3 block text-[0.92em] font-medium text-zinc-300 sm:mt-4">
-                Connect with Verified Suppliers. Streamline Your Business. Grow with Confidence.
+                Connect with verified suppliers, streamline procurement, and grow with confidence.
               </span>
             </h1>
 
             <p className="mt-6 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
-              Empowering Lagosian retailers and suppliers with a seamless digital marketplace across
-              fashion, beauty, electronics, and grocery. Discover authentic products, competitive
-              pricing, and reliable logistics, all in one place.
+              One platform for fashion, beauty, electronics, and grocery — authentic wholesale
+              supply, transparent pricing, and logistics built for how Lagos actually moves.
             </p>
 
             <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
               <Link
                 id="hero-primary-cta"
                 href="/auth/signup"
-                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF6600] px-7 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-[#FF6600]/20 transition hover:bg-[#E65E00] sm:text-[15px]"
+                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF6B00] px-7 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-[#FF6B00]/25 transition hover:bg-[#E65100] sm:text-[15px]"
               >
-                Start sourcing
+                Get started
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link
@@ -69,32 +70,32 @@ export default function HeroSection() {
             <dl className="mt-12 grid max-w-lg grid-cols-2 gap-6 border-t border-white/10 pt-10 sm:max-w-none sm:grid-cols-3">
               <div>
                 <dt className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                  <LineChart className="h-4 w-4 text-[#FF6600]" aria-hidden />
-                  Throughput
+                  <LineChart className="h-4 w-4 text-[#FF6B00]" aria-hidden />
+                  Speed
                 </dt>
                 <dd className="mt-2 font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                   Same-day
                 </dd>
-                <dd className="mt-1 text-xs text-zinc-500">corridors across Lagos</dd>
+                <dd className="mt-1 text-xs text-zinc-500">on key Lagos corridors</dd>
               </div>
               <div>
                 <dt className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                  <Cpu className="h-4 w-4 text-cyan-400/80" aria-hidden />
-                  Platform
-                </dt>
-                <dd className="mt-2 font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  AI-assisted
-                </dd>
-                <dd className="mt-1 text-xs text-zinc-500">compare, route, restock</dd>
-              </div>
-              <div className="col-span-2 sm:col-span-1">
-                <dt className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+                  <Shield className="h-4 w-4 text-cyan-400/80" aria-hidden />
                   Trust
                 </dt>
                 <dd className="mt-2 font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  Vetted vendors only
+                  Vetted only
                 </dd>
-                <dd className="mt-1 text-xs text-zinc-500">Every supplier is quality-screened.</dd>
+                <dd className="mt-1 text-xs text-zinc-500">suppliers &amp; SKUs screened</dd>
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <dt className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+                  Coverage
+                </dt>
+                <dd className="mt-2 font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                  4 categories
+                </dd>
+                <dd className="mt-1 text-xs text-zinc-500">deep wholesale inventory</dd>
               </div>
             </dl>
           </motion.div>
@@ -108,7 +109,7 @@ export default function HeroSection() {
             <div className="relative aspect-[4/5] overflow-hidden rounded-2xl ring-1 ring-white/10">
               <Image
                 src={heroPrimary}
-                alt="Warehouse operations and palletized inventory"
+                alt="Modern, well-stocked retail shelves — efficient B2B restocking"
                 fill
                 priority
                 sizes="(min-width: 1024px) 42vw, 100vw"
@@ -117,10 +118,10 @@ export default function HeroSection() {
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/20 to-transparent" />
               <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
                 <p className="font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-400">
-                  Fulfillment graph
+                  Retail-ready supply
                 </p>
                 <p className="mt-1 font-heading text-lg font-semibold text-white sm:text-xl">
-                  Dispatch orchestration, not chatter threads.
+                  Stock that looks as good on the shelf as it does in your books.
                 </p>
               </div>
             </div>
@@ -130,16 +131,16 @@ export default function HeroSection() {
                 <div className="relative aspect-[16/10]">
                   <Image
                     src={heroSecondary}
-                    alt="Team reviewing supply chain operations"
+                    alt="Organized warehouse and palletized inventory in Lagos"
                     fill
                     sizes="(min-width: 1024px) 24vw, 85vw"
                     className="object-cover opacity-95"
                   />
                 </div>
                 <div className="border-t border-white/10 px-4 py-3">
-                  <p className="text-xs font-medium text-white">Operator cockpit</p>
+                  <p className="text-xs font-medium text-white">Fulfilment backbone</p>
                   <p className="text-[11px] leading-snug text-zinc-500">
-                    Orders, vendors, and delivery windows in one surface.
+                    Organized inbound, predictable handoffs, less market running.
                   </p>
                 </div>
               </div>

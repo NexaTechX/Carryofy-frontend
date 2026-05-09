@@ -76,17 +76,17 @@ export default function Header() {
 
   const navLinkClass = transparentNav
     ? 'text-white/90 hover:text-white font-medium transition-colors py-2'
-    : 'text-[#111111] font-medium hover:text-[#FF6600] transition-colors py-2';
+    : 'text-[#111111] font-medium hover:text-[#FF6B00] transition-colors py-2';
 
   const brandTextClass = transparentNav ? 'text-white' : 'text-[#111111]';
 
   const secondaryLinkClass = transparentNav
     ? 'px-5 py-2.5 text-white/90 font-medium hover:text-white transition-colors'
-    : 'px-5 py-2.5 text-[#111111] font-medium hover:text-[#FF6600] transition-colors';
+    : 'px-5 py-2.5 text-[#111111] font-medium hover:text-[#FF6B00] transition-colors';
 
   const primaryCtaClass = transparentNav
     ? 'px-6 py-2.5 bg-white text-zinc-950 rounded-full font-semibold hover:bg-zinc-100 transition-colors shadow-sm'
-    : 'px-6 py-2.5 bg-[#FF6600] text-black rounded-full font-semibold hover:bg-[#E65E00] transition-colors';
+    : 'px-6 py-2.5 bg-[#FF6B00] text-black rounded-full font-semibold hover:bg-[#E65100] transition-colors';
 
   return (
     <header
@@ -126,7 +126,7 @@ export default function Header() {
             </Link>
             {showNavStartSourcing && (
               <Link href="/auth/signup" className={primaryCtaClass}>
-                Start sourcing
+                Get started
               </Link>
             )}
           </div>
@@ -138,10 +138,10 @@ export default function Header() {
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                   transparentNav
                     ? 'bg-white text-zinc-950 hover:bg-zinc-100'
-                    : 'bg-[#FF6600] text-black hover:bg-[#E65E00]'
+                    : 'bg-[#FF6B00] text-black hover:bg-[#E65100]'
                 }`}
               >
-                Start sourcing
+                Get started
               </Link>
             )}
             <button
@@ -181,7 +181,7 @@ export default function Header() {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className="block py-3 px-4 text-[#111111] hover:text-[#FF6600] hover:bg-[#FF6600]/5 rounded-xl transition-colors font-medium touch-target btn-mobile"
+                      className="block py-3 px-4 text-[#111111] hover:text-[#FF6B00] hover:bg-[#FF6B00]/5 rounded-xl transition-colors font-medium touch-target btn-mobile"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       {item.name}
@@ -191,17 +191,17 @@ export default function Header() {
                   <div className="pt-4 mt-2 border-t border-gray-100 space-y-2">
                     <Link
                       href="/auth/login"
-                      className="block w-full py-3 text-center text-[#111111] font-semibold rounded-xl border border-gray-200 hover:border-[#FF6600] hover:text-[#FF6600] transition-colors touch-target btn-mobile"
+                      className="block w-full py-3 text-center text-[#111111] font-semibold rounded-xl border border-gray-200 hover:border-[#FF6B00] hover:text-[#FF6B00] transition-colors touch-target btn-mobile"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Sign in
                     </Link>
                     <Link
                       href="/auth/signup"
-                      className="block w-full py-3 text-center bg-[#FF6600] text-black rounded-xl font-semibold touch-target btn-mobile"
+                      className="block w-full py-3 text-center bg-[#FF6B00] text-black rounded-xl font-semibold touch-target btn-mobile"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Start sourcing
+                      Get started
                     </Link>
                   </div>
                 </div>

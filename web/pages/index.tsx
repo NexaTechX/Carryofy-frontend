@@ -1,13 +1,9 @@
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
-import ProblemSection from '../components/landing/ProblemSection';
-import TrustQuoteBreak from '../components/landing/TrustQuoteBreak';
 import HowItWorks from '../components/landing/HowItWorks';
-import WhyChooseCarryofy from '../components/landing/WhyChooseCarryofy';
-import BetaTestimonials from '../components/landing/BetaTestimonials';
+import TrustAndSocialProof from '../components/landing/TrustAndSocialProof';
 import ValuePropositionsSection from '../components/landing/ValuePropositionsSection';
-import HomepageOnboardingNote from '../components/landing/HomepageOnboardingNote';
 import CallToAction from '../components/landing/CallToAction';
 import SEO, { generateKeywords } from '../components/seo/SEO';
 import { CombinedSchema } from '../components/seo/JsonLd';
@@ -73,12 +69,8 @@ export default function Home() {
         <main className="grow">
           <HeroSection />
           <ValuePropositionsSection />
-          <ProblemSection />
-          <TrustQuoteBreak />
           <HowItWorks />
-          <WhyChooseCarryofy />
-          <BetaTestimonials />
-          <HomepageOnboardingNote />
+          <TrustAndSocialProof />
           <CallToAction />
         </main>
         <Footer />

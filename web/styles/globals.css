@@ -47,16 +47,17 @@
 
 @layer base {
   :root {
-    --background: #090c11;
-    --foreground: #ffffff;
-    --card: #111111;
-    --card-foreground: #ffffff;
-    --border-custom: #2a2a2a;
+    /* Admin + marketing dark: deep navy / charcoal (not pure black) */
+    --background: #131922;
+    --foreground: #f1f4f8;
+    --card: #1c2432;
+    --card-foreground: #f1f4f8;
+    --border-custom: #2d3849;
     --muted-custom: #ffcc99;
-    --sidebar-bg: #1a1a1a;
-    --sidebar-border: #2a2a2a;
-    --input-bg: #111111;
-    --input-border: #2a2a2a;
+    --sidebar-bg: #171e2c;
+    --sidebar-border: #273143;
+    --input-bg: #1c2432;
+    --input-border: #2d3849;
   }
 
   .light {

@@ -9,7 +9,7 @@ interface BarChartProps {
 
 export default function BarChart({
   data,
-  color = '#ff6600',
+  color = '#FF6B00',
   valueFormatter,
   yAxisTickFormatter,
 }: BarChartProps) {
@@ -23,29 +23,32 @@ export default function BarChart({
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <RechartsBarChart data={data} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+      <RechartsBarChart data={data} margin={{ top: 12, right: 8, left: 4, bottom: 8 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.12)" vertical={false} />
         <XAxis
           dataKey="label"
-          stroke="#6b7280"
-          tick={{ fill: '#6b7280', fontSize: 11 }}
-          axisLine={{ stroke: '#1f1f1f' }}
+          stroke="#64748b"
+          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          axisLine={{ stroke: '#334155' }}
+          tickLine={{ stroke: '#334155' }}
         />
         <YAxis
-          stroke="#6b7280"
-          tick={{ fill: '#6b7280', fontSize: 11 }}
-          axisLine={{ stroke: '#1f1f1f' }}
+          stroke="#64748b"
+          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          axisLine={{ stroke: '#334155' }}
+          tickLine={{ stroke: '#334155' }}
           tickFormatter={yFmt}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: '#0a0a0a',
-            border: '1px solid #1f1f1f',
+            backgroundColor: '#1c2432',
+            border: '1px solid #2d3849',
             borderRadius: '8px',
-            color: '#fff',
+            color: '#f1f4f8',
+            fontSize: '13px',
           }}
           formatter={(value: number) => (valueFormatter ? valueFormatter(value) : value.toLocaleString())}
-          cursor={{ fill: '#1a1a1a' }}
+          cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
         />
         <Bar dataKey="value" radius={[8, 8, 0, 0]}>
           {data.map((entry, index) => (

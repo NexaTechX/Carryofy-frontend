@@ -82,13 +82,13 @@ export default function CallToAction() {
             placeholder="Your email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3.5 text-sm text-white placeholder:text-zinc-500 backdrop-blur-sm focus:border-[#FF6600]/50 focus:outline-none focus:ring-2 focus:ring-[#FF6600]/30 sm:min-w-0 sm:flex-1"
+            className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3.5 text-sm text-white placeholder:text-zinc-500 backdrop-blur-sm focus:border-[#FF6B00]/50 focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/30 sm:min-w-0 sm:flex-1"
           />
           <button
             type="submit"
-            className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF6600] px-8 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-[#FF6600]/15 transition hover:bg-[#E65E00] sm:shrink-0 sm:py-4 sm:text-[15px]"
+            className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF6B00] px-8 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-[#FF6B00]/15 transition hover:bg-[#E65100] sm:shrink-0 sm:py-4 sm:text-[15px]"
           >
-            Start sourcing →
+            Get started →
           </button>
         </motion.form>
         <motion.p

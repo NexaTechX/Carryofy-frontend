@@ -28,34 +28,37 @@ function deriveTrendFromRate(rate: number): RetentionDataPoint[] {
 export default function RetentionTrendChart({
   data,
   currentRate = 0,
-  color = '#ff6600',
+  color = '#FF6B00',
   height = 160,
 }: RetentionTrendChartProps) {
   const chartData = data.length >= 2 ? data : deriveTrendFromRate(currentRate);
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+      <LineChart data={chartData} margin={{ top: 12, right: 12, left: 4, bottom: 8 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.12)" vertical={false} />
         <XAxis
           dataKey="period"
-          stroke="#6b7280"
-          tick={{ fill: '#6b7280', fontSize: 10 }}
-          axisLine={{ stroke: '#1f1f1f' }}
+          stroke="#64748b"
+          tick={{ fill: '#94a3b8', fontSize: 11 }}
+          axisLine={{ stroke: '#334155' }}
+          tickLine={{ stroke: '#334155' }}
         />
         <YAxis
           domain={[0, 100]}
-          stroke="#6b7280"
-          tick={{ fill: '#6b7280', fontSize: 10 }}
-          axisLine={{ stroke: '#1f1f1f' }}
+          stroke="#64748b"
+          tick={{ fill: '#94a3b8', fontSize: 11 }}
+          axisLine={{ stroke: '#334155' }}
+          tickLine={{ stroke: '#334155' }}
           tickFormatter={(v) => `${v}%`}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: '#0a0a0a',
-            border: '1px solid #1f1f1f',
+            backgroundColor: '#1c2432',
+            border: '1px solid #2d3849',
             borderRadius: '8px',
-            color: '#fff',
+            color: '#f1f4f8',
+            fontSize: '13px',
           }}
           formatter={(value: number) => [`${value.toFixed(1)}%`, 'Retention']}
           labelFormatter={(label) => label}
@@ -66,7 +69,7 @@ export default function RetentionTrendChart({
           stroke={color}
           strokeWidth={2}
           dot={{ fill: color, r: 3 }}
-          activeDot={{ r: 5, fill: color, stroke: '#0a0a0a', strokeWidth: 2 }}
+          activeDot={{ r: 5, fill: color, stroke: '#131922', strokeWidth: 2 }}
         />
       </LineChart>
     </ResponsiveContainer>

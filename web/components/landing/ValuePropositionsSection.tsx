@@ -60,7 +60,7 @@ export default function ValuePropositionsSection() {
             Who it serves
           </p>
           <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl lg:text-[2.75rem]">
-            One platform. Two sides of the <span className="text-[#FF6600]">aisle</span>.
+            One platform. Two sides of the <span className="text-[#FF6B00]">aisle</span>.
           </h2>
           <p className="mt-4 text-base leading-relaxed text-zinc-600 sm:text-lg">
             Procurement for retailers. Distribution rails for vendors — with fulfilment that matches
@@ -97,7 +97,7 @@ export default function ValuePropositionsSection() {
               <ul className="space-y-4 text-sm leading-relaxed text-zinc-600 sm:text-[15px]">
                 {retailerFeatures.map((item) => (
                   <li key={item.title} className="flex gap-3">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FF6600]/15 text-[#FF6600]">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FF6B00]/15 text-[#FF6B00]">
                       <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
                     </span>
                     <span>
@@ -109,12 +109,12 @@ export default function ValuePropositionsSection() {
               </ul>
               <Link
                 href="/auth/signup"
-                className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-zinc-900 transition hover:text-[#FF6600]"
+                className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-zinc-900 transition hover:text-[#FF6B00]"
               >
-                <span className="border-b border-zinc-900/30 transition group-hover/link:border-[#FF6600]/50">
+                <span className="border-b border-zinc-900/30 transition group-hover/link:border-[#FF6B00]/50">
                   Explore buyer experience
                 </span>
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-[#FF6600]" strokeWidth={2} />
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-[#FF6B00]" strokeWidth={2} />
               </Link>
               <p className="mt-3 text-[12px] leading-snug text-zinc-500">
                 Used by boutique owners across Yaba, Lekki &amp; Surulere
@@ -151,7 +151,7 @@ export default function ValuePropositionsSection() {
               <ul className="space-y-4 text-sm leading-relaxed text-zinc-600 sm:text-[15px]">
                 {supplierFeatures.map((item) => (
                   <li key={item.title} className="flex gap-3">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FF6600]/15 text-[#FF6600]">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FF6B00]/15 text-[#FF6B00]">
                       <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
                     </span>
                     <span>
@@ -163,12 +163,12 @@ export default function ValuePropositionsSection() {
               </ul>
               <Link
                 href="/merchant-onboarding"
-                className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-zinc-900 transition hover:text-[#FF6600]"
+                className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-zinc-900 transition hover:text-[#FF6B00]"
               >
-                <span className="border-b border-zinc-900/30 transition group-hover/link:border-[#FF6600]/50">
+                <span className="border-b border-zinc-900/30 transition group-hover/link:border-[#FF6B00]/50">
                   Partner as a seller
                 </span>
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-[#FF6600]" strokeWidth={2} />
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-[#FF6B00]" strokeWidth={2} />
               </Link>
               <p className="mt-3 text-[12px] leading-snug text-zinc-500">
                 Suppliers across fashion, beauty, electronics &amp; grocery

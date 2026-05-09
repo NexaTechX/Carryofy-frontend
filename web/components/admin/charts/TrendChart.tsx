@@ -5,7 +5,7 @@ interface TrendChartProps {
   color?: string;
 }
 
-export default function TrendChart({ data, color = '#ff6600' }: TrendChartProps) {
+export default function TrendChart({ data, color = '#FF6B00' }: TrendChartProps) {
   const chartData = data.map((point) => ({
     date: new Date(point.date).toLocaleDateString('en-US', { weekday: 'short' }),
     value: point.amount / 100,
@@ -20,17 +20,19 @@ export default function TrendChart({ data, color = '#ff6600' }: TrendChartProps)
             <stop offset="95%" stopColor={color} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.12)" vertical={false} />
         <XAxis
           dataKey="date"
-          stroke="#6b7280"
-          tick={{ fill: '#6b7280', fontSize: 11 }}
-          axisLine={{ stroke: '#1f1f1f' }}
+          stroke="#64748b"
+          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          axisLine={{ stroke: '#334155' }}
+          tickLine={{ stroke: '#334155' }}
         />
         <YAxis
-          stroke="#6b7280"
-          tick={{ fill: '#6b7280', fontSize: 11 }}
-          axisLine={{ stroke: '#1f1f1f' }}
+          stroke="#64748b"
+          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          axisLine={{ stroke: '#334155' }}
+          tickLine={{ stroke: '#334155' }}
           tickFormatter={(value) =>
             new Intl.NumberFormat('en-NG', {
               notation: 'compact',
@@ -40,10 +42,11 @@ export default function TrendChart({ data, color = '#ff6600' }: TrendChartProps)
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: '#0a0a0a',
-            border: '1px solid #1f1f1f',
+            backgroundColor: '#1c2432',
+            border: '1px solid #2d3849',
             borderRadius: '8px',
-            color: '#fff',
+            color: '#f1f4f8',
+            fontSize: '13px',
           }}
           formatter={(value: number) =>
             new Intl.NumberFormat('en-NG', {

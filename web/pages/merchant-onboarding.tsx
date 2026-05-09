@@ -1,7 +1,7 @@
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import MerchantCategoryCommissions from '../components/merchant/MerchantCategoryCommissions';
-import { CheckCircle, TrendingUp, Package, LayoutDashboard, Truck, Shield, Users, Zap, ArrowRight, BarChart3, Globe, CreditCard } from 'lucide-react';
+import { CheckCircle, LayoutDashboard, Truck, Shield, Users, Zap, ArrowRight, BarChart3, Globe, CreditCard } from 'lucide-react';
 import SEO from '../components/seo/SEO';
 import { CombinedSchema } from '../components/seo/JsonLd';
 import Link from 'next/link';
@@ -9,50 +9,55 @@ import Link from 'next/link';
 export default function MerchantOnboarding() {
     const benefits = [
         {
-            icon: TrendingUp,
-            title: 'Reach Lagos retailers',
+            icon: Globe,
+            title: 'Wider Reach',
             description:
-                'List where retailers already source fashion, beauty, electronics, and grocery with delivery coordinated through Carryofy.',
+                'Showcase your products to thousands of active buyers across verified Lagosian retailers.',
         },
         {
-            icon: LayoutDashboard,
-            title: 'AI-powered tools',
-            description: 'Smarter pricing and demand signals as new seller tools roll out on the platform.',
-        },
-        {
-            icon: Package,
-            title: 'Logistics support',
+            icon: Zap,
+            title: 'Automated Sales',
             description:
-                'We coordinate pickup and last-mile delivery with our partners in Lagos corridors — you keep inventory ready for dispatch.',
+                'Streamline order processing, invoicing, and payment collection so you can focus on fulfilment.',
         },
         {
-            icon: CreditCard,
-            title: 'Fast & Secure Payouts',
-            description: 'Keep your cash flow healthy. Payouts are processed within 24-48 hours after delivery confirmation directly to your Nigerian bank account.',
+            icon: Shield,
+            title: 'Guaranteed Payments',
+            description:
+                'Secure your revenue with our reliable payment system — settlements you can plan around.',
+        },
+        {
+            icon: Truck,
+            title: 'Logistics Support',
+            description:
+                'Leverage our network for efficient delivery across Lagos — coordinated pickup and last-mile.',
         },
     ];
 
     const deepBenefits = [
         {
-            icon: Truck,
-            title: 'Lagos-first reach',
-            description:
-                'Lagos (Yaba, Surulere, Lekki/Ajah) — expanding corridor by corridor.',
-        },
-        {
-            icon: Shield,
-            title: 'Seller Protection',
-            description: 'Sell with peace of mind. Our protection program covers you against fraudulent chargebacks and damaged goods during transit.',
-        },
-        {
             icon: Users,
-            title: 'Targeted Marketing',
-            description: 'Your products aren\'t just listed; they\'re promoted. We use data-driven marketing to put your store in front of the right buyers.',
+            title: 'Verified retail network',
+            description:
+                'Connect with serious buyers — not random DMs — so every order is tied to a real storefront.',
+        },
+        {
+            icon: LayoutDashboard,
+            title: 'Operations in one flow',
+            description:
+                'From order to dispatch to payout, reduce back-and-forth with a single operational thread.',
         },
         {
             icon: BarChart3,
-            title: 'Advanced Analytics',
-            description: 'Get deep insights into your business performance with our mobile-friendly dashboard. Track inventory, orders, and growth in real-time.',
+            title: 'Market visibility',
+            description:
+                'See what moves, where demand clusters, and how your catalogue performs over time.',
+        },
+        {
+            icon: CreditCard,
+            title: 'Settlement discipline',
+            description:
+                'Clear rules on when funds release — so you spend less time chasing reconciliation.',
         },
     ];
 
@@ -94,8 +99,8 @@ export default function MerchantOnboarding() {
     return (
         <>
             <SEO
-                title="Sell on Carryofy — Verified Vendors for Lagos Retailers"
-                description="List products for Lagos retailers in Yaba, Surulere, and Lekki/Ajah. Carryofy coordinates delivery — zero listing fee. Apply to sell on Carryofy."
+                title="Sell on Carryofy — Expand Your Reach Across Lagos Retailers"
+                description="Partner with Carryofy: wider reach, automated sales, guaranteed payments, and logistics support. Verified retailers, zero listing fee — apply to sell."
                 keywords={merchantKeywords}
                 canonical="https://carryofy.com/merchant-onboarding"
                 ogType="website"
@@ -122,12 +127,12 @@ export default function MerchantOnboarding() {
                                     <Globe className="w-4 h-4" />
                                     B2B MARKETPLACE FOR LAGOS RETAILERS
                                 </span>
-                                <h1 className="text-4xl md:text-6xl font-extrabold text-[#111111] leading-tight mb-8">
-                                    You source the products.<br />
-                                    <span className="text-primary italic">We handle the rest.</span>
+                                <h1 className="text-4xl md:text-5xl font-extrabold text-[#111111] leading-tight mb-6">
+                                    For Vendors: Expand Your Market,<br />
+                                    <span className="text-primary">Simplify Your Sales.</span>
                                 </h1>
                                 <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-                                    List for Lagos retailers, coordinate delivery with Carryofy, and grow without building logistics from scratch.
+                                    Partner with Carryofy and connect with a vast network of verified Lagosian retailers. Join us and scale your distribution with confidence.
                                 </p>
 
                                 <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -173,9 +178,9 @@ export default function MerchantOnboarding() {
                     <section className="py-24 bg-[#FAFAFA]">
                         <div className="container mx-auto px-4">
                             <div className="text-center mb-16">
-                                <h2 className="text-3xl md:text-4xl font-bold text-[#111111] mb-4">Everything you need to scale</h2>
+                                <h2 className="text-3xl md:text-4xl font-bold text-[#111111] mb-4">Why sell with Carryofy</h2>
                                 <p className="text-gray-600 max-w-2xl mx-auto">
-                                    Verified listing, coordinated delivery in Lagos corridors, and payouts designed for sellers — without fluff.
+                                    Wider reach, automated sales, reliable payments, and logistics support — built for vendors who want to grow without doing everything alone.
                                 </p>
                             </div>
 
@@ -266,10 +271,10 @@ export default function MerchantOnboarding() {
                                 <div className="grid lg:grid-cols-2 gap-20 items-center">
                                     <div>
                                         <h2 className="text-3xl md:text-5xl font-bold mb-8 leading-tight">
-                                            We solve the hardest part of <span className="text-primary italic">E-commerce.</span>
+                                            Let us help you <span className="text-primary italic">scale distribution</span> and grow your brand.
                                         </h2>
                                         <p className="text-xl text-gray-400 mb-12">
-                                            Logistics and trust are the biggest barriers to selling online in Africa. Carryofy solves both.
+                                            Trust and logistics shouldn&apos;t be DIY. Carryofy connects you to buyers, coordinates delivery, and keeps payments predictable.
                                         </p>
                                         <div className="grid sm:grid-cols-2 gap-8">
                                             {deepBenefits.map((item, i) => (
@@ -313,7 +318,7 @@ export default function MerchantOnboarding() {
                     <section className="py-24 bg-white border-t border-gray-100">
                         <div className="container mx-auto px-4 max-w-3xl text-center">
                             <p className="text-lg sm:text-xl text-gray-700 leading-relaxed">
-                                Be among the first verified vendors on Carryofy. Zero listing fee. We only win when you sell.
+                                Join Carryofy as a verified vendor — zero listing fee, serious retail demand, and operations support across Lagos.
                             </p>
                         </div>
                     </section>

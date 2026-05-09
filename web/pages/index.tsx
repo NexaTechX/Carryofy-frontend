@@ -30,8 +30,8 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="Carryofy | AI-Powered B2B Commerce & Supply for Lagos Retail"
-        description="Procurement and fulfilment for Lagos retailers — verified vendors, coordinated delivery, and AI-assisted sourcing across fashion, beauty, electronics, and grocery."
+        title="Carryofy | Trusted B2B Trade in Lagos — Verified Suppliers & Retailers"
+        description="Connect with verified suppliers, streamline your business, and grow with confidence. Fashion, beauty, electronics, and grocery — authentic products, competitive pricing, and reliable logistics for Lagos."
         keywords={fullKeywords}
         canonical="https://carryofy.com"
         ogType="website"

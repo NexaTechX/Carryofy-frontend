@@ -36,19 +36,17 @@ export default function HeroSection() {
               <span className="text-zinc-400">Commerce · Supply · Lagos</span>
             </div>
 
-            <h1 className="font-heading text-[2.35rem] font-semibold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.25rem] xl:text-[3.5rem]">
-              Retail intelligence for operators who move real inventory —{' '}
-              <span className="text-zinc-400">not slides.</span>
+            <h1 className="font-heading text-[2rem] font-semibold leading-[1.12] tracking-tight text-white sm:text-4xl lg:text-[2.75rem] xl:text-[3rem]">
+              <span className="block">Carryofy: Your Trusted Partner for B2B Trade in Lagos.</span>
+              <span className="mt-3 block text-[0.92em] font-medium text-zinc-300 sm:mt-4">
+                Connect with Verified Suppliers. Streamline Your Business. Grow with Confidence.
+              </span>
             </h1>
 
             <p className="mt-6 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
-              Carryofy is the procurement layer for Lagos retailers: verified vendors, coordinated
-              fulfilment, and AI-assisted sourcing — built for shelves, stockrooms, and last-mile
-              reality.
-            </p>
-            <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-500 sm:text-[15px]">
-              No cold calls to market. No cash upfront to strangers. Every vendor verified, every
-              delivery tracked.
+              Empowering Lagosian retailers and suppliers with a seamless digital marketplace across
+              fashion, beauty, electronics, and grocery. Discover authentic products, competitive
+              pricing, and reliable logistics, all in one place.
             </p>
 
             <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">

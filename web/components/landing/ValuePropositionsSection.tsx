@@ -1,12 +1,50 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Check } from 'lucide-react';
 
 const retailImg =
   'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1600&auto=format&fit=crop';
 const vendorImg =
   'https://images.unsplash.com/photo-1553413077-190dd305871c?q=80&w=1600&auto=format&fit=crop';
+
+const retailerFeatures = [
+  {
+    title: 'Verified Products',
+    text: 'Access a curated selection of authentic goods from trusted suppliers.',
+  },
+  {
+    title: 'Competitive Pricing',
+    text: 'Maximize your margins with transparent wholesale rates.',
+  },
+  {
+    title: 'Effortless Ordering',
+    text: 'Simplify procurement with our intuitive platform and fast delivery.',
+  },
+  {
+    title: 'Flexible Payments',
+    text: 'Manage your cash flow with convenient payment options.',
+  },
+];
+
+const supplierFeatures = [
+  {
+    title: 'Verified Retail Network',
+    text: 'Connect with serious buyers across Lagos.',
+  },
+  {
+    title: 'Streamlined Sales',
+    text: 'Automate orders, payments, and logistics.',
+  },
+  {
+    title: 'Market Insights',
+    text: 'Gain valuable data to optimize your product offerings.',
+  },
+  {
+    title: 'Secure Payments',
+    text: 'Ensure timely and reliable transactions.',
+  },
+];
 
 export default function ValuePropositionsSection() {
   return (
@@ -51,15 +89,24 @@ export default function ValuePropositionsSection() {
                   For retailers
                 </p>
                 <h3 className="mt-2 font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  Restock without the market marathon.
+                  Stock Smart, Sell More.
                 </h3>
               </div>
             </div>
             <div className="border-t border-zinc-100 p-6 sm:p-8">
-              <p className="text-sm leading-relaxed text-zinc-600 sm:text-[15px]">
-                Browse verified vendors, compare lines, and place orders from the store — we
-                coordinate delivery so your team stays on the floor.
-              </p>
+              <ul className="space-y-4 text-sm leading-relaxed text-zinc-600 sm:text-[15px]">
+                {retailerFeatures.map((item) => (
+                  <li key={item.title} className="flex gap-3">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FF6600]/15 text-[#FF6600]">
+                      <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+                    </span>
+                    <span>
+                      <strong className="font-semibold text-zinc-900">{item.title}:</strong>{' '}
+                      {item.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
               <Link
                 href="/auth/signup"
                 className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-zinc-900 transition hover:text-[#FF6600]"
@@ -93,19 +140,27 @@ export default function ValuePropositionsSection() {
               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/85 via-zinc-950/25 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
                 <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.25em] text-white/70">
-                  For vendors
+                  For suppliers
                 </p>
                 <h3 className="mt-2 font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  Put your products in front of 500+ active retail buyers — with payments you can
-                  count on.
+                  Expand Your Reach, Simplify Your Sales.
                 </h3>
               </div>
             </div>
             <div className="border-t border-zinc-100 p-6 sm:p-8">
-              <p className="text-sm leading-relaxed text-zinc-600 sm:text-[15px]">
-                We handle the order, you handle the goods. List SKU depth with confidence — we bring
-                demand, delivery orchestration, and the operational rigour retailers expect.
-              </p>
+              <ul className="space-y-4 text-sm leading-relaxed text-zinc-600 sm:text-[15px]">
+                {supplierFeatures.map((item) => (
+                  <li key={item.title} className="flex gap-3">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FF6600]/15 text-[#FF6600]">
+                      <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+                    </span>
+                    <span>
+                      <strong className="font-semibold text-zinc-900">{item.title}:</strong>{' '}
+                      {item.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
               <Link
                 href="/merchant-onboarding"
                 className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-zinc-900 transition hover:text-[#FF6600]"

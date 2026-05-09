@@ -72,7 +72,7 @@ const NOTIFICATION_OPTIONS = [
 
 // Buyer onboarding only; sellers use /seller/onboard with completely different questions
 const ROLE_OPTIONS_BUYER_ONLY = [
-  { id: 'buyer', label: 'I am a Buyer', description: 'I want to shop for products', icon: '🛍️' },
+  { id: 'buyer', label: 'I am a Buyer', description: 'I source products for my retail business', icon: '🛍️' },
 ];
 
 const SPECIAL_INTERESTS = [
@@ -99,8 +99,13 @@ function Step0Role({ preferences, updatePreferences }: StepProps) {
         <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
           <Sparkles className="w-8 h-8 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">Shopping on Carryofy</h2>
-        <p className="text-gray-600">Tell us your preferences so we can personalize your experience</p>
+        <h2 className="text-2xl font-bold mb-3">Welcome to Carryofy</h2>
+        <p className="text-gray-600 max-w-lg mx-auto leading-relaxed">
+          Your gateway to smarter B2B trade in Lagos! Join a thriving network of verified businesses.
+          Carryofy is designed to simplify your operations, expand your reach, and accelerate your
+          growth. Get started today and experience the future of wholesale and retail.
+        </p>
+        <p className="text-sm text-gray-500 mt-4">Tell us how you&apos;d like to use the platform next.</p>
       </div>
       <div className="grid md:grid-cols-1 gap-4 max-w-md mx-auto">
         {ROLE_OPTIONS_BUYER_ONLY.map((role) => (
@@ -116,7 +121,7 @@ function Step0Role({ preferences, updatePreferences }: StepProps) {
               }`}
           >
             <div className="text-3xl mb-3">{role.icon}</div>
-            <div className="font-semibold text-lg mb-2">{role.label}</div>
+            <div className="font-semibold text-lg mb-2">I&apos;m a retailer (buyer)</div>
             <div className="text-sm text-gray-600">{role.description}</div>
           </button>
         ))}
@@ -130,12 +135,20 @@ function Step1Goal({ preferences, updatePreferences }: StepProps) {
 
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+      <div className="text-center max-w-2xl mx-auto space-y-4">
+        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
           <CheckCircle2 className="w-8 h-8 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">What's your primary goal?</h2>
-        <p className="text-gray-600">Tell us what you want to achieve on Carryofy</p>
+        <h2 className="text-2xl font-bold">For Retailers: Unlock a World of Verified Products</h2>
+        <p className="text-gray-600 text-left sm:text-center leading-relaxed">
+          Register with Carryofy to gain exclusive access to authentic goods from verified suppliers
+          across fashion, beauty, electronics, and grocery; competitive wholesale pricing and flexible
+          payment terms; seamless procurement with reliable delivery; and room to grow your
+          assortment with confidence.
+        </p>
+        <p className="text-sm text-gray-500">It takes just minutes to sign up — then tell us what you want to achieve first.</p>
+        <h3 className="text-lg font-semibold text-gray-900 pt-2">What&apos;s your primary goal?</h3>
+        <p className="text-sm text-gray-600">Pick the option that fits you best right now.</p>
       </div>
       <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
         {GOAL_OPTIONS

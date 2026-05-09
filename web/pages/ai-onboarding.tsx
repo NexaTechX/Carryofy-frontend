@@ -63,8 +63,8 @@ export default function AIOnboardingPage() {
   return (
     <>
       <SEO
-        title="AI Onboarding - Personalize Your Experience | Carryofy"
-        description="Set up your AI preferences to get personalized assistance. Choose your goals, use cases, tone, and more to tailor your Carryofy experience."
+        title="Welcome to Carryofy — Personalize Your B2B Experience"
+        description="Welcome to smarter B2B trade in Lagos. Set your preferences and goals so Carryofy can tailor sourcing, categories, and recommendations to your retail business."
         canonical="https://carryofy.com/ai-onboarding"
       />
       <Head>

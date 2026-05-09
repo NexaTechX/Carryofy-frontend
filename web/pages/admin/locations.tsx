@@ -74,8 +74,7 @@ export default function AdminLocationsPage() {
         <title>Location Intelligence - Admin | Carryofy</title>
       </Head>
       <AdminLayout>
-        <div className="min-h-screen bg-background">
-          <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
+        <div className="admin-page-shell max-w-7xl">
             <AdminPageHeader
               title="Location Intelligence"
               tag="Operations Map"
@@ -263,7 +262,6 @@ export default function AdminLocationsPage() {
               />
             )}
           </div>
-        </div>
 
         <LocationEntityDrawer
           entity={selectedEntity}

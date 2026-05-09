@@ -36,14 +36,12 @@ export default function AdminSharingAnalytics() {
   if (loading && !analytics) {
     return (
       <AdminLayout>
-        <div className="min-h-screen bg-[#090c11]">
-          <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
+        <div className="admin-page-shell max-w-7xl">
             <div className="space-y-6">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="h-32 w-full animate-pulse rounded-2xl bg-[#1f2534]" />
               ))}
             </div>
-          </div>
         </div>
       </AdminLayout>
     );
@@ -51,8 +49,7 @@ export default function AdminSharingAnalytics() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-[#090c11]">
-        <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
+      <div className="admin-page-shell max-w-7xl">
           <AdminPageHeader
             title="Sharing Analytics"
             tag="Platform Insights"
@@ -288,7 +285,6 @@ export default function AdminSharingAnalytics() {
             </section>
           )}
         </div>
-      </div>
     </AdminLayout>
   );
 }

@@ -23,19 +23,19 @@ export function AdminPageHeader({
   return (
     <header
       className={clsx(
-        'flex flex-col gap-4 border-b border-[#1f1f1f] pb-6 sm:flex-row sm:items-end sm:justify-between',
+        'flex flex-col gap-4 border-b border-border-custom pb-6 sm:flex-row sm:items-end sm:justify-between',
         className
       )}
     >
       <div className="space-y-3">
         {tag ? (
-          <span className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+          <span className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             {tag}
           </span>
         ) : null}
         <div>
-          <h1 className="text-3xl font-semibold text-white">{title}</h1>
-          {subtitle ? <p className="mt-2 max-w-2xl text-sm text-gray-400">{subtitle}</p> : null}
+          <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{title}</h1>
+          {subtitle ? <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-400">{subtitle}</p> : null}
         </div>
       </div>
       <div className="flex flex-col-reverse items-start gap-3 sm:flex-row sm:items-center sm:gap-4">

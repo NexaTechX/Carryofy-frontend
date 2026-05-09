@@ -29,7 +29,7 @@ export default function AdminQuoteRequestDetailPage() {
   if (loading || !quote) {
     return (
       <AdminLayout>
-        <div className="mx-auto w-full max-w-4xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
+        <div className="admin-page-shell max-w-4xl">
           {loading ? (
             <LoadingState label="Loading quote request..." />
           ) : (
@@ -53,7 +53,7 @@ export default function AdminQuoteRequestDetailPage() {
         <title>Quote Request {quote.id.slice(0, 8)} - Admin | Carryofy</title>
       </Head>
       <AdminLayout>
-        <div className="mx-auto w-full max-w-4xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
+        <div className="admin-page-shell max-w-4xl">
           <AdminPageHeader
             title={`Quote ${quote.id.slice(0, 8)}…`}
             tag="B2B"

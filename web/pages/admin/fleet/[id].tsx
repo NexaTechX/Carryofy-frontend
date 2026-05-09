@@ -86,8 +86,7 @@ export default function AdminFleetDetailPage() {
       <Head>
         <title>Fleet detail · Admin</title>
       </Head>
-      <div className="min-h-screen bg-[#090c11]">
-        <div className="mx-auto max-w-7xl space-y-6 px-4 py-10 sm:px-6 lg:px-12">
+      <div className="admin-page-shell max-w-7xl space-y-6">
           <AdminPageHeader
             title={(detail?.name as string) ?? 'Fleet'}
             tag="Fleet"
@@ -236,7 +235,6 @@ export default function AdminFleetDetailPage() {
             </>
           )}
         </div>
-      </div>
     </AdminLayout>
   );
 }

@@ -494,8 +494,7 @@ export default function AdminSellers() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-[#090c11]">
-        <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
+      <div className="admin-page-shell max-w-7xl">
           <AdminPageHeader
             title="Seller Governance"
             tag="Marketplace Trust"
@@ -913,7 +912,6 @@ export default function AdminSellers() {
             </DataTableContainer>
           )}
         </div>
-      </div>
 
       <AdminDrawer
         open={Boolean(selectedSeller)}

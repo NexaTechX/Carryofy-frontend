@@ -276,8 +276,7 @@ export default function AdminAnalytics() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-[#090c11]">
-        <div className="mx-auto w-full max-w-[1440px] px-4 pb-16 pt-10 sm:px-6 lg:px-10">
+      <div className="admin-page-shell max-w-[1440px]">
           <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <AdminPageHeader
               title="Analytics"
@@ -959,7 +958,6 @@ export default function AdminAnalytics() {
             </div>
           </section>
         </div>
-      </div>
     </AdminLayout>
   );
 }

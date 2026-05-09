@@ -278,8 +278,7 @@ export default function AdminDeliveries() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-[#090c11]">
-        <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
+      <div className="admin-page-shell max-w-7xl">
           <AdminPageHeader
             title="Delivery Command"
             tag="Logistics"
@@ -581,7 +580,6 @@ export default function AdminDeliveries() {
             </>
           )}
         </div>
-      </div>
 
       <AdminDrawer
         open={Boolean(selectedDelivery)}

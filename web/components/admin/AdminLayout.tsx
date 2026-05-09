@@ -1,93 +1,75 @@
 import Link from 'next/link';
-import { ReactNode, useMemo, useState, useEffect } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import clsx from 'clsx';
 import {
-  AlertTriangle,
-  BarChart2,
-  Calendar,
-  DollarSign,
-  FileBarChart2,
-  FileText,
   HelpCircle,
-  House,
-  Mail,
-  MapPin,
-  Megaphone,
   Menu,
-  MessageSquare,
-  Package,
-  Settings,
-  ShoppingCart,
   Store,
-  Tag,
-  Truck,
-  Users,
-  Warehouse as WarehouseIcon,
   X,
-  Star,
   LogOut,
-  Scale,
-  Zap,
-  UserCheck,
-  Shield,
-  Building2,
+  ChevronDown,
 } from 'lucide-react';
 import GlobalSearch from './GlobalSearch';
+import AdminBreadcrumbs from './AdminBreadcrumbs';
 import NotificationsDropdown from './NotificationsDropdown';
 import { RealtimeProvider } from '../../lib/contexts/RealtimeContext';
 import { useAuth } from '../../lib/auth/context';
 import { fetchUnacknowledgedSosCount } from '../../lib/admin/api';
+import {
+  ADMIN_NAV_FLAT,
+  ADMIN_NAV_GROUPS,
+  type AdminNavItem,
+} from '../../lib/admin/adminNavConfig';
 
+const NAV_EXPANDED_KEY = 'carryofy-admin-nav-expanded-v1';
+
+function readNavExpanded(): Record<string, boolean> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(NAV_EXPANDED_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, boolean>;
+    return typeof parsed === 'object' && parsed !== null ? parsed : {};
+  } catch {
+    return {};
+  }
+}
 
 interface AdminLayoutProps {
   children: ReactNode;
 }
 
-type NavItem = {
-  name: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-};
-
-const NAV_ITEMS: NavItem[] = [
-  { name: 'Overview', href: '/admin', icon: House },
-  { name: 'Analytics', href: '/admin/analytics', icon: BarChart2 },
-  { name: 'Customers', href: '/admin/customers', icon: Users },
-  { name: 'Sellers', href: '/admin/sellers', icon: Store },
-  { name: 'Products', href: '/admin/products', icon: Package },
-  { name: 'Categories', href: '/admin/categories', icon: Tag },
-  { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
-  { name: 'Quote Requests', href: '/admin/quote-requests', icon: FileText },
-  { name: 'Reviews', href: '/admin/reviews', icon: MessageSquare },
-  { name: 'Refunds', href: '/admin/refunds', icon: DollarSign },
-  { name: 'Disputes', href: '/admin/disputes', icon: Scale },
-  { name: 'Deliveries', href: '/admin/deliveries', icon: Truck },
-  { name: 'Rider KYC', href: '/admin/riders-kyc', icon: UserCheck },
-  { name: 'Fleet operators', href: '/admin/fleet', icon: Building2 },
-  { name: 'Safety Center', href: '/admin/safety', icon: Shield },
-  { name: 'Dispatch', href: '/admin/dispatch', icon: Zap },
-  { name: 'Delivery exceptions', href: '/admin/delivery-exceptions', icon: AlertTriangle },
-  { name: 'Locations', href: '/admin/locations', icon: MapPin },
-  { name: 'Warehouse', href: '/admin/warehouse', icon: WarehouseIcon },
-  { name: 'Payouts', href: '/admin/payouts', icon: DollarSign },
-  { name: 'Finance', href: '/admin/finance', icon: FileBarChart2 },
-  { name: 'Reports', href: '/admin/reports', icon: FileBarChart2 },
-  { name: 'Banners', href: '/admin/banners', icon: Megaphone },
-  { name: 'Broadcast', href: '/admin/broadcast', icon: Mail },
-  { name: 'Broadcast History', href: '/admin/broadcast-history', icon: Calendar },
-  { name: 'Settings', href: '/admin/settings', icon: Settings },
-  { name: 'Audit Log', href: '/admin/audit-log', icon: FileText },
-  { name: 'Feedback', href: '/admin/feedback', icon: Star },
-  { name: 'Support Center', href: '/admin/support', icon: HelpCircle },
-];
+function isNavItemActive(item: AdminNavItem, pathname: string): boolean {
+  if (item.exact) {
+    return pathname === item.href;
+  }
+  if (item.href === '/admin/settings') {
+    return pathname === '/admin/settings';
+  }
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const { logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [groupExpanded, setGroupExpanded] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setGroupExpanded(readNavExpanded());
+  }, []);
+
+  const persistExpanded = useCallback((next: Record<string, boolean>) => {
+    setGroupExpanded(next);
+    try {
+      localStorage.setItem(NAV_EXPANDED_KEY, JSON.stringify(next));
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const { data: safetySosBadge = 0 } = useSWR(
     router.pathname.startsWith('/admin') ? 'safety-sos-badge' : null,
@@ -95,7 +77,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { refreshInterval: 30000, dedupingInterval: 5000 },
   );
 
-  // Keyboard shortcut for search (Cmd/Ctrl + K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -108,114 +89,161 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const isActive = (href: string) => {
-    if (href === '/admin') return router.pathname === '/admin';
-    if (href === '/admin/settings') return router.pathname === '/admin/settings';
-    return router.pathname.startsWith(href);
+  const isGroupOpen = useCallback(
+    (groupId: string) => {
+      if (groupExpanded[groupId] === undefined) return true;
+      return groupExpanded[groupId] === true;
+    },
+    [groupExpanded],
+  );
+
+  const toggleGroup = (groupId: string) => {
+    const open = isGroupOpen(groupId);
+    persistExpanded({ ...groupExpanded, [groupId]: !open });
   };
 
   const currentPage = useMemo(() => {
     if (router.pathname === '/admin') {
-      return NAV_ITEMS[0];
+      return ADMIN_NAV_FLAT[0];
     }
 
-    const candidates = NAV_ITEMS.filter(
-      (item) => item.href !== '/admin' && router.pathname.startsWith(item.href),
-    );
+    const candidates = ADMIN_NAV_FLAT.filter((item) => isNavItemActive(item, router.pathname));
     const matched = candidates.sort((a, b) => b.href.length - a.href.length)[0];
     if (matched) {
       return matched;
     }
 
-    return NAV_ITEMS[0];
+    return ADMIN_NAV_FLAT[0];
   }, [router.pathname]);
 
   const handleLogout = () => {
     logout();
   };
 
-  const navContent = useMemo(
-    () => (
-      <nav className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
-        <div className="space-y-1">
-          {NAV_ITEMS.map(({ name, href, icon: Icon }) => {
-            const active = isActive(href);
-            return (
-              <Link
-                key={href}
-                href={href}
+  const renderNavLinks = (onNavigate?: () => void) => (
+    <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
+      <div className="space-y-4">
+        {ADMIN_NAV_GROUPS.map((group) => {
+          const open = isGroupOpen(group.id);
+          const hasActive = group.items.some((item) => isNavItemActive(item, router.pathname));
+          return (
+            <div key={group.id} className="space-y-1">
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.id)}
                 className={clsx(
-                  'group flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition-colors',
-                  active
-                    ? 'bg-border-custom text-foreground shadow-[0_8px_18px_rgba(255,102,0,0.15)]'
-                    : 'text-gray-400 hover:bg-border-custom hover:text-foreground'
+                  'flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors',
+                  hasActive ? 'text-primary' : 'text-gray-500 hover:text-gray-300',
                 )}
-                onClick={() => setSidebarOpen(false)}
+                aria-expanded={open}
               >
-                <Icon className={clsx('h-5 w-5 shrink-0', active ? 'text-primary' : 'text-gray-500 group-hover:text-foreground')} />
-                <span className="min-w-0 flex-1 truncate">{name}</span>
-                {href === '/admin/safety' && safetySosBadge > 0 ? (
-                  <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white">
-                    {safetySosBadge > 99 ? '99+' : safetySosBadge}
-                  </span>
-                ) : null}
-              </Link>
-            );
-          })}
+                <ChevronDown
+                  className={clsx(
+                    'h-3.5 w-3.5 shrink-0 text-gray-500 transition-transform',
+                    !open && '-rotate-90',
+                  )}
+                />
+                <span className="min-w-0 truncate">{group.label}</span>
+              </button>
+              {open ? (
+                <div className="space-y-0.5 border-l border-border-custom/60 pl-2 ml-1.5">
+                  {group.items.map((item) => {
+                    const { name, href, icon: Icon } = item;
+                    const active = isNavItemActive(item, router.pathname);
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        className={clsx(
+                          'group flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-colors',
+                          active
+                            ? 'bg-border-custom text-foreground shadow-[0_6px_16px_rgba(255,107,0,0.12)]'
+                            : 'text-gray-400 hover:bg-border-custom/50 hover:text-foreground',
+                        )}
+                        onClick={onNavigate}
+                      >
+                        <Icon
+                          className={clsx(
+                            'h-[18px] w-[18px] shrink-0',
+                            active ? 'text-primary' : 'text-gray-500 group-hover:text-foreground',
+                          )}
+                        />
+                        <span className="min-w-0 flex-1 truncate">{name}</span>
+                        {href === '/admin/safety' && safetySosBadge > 0 ? (
+                          <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white">
+                            {safetySosBadge > 99 ? '99+' : safetySosBadge}
+                          </span>
+                        ) : null}
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </nav>
+  );
+
+  const footer = (opts?: { mobile?: boolean }) => (
+    <div
+      className={clsx(
+        'shrink-0 border-t border-border-custom px-4 py-5',
+        opts?.mobile ? 'space-y-3' : 'space-y-4',
+      )}
+    >
+      {!opts?.mobile ? (
+        <div className="flex items-center justify-between rounded-full border border-border-custom px-3 py-2 text-xs font-medium text-gray-400">
+          <span className="flex items-center gap-2">
+            <Store className="h-4 w-4 text-primary" />
+            Live mode
+          </span>
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">On</span>
         </div>
-      </nav>
-    ),
-    [sidebarOpen, router.asPath, safetySosBadge]
+      ) : null}
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium text-gray-400 transition-colors hover:bg-border-custom hover:text-red-400"
+      >
+        <LogOut className="h-5 w-5" />
+        Logout
+      </button>
+    </div>
   );
 
   return (
     <RealtimeProvider enabled={true} interval={15000}>
-      <div className="flex min-h-screen bg-background text-foreground">
-        {/* Desktop Sidebar - fixed, nav content scrollable */}
-        <aside className="fixed inset-y-0 left-0 z-20 hidden h-screen w-72 flex-col border-r border-border-custom bg-card lg:flex">
-          <div className="flex shrink-0 items-center gap-3 border-b border-border-custom px-6 py-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
+      <div className="flex min-h-screen bg-background font-inter text-foreground antialiased">
+        <aside className="fixed inset-y-0 left-0 z-20 hidden h-screen w-70 flex-col border-r border-border-custom bg-card lg:flex">
+          <div className="flex shrink-0 items-center gap-3 border-b border-border-custom px-5 py-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary-light text-sm font-semibold text-black">
               CF
             </div>
-            <div>
-              <p className="text-sm font-semibold tracking-wide">Carryofy Admin</p>
-              <p className="text-xs text-gray-500">Control Center</p>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold tracking-tight font-heading">Carryofy Admin</p>
+              <p className="text-xs text-gray-500">Operations</p>
             </div>
           </div>
-          {navContent}
-          <div className="shrink-0 border-t border-border-custom px-6 py-6 space-y-4">
-            <div className="flex items-center justify-between rounded-full border border-border-custom px-4 py-2 text-xs font-medium text-gray-400">
-              <span className="flex items-center gap-2">
-                <Store className="h-4 w-4 text-primary" />
-                Live Mode
-              </span>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">ON</span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-gray-400 transition-colors hover:bg-border-custom hover:text-red-400"
-            >
-              <LogOut className="h-5 w-5" />
-              Logout
-            </button>
-          </div>
+          {renderNavLinks()}
+          {footer()}
         </aside>
 
-        {/* Mobile Sidebar - fixed, nav content scrollable */}
         <div
           className={clsx(
-            'fixed inset-y-0 left-0 z-40 flex h-screen w-72 flex-col border-r border-border-custom bg-card transition-transform duration-200 lg:hidden',
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            'fixed inset-y-0 left-0 z-40 flex h-screen w-70 flex-col border-r border-border-custom bg-card transition-transform duration-200 lg:hidden',
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >
-          <div className="flex shrink-0 items-center justify-between border-b border-border-custom px-5 py-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
+          <div className="flex shrink-0 items-center justify-between border-b border-border-custom px-4 py-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary-light text-sm font-semibold text-black">
                 CF
               </div>
-              <div>
-                <p className="text-sm font-semibold tracking-wide">Carryofy Admin</p>
-                <p className="text-xs text-gray-500">Control Center</p>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold font-heading">Carryofy Admin</p>
+                <p className="text-xs text-gray-500">Operations</p>
               </div>
             </div>
             <button
@@ -227,53 +255,46 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <X className="h-5 w-5" />
             </button>
           </div>
-          {navContent}
-          <div className="shrink-0 border-t border-border-custom px-6 py-6">
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-gray-400 transition-colors hover:bg-border-custom hover:text-red-400"
-            >
-              <LogOut className="h-5 w-5" />
-              Logout
-            </button>
-          </div>
+          {renderNavLinks(() => setSidebarOpen(false))}
+          {footer({ mobile: true })}
         </div>
 
-        {/* Overlay */}
-        {sidebarOpen && (
-          <div
+        {sidebarOpen ? (
+          <button
+            type="button"
             className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+            aria-label="Close menu overlay"
             onClick={() => setSidebarOpen(false)}
           />
-        )}
+        ) : null}
 
-        {/* Main Content */}
-        <div className="flex flex-1 flex-col lg:ml-72">
-          {/* Header */}
-          <header className="sticky top-0 z-20 border-b border-border-custom bg-background/90 backdrop-blur">
-            <div className="flex items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex flex-1 flex-col lg:ml-70">
+          <header className="sticky top-0 z-20 border-b border-border-custom bg-background/90 backdrop-blur-md">
+            <div className="flex items-center gap-3 px-4 py-3.5 sm:px-6 lg:px-8">
               <button
                 type="button"
                 onClick={() => setSidebarOpen(true)}
-                className="rounded-full border border-border-custom p-2 text-gray-400 transition hover:border-primary hover:text-foreground lg:hidden"
+                className="rounded-xl border border-border-custom p-2 text-gray-400 transition hover:border-primary hover:text-foreground lg:hidden"
                 aria-label="Open navigation"
               >
                 <Menu className="h-5 w-5" />
               </button>
 
-              <div className="hidden items-center gap-3 text-sm font-semibold text-gray-300 sm:flex">
-                <span className="text-[#ff9955]">Carryofy</span>
+              <div className="hidden min-w-0 items-center gap-2 text-sm font-medium text-gray-400 sm:flex">
+                <span className="text-primary-light">Carryofy</span>
                 <span className="text-gray-600">/</span>
-                <span className="text-foreground">{currentPage?.name ?? 'Admin'}</span>
+                <span className="truncate text-foreground font-heading">{currentPage?.name ?? 'Admin'}</span>
               </div>
 
-              <div className="ml-auto flex flex-1 items-center gap-3 sm:ml-0 sm:gap-4">
+              <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2 sm:ml-0 sm:gap-3">
                 <button
+                  type="button"
                   onClick={() => setSearchOpen(true)}
-                  className="relative flex-1 max-w-xs rounded-full border border-border-custom bg-card px-4 py-2 text-left text-sm text-gray-500 hover:border-primary sm:max-w-md"
+                  className="relative max-w-md flex-1 rounded-xl border border-border-custom bg-card px-3 py-2 text-left text-sm text-gray-500 transition hover:border-primary/50"
                 >
-                  <span>Search across analytics, sellers, orders...</span>
-                  <kbd className="absolute right-3 top-1/2 -translate-y-1/2 rounded border border-border-custom bg-background px-2 py-0.5 text-xs">
+                  <span className="hidden sm:inline">Search sellers, orders, products…</span>
+                  <span className="sm:hidden">Search…</span>
+                  <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded-md border border-border-custom bg-background px-1.5 py-0.5 text-[10px] text-gray-500 sm:inline">
                     ⌘K
                   </kbd>
                 </button>
@@ -282,36 +303,39 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   <NotificationsDropdown />
                 </div>
 
-
-                <button className="hidden rounded-full border border-border-custom p-2 text-gray-400 transition hover:border-primary hover:text-foreground sm:flex">
+                <Link
+                  href="/admin/support"
+                  className="hidden rounded-xl border border-border-custom p-2 text-gray-400 transition hover:border-primary hover:text-foreground sm:flex"
+                  title="Support Center"
+                  aria-label="Support Center"
+                >
                   <HelpCircle className="h-5 w-5" />
-                </button>
+                </Link>
 
                 <button
+                  type="button"
                   onClick={handleLogout}
-                  className="hidden rounded-full border border-border-custom p-2 text-gray-400 transition hover:border-red-500/50 hover:text-red-400 sm:flex"
+                  className="hidden rounded-xl border border-border-custom p-2 text-gray-400 transition hover:border-red-500/40 hover:text-red-400 sm:flex"
                   title="Logout"
                   aria-label="Logout"
                 >
                   <LogOut className="h-5 w-5" />
                 </button>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-primary to-[#ff9955] text-sm font-semibold text-black">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary-light text-xs font-semibold text-black">
                   AD
                 </div>
               </div>
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto bg-background pb-16">
-            {children}
-          </main>
+          <AdminBreadcrumbs />
+
+          <main className="flex-1 overflow-y-auto bg-background">{children}</main>
         </div>
 
-        {/* Global Search */}
         <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
       </div>
     </RealtimeProvider>
   );
 }
-

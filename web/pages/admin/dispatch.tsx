@@ -81,8 +81,7 @@ export default function AdminDispatch() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-[#090c11]">
-        <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
+      <div className="admin-page-shell max-w-7xl">
           <AdminPageHeader
             title="Dispatch"
             tag="Logistics"
@@ -224,7 +223,6 @@ export default function AdminDispatch() {
             )}
           </AdminCard>
         </div>
-      </div>
       <AdminDrawer
         open={!!selectedId}
         onClose={() => setSelectedId(null)}

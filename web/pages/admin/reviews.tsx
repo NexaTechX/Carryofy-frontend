@@ -321,8 +321,7 @@ export default function AdminReviews() {
   return (
     <Fragment>
       <AdminLayout>
-        <div className="min-h-screen bg-[#090c11]">
-          <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
+        <div className="admin-page-shell max-w-7xl">
             <AdminPageHeader
               title="Reviews"
               tag="Review Moderation"
@@ -792,7 +791,6 @@ export default function AdminReviews() {
                 )}
               </>
             )}
-          </div>
         </div>
 
         {/* Product Review Detail Drawer */}

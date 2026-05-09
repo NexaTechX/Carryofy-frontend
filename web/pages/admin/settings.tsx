@@ -409,7 +409,7 @@ export default function AdminSettings() {
   return (
     <>
       <AdminLayout>
-        <div className={`space-y-4 px-6 py-8 lg:px-10 ${hasUnsavedChanges ? 'pb-24' : ''}`}>
+        <div className={`admin-page-shell max-w-7xl space-y-4 ${hasUnsavedChanges ? 'pb-24' : ''}`}>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-3xl font-semibold text-white">Settings</h1>

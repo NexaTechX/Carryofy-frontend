@@ -184,9 +184,8 @@ export default function AdminReports() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-[#090c11]">
+      <div className="admin-page-shell max-w-7xl">
         <div ref={sentinelRef} className="h-0" aria-hidden />
-        <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
           <AdminPageHeader
             title="Reports"
             tag="Analytics"
@@ -460,7 +459,6 @@ export default function AdminReports() {
             </AdminCard>
           </section>
         </div>
-      </div>
     </AdminLayout>
   );
 }

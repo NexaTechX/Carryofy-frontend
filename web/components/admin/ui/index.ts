@@ -6,6 +6,7 @@ export * from './StatusBadge';
 export * from './AdminToolbar';
 export * from './AdminDrawer';
 export * from './AdminEmptyState';
+export * from './AdminErrorState';
 export * from './RatingDistributionBar';
 export * from './DataFreshnessIndicator';
 export * from './AdminTableToolbar';

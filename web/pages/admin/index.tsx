@@ -4,7 +4,6 @@ import { useAdminProfile } from '../../lib/admin/hooks/useAdminProfile';
 import { useRefundStats } from '../../lib/admin/hooks/useRefunds';
 import { usePendingProducts } from '../../lib/admin/hooks/usePendingProducts';
 import {
-  AlertTriangle,
   FileText,
   ShoppingCart,
   TrendingUp,
@@ -24,7 +23,7 @@ import {
   Warehouse,
   ClipboardList,
 } from 'lucide-react';
-import { AdminCard, AdminPageHeader } from '../../components/admin/ui';
+import { AdminCard, AdminErrorState, AdminPageHeader } from '../../components/admin/ui';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -58,20 +57,18 @@ const PRIMARY = '#ff6600';
 
 function DashboardSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-12 pt-8 sm:px-6 lg:px-10">
-      <div className="flex flex-col gap-6">
-        <div className="h-24 w-full animate-pulse rounded-2xl bg-[#1f2534]" />
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div key={`metric-skeleton-${index}`} className="h-36 animate-pulse rounded-2xl bg-[#1f2534]" />
-          ))}
-        </div>
-        <div className="h-20 w-full animate-pulse rounded-2xl bg-[#1f2534]" />
-        <div className="grid gap-4 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div key={`insight-skeleton-${index}`} className="h-80 animate-pulse rounded-2xl bg-[#1f2534]" />
-          ))}
-        </div>
+    <div className="flex flex-col gap-6">
+      <div className="h-24 w-full animate-pulse rounded-2xl bg-[#1f2534]" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div key={`metric-skeleton-${index}`} className="h-36 animate-pulse rounded-2xl bg-[#1f2534]" />
+        ))}
+      </div>
+      <div className="h-20 w-full animate-pulse rounded-2xl bg-[#1f2534]" />
+      <div className="grid gap-4 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={`insight-skeleton-${index}`} className="h-80 animate-pulse rounded-2xl bg-[#1f2534]" />
+        ))}
       </div>
     </div>
   );
@@ -87,17 +84,12 @@ export default function AdminDashboard() {
   if (isError) {
     return (
       <AdminLayout>
-        <div className="mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-24 text-center text-gray-300">
-          <AlertTriangle className="h-10 w-10 text-primary" />
-          <p className="text-sm">
-            Failed to load admin overview. {error instanceof Error ? error.message : ''}
-          </p>
-          <button
-            onClick={() => refetch()}
-            className="rounded-full border border-primary px-5 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-black"
-          >
-            Retry
-          </button>
+        <div className="admin-page-shell max-w-7xl">
+          <AdminErrorState
+            title="Couldn’t load overview"
+            message={error instanceof Error ? error.message : 'Please try again.'}
+            onRetry={() => refetch()}
+          />
         </div>
       </AdminLayout>
     );
@@ -106,7 +98,7 @@ export default function AdminDashboard() {
   if (isLoading || !data) {
     return (
       <AdminLayout>
-        <div className="min-h-screen bg-[#090c11]">
+        <div className="admin-page-shell max-w-7xl">
           <DashboardSkeleton />
         </div>
       </AdminLayout>
@@ -261,8 +253,7 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-[#090c11]">
-        <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
+      <div className="admin-page-shell max-w-7xl">
           {/* Greeting strip: personalized greeting, date, platform health, Live Mode */}
           <section className="mb-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -615,7 +606,6 @@ export default function AdminDashboard() {
             </div>
           </section>
         </div>
-      </div>
     </AdminLayout>
   );
 }

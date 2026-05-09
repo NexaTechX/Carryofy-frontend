@@ -270,7 +270,7 @@ export default function AdminQuoteRequestsPage() {
 
   return (
     <AdminLayout>
-      <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-12">
+      <div className="admin-page-shell max-w-7xl">
         <AdminPageHeader
           title="Quote Requests"
           tag="Business"

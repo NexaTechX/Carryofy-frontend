@@ -56,10 +56,10 @@ export function AdminCard({
       type={onClick ? 'button' : undefined}
       onClick={onClick}
       className={clsx(
-        'flex w-full flex-col gap-4 rounded-2xl border bg-[#111111] p-6 text-left shadow-[0_18px_38px_-24px_rgba(0,0,0,0.6)] transition',
+        'flex w-full flex-col gap-4 rounded-2xl border border-border-custom bg-card p-6 text-left shadow-[0_18px_38px_-24px_rgba(0,0,0,0.55)] transition',
         pulseBorder
           ? 'border-amber-500/70 animate-pulse-border'
-          : 'border-[#1f1f1f]',
+          : '',
         onClick && 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40',
         !onClick && !pulseBorder && 'hover:border-primary/30',
         onClick && accent !== 'red' && 'hover:border-primary/30',
@@ -75,7 +75,7 @@ export function AdminCard({
                 {eyebrow}
               </span>
             ) : null}
-            {title ? <h3 className="text-lg font-semibold text-white">{title}</h3> : null}
+            {title ? <h3 className="font-heading text-lg font-semibold text-foreground">{title}</h3> : null}
             {description ? <p className="mt-1 text-sm text-gray-400">{description}</p> : null}
           </div>
           {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
@@ -102,7 +102,7 @@ export function AdminCard({
         </div>
       ) : null}
 
-      {footer ? <footer className="border-t border-[#1f1f1f] pt-4 text-xs text-gray-500">{footer}</footer> : null}
+      {footer ? <footer className="border-t border-border-custom pt-4 text-xs text-gray-500">{footer}</footer> : null}
     </Wrapper>
   );
 }

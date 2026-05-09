@@ -9,11 +9,11 @@ interface StatusBadgeProps {
 }
 
 const toneStyles: Record<StatusTone, string> = {
-  neutral: 'border-[#2a2a2a] bg-[#151515] text-gray-300',
-  success: 'border-[#1f3a27] bg-[#132019] text-[#6ef2a1]',
-  warning: 'border-[#3a2a1f] bg-[#21170f] text-[#ffb169]',
-  danger: 'border-[#3a1f1f] bg-[#211010] text-[#ff8484]',
-  info: 'border-[#1f303a] bg-[#101d24] text-[#7ecbff]',
+  neutral: 'border-border-custom bg-card text-gray-300',
+  success: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300',
+  warning: 'border-amber-500/30 bg-amber-500/10 text-amber-200',
+  danger: 'border-red-500/30 bg-red-500/10 text-red-300',
+  info: 'border-sky-500/25 bg-sky-500/10 text-sky-200',
 };
 
 export function StatusBadge({ tone = 'neutral', label, className }: StatusBadgeProps) {

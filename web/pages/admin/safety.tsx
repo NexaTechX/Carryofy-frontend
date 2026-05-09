@@ -332,7 +332,7 @@ export default function AdminSafetyPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8 px-4 pb-12 pt-6 sm:px-6 lg:px-8">
+      <div className="admin-page-shell max-w-7xl space-y-8">
         <AdminPageHeader
           title="Safety Center"
           subtitle="Monitor SOS alerts, rider check-ins, and incident reports in real time."

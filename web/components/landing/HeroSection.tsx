@@ -1,13 +1,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { ArrowRight, LineChart, Shield } from 'lucide-react';
+import { ArrowRight, LineChart, Package, Shield } from 'lucide-react';
 
-const heroPrimary =
-  'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2000&auto=format&fit=crop';
-
-const heroSecondary =
-  'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1200&auto=format&fit=crop';
+const heroImage = '/images/hero-b2b-lagos.png';
 
 export default function HeroSection() {
   return (
@@ -106,42 +102,40 @@ export default function HeroSection() {
             transition={{ duration: 0.6, delay: 0.08 }}
             className="relative mx-auto w-full max-w-xl lg:mx-0 lg:max-w-none"
           >
-            <div className="relative aspect-[4/5] overflow-hidden rounded-2xl ring-1 ring-white/10">
+            <div className="relative aspect-[3/4] overflow-hidden rounded-2xl ring-1 ring-white/10 sm:aspect-[4/5]">
               <Image
-                src={heroPrimary}
-                alt="Modern, well-stocked retail shelves — efficient B2B restocking"
+                src={heroImage}
+                alt="Busy wholesale warehouse with organized aisles for fashion, beauty, and general trade — team coordinating B2B inventory and fulfilment"
                 fill
                 priority
                 sizes="(min-width: 1024px) 42vw, 100vw"
-                className="object-cover"
+                className="object-cover object-[center_35%]"
               />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/20 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/35 to-zinc-950/20" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-zinc-950/50 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
                 <p className="font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-400">
-                  Retail-ready supply
+                  Wholesale, orchestrated
                 </p>
                 <p className="mt-1 font-heading text-lg font-semibold text-white sm:text-xl">
-                  Stock that looks as good on the shelf as it does in your books.
+                  The floor your retailers trust — now with rails that scale.
                 </p>
               </div>
             </div>
 
-            <div className="absolute -bottom-6 left-4 right-4 sm:-bottom-8 sm:left-auto sm:right-[-8%] sm:w-[58%]">
-              <div className="overflow-hidden rounded-xl border border-white/10 bg-zinc-950/80 shadow-2xl shadow-black/40 ring-1 ring-white/5 backdrop-blur-md">
-                <div className="relative aspect-[16/10]">
-                  <Image
-                    src={heroSecondary}
-                    alt="Organized warehouse and palletized inventory in Lagos"
-                    fill
-                    sizes="(min-width: 1024px) 24vw, 85vw"
-                    className="object-cover opacity-95"
-                  />
-                </div>
-                <div className="border-t border-white/10 px-4 py-3">
-                  <p className="text-xs font-medium text-white">Fulfilment backbone</p>
-                  <p className="text-[11px] leading-snug text-zinc-500">
-                    Organized inbound, predictable handoffs, less market running.
-                  </p>
+            <div className="absolute -bottom-6 left-4 right-4 sm:-bottom-8 sm:left-auto sm:right-[-6%] sm:w-[min(100%,20rem)] lg:w-[56%]">
+              <div className="rounded-xl border border-white/15 bg-zinc-950/85 px-4 py-3 shadow-2xl shadow-black/50 ring-1 ring-white/10 backdrop-blur-md sm:px-5 sm:py-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#FF6B00]/20 text-[#FF6B00]">
+                    <Package className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-white">On Carryofy</p>
+                    <p className="mt-1 text-[11px] leading-snug text-zinc-400">
+                      Verified supplier network, category depth across fashion, beauty, electronics
+                      &amp; grocery, and delivery you can track — not chase on WhatsApp.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

@@ -21,6 +21,7 @@ import {
   Scale,
   Gift,
   Wallet as WalletIcon,
+  Bell,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import NotificationsDropdown from './NotificationsDropdown';
@@ -71,6 +72,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
     { name: 'Home', href: '/buyer', icon: Home },
     { name: 'Shop', href: '/buyer/products', icon: ShoppingBag },
     { name: 'My Orders', href: '/buyer/orders', icon: Package },
+    { name: 'Notifications', href: '/buyer/notifications', icon: Bell },
     { name: 'My Quotes', href: '/buyer/quotes', icon: FileText },
     { name: 'Bulk Order', href: '/buyer/bulk-order', icon: Layers },
     { name: 'Saved Lists', href: '/buyer/wishlist', icon: Bookmark },

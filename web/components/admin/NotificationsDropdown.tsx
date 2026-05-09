@@ -274,6 +274,19 @@ export default function NotificationsDropdown() {
               </div>
             )}
           </div>
+
+          <div className="border-t border-[#1f1f1f] px-4 py-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                router.push('/admin/notifications');
+              }}
+              className="w-full rounded-xl bg-[#151515] py-2.5 text-center text-sm font-semibold text-primary transition hover:bg-[#1a1a1a]"
+            >
+              View all notifications
+            </button>
+          </div>
         </div>
       )}
     </div>

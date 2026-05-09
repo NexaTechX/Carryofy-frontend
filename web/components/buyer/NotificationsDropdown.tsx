@@ -243,10 +243,17 @@ export default function NotificationsDropdown({ className }: NotificationsDropdo
             )}
           </div>
 
-          <div className="px-4 py-3 border-t border-[#ff6600]/20 text-right">
+          <div className="px-4 py-3 border-t border-[#ff6600]/20 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <Link
+              href="/buyer/notifications"
+              onClick={() => setOpen(false)}
+              className="text-[#ff6600] text-xs font-semibold hover:text-white transition text-center sm:text-left"
+            >
+              View all notifications
+            </Link>
             <Link
               href="/buyer/help"
-              className="text-[#ffcc99]/70 text-xs hover:text-[#ffcc99] transition"
+              className="text-[#ffcc99]/70 text-xs hover:text-[#ffcc99] transition text-center sm:text-right"
             >
               Need help? Visit support →
             </Link>

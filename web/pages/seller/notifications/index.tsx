@@ -318,9 +318,10 @@ export default function NotificationsPage() {
     }
   };
 
-  const filteredNotifications = filter === 'all' 
-    ? notifications 
-    : notifications.filter(n => n.type === filter);
+  const filteredNotifications =
+    filter === 'all'
+      ? notifications
+      : notifications.filter((n) => n.type?.toUpperCase() === filter.toUpperCase());
 
   const savePreferences = async () => {
     setSavingPreferences(true);

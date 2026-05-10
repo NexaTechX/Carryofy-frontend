@@ -21,7 +21,7 @@ export default function CallToAction() {
   };
 
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative overflow-hidden py-16 sm:py-24 lg:py-28">
       <div className="absolute inset-0">
         <Image
           src={ctaBg}
@@ -35,7 +35,7 @@ export default function CallToAction() {
         <div className="landing-vignette absolute inset-0 opacity-60" aria-hidden />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-4xl px-4 py-24 text-center sm:px-6 sm:py-28 lg:px-8 lg:py-32">
+      <div className="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -82,11 +82,11 @@ export default function CallToAction() {
             placeholder="Your email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3.5 text-sm text-white placeholder:text-zinc-500 backdrop-blur-sm focus:border-[#FF6B00]/50 focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/30 sm:min-w-0 sm:flex-1"
+            className="w-full rounded-xl border border-white bg-white px-4 py-3.5 text-sm text-zinc-950 shadow-sm placeholder:text-zinc-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 sm:min-w-0 sm:flex-1"
           />
           <button
             type="submit"
-            className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF6B00] px-8 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-[#FF6B00]/15 transition hover:bg-[#E65100] sm:shrink-0 sm:py-4 sm:text-[15px]"
+            className="group inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition hover:bg-primary-dark sm:shrink-0 sm:px-9 sm:py-4 sm:text-[15px]"
           >
             Get started →
           </button>

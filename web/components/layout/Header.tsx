@@ -63,7 +63,7 @@ export default function Header() {
 
   const navLinks = [
     { name: 'Home', href: '/' },
-    { name: 'Sell', href: '/merchant-onboarding' },
+    { name: 'Become a Vendor', href: '/merchant-onboarding' },
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
   ];

@@ -12,56 +12,54 @@ const testimonials: {
   quote: ReactNode;
 }[] = [
   {
-    name: 'Chioma G.',
-    business: 'Threads & Co. Boutique',
-    location: 'Yaba, Lagos',
+    name: 'Chioma Okafor',
+    business: 'Fashion boutique',
+    location: 'Yaba',
     avatar:
       'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&h=200&auto=format&fit=crop',
-    avatarAlt: 'Portrait of Chioma, fashion retailer',
+    avatarAlt: 'Portrait of Chioma Okafor, fashion boutique owner in Yaba',
     quote: (
       <>
-        &ldquo;Sourcing from one place instead of chasing three markets has already saved me{' '}
-        <span className="font-semibold text-[#FF6B00]">half a day each week</span>.&rdquo;
+        &ldquo;I restocked Ankara and ready-to-wear pieces without sending someone to Balogun. The{' '}
+        <span className="font-semibold text-[#FF6B00]">prices were clear before I paid</span>.&rdquo;
       </>
     ),
   },
   {
-    name: 'Ibrahim K.',
-    business: 'K-Mobile Accessories',
-    location: 'Computer Village corridor',
+    name: 'Ibrahim Lawal',
+    business: 'Phone accessories shop',
+    location: 'Ikeja',
     avatar:
       'https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=200&h=200&auto=format&fit=crop',
-    avatarAlt: 'Portrait of Ibrahim, electronics retailer',
+    avatarAlt: 'Portrait of Ibrahim Lawal, phone accessories retailer in Ikeja',
     quote: (
       <>
-        &ldquo;Verified vendors on the platform means I spend{' '}
-        <span className="font-semibold text-[#FF6B00]">less time</span> worrying about who I am
-        paying.&rdquo;
+        &ldquo;For chargers and earpieces, I need vendors I can call again. Carryofy helped me compare{' '}
+        <span className="font-semibold text-[#FF6B00]">stock and delivery in one place</span>.&rdquo;
       </>
     ),
   },
   {
-    name: 'Funke A.',
-    business: 'Glow Beauty Supply',
-    location: 'Lekki, Lagos',
+    name: 'Funke Adeyemi',
+    business: 'Beauty supply store',
+    location: 'Lekki',
     avatar:
       'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=200&h=200&auto=format&fit=crop',
-    avatarAlt: 'Portrait of Funke, beauty supply owner',
+    avatarAlt: 'Portrait of Funke Adeyemi, beauty supply store owner in Lekki',
     quote: (
       <>
-        &ldquo;I placed my first order in{' '}
-        <span className="font-semibold text-[#FF6B00]">under three minutes</span> — clearer than my
-        old WhatsApp-and-rider routine.&rdquo;
+        &ldquo;My customers ask for the same creams every week. Reordering was faster, and I could{' '}
+        <span className="font-semibold text-[#FF6B00]">track when dispatch left</span>.&rdquo;
       </>
     ),
   },
 ];
 
 const corridorPartners = [
-  { label: 'Mainland retail', sub: 'Yaba · Surulere · Ikeja' },
-  { label: 'Island corridors', sub: 'Lekki · Ajah · VI' },
-  { label: 'Category depth', sub: 'Fashion · Beauty · Tech · Grocery' },
-  { label: 'Logistics mesh', sub: 'Coordinated last-mile' },
+  { value: '200+ retailers', label: 'Mainland retail', sub: 'Yaba · Surulere · Ikeja' },
+  { value: '4 corridors', label: 'Island corridors', sub: 'Lekki · Ajah · VI' },
+  { value: '4 categories', label: 'Category depth', sub: 'Fashion · Beauty · Tech · Grocery' },
+  { value: '1 logistics partner', label: 'Logistics reach', sub: 'Coordinated last-mile' },
 ];
 
 const badges = [
@@ -126,7 +124,10 @@ export default function TrustAndSocialProof() {
                 key={p.label}
                 className="rounded-xl border border-zinc-100 bg-stone-50/90 px-4 py-4 text-center lg:text-left"
               >
-                <p className="font-heading text-sm font-semibold text-zinc-900">{p.label}</p>
+                <p className="font-heading text-xl font-semibold tracking-tight text-zinc-950">
+                  {p.value}
+                </p>
+                <p className="mt-2 text-sm font-semibold text-zinc-900">{p.label}</p>
                 <p className="mt-1 text-xs leading-snug text-zinc-500">{p.sub}</p>
               </div>
             ))}
@@ -180,8 +181,9 @@ export default function TrustAndSocialProof() {
                 </div>
                 <div className="min-w-0">
                   <p className="font-semibold text-zinc-900">{t.name}</p>
-                  <p className="truncate text-xs text-zinc-600 sm:text-sm">{t.business}</p>
-                  <p className="text-xs text-zinc-500">{t.location}</p>
+                  <p className="truncate text-xs text-zinc-600 sm:text-sm">
+                    {t.business}, {t.location}
+                  </p>
                 </div>
               </div>
             </motion.article>

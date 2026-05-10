@@ -1,28 +1,42 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight, LineChart, Package, Shield } from 'lucide-react';
 
+/** Wholesale / logistics — aligns with B2B supply; scrims keep left-column copy readable. */
+const heroBgImage =
+  'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2400&auto=format&fit=crop';
+
 export default function HeroSection() {
   return (
     <section className="relative flex min-h-[min(100svh,52rem)] items-center overflow-hidden bg-gray-900 text-white">
+      <div className="pointer-events-none absolute inset-0">
+        <Image
+          src={heroBgImage}
+          alt=""
+          fill
+          className="object-cover object-[center_40%] sm:object-[center_35%]"
+          sizes="100vw"
+          priority
+        />
+        {/* Base cool tint so the photo reads on-brand with orange accents */}
+        <div
+          className="absolute inset-0 bg-[linear-gradient(135deg,rgba(17,24,39,0.55)_0%,rgba(23,30,44,0.4)_45%,rgba(42,45,62,0.25)_100%)]"
+          aria-hidden
+        />
+        {/* Stronger scrim on the left where headlines sit; right stays more open so the image shows */}
+        <div
+          className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,7,18,0.92)_0%,rgba(17,24,39,0.78)_38%,rgba(17,24,39,0.45)_65%,rgba(17,24,39,0.22)_100%)]"
+          aria-hidden
+        />
+        <div
+          className="absolute inset-0 bg-[radial-gradient(circle_at_78%_24%,rgba(255,107,0,0.2),transparent_38%)]"
+          aria-hidden
+        />
+        <div className="landing-vignette absolute inset-0 opacity-50" aria-hidden />
+      </div>
       <div
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,#111827_0%,#171E2C_42%,#2A2D3E_100%)]"
-        aria-hidden
-      />
-      <div
-        className="landing-grid-dark pointer-events-none absolute inset-0 opacity-45"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-28 top-16 h-96 w-96 rounded-full bg-primary/30 blur-3xl sm:h-120 sm:w-120"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -left-32 bottom-0 h-80 w-80 rounded-full bg-primary-light/15 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_22%,rgba(255,107,0,0.18),transparent_34%),linear-gradient(90deg,rgba(17,24,39,0.96)_0%,rgba(17,24,39,0.86)_48%,rgba(17,24,39,0.62)_100%)]"
+        className="landing-grid-dark pointer-events-none absolute inset-0 opacity-[0.32]"
         aria-hidden
       />
 
@@ -39,7 +53,7 @@ export default function HeroSection() {
               <span className="text-zinc-200">Lagos retailers · Verified suppliers</span>
             </div>
 
-            <h1 className="font-heading text-[2rem] font-semibold leading-[1.12] tracking-tight text-white sm:text-4xl lg:text-[2.75rem] xl:text-[3rem]">
+            <h1 className="font-heading text-[2rem] font-semibold leading-[1.12] tracking-tight text-white [text-shadow:0_2px_28px_rgba(0,0,0,0.45)] sm:text-4xl lg:text-[2.75rem] xl:text-[3rem]">
               <span className="block">
                 Carryofy: Your Trusted Partner for Seamless B2B Trade in Lagos.
               </span>

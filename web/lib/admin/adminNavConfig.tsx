@@ -4,6 +4,7 @@ import {
   BarChart2,
   Building2,
   Calendar,
+  Coffee,
   DollarSign,
   FileBarChart2,
   FileText,
@@ -81,6 +82,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { name: 'Deliveries', href: '/admin/deliveries', icon: Truck },
       { name: 'Rider KYC', href: '/admin/riders-kyc', icon: UserCheck },
+      { name: 'Rider breaks', href: '/admin/rider-break-requests', icon: Coffee },
       { name: 'Fleet operators', href: '/admin/fleet', icon: Building2 },
       { name: 'Safety Center', href: '/admin/safety', icon: Shield },
       { name: 'Dispatch', href: '/admin/dispatch', icon: Zap },

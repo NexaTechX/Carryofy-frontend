@@ -44,6 +44,27 @@ export async function fetchFleetRiders(): Promise<
   return unwrap(data);
 }
 
+export type FleetRiderBreakRequestRow = {
+  id: string;
+  riderId: string;
+  riderName: string;
+  riderEmail: string;
+  startTime: string;
+  endTime: string;
+  reason: string | null;
+  createdAt: string;
+};
+
+export async function fetchFleetRiderBreakRequests(params?: {
+  limit?: number;
+  from?: string;
+  to?: string;
+}): Promise<FleetRiderBreakRequestRow[]> {
+  const { data } = await apiClient.get('/fleet/rider-break-requests', { params });
+  const out = unwrap<unknown>(data);
+  return Array.isArray(out) ? (out as FleetRiderBreakRequestRow[]) : [];
+}
+
 export async function fetchFleetDeliveries(params?: {
   status?: string;
   from?: string;

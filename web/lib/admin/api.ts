@@ -1738,3 +1738,25 @@ export async function adminRejectFleetPayout(
   );
   return normalizeResponse(data) as { message: string };
 }
+
+export type AdminRiderBreakRequestRow = {
+  id: string;
+  riderId: string;
+  riderName: string;
+  riderEmail: string;
+  fleetOperatorName: string | null;
+  startTime: string;
+  endTime: string;
+  reason: string | null;
+  createdAt: string;
+};
+
+export async function fetchAdminRiderBreakRequests(params?: {
+  limit?: number;
+  from?: string;
+  to?: string;
+}): Promise<AdminRiderBreakRequestRow[]> {
+  const { data } = await apiClient.get('/admin/riders/break-requests', { params });
+  const normalized = normalizeResponse<unknown>(data);
+  return Array.isArray(normalized) ? (normalized as AdminRiderBreakRequestRow[]) : [];
+}

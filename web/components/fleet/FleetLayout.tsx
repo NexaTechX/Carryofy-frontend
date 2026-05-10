@@ -10,12 +10,14 @@ import {
   CreditCard,
   Menu,
   LogOut,
+  Coffee,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 
 const NAV = [
   { href: '/fleet', label: 'Overview', icon: LayoutDashboard },
   { href: '/fleet/riders', label: 'Riders', icon: Users },
+  { href: '/fleet/break-requests', label: 'Break requests', icon: Coffee },
   { href: '/fleet/deliveries', label: 'Deliveries', icon: Truck },
   { href: '/fleet/earnings', label: 'Earnings', icon: DollarSign },
   { href: '/fleet/payouts', label: 'Payouts', icon: CreditCard },

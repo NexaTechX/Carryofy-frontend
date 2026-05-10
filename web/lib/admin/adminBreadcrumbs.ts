@@ -17,6 +17,7 @@ const STATIC_LABELS: Record<string, string> = {
   deliveries: 'Deliveries',
   delivery: 'Deliveries',
   'riders-kyc': 'Rider KYC',
+  'rider-break-requests': 'Rider break requests',
   fleet: 'Fleet operators',
   safety: 'Safety Center',
   dispatch: 'Dispatch',

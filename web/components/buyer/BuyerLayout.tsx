@@ -10,8 +10,6 @@ import {
   Truck,
   User,
   ShoppingCart,
-  Menu,
-  X,
   LogOut,
   HelpCircle,
   Bookmark,
@@ -22,6 +20,8 @@ import {
   Gift,
   Wallet as WalletIcon,
   Bell,
+  ClipboardList,
+  Zap,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import NotificationsDropdown from './NotificationsDropdown';
@@ -33,16 +33,16 @@ import { useAuth } from '../../lib/auth';
 import { useCart } from '../../lib/contexts/CartContext';
 import ErrorBoundary from '../common/ErrorBoundary';
 
-
 interface BuyerLayoutProps {
   children: ReactNode;
 }
+
+type BuyerMobileTab = 'home' | 'shop' | 'orders' | 'saved' | 'account';
 
 export default function BuyerLayout({ children }: BuyerLayoutProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { cartCount, openDrawer } = useCart();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -96,97 +96,135 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
     return path === href || path.startsWith(href + '/');
   };
 
+  const buyerPath = (router.asPath || '/').split('?')[0];
+
+  const buyerMobileTopTitle = () => {
+    const p = router.pathname;
+    if (p.startsWith('/buyer/products')) return 'Shop';
+    if (p.startsWith('/buyer/orders')) return 'Orders';
+    if (p.startsWith('/buyer/wishlist')) return 'Saved & Rewards';
+    if (p.startsWith('/buyer/account') || p.startsWith('/buyer/profile')) return 'Account';
+    if (p.startsWith('/buyer/cart')) return 'Cart';
+    if (p.startsWith('/buyer/checkout')) return 'Checkout';
+    return 'Carryofy';
+  };
+
+  const buyerMobileTab = (): BuyerMobileTab => {
+    if (buyerPath === '/buyer') return 'home';
+    if (
+      buyerPath.startsWith('/buyer/products') ||
+      buyerPath.startsWith('/buyer/categories') ||
+      buyerPath.startsWith('/buyer/cart')
+    )
+      return 'shop';
+    if (
+      buyerPath.startsWith('/buyer/orders') ||
+      buyerPath.startsWith('/buyer/track') ||
+      buyerPath.startsWith('/buyer/disputes')
+    )
+      return 'orders';
+    if (buyerPath.startsWith('/buyer/wishlist')) return 'saved';
+    if (
+      buyerPath.startsWith('/buyer/account') ||
+      buyerPath.startsWith('/buyer/profile') ||
+      buyerPath.startsWith('/buyer/notifications') ||
+      buyerPath.startsWith('/buyer/quotes') ||
+      buyerPath.startsWith('/buyer/bulk-order') ||
+      buyerPath.startsWith('/buyer/referrals') ||
+      buyerPath.startsWith('/buyer/wallet') ||
+      buyerPath.startsWith('/buyer/help') ||
+      buyerPath.startsWith('/buyer/feedback') ||
+      buyerPath.startsWith('/buyer/preferences')
+    )
+      return 'account';
+    return 'home';
+  };
+
+  const buyerTab = buyerMobileTab();
+  const accountHref = user ? '/buyer/account' : '/auth/login?redirect=/buyer/account';
+
+  const buyerMobileNav: { id: BuyerMobileTab; href: string; label: string; Icon: typeof Home }[] = [
+    { id: 'home', href: '/buyer', label: 'Home', Icon: Home },
+    { id: 'shop', href: '/buyer/products', label: 'Shop', Icon: ShoppingBag },
+    { id: 'orders', href: '/buyer/orders', label: 'Orders', Icon: ClipboardList },
+    { id: 'saved', href: '/buyer/wishlist', label: 'Saved', Icon: Bookmark },
+    { id: 'account', href: accountHref, label: 'Account', Icon: User },
+  ];
+
+  const buyerInitials =
+    user?.name
+      ?.split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join('') || 'U';
+
   return (
-    <div className="min-h-screen bg-background flex flex-col font-inter">
-      {/* Top Header */}
-      <header className="bg-background border-b border-border-custom sticky top-0 z-50 safe-top">
-        <div className="flex items-center gap-4 px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
-          {/* Logo and Mobile Menu */}
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden text-foreground/70 hover:text-foreground p-2 touch-target btn-mobile"
-              aria-label="Toggle menu"
-            >
-              <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
+    <div className="flex min-h-screen flex-col bg-background font-inter max-lg:bg-[#0f1117]">
+      <header className="sticky top-0 z-50 hidden safe-top shrink-0 border-b border-border-custom bg-background lg:block">
+        <div className="flex items-center gap-4 px-3 py-3 sm:px-4 lg:px-8 sm:py-4">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
             <Link href="/buyer" className="flex items-center gap-2">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 relative">
+              <div className="relative h-7 w-7 sm:h-8 sm:w-8">
                 <Image
                   src="/logo.png"
                   alt="Carryofy"
                   width={32}
                   height={32}
-                  className="w-full h-full object-contain"
+                  className="h-full w-full object-contain"
                   priority
                 />
               </div>
-              <span className="text-primary text-lg sm:text-2xl font-bold">Carryofy</span>
+              <span className="text-lg font-bold text-primary sm:text-2xl">Carryofy</span>
             </Link>
           </div>
 
-          {/* Search Bar - persistent, all pages */}
-          <form
-            onSubmit={handleSearch}
-            className="hidden md:flex flex-1 max-w-xl mx-4"
-          >
-            <div className="flex-1 flex items-center bg-card rounded-lg border border-border-custom focus-within:border-primary/50 transition-colors">
-              <Search className="w-4 h-4 text-foreground/50 ml-3 shrink-0" />
+          <form onSubmit={handleSearch} className="mx-4 hidden max-w-xl flex-1 md:flex">
+            <div className="flex flex-1 items-center rounded-lg border border-border-custom bg-card transition-colors focus-within:border-primary/50">
+              <Search className="ml-3 h-4 w-4 shrink-0 text-foreground/50" />
               <input
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products..."
-                className="flex-1 bg-transparent text-foreground placeholder:text-foreground/40 py-2.5 px-3 text-sm focus:outline-none"
+                className="flex-1 bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/40 focus:outline-none"
                 aria-label="Search products"
               />
             </div>
           </form>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0 ml-auto">
-
-            {/* Cart */}
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">
             <button
               onClick={openDrawer}
-              className="relative p-2 text-foreground/70 hover:text-foreground transition touch-target btn-mobile"
+              className="btn-mobile touch-target relative p-2 text-foreground/70 transition hover:text-foreground"
               aria-label={`Cart ${cartCount > 0 ? `(${cartCount} items)` : ''}`}
             >
-              <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
+              <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />
               {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-primary text-black text-[10px] sm:text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-black sm:-right-1 sm:-top-1 sm:h-5 sm:w-5 sm:text-xs">
                   {cartCount > 9 ? '9+' : cartCount}
                 </span>
               )}
             </button>
 
-            {/* Notifications — authenticated buyers only */}
-            {mounted && user && (
-              <NotificationsDropdown className="relative" />
-            )}
+            {mounted && user && <NotificationsDropdown className="relative" />}
 
             {mounted && !user && (
-              <Link
-                href="/auth/login"
-                className="text-sm font-semibold text-primary hover:underline px-2"
-              >
+              <Link href="/auth/login" className="px-2 text-sm font-semibold text-primary hover:underline">
                 Sign in
               </Link>
             )}
 
-            {/* User Menu */}
             {mounted && user && (
               <div className="flex items-center gap-2 sm:gap-3">
-                <span className="hidden md:block text-foreground text-sm truncate max-w-[100px]">
-                  {user.name}
-                </span>
+                <span className="hidden max-w-[100px] truncate text-sm text-foreground md:block">{user.name}</span>
                 <button
                   onClick={handleLogout}
-                  className="p-2 text-foreground/70 hover:text-foreground transition touch-target btn-mobile"
+                  className="btn-mobile touch-target p-2 text-foreground/70 transition hover:text-foreground"
                   title="Logout"
                   aria-label="Logout"
                 >
-                  <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
             )}
@@ -194,51 +232,55 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <aside
-          className={`fixed lg:static inset-y-0 left-0 z-40 w-[280px] sm:w-64 bg-card border-r border-border-custom transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            } overflow-y-auto`}
-        >
-          <div className="flex flex-col h-full">
-            {/* Mobile Close Button */}
-            <div className="lg:hidden flex justify-between items-center p-4 border-b border-border-custom">
-              <Link href="/buyer" className="flex items-center gap-2">
-                <div className="w-7 h-7 relative">
-                  <Image
-                    src="/logo.png"
-                    alt="Carryofy"
-                    width={28}
-                    height={28}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <span className="text-primary text-lg font-bold">Carryofy</span>
-              </Link>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="text-foreground/70 hover:text-foreground p-2 touch-target btn-mobile"
-                aria-label="Close menu"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      <header className="sticky top-0 z-50 shrink-0 border-b border-white/[0.06] bg-[#0f1117] safe-top lg:hidden">
+        <div className="flex items-center justify-between px-3 py-2">
+          <Link href="/buyer" className="flex min-w-0 items-center gap-1.5">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-orange-500">
+              <Zap className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
             </div>
+            <span className="truncate text-sm font-extrabold text-white">{buyerMobileTopTitle()}</span>
+          </Link>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={openDrawer}
+              className="relative flex h-[30px] w-[30px] items-center justify-center rounded-full border border-white/[0.07] bg-[#1a1d27]"
+              aria-label={`Cart ${cartCount > 0 ? `(${cartCount} items)` : ''}`}
+            >
+              <ShoppingCart className="h-[15px] w-[15px] text-gray-400" />
+              {cartCount > 0 && (
+                <span className="absolute right-[5px] top-[5px] h-[7px] w-[7px] rounded-full border-[1.5px] border-[#0f1117] bg-orange-500" />
+              )}
+            </button>
+            {mounted && user && <NotificationsDropdown className="relative" carryofyMobileShell />}
+            <Link
+              href={accountHref}
+              className="flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full border border-orange-500/50 bg-orange-500/20 text-[10px] font-bold text-orange-500"
+              aria-label="Account"
+            >
+              {user ? buyerInitials.slice(0, 2) : '…'}
+            </Link>
+          </div>
+        </div>
+      </header>
 
-            {/* Navigation Links */}
-            <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 sm:space-y-2 safe-bottom">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <aside className="hidden w-64 shrink-0 overflow-y-auto border-r border-border-custom bg-card lg:block">
+          <div className="flex h-full flex-col">
+            <nav className="safe-bottom flex-1 space-y-1 px-3 py-4 sm:space-y-2 sm:px-4 sm:py-6">
               {navigation.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center space-x-3 px-4 py-3 sm:py-3 rounded-xl transition touch-target btn-mobile ${isActive(item.href)
-                      ? 'bg-primary text-black font-semibold'
-                      : 'text-foreground/70 hover:bg-background hover:text-foreground'
-                      }`}
+                    className={`btn-mobile touch-target flex items-center space-x-3 rounded-xl px-4 py-3 transition sm:py-3 ${
+                      isActive(item.href)
+                        ? 'bg-primary font-semibold text-black'
+                        : 'text-foreground/70 hover:bg-background hover:text-foreground'
+                    }`}
                   >
-                    <Icon className="w-5 h-5" />
+                    <Icon className="h-5 w-5" />
                     <span className="font-medium">{item.name}</span>
                   </Link>
                 );
@@ -247,25 +289,39 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
           </div>
         </aside>
 
-        {/* Overlay for mobile */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto scroll-smooth relative bg-background">
+        <main className="relative max-lg:bg-[#0f1117] flex-1 overflow-y-auto scroll-smooth bg-background">
           <ErrorBoundary>
-            <div className="relative p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom">{children}</div>
+            <div className="safe-bottom relative p-3 max-lg:px-2.5 max-lg:pb-[88px] max-lg:pt-2.5 sm:p-4 lg:p-6 xl:p-8">
+              {children}
+            </div>
           </ErrorBoundary>
         </main>
       </div>
 
-      {/* Cart Drawer */}
+      <nav
+        className="safe-bottom fixed bottom-0 left-0 right-0 z-[55] flex shrink-0 border-t border-white/10 bg-[#13161f] px-0 pb-3.5 pt-1.5 lg:hidden"
+        aria-label="Buyer primary navigation"
+      >
+        {buyerMobileNav.map(({ id, href, label, Icon }) => {
+          const on = buyerTab === id;
+          return (
+            <Link
+              key={id}
+              href={href}
+              className={`flex flex-1 flex-col items-center gap-0.5 py-0.5 transition-colors ${on ? 'text-orange-500' : 'text-gray-600'}`}
+            >
+              <span
+                className={`-mb-px h-[3px] w-[3px] rounded-full bg-orange-500 transition-opacity ${on ? 'opacity-100' : 'opacity-0'}`}
+                aria-hidden
+              />
+              <Icon className="h-[21px] w-[21px] shrink-0" strokeWidth={on ? 2.25 : 2} />
+              <span className="text-[8px] font-medium leading-none">{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
       <CartDrawer />
     </div>
   );
 }
-

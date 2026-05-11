@@ -195,8 +195,59 @@ export default function DashboardStats() {
     return `₦${(priceInKobo / 100).toFixed(2)}`;
   };
 
+  const compactVal = (v: string) =>
+    loading ? <div className="h-[17px] w-16 animate-pulse rounded bg-white/10" /> : <span className="text-[17px] font-bold leading-tight text-white">{v}</span>;
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <>
+    {/* Mobile stat grid — Carryofy mobile nav reference */}
+    <div className="grid grid-cols-2 gap-[7px] lg:hidden">
+      <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
+        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
+          <Package className="h-3.5 w-3.5 text-orange-500" />
+        </div>
+        {compactVal(stats ? stats.totalProducts.toString() : '0')}
+        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Total products</p>
+      </div>
+      <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
+        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
+          <ShoppingCart className="h-3.5 w-3.5 text-orange-500" />
+        </div>
+        {compactVal(stats ? stats.totalOrders.toString() : '0')}
+        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Total orders</p>
+      </div>
+      <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
+        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
+          <DollarSign className="h-3.5 w-3.5 text-orange-500" />
+        </div>
+        {compactVal(stats ? formatPrice(stats.totalRevenue) : '₦0.00')}
+        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Revenue</p>
+      </div>
+      <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
+        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
+          <Wallet className="h-3.5 w-3.5 text-orange-500" />
+        </div>
+        {compactVal(stats ? formatPrice(stats.availableBalance) : '₦0.00')}
+        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Balance</p>
+        <p className="mt-0.5 text-[8px] text-emerald-500">Available</p>
+      </div>
+      <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
+        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
+          <Clock className="h-3.5 w-3.5 text-orange-500" />
+        </div>
+        {compactVal(stats ? `${stats.pendingPayoutRequestsCount}` : '0')}
+        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Pending req.</p>
+      </div>
+      <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
+        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
+          <FileText className="h-3.5 w-3.5 text-orange-500" />
+        </div>
+        {compactVal(stats ? String(stats.pendingQuoteRequestsCount ?? 0) : '0')}
+        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Pending quotes</p>
+      </div>
+    </div>
+
+    <div className="hidden gap-4 lg:grid lg:grid-cols-3">
       <StatCard
         title="Total Products"
         value={stats ? stats.totalProducts.toString() : '0'}
@@ -248,6 +299,7 @@ export default function DashboardStats() {
         icon={Building2}
       />
     </div>
+    </>
   );
 }
 

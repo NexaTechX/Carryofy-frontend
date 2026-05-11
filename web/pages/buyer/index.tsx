@@ -14,6 +14,7 @@ import {
   Package,
   FileText,
   Bookmark,
+  Search,
   TrendingUp,
   ShoppingBag,
   Layers,
@@ -197,6 +198,7 @@ function mapApiProductToShopCard(p: Record<string, unknown>): ShopProductCardPro
 export default function BuyerDashboard() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [activityOpen, setActivityOpen] = useState(false);
   const [stats, setStats] = useState({
     activeOrders: 0,
@@ -216,6 +218,12 @@ export default function BuyerDashboard() {
   const categoryStrip = categories
     .filter((c) => c.isActive)
     .sort((a, b) => a.displayOrder - b.displayOrder);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (q) router.push(`/buyer/products?search=${encodeURIComponent(q)}`);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -369,18 +377,130 @@ export default function BuyerDashboard() {
       </Head>
       <BuyerLayout>
         <div className="font-inter antialiased">
-          {/* 1 — Hero: admin promos or default brand banner */}
-          <BuyerDashboardPromoCarousel />
+          {/* Mobile home — Carryofy mobile nav reference */}
+          <div className="space-y-2.5 pb-2 lg:hidden">
+            <form
+              onSubmit={handleSearch}
+              className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-[#1a1d27] px-2.5 py-1.5"
+            >
+              <Search className="h-[13px] w-[13px] shrink-0 text-gray-600" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products, vendors…"
+                className="min-w-0 flex-1 bg-transparent text-[11px] text-gray-600 placeholder:text-gray-600 focus:outline-none"
+                aria-label="Search products and vendors"
+              />
+            </form>
 
-          {/* 2 — Category strip (Jumia-style tall cards + See All) */}
-          <BuyerCategoryStrip
-            categories={categoryStrip}
-            loading={categoriesLoading}
-            getCategoryIcon={getCategoryIcon}
-          />
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-orange-500/30 bg-[#1a1d27] p-3">
+              <div>
+                <p className="mb-0.5 text-[8px] font-bold uppercase tracking-wide text-orange-500">Carryofy</p>
+                <p className="text-[13px] font-extrabold leading-snug text-white">
+                  REFILL YOUR SHOP
+                  <br />
+                  FROM YOUR PHONE
+                </p>
+                <p className="mt-0.5 text-[9px] text-gray-500">Shop from verified Lagos suppliers</p>
+                <Link
+                  href="/buyer/products"
+                  className="mt-2 inline-flex items-center gap-1 rounded-md bg-orange-500 px-2.5 py-1.5"
+                >
+                  <ShoppingBag className="h-3 w-3 text-white" />
+                  <span className="text-[9px] font-bold text-white">Shop now</span>
+                </Link>
+              </div>
+              <Store className="h-9 w-9 shrink-0 text-orange-500/30" aria-hidden />
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-[11px] font-semibold text-white">Categories</p>
+              <div className="-mx-0.5 flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+                {categoriesLoading
+                  ? Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="h-16 w-16 shrink-0 animate-pulse rounded-lg bg-white/5" />
+                    ))
+                  : categoryStrip.slice(0, 8).map((cat) => {
+                      const Icon = getCategoryIcon(cat.slug, cat.name);
+                      return (
+                        <Link
+                          key={cat.id}
+                          href={`/buyer/products?category=${encodeURIComponent(cat.slug)}`}
+                          className="flex w-[72px] shrink-0 flex-col items-center gap-0.5 rounded-lg border border-white/[0.06] bg-[#1a1d27] px-1.5 py-1.5"
+                        >
+                          <Icon className="h-[17px] w-[17px] text-gray-500" />
+                          <span className="line-clamp-2 text-center text-[7px] text-gray-500">{cat.name}</span>
+                        </Link>
+                      );
+                    })}
+              </div>
+            </div>
+
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-white">Flash deals & featured</span>
+              <Link href="/buyer/products?sortBy=popular" className="text-[9px] font-medium text-orange-500">
+                View all
+              </Link>
+            </div>
+            {!dashboardLoading && featuredProducts.length > 0 && (
+              <div className="grid grid-cols-2 gap-[7px]">
+                {featuredProducts.slice(0, 4).map((product) => (
+                  <ShopProductCard
+                    key={product.id}
+                    product={product}
+                    href={`/buyer/products/${product.id}`}
+                  />
+                ))}
+              </div>
+            )}
+
+            {featuredVendors.length > 0 && (
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-white">Featured vendors</span>
+                  <Link href="/buyer/products" className="text-[9px] font-medium text-orange-500">
+                    Browse catalog
+                  </Link>
+                </div>
+                {featuredVendors.slice(0, 4).map((v) => (
+                  <Link
+                    key={v.id}
+                    href={`/buyer/products?sellerId=${encodeURIComponent(v.id)}`}
+                    className="mb-1.5 flex items-center justify-between rounded-[10px] border border-white/[0.06] bg-[#1a1d27] px-2 py-2"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-500/10">
+                        <Store className="h-4 w-4 text-orange-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-[11px] font-semibold text-white">{v.businessName}</p>
+                        <p className="text-[8px] text-gray-500">Verified supplier</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[7px] font-bold text-emerald-400">
+                      ✓ Verified
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="hidden lg:block">
+            <BuyerDashboardPromoCarousel />
+          </div>
+
+          <div className="hidden lg:block">
+            <BuyerCategoryStrip
+              categories={categoryStrip}
+              loading={categoriesLoading}
+              getCategoryIcon={getCategoryIcon}
+            />
+          </div>
 
           {/* 3 — Flash deals / featured products */}
-          <section className="mb-10" aria-label="Featured products">
+          <section className="mb-10 hidden lg:block" aria-label="Featured products">
             <div className="mb-4 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Zap className="h-5 w-5 text-primary" aria-hidden />
@@ -416,7 +536,7 @@ export default function BuyerDashboard() {
 
           {/* 4 — Featured vendors */}
           {featuredVendors.length > 0 && (
-            <section className="mb-10" aria-label="Featured vendors">
+            <section className="mb-10 hidden lg:block" aria-label="Featured vendors">
               <div className="mb-4 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Store className="h-5 w-5 text-primary" aria-hidden />
@@ -447,7 +567,7 @@ export default function BuyerDashboard() {
           )}
 
           {/* 5 — Recommended for you */}
-          <section className="mb-10" aria-label="Recommended products">
+          <section className="mb-10 hidden lg:block" aria-label="Recommended products">
             <h2 className="mb-1 text-xl font-bold text-white">Recommended for you</h2>
             <p className="mb-4 flex items-center gap-2 text-sm text-[#ffcc99]/60">
               <Sparkles className="h-4 w-4 text-primary" aria-hidden />
@@ -500,7 +620,7 @@ export default function BuyerDashboard() {
           </section>
 
           {/* 6 — My activity (collapsible): stats, orders, reorder */}
-          <section className="mb-8 rounded-2xl border border-[#2a2a2a] bg-[#0d0d0d]" aria-label="My activity">
+          <section className="mb-8 hidden rounded-2xl border border-[#2a2a2a] bg-[#0d0d0d] lg:block" aria-label="My activity">
             <button
               type="button"
               onClick={() => setActivityOpen((o) => !o)}
@@ -745,7 +865,7 @@ export default function BuyerDashboard() {
             )}
           </section>
 
-          <div className="flex flex-wrap justify-center gap-4 pb-4">
+          <div className="hidden flex-wrap justify-center gap-4 pb-4 lg:flex">
             <Link
               href="/buyer/products"
               className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-base font-bold text-black shadow-lg transition hover:opacity-95"

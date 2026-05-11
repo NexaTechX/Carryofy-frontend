@@ -17,9 +17,12 @@ interface NotificationItem {
 
 interface NotificationsDropdownProps {
   className?: string;
+  /** Match Carryofy mobile nav: compact bell on small screens, default on lg+. */
+  carryofyMobileShell?: boolean;
 }
 
-export default function NotificationsDropdown({ className }: NotificationsDropdownProps) {
+export default function NotificationsDropdown({ className, carryofyMobileShell }: NotificationsDropdownProps) {
+  const mobileShell = Boolean(carryofyMobileShell);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -151,19 +154,41 @@ export default function NotificationsDropdown({ className }: NotificationsDropdo
     <div ref={containerRef} className={className}>
       <button
         onClick={toggleOpen}
-        className="relative p-2 text-[#ffcc99] hover:text-white transition"
+        className={`text-[#ffcc99] transition hover:text-white ${
+          mobileShell
+            ? 'relative flex h-[30px] w-[30px] items-center justify-center rounded-full border border-white/[0.07] bg-[#1a1d27] p-0 max-lg:text-gray-400 lg:p-2 lg:text-[#ffcc99] lg:hover:text-white'
+            : 'relative p-2'
+        }`}
         aria-label="Notifications"
       >
-        <Bell className="w-6 h-6" />
-        {typeof unreadCount === 'number' && Number.isFinite(unreadCount) && unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 bg-[#ff6600] text-black text-[10px] font-bold rounded-full min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center overflow-hidden">
-            {unreadCount > 99 ? '99+' : unreadCount > 9 ? '9+' : Math.floor(unreadCount)}
-          </span>
-        )}
+        <Bell
+          className={
+            mobileShell ? 'h-[15px] w-[15px] text-gray-400 lg:h-6 lg:w-6 lg:text-[#ffcc99]' : 'h-6 w-6'
+          }
+        />
+        {typeof unreadCount === 'number' && Number.isFinite(unreadCount) && unreadCount > 0 &&
+          (mobileShell ? (
+            <>
+              <span className="absolute right-[5px] top-[5px] h-[7px] w-[7px] rounded-full border-[1.5px] border-[#0f1117] bg-orange-500 max-lg:block lg:hidden" />
+              <span className="absolute -top-0.5 -right-0.5 hidden h-5 min-w-[1.25rem] items-center justify-center overflow-hidden rounded-full bg-[#ff6600] px-1.5 text-[10px] font-bold text-black lg:flex">
+                {unreadCount > 99 ? '99+' : unreadCount > 9 ? '9+' : Math.floor(unreadCount)}
+              </span>
+            </>
+          ) : (
+            <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-[1.25rem] items-center justify-center overflow-hidden rounded-full bg-[#ff6600] px-1.5 text-[10px] font-bold text-black">
+              {unreadCount > 99 ? '99+' : unreadCount > 9 ? '9+' : Math.floor(unreadCount)}
+            </span>
+          ))}
       </button>
 
       {open && (
-        <div className="absolute right-4 mt-2 w-80 max-h-[26rem] overflow-hidden rounded-2xl border border-[#ff6600]/30 bg-[#0d0d0d] shadow-lg shadow-black/50 z-50">
+        <div
+          className={`z-50 max-h-[26rem] overflow-hidden rounded-2xl border border-[#ff6600]/30 bg-[#0d0d0d] shadow-lg shadow-black/50 ${
+            mobileShell
+              ? 'fixed inset-x-2 top-14 max-h-[min(26rem,70vh)] w-auto lg:absolute lg:inset-auto lg:right-4 lg:top-full lg:mt-2 lg:w-80 lg:max-h-[26rem]'
+              : 'absolute right-4 mt-2 w-80'
+          }`}
+        >
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#ff6600]/20">
             <div>
               <p className="text-white text-sm font-semibold">Notifications</p>

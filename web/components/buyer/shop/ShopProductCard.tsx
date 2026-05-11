@@ -37,8 +37,6 @@ interface ShopProductCardProps {
   href?: string;
 }
 
-const IMG_H = 200;
-
 function ShopProductCard({ product, href }: ShopProductCardProps) {
   const router = useRouter();
   const isAuthenticated = tokenManager.isAuthenticated();
@@ -126,22 +124,25 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
 
   return (
     <article
-      className="group flex h-full flex-col overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1A1A1A] shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#FF6B00]/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#1A1A1A] shadow-sm transition-all duration-300 lg:rounded-xl lg:hover:-translate-y-0.5 lg:hover:border-[#FF6B00]/35 lg:hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
     >
-      {/* Image — link to product (no buttons inside) */}
+      {/* Image — link to product (no buttons inside); portrait aspect on small screens reads better in 2-col grids */}
       <div className="relative shrink-0">
-        <Link href={productHref} className="relative block w-full overflow-hidden bg-[#111111]" style={{ height: IMG_H }}>
+        <Link
+          href={productHref}
+          className="relative block aspect-[4/5] w-full overflow-hidden bg-[#111111] lg:aspect-auto lg:h-[200px]"
+        >
           {product.images?.length > 0 ? (
             <Image
               src={product.images[0]}
               alt={product.title}
               fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
-              className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              sizes="(max-width: 640px) 46vw, (max-width: 1024px) 33vw, 280px"
+              className="object-cover transition-transform duration-300 lg:group-hover:scale-[1.03]"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-[#ffcc99]/25">
-              <Package className="h-14 w-14" />
+              <Package className="h-14 w-14 max-lg:h-16 max-lg:w-16" />
             </div>
           )}
         </Link>
@@ -151,55 +152,55 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
             type="button"
             onClick={handleWishlistToggle}
             disabled={isToggling || wishlistLoading}
-            className={`absolute right-2 top-2 z-10 rounded-full bg-black/65 p-2 transition-colors hover:bg-[#FF6B00] ${
-              inWishlist ? 'bg-[#FF6B00] text-black' : 'text-white'
+            className={`btn-mobile absolute right-2 top-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/70 ring-1 ring-white/10 transition-colors active:scale-95 max-lg:right-2.5 max-lg:top-2.5 lg:h-9 lg:w-9 lg:p-0 lg:hover:bg-[#FF6B00] ${
+              inWishlist ? 'bg-[#FF6B00] text-black ring-[#FF6B00]/40' : 'text-white'
             } ${isToggling ? 'opacity-50' : ''}`}
             aria-label={inWishlist ? 'Remove from saved list' : 'Add to saved list'}
           >
-            <Heart className={`h-4 w-4 ${inWishlist ? 'fill-current' : ''}`} />
+            <Heart className={`h-5 w-5 max-lg:h-[22px] max-lg:w-[22px] lg:h-4 lg:w-4 ${inWishlist ? 'fill-current' : ''}`} />
           </button>
         )}
       </div>
 
       {/* Details — link block (same href) keeps card body clickable without nesting buttons inside <a> */}
-      <div className="flex min-h-0 flex-1 flex-col p-4">
+      <div className="flex min-h-0 flex-1 flex-col p-3 max-lg:px-3.5 max-lg:pb-3 max-lg:pt-3 lg:p-4">
         <Link href={productHref} className="block min-h-0 min-w-0 flex-1">
-          <h3 className="mb-2 line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-white transition-colors group-hover:text-[#FF6B00]">
+          <h3 className="mb-1.5 line-clamp-2 text-sm font-semibold leading-snug text-white max-lg:mb-2 max-lg:text-[15px] max-lg:leading-tight max-lg:tracking-tight lg:min-h-[2.5rem] lg:text-sm lg:group-hover:text-[#FF6B00]">
             {product.title}
           </h3>
 
-          <div className="mb-3 flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-xs text-[#ffcc99]/90">{product.seller?.businessName || 'Seller'}</span>
+          <div className="mb-2 flex min-w-0 items-center gap-1.5 max-lg:mb-2.5 lg:mb-3">
+            <span className="truncate text-xs text-[#ffcc99]/90 max-lg:text-[13px]">{product.seller?.businessName || 'Seller'}</span>
             {isVerified && (
               <span
-                className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400"
+                className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400 max-lg:px-2 max-lg:py-0.5 max-lg:text-[11px]"
                 title="Verified seller"
               >
-                <BadgeCheck className="h-3 w-3" aria-hidden />
+                <BadgeCheck className="h-3 w-3 max-lg:h-3.5 max-lg:w-3.5" aria-hidden />
                 Verified
               </span>
             )}
           </div>
 
-          <p className="mb-3 text-lg font-bold text-[#FF6B00]">{priceDisplay}</p>
+          <p className="mb-2 text-lg font-bold leading-none text-[#FF6B00] max-lg:mb-2.5 max-lg:text-xl lg:mb-3">{priceDisplay}</p>
 
-          <div className="mb-3 flex flex-wrap items-center gap-2">
+          <div className="mb-2 flex flex-wrap items-center gap-1.5 max-lg:mb-2.5 max-lg:gap-2 lg:mb-3 lg:gap-2">
             <span
-              className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold ${stockClass}`}
+              className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold max-lg:px-2.5 max-lg:py-1 max-lg:text-xs ${stockClass}`}
             >
               {stockLabel}
-              {qty > 0 && <span className="ml-1 opacity-80">({qty} left)</span>}
+              {qty > 0 && <span className="ml-1 opacity-80 max-lg:ml-1.5">({qty} left)</span>}
             </span>
             {product.moq != null && product.moq > 1 && (
-              <span className="inline-flex rounded-md border border-[#FF6B00]/35 bg-[#FF6B00]/12 px-2 py-0.5 text-[11px] font-semibold text-[#FF6B00]">
+              <span className="inline-flex rounded-md border border-[#FF6B00]/35 bg-[#FF6B00]/12 px-2 py-0.5 text-[11px] font-semibold text-[#FF6B00] max-lg:px-2.5 max-lg:py-1 max-lg:text-xs">
                 Min. order: {product.moq} units
               </span>
             )}
           </div>
 
           {isWholesale && (
-            <div className="mb-3">
-              <span className="inline-flex rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-[#ffcc99]/80">
+            <div className="mb-2 max-lg:mb-2.5 lg:mb-3">
+              <span className="inline-flex rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-[#ffcc99]/80 max-lg:px-2.5 max-lg:py-1 max-lg:text-[11px]">
                 {product.sellingMode === 'B2B_ONLY' ? 'Wholesale' : 'Retail & wholesale'}
                 {hasPriceTiers ? ' · Tiered pricing' : ''}
               </span>
@@ -207,22 +208,22 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
           )}
 
           {fulfilled && (
-            <div className="mb-1">
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-[#FF6B00]/45 bg-[#FF6B00]/12 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#FF6B00]">
-                <Package className="h-3.5 w-3.5" aria-hidden />
+            <div className="mb-0 max-lg:mb-0.5 lg:mb-1">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-[#FF6B00]/45 bg-[#FF6B00]/12 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#FF6B00] max-lg:px-2 max-lg:py-1 max-lg:text-[10px] max-lg:tracking-wide">
+                <Package className="h-3.5 w-3.5 max-lg:h-4 max-lg:w-4" aria-hidden />
                 Fulfilled by Carryofy
               </span>
             </div>
           )}
         </Link>
 
-        <div className="mt-auto border-t border-white/[0.06] pt-3">
+        <div className="mt-auto border-t border-white/[0.06] pt-2.5 max-lg:pt-3 lg:pt-3">
           {qty > 0 ? (
             needsQuote ? (
               <button
                 type="button"
                 onClick={handleQuoteClick}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#FF6B00] bg-transparent py-2.5 text-sm font-semibold text-[#FF6B00] transition-colors hover:bg-[#FF6B00]/10"
+                className="btn-mobile flex min-h-[46px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#FF6B00] bg-transparent py-2.5 text-sm font-semibold text-[#FF6B00] transition-colors active:bg-[#FF6B00]/15 max-lg:min-h-[48px] max-lg:text-[15px] max-lg:font-bold lg:rounded-lg lg:hover:bg-[#FF6B00]/10"
               >
                 Get a Quote
               </button>
@@ -231,13 +232,13 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
                 type="button"
                 onClick={handleAddToCart}
                 disabled={!isAuthenticated || isAddingToCart}
-                className={`flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-colors disabled:opacity-50 ${
+                className={`btn-mobile flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-colors active:opacity-90 disabled:opacity-50 max-lg:min-h-[48px] max-lg:text-[15px] lg:rounded-lg lg:py-2.5 ${
                   justAdded
                     ? 'bg-emerald-600 text-white hover:bg-emerald-600'
                     : 'bg-[#FF6B00] text-black hover:bg-[#ff8533]'
                 }`}
               >
-                {justAdded ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
+                {justAdded ? <Check className="h-5 w-5 max-lg:h-5 max-lg:w-5 lg:h-4 lg:w-4" /> : <ShoppingCart className="h-5 w-5 max-lg:h-5 max-lg:w-5 lg:h-4 lg:w-4" />}
                 {isAddingToCart ? 'Adding...' : justAdded ? 'Added' : 'Add to Cart'}
               </button>
             )
@@ -245,7 +246,7 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
             <button
               type="button"
               disabled
-              className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 py-2.5 text-sm font-semibold text-[#ffcc99]/40"
+              className="flex min-h-[46px] w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm font-semibold text-[#ffcc99]/40 max-lg:min-h-[48px] max-lg:text-[15px] lg:rounded-lg"
             >
               Out of Stock
             </button>

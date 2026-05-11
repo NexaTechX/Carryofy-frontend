@@ -246,15 +246,9 @@
   }
 }
 
-/* Responsive typography scaling */
+/* Responsive typography — slightly larger base on small screens for app-like readability */
 html {
-  font-size: 14px;
-}
-
-@media (min-width: 640px) {
-  html {
-    font-size: 15px;
-  }
+  font-size: 15px;
 }
 
 @media (min-width: 1024px) {

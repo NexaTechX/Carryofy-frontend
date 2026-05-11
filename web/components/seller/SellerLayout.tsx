@@ -366,11 +366,11 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
               .map((w) => w[0]?.toUpperCase())
               .join('')
           : 'U';
-    return <span className="text-[10px] font-bold text-orange-500">{initials.slice(0, 2)}</span>;
+    return <span className="text-xs font-bold text-orange-500">{initials.slice(0, 2)}</span>;
   };
 
   return (
-    <div className="min-h-screen bg-background max-lg:bg-[#0f1117] flex flex-col">
+    <div className="flex min-h-screen flex-col bg-background max-lg:h-svh max-lg:min-h-0 max-lg:overflow-hidden max-lg:bg-[#0f1117]">
       {/* Seller onboarding is separate at /seller/onboard; no buyer AI onboarding banner here */}
       {/* Desktop header */}
       <header className="hidden lg:flex bg-background border-b border-border-custom sticky top-0 z-50 safe-top h-14 sm:h-16 shrink-0 items-center">
@@ -515,41 +515,41 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
       {/* Mobile topbar — Carryofy mobile nav reference */}
       {showSellerMobileChrome && (
-        <header className="lg:hidden sticky top-0 shrink-0 z-50 safe-top border-b border-white/[0.06] bg-[#0f1117]">
-          <div className="flex items-center justify-between px-3 py-2">
-            <Link href="/seller" className="flex min-w-0 items-center gap-2">
-              <div className="relative h-8 w-8 shrink-0">
+        <header className="sticky top-0 z-50 shrink-0 border-b border-white/[0.06] bg-[#0f1117] safe-top lg:hidden">
+          <div className="flex items-center justify-between px-3 py-2.5 sm:px-4">
+            <Link href="/seller" className="flex min-w-0 items-center gap-2.5">
+              <div className="relative h-9 w-9 shrink-0">
                 <Image
                   src="/logo.png"
                   alt="Carryofy"
-                  width={32}
-                  height={32}
+                  width={36}
+                  height={36}
                   className="h-full w-full object-contain"
                   priority
                 />
               </div>
               {router.pathname !== '/seller' && (
-                <span className="truncate text-sm font-extrabold text-white">{sellerMobileTopTitle()}</span>
+                <span className="truncate text-base font-extrabold text-white">{sellerMobileTopTitle()}</span>
               )}
             </Link>
-            <div className="flex shrink-0 items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-2">
               {productsListMobilePlus && (
                 <Link
                   href="/seller/products/new"
-                  className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-orange-500 bg-orange-500"
+                  className="btn-mobile flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-orange-500 bg-orange-500"
                   aria-label="Add product"
                 >
-                  <Plus className="h-4 w-4 text-white" />
+                  <Plus className="h-5 w-5 text-white" />
                 </Link>
               )}
               <div className="relative" ref={notificationDropdownRefMobile}>
                 <button
                   type="button"
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
-                  className="relative flex h-[30px] w-[30px] items-center justify-center rounded-full border border-white/[0.07] bg-[#1a1d27]"
+                  className="btn-mobile relative flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/[0.07] bg-[#1a1d27]"
                   aria-label="Notifications"
                 >
-                  <Bell className="h-[15px] w-[15px] text-gray-400" />
+                  <Bell className="h-5 w-5 text-gray-300" />
                   {unreadCount > 0 && (
                     <span className="absolute right-[5px] top-[5px] h-[7px] w-[7px] rounded-full border-[1.5px] border-[#0f1117] bg-orange-500" />
                   )}
@@ -615,7 +615,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
               </div>
               <Link
                 href="/seller/more"
-                className="flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full border border-orange-500/50 bg-orange-500/20"
+                className="btn-mobile flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center overflow-hidden rounded-full border border-orange-500/50 bg-orange-500/20"
                 aria-label="Account and more"
               >
                 {sellerAvatarInner()}
@@ -703,7 +703,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
         {/* Main content wrapper: reserved space for fixed sidebar on desktop, scrollable */}
         <div className="flex-1 flex flex-col min-h-0 min-w-0 w-full lg:ml-64">
           <main
-            className={`flex-1 overflow-y-auto overflow-x-hidden scroll-smooth bg-background max-lg:bg-[#0f1117] ${showSellerMobileChrome ? 'max-lg:pb-[88px]' : ''}`}
+            className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-smooth bg-background [-webkit-overflow-scrolling:touch] max-lg:bg-[#0f1117] ${showSellerMobileChrome ? 'max-lg:pb-[calc(7rem+env(safe-area-inset-bottom))]' : ''}`}
           >
             {/* KYC Reminder Banner - shown when KYC not submitted or rejected */}
             {kycStatus && !kycBannerDismissed && (kycStatus === 'NOT_SUBMITTED' || kycStatus === 'REJECTED') && (
@@ -740,7 +740,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             )}
 
             <div
-              className={`p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom ${showSellerMobileChrome ? 'max-lg:px-2.5 max-lg:pb-2 max-lg:pt-2.5' : ''}`}
+              className={`p-3 sm:p-4 lg:p-6 xl:p-8 safe-bottom ${showSellerMobileChrome ? 'max-lg:px-3 max-lg:pb-2 max-lg:pt-3' : ''}`}
             >
               {children}
             </div>
@@ -750,7 +750,8 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
       {showSellerMobileChrome && (
         <nav
-          className="lg:hidden fixed bottom-0 left-0 right-0 z-[55] flex shrink-0 border-t border-white/10 bg-[#13161f] px-0 pb-3.5 pt-1.5 safe-bottom"
+          className="fixed bottom-0 left-0 right-0 z-[55] flex shrink-0 border-t border-white/10 bg-[#13161f] px-1 pt-2 lg:hidden"
+          style={{ paddingBottom: 'max(10px, env(safe-area-inset-bottom))' }}
           aria-label="Seller primary navigation"
         >
           {sellerMobileNav.map(({ id, href, label, Icon }) => {
@@ -759,14 +760,14 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
               <Link
                 key={id}
                 href={href}
-                className={`flex flex-1 flex-col items-center gap-0.5 py-0.5 transition-colors ${on ? 'text-orange-500' : 'text-gray-600'}`}
+                className={`btn-mobile flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-lg py-1 transition-colors active:opacity-80 ${on ? 'text-orange-500' : 'text-gray-500'}`}
               >
                 <span
-                  className={`mb-[-1px] h-[3px] w-[3px] rounded-full bg-orange-500 transition-opacity ${on ? 'opacity-100' : 'opacity-0'}`}
+                  className={`h-1 w-1 shrink-0 rounded-full bg-orange-500 transition-opacity ${on ? 'opacity-100' : 'opacity-0'}`}
                   aria-hidden
                 />
-                <Icon className="h-[21px] w-[21px] shrink-0" strokeWidth={on ? 2.25 : 2} />
-                <span className="text-[8px] font-medium leading-none">{label}</span>
+                <Icon className="h-7 w-7 shrink-0" strokeWidth={on ? 2.35 : 2} />
+                <span className="text-[11px] font-semibold leading-tight tracking-tight">{label}</span>
               </Link>
             );
           })}

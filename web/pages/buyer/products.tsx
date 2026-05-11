@@ -558,7 +558,7 @@ export default function ProductsPage() {
                         <ChevronLeft className="w-5 h-5" />
                       </button>
                       {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i;
+                        const pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i;
                         return (
                           <button
                             key={pageNum}

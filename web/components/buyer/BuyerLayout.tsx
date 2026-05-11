@@ -21,6 +21,7 @@ import {
   Wallet as WalletIcon,
   Bell,
   ClipboardList,
+  MoreHorizontal,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import NotificationsDropdown from './NotificationsDropdown';
@@ -36,7 +37,7 @@ interface BuyerLayoutProps {
   children: ReactNode;
 }
 
-type BuyerMobileTab = 'home' | 'shop' | 'orders' | 'saved' | 'account';
+type BuyerMobileTab = 'home' | 'shop' | 'orders' | 'saved' | 'more';
 
 export default function BuyerLayout({ children }: BuyerLayoutProps) {
   const router = useRouter();
@@ -135,7 +136,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
       buyerPath.startsWith('/buyer/feedback') ||
       buyerPath.startsWith('/buyer/preferences')
     )
-      return 'account';
+      return 'more';
     return 'home';
   };
 
@@ -147,7 +148,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
     { id: 'shop', href: '/buyer/products', label: 'Shop', Icon: ShoppingBag },
     { id: 'orders', href: '/buyer/orders', label: 'Orders', Icon: ClipboardList },
     { id: 'saved', href: '/buyer/wishlist', label: 'Saved', Icon: Bookmark },
-    { id: 'account', href: accountHref, label: 'Account', Icon: User },
+    { id: 'more', href: accountHref, label: 'More', Icon: MoreHorizontal },
   ];
 
   const buyerInitials =
@@ -259,7 +260,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
             <Link
               href={accountHref}
               className="btn-mobile flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center overflow-hidden rounded-full border border-orange-500/50 bg-orange-500/20 text-xs font-bold text-orange-500"
-              aria-label="Account"
+              aria-label="More — profile, notifications, and settings"
             >
               {user ? buyerInitials.slice(0, 2) : '…'}
             </Link>

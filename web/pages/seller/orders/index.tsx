@@ -328,27 +328,27 @@ export default function OrdersPage() {
       <SellerLayout>
         <div>
           {listError && !loading && (
-            <div className="mx-4 mt-2 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-red-300 flex flex-wrap items-center justify-between gap-3">
-              <span>{listError}</span>
+            <div className="mx-3 mt-2 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-3 text-sm text-red-300 sm:mx-4 sm:px-4">
+              <span className="min-w-0">{listError}</span>
               <button
                 type="button"
                 onClick={() => fetchOrders()}
-                className="shrink-0 px-4 py-2 rounded-lg bg-[#ff6600] text-black font-semibold text-sm hover:bg-[#ff8533]"
+                className="btn-mobile shrink-0 rounded-lg bg-[#ff6600] px-4 py-2.5 text-sm font-semibold text-black hover:bg-[#ff8533] sm:py-2"
               >
                 Retry
               </button>
             </div>
           )}
-          <div className="flex flex-wrap justify-between gap-3 p-4">
-            <p className="text-white tracking-light text-[32px] font-bold leading-tight min-w-72">
+          <div className="flex flex-wrap justify-between gap-3 px-3 py-3 sm:p-4">
+            <h1 className="min-w-0 text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-[32px]">
               Orders
-            </p>
+            </h1>
           </div>
 
           {/* Type filter - segmented control */}
-          <div className="px-4 py-2">
+          <div className="px-3 py-2 sm:px-4">
             <div
-              className="inline-flex rounded-lg p-1 bg-[#1A1A1A] gap-0"
+              className="flex w-full max-w-full gap-1 overflow-x-auto rounded-xl bg-[#1A1A1A] p-1 scrollbar-hide sm:inline-flex sm:w-auto sm:rounded-lg"
               role="tablist"
             >
               {[
@@ -358,33 +358,37 @@ export default function OrdersPage() {
               ].map((f) => (
                 <button
                   key={f.value}
+                  type="button"
                   onClick={() => setOrderTypeFilter(f.value)}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${orderTypeFilter === f.value
+                  className={`btn-mobile inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors sm:min-h-0 sm:rounded-md sm:px-4 ${orderTypeFilter === f.value
                       ? 'bg-[#FF6B00] text-white'
                       : 'text-[#A0A0A0] hover:text-white'
                     }`}
                 >
-                  {f.icon && <Building2 className="w-4 h-4 shrink-0" />}
-                  <span>{f.label} ({f.count})</span>
+                  {f.icon && <Building2 className="h-4 w-4 shrink-0" />}
+                  <span>
+                    {f.label} ({f.count})
+                  </span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Status filter pills with count badges and dots */}
-          <div className="px-4 py-3">
-            <div className="flex gap-2 flex-wrap items-center">
+          <div className="px-3 py-2 sm:px-4 sm:py-3">
+            <div className="-mx-0.5 flex gap-2 overflow-x-auto pb-1 scrollbar-hide sm:flex-wrap sm:overflow-visible sm:pb-0">
               {statusFilters.map((filter) => (
                 <button
                   key={filter.value}
+                  type="button"
                   onClick={() => setStatusFilter(filter.value)}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${statusFilter === filter.value
-                      ? 'bg-[#FF6B00] text-white'
-                      : 'bg-[#1A1A1A] border border-[#FF6B00]/30 text-[#ffcc99] hover:bg-[#FF6B00]/10'
+                  className={`btn-mobile inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors sm:px-4 ${statusFilter === filter.value
+                      ? 'border-transparent bg-[#FF6B00] text-white'
+                      : 'border-[#FF6B00]/30 bg-[#1A1A1A] text-[#ffcc99] hover:bg-[#FF6B00]/10'
                     }`}
                 >
                   {filter.dotColor && (
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${filter.dotColor}`} />
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${filter.dotColor}`} />
                   )}
                   {filter.label} ({statusCounts[filter.value]})
                 </button>
@@ -393,79 +397,184 @@ export default function OrdersPage() {
           </div>
 
           {/* Search bar + date range + Export */}
-          <div className="px-4 py-3">
-            <div className="flex flex-wrap gap-3 items-center">
-              <div className="flex flex-1 min-w-[200px] max-w-xl items-stretch rounded-xl h-12 bg-[#1A1A1A] border border-[#FF6B00]/20 overflow-hidden">
-                <div className="text-[#ffcc99] flex items-center justify-center pl-4">
-                  <Search className="w-5 h-5" />
+          <div className="px-3 py-2 sm:px-4 sm:py-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="flex min-h-[48px] w-full flex-1 items-stretch overflow-hidden rounded-xl border border-[#FF6B00]/20 bg-[#1A1A1A] sm:min-h-[48px] sm:max-w-xl">
+                <div className="flex items-center justify-center pl-3 text-[#ffcc99] sm:pl-4">
+                  <Search className="h-5 w-5" />
                 </div>
                 <input
                   type="text"
-                  placeholder="Search orders"
+                  placeholder="Search by order ID or status"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 min-w-0 bg-transparent text-white placeholder:text-[#A0A0A0] px-3 py-2 focus:outline-none"
+                  className="min-h-[48px] min-w-0 flex-1 bg-transparent px-3 py-2 text-base text-white placeholder:text-[#A0A0A0] focus:outline-none sm:text-sm"
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="h-10 px-3 rounded-lg bg-[#1A1A1A] border border-[#FF6B00]/20 text-white text-sm focus:outline-none focus:border-[#FF6B00]/50"
+                  className="min-h-[48px] min-w-0 flex-1 rounded-lg border border-[#FF6B00]/20 bg-[#1A1A1A] px-3 text-base text-white focus:border-[#FF6B00]/50 focus:outline-none sm:h-10 sm:min-h-0 sm:flex-none sm:text-sm"
                 />
-                <span className="text-[#A0A0A0] text-sm">to</span>
+                <span className="shrink-0 px-0.5 text-sm text-[#A0A0A0]">to</span>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="h-10 px-3 rounded-lg bg-[#1A1A1A] border border-[#FF6B00]/20 text-white text-sm focus:outline-none focus:border-[#FF6B00]/50"
+                  className="min-h-[48px] min-w-0 flex-1 rounded-lg border border-[#FF6B00]/20 bg-[#1A1A1A] px-3 text-base text-white focus:border-[#FF6B00]/50 focus:outline-none sm:h-10 sm:min-h-0 sm:flex-none sm:text-sm"
                 />
               </div>
               <button
+                type="button"
                 onClick={handleExportCsv}
-                className="h-10 px-4 rounded-lg border border-[#FF6B00]/50 text-[#FF6B00] text-sm font-medium hover:bg-[#FF6B00]/10 transition-colors inline-flex items-center gap-2 shrink-0"
+                className="btn-mobile inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-[#FF6B00]/50 text-sm font-semibold text-[#FF6B00] transition-colors hover:bg-[#FF6B00]/10 sm:h-10 sm:w-auto sm:rounded-lg sm:px-4"
               >
-                <Download className="w-4 h-4" />
+                <Download className="h-4 w-4" />
                 Export CSV
               </button>
             </div>
           </div>
 
-          {/* Orders Table */}
-          <div className="px-4 py-3">
+          {/* Mobile: order cards */}
+          <div className="space-y-3 px-3 pb-4 sm:px-4 lg:hidden">
+            {loading ? (
+              <div className="rounded-xl border border-[#FF6B00]/30 bg-black px-4 py-10 text-center text-white">
+                Loading orders…
+              </div>
+            ) : isEmpty ? (
+              <div className="rounded-xl border border-[#FF6B00]/30 bg-black px-4 py-12">
+                <div className="mx-auto flex max-w-sm flex-col items-center text-center">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#FF6B00]/20">
+                    <ShoppingBag className="h-7 w-7 text-[#FF6B00]" />
+                  </div>
+                  <h3 className="mb-2 text-lg font-bold text-white">
+                    {isSearchOrFilter ? 'No orders found' : 'No orders yet'}
+                  </h3>
+                  <p className="mb-6 text-sm text-[#A0A0A0]">
+                    {isSearchOrFilter
+                      ? 'Try adjusting your search or filters.'
+                      : "When buyers place orders for your products, they'll appear here."}
+                  </p>
+                  {!isSearchOrFilter && (
+                    <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
+                      <Link
+                        href="/seller/products"
+                        className="btn-mobile inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#FF6B00]/50 px-4 py-3 text-sm font-semibold text-[#FF6B00] hover:bg-[#FF6B00]/10"
+                      >
+                        View your products
+                      </Link>
+                      <Link
+                        href="/seller"
+                        className="btn-mobile inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#FF6B00] px-4 py-3 text-sm font-semibold text-black hover:bg-[#E65100]"
+                      >
+                        Share your store
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              filteredOrders.map((order) => {
+                const statusStyle = getStatusColor(order);
+                return (
+                  <button
+                    key={order.id}
+                    type="button"
+                    onClick={() => router.push(`/seller/orders/${order.id}`)}
+                    className="btn-mobile w-full rounded-2xl border border-white/[0.08] bg-[#1A1A1A] p-4 text-left shadow-sm ring-1 ring-black/20 transition active:scale-[0.99]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className="truncate font-mono text-[13px] font-semibold text-white"
+                            style={{ fontFamily: "'DM Mono', ui-monospace, monospace" }}
+                            title={order.id}
+                          >
+                            #{order.id.slice(0, 8)}
+                          </span>
+                          {isB2B(order) && (
+                            <span className="shrink-0 rounded-md bg-[#FF6B00]/25 px-2 py-0.5 text-[11px] font-semibold text-[#FF6B00]">
+                              B2B
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-[#A0A0A0]">{formatDateWithTime(order.createdAt)}</p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <span
+                          className="font-mono text-lg font-bold text-white"
+                          style={{ fontFamily: "'DM Mono', ui-monospace, monospace" }}
+                        >
+                          {formatPrice(order.amount)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleCopyOrderId(e, order.id);
+                          }}
+                          className="btn-mobile rounded-lg p-2 text-[#A0A0A0] hover:bg-white/10 hover:text-white"
+                          aria-label="Copy order ID"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
+                      <span
+                        className={`inline-flex max-w-[min(100%,14rem)] items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium ${statusStyle.bg} ${statusStyle.border} ${statusStyle.text}`}
+                      >
+                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusStyle.dot}`} />
+                        <span className="truncate">{getStatusDisplay(order)}</span>
+                      </span>
+                      <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold text-[#FF6B00]">
+                        Open
+                        <ChevronRight className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop: orders table */}
+          <div className="hidden px-4 py-3 lg:block">
             <div className="overflow-hidden rounded-xl border border-[#FF6B00]/30 bg-black">
               <table className="w-full">
                 <thead>
                   <tr className="bg-[#1A1A1A]">
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium w-[180px]">
+                    <th className="w-[180px] px-4 py-3 text-left text-sm font-medium text-white">
                       Order ID
                     </th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium w-[160px]">
+                    <th className="w-[160px] px-4 py-3 text-left text-sm font-medium text-white">
                       Date
                     </th>
-                    <th className="px-4 py-3 text-right text-white text-sm font-medium w-[120px]">
+                    <th className="w-[120px] px-4 py-3 text-right text-sm font-medium text-white">
                       Amount
                     </th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium w-[140px]">
+                    <th className="w-[140px] px-4 py-3 text-left text-sm font-medium text-white">
                       Status
                     </th>
-                    <th className="px-4 py-3 w-[120px]" />
+                    <th className="w-[120px] px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-white">
+                      <td colSpan={5} className="px-4 py-8 text-center text-white">
                         Loading...
                       </td>
                     </tr>
                   ) : isEmpty ? (
                     <tr>
-                      <td colSpan={6} className="p-0">
-                        <div className="flex flex-col items-center justify-center py-16 px-4">
-                          <div className="w-12 h-12 rounded-full bg-[#FF6B00]/20 flex items-center justify-center mb-4">
-                            <ShoppingBag className="w-12 h-12 text-[#FF6B00]" />
+                      <td colSpan={5} className="p-0">
+                        <div className="flex flex-col items-center justify-center px-4 py-16">
+                          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FF6B00]/20">
+                            <ShoppingBag className="h-6 w-6 text-[#FF6B00]" />
                           </div>
                           <h3 className="text-white text-xl font-bold mb-2">
                             {isSearchOrFilter ? 'No orders found' : 'No orders yet'}
@@ -507,50 +616,47 @@ export default function OrdersPage() {
                             setHoveredRowId(null);
                             setOrderIdHovered(null);
                           }}
-                          className={`border-t border-[#FF6B00]/20 transition-colors cursor-pointer ${isHovered ? 'bg-[#1E1E1E]' : 'bg-[#1A1A1A] hover:bg-[#1E1E1E]'
-                            }`}
+                          className={`cursor-pointer border-t border-[#FF6B00]/20 transition-colors ${isHovered ? 'bg-[#1E1E1E]' : 'bg-[#1A1A1A] hover:bg-[#1E1E1E]'}`}
                           onClick={() => router.push(`/seller/orders/${order.id}`)}
                         >
                           <td className="h-[72px] px-4 py-2">
-                            <div className="flex items-center gap-2 min-w-0">
+                            <div className="flex min-w-0 items-center gap-2">
                               <div
-                                className="flex items-center gap-2 min-w-0 group"
+                                className="group flex min-w-0 items-center gap-2"
                                 onMouseEnter={() => setOrderIdHovered(order.id)}
                                 onMouseLeave={() => setOrderIdHovered(null)}
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <span
-                                  className="text-[#A0A0A0] font-dm-mono text-[13px] truncate max-w-[100px]"
+                                  className="max-w-[140px] truncate font-mono text-[13px] text-[#A0A0A0]"
                                   style={{ fontFamily: "'DM Mono', monospace" }}
                                 >
                                   #{order.id.slice(0, 8)}
                                 </span>
                                 {showCopy && (
                                   <button
+                                    type="button"
                                     onClick={(e) => handleCopyOrderId(e, order.id)}
-                                    className="p-1 rounded hover:bg-white/10 text-[#A0A0A0] hover:text-white shrink-0"
+                                    className="shrink-0 rounded p-1 text-[#A0A0A0] hover:bg-white/10 hover:text-white"
                                     aria-label="Copy order ID"
                                   >
-                                    <Copy className="w-3.5 h-3.5" />
+                                    <Copy className="h-3.5 w-3.5" />
                                   </button>
                                 )}
                               </div>
                               {isB2B(order) && (
-                                <span className="px-2 py-0.5 rounded bg-[#FF6B00]/25 text-[#FF6B00] text-[10px] font-medium shrink-0">
+                                <span className="shrink-0 rounded bg-[#FF6B00]/25 px-2 py-0.5 text-[10px] font-medium text-[#FF6B00]">
                                   B2B
                                 </span>
                               )}
                             </div>
                           </td>
-                          <td className="h-[72px] px-4 py-2 text-[#A0A0A0] text-sm">
+                          <td className="h-[72px] px-4 py-2 text-sm text-[#A0A0A0]">
                             {formatDateWithTime(order.createdAt)}
-                          </td>
-                          <td className="h-[72px] px-4 py-2 text-[#A0A0A0] text-sm">
-                            Order #{order.id.slice(0, 8)}
                           </td>
                           <td className="h-[72px] px-4 py-2 text-right">
                             <span
-                              className="text-white font-bold font-dm-mono"
+                              className="font-mono font-bold text-white"
                               style={{ fontFamily: "'DM Mono', monospace" }}
                             >
                               {formatPrice(order.amount)}
@@ -558,9 +664,9 @@ export default function OrdersPage() {
                           </td>
                           <td className="h-[72px] px-4 py-2">
                             <span
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border ${statusStyle.bg} ${statusStyle.border} ${statusStyle.text}`}
+                              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-medium ${statusStyle.bg} ${statusStyle.border} ${statusStyle.text}`}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
+                              <span className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`} />
                               {getStatusDisplay(order)}
                             </span>
                           </td>
@@ -568,10 +674,9 @@ export default function OrdersPage() {
                             <Link
                               href={`/seller/orders/${order.id}`}
                               onClick={(e) => e.stopPropagation()}
-                              className={`inline-flex items-center gap-1 text-sm text-[#FF6B00] transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'
-                                } hover:text-[#E65100]`}
+                              className={`inline-flex items-center gap-1 text-sm text-[#FF6B00] hover:text-[#E65100] ${isHovered ? 'opacity-100' : 'opacity-0'} transition-opacity`}
                             >
-                              View details <ChevronRight className="w-4 h-4" />
+                              View details <ChevronRight className="h-4 w-4" />
                             </Link>
                           </td>
                         </tr>

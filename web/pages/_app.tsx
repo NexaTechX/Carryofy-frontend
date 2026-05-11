@@ -7,6 +7,7 @@ import '../styles/globals.css';
 import { AdminGuard } from '../components/auth/AdminGuard';
 import { AuthProvider } from '../lib/auth';
 import { CartProvider } from '../lib/contexts/CartContext';
+import { WishlistProvider } from '../lib/contexts/WishlistContext';
 import { initAnalytics } from '../lib/firebase/config';
 import posthog from 'posthog-js';
 import { PostHogProvider } from 'posthog-js/react';
@@ -60,11 +61,13 @@ export default function App({ Component, pageProps }: AppProps) {
     <QueryClientProvider client={queryClient}>
 
       <AuthProvider>
-        <CartProvider>
-          <AdminGuard>
-            <Component {...pageProps} />
-          </AdminGuard>
-        </CartProvider>
+        <WishlistProvider>
+          <CartProvider>
+            <AdminGuard>
+              <Component {...pageProps} />
+            </AdminGuard>
+          </CartProvider>
+        </WishlistProvider>
       </AuthProvider>
 
       <Toaster

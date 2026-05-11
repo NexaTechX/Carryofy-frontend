@@ -760,7 +760,7 @@ export default function SettingsPage() {
       let attempt = 0;
       let delay = 500;
 
-      // eslint-disable-next-line no-constant-condition
+       
       while (true) {
         try {
           await apiClient.post('/sellers/kyc', submissionData);
@@ -1098,53 +1098,54 @@ export default function SettingsPage() {
       <SellerLayout>
         <div>
           {/* Title Section */}
-          <div className="flex flex-wrap justify-between gap-3 p-4">
-            <div>
-              <p className="text-white tracking-light text-[32px] font-bold leading-tight min-w-72">
+          <div className="flex flex-wrap justify-between gap-3 px-3 py-3 sm:px-4 sm:py-4">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-[32px]">
                 Settings
-              </p>
-              <p className="text-[#ffcc99] text-sm font-normal leading-normal mt-1">
+              </h1>
+              <p className="mt-1 text-sm font-normal leading-normal text-[#ffcc99]">
                 Manage your account and preferences
               </p>
             </div>
           </div>
 
-          <div className="px-4 py-3">
+          <div className="px-3 pb-4 sm:px-4 sm:pb-6">
             {/* Content Card with Horizontal Tabs */}
             <div
-              className="rounded-xl overflow-hidden"
+              className="overflow-hidden rounded-2xl sm:rounded-xl"
               style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
             >
-              {/* Horizontal Tab Bar - flush with content card top */}
-              <div className="flex overflow-x-auto border-b border-[#2A2A2A]">
+              {/* Horizontal Tab Bar - scroll on small screens */}
+              <div className="scrollbar-hide flex snap-x snap-mandatory overflow-x-auto border-b border-[#2A2A2A]">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
                   return (
                     <button
                       key={tab.id}
+                      type="button"
                       onClick={() => setActiveTab(tab.id as any)}
-                      className={`flex items-center gap-2 px-5 py-4 text-sm font-medium transition-colors shrink-0 whitespace-nowrap ${isActive
-                        ? 'text-white border-b-[3px] border-[#FF6B00] -mb-[1px]'
-                        : 'text-[#A0A0A0] hover:text-white'
+                      className={`btn-mobile flex min-h-[52px] shrink-0 snap-start items-center gap-2 whitespace-nowrap px-4 py-3 text-sm font-semibold transition-colors sm:min-h-0 sm:px-5 sm:py-4 ${isActive
+                        ? '-mb-px border-b-[3px] border-[#FF6B00] text-white'
+                        : 'border-b-[3px] border-transparent text-[#A0A0A0] hover:text-white'
                         }`}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className="h-5 w-5 shrink-0 sm:h-4 sm:w-4" />
                       {tab.label}
                     </button>
                   );
                 })}
               </div>
 
-              {/* Main Content Area */}
-              <div className="p-6">
+              {/* Main Content Area — mobile-friendly input heights via descendant selectors */}
+              <div className="max-lg:[&_input:not([type=hidden])]:min-h-[48px] max-lg:[&_select]:min-h-[48px] max-lg:[&_input]:text-base max-lg:[&_select]:text-base max-lg:[&_textarea]:text-base p-3 sm:p-4 lg:p-6">
                 {loading && (
                   <div
-                    className="rounded-xl p-12"
+                    className="rounded-xl p-8 sm:p-12"
                     style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
                   >
                     <div className="flex flex-col items-center justify-center">
-                      <div className="w-12 h-12 border-4 border-[#2A2A2A] border-t-[#FF6B00] rounded-full animate-spin mb-4"></div>
+                      <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[#2A2A2A] border-t-[#FF6B00]"></div>
                       <p className="text-[#A0A0A0] text-sm">Loading settings...</p>
                     </div>
                   </div>
@@ -1154,7 +1155,7 @@ export default function SettingsPage() {
                     {/* Profile Settings */}
                     {activeTab === 'profile' && (
                       <div
-                        className="rounded-xl p-6"
+                        className="rounded-xl p-4 sm:p-6"
                         style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
                       >
                         <h2
@@ -1205,12 +1206,12 @@ export default function SettingsPage() {
                             <label className="block text-[#A0A0A0] text-sm font-medium mb-2">
                               Phone Number
                             </label>
-                            <div className="flex">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:gap-0">
                               <div
-                                className="flex items-center gap-2 px-4 py-3 rounded-l-lg border border-r-0"
+                                className="flex items-center justify-center gap-2 rounded-t-lg border border-b-0 px-4 py-3 sm:justify-start sm:rounded-l-lg sm:rounded-r-none sm:border-b sm:border-r-0"
                                 style={{ backgroundColor: '#111111', borderColor: '#2A2A2A' }}
                               >
-                                <span className="text-white text-sm">+234</span>
+                                <span className="text-sm text-white">+234</span>
                                 <span className="text-lg" role="img" aria-label="Nigeria">🇳🇬</span>
                               </div>
                               <input
@@ -1220,7 +1221,7 @@ export default function SettingsPage() {
                                   const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
                                   setProfileForm({ ...profileForm, phone: digits });
                                 }}
-                                className="flex-1 px-4 py-3 rounded-r-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                                className="min-h-[48px] flex-1 rounded-b-lg border border-[#2A2A2A] bg-black px-4 py-3 text-white placeholder:text-[#A0A0A0] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#FF6B00] sm:min-h-0 sm:rounded-l-none sm:rounded-r-lg sm:border-l-0"
                                 placeholder="801 234 5678"
                                 required
                               />
@@ -1233,7 +1234,7 @@ export default function SettingsPage() {
                           <button
                             type="submit"
                             disabled={!profileFormDirty || profileSaveStatus === 'loading'}
-                            className={`flex items-center justify-center gap-2 w-full h-11 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${profileSaveStatus === 'success'
+                            className={`btn-mobile flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:min-h-0 sm:rounded-lg ${profileSaveStatus === 'success'
                               ? 'bg-[#22C55E] text-white'
                               : profileSaveStatus === 'error'
                                 ? 'bg-red-600 text-white'
@@ -1283,7 +1284,7 @@ export default function SettingsPage() {
                     {/* Business Settings */}
                     {activeTab === 'business' && (
                       <div
-                        className="rounded-xl p-6"
+                        className="rounded-xl p-4 sm:p-6"
                         style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
                       >
                         <h2
@@ -1403,8 +1404,8 @@ export default function SettingsPage() {
 
                           <div>
                             <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Business Logo</label>
-                            <div className="flex items-start gap-6">
-                              <div className="relative w-[200px] h-[200px] shrink-0 rounded-xl overflow-hidden border-2 border-dashed border-[#2A2A2A] bg-black flex items-center justify-center">
+                            <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:gap-6">
+                              <div className="relative mx-auto flex aspect-square w-full max-w-[200px] shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-[#2A2A2A] bg-black sm:mx-0 sm:w-[200px] sm:max-w-none">
                                 {businessForm.logo ? (
                                   <img
                                     src={businessForm.logo}
@@ -1428,7 +1429,7 @@ export default function SettingsPage() {
                                   </button>
                                 )}
                               </div>
-                              <div className="flex-1">
+                              <div className="min-w-0 flex-1 text-center sm:text-left">
                                 <input
                                   type="file"
                                   id="logoUpload"
@@ -1442,7 +1443,7 @@ export default function SettingsPage() {
                                 />
                                 <label
                                   htmlFor="logoUpload"
-                                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors ${logoUploading ? 'bg-[#FF6B00]/50 text-black cursor-wait' : 'bg-[#FF6B00] text-black hover:bg-[#E65100]'}`}
+                                  className={`btn-mobile inline-flex min-h-[48px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors sm:inline-flex sm:w-auto sm:min-h-0 sm:rounded-lg sm:py-2 ${logoUploading ? 'cursor-wait bg-[#FF6B00]/50 text-black' : 'bg-[#FF6B00] text-black hover:bg-[#E65100]'}`}
                                 >
                                   <Upload className="w-4 h-4" />
                                   {logoUploading ? 'Uploading...' : businessForm.logo ? 'Change Logo' : 'Upload Logo'}
@@ -1455,7 +1456,7 @@ export default function SettingsPage() {
                           <button
                             type="submit"
                             disabled={saving || logoUploading}
-                            className="flex items-center justify-center gap-2 w-full h-11 rounded-lg bg-[#FF6B00] text-black text-sm font-bold hover:bg-[#E65100] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="btn-mobile flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#FF6B00] text-sm font-bold text-black transition-colors hover:bg-[#E65100] disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:min-h-0 sm:rounded-lg"
                           >
                             <Save className="w-4 h-4" />
                             {saving ? 'Saving...' : 'Save Changes'}
@@ -1467,7 +1468,7 @@ export default function SettingsPage() {
                     {/* KYC Settings */}
                     {activeTab === 'kyc' && (
                       <div
-                        className="rounded-xl p-6"
+                        className="rounded-xl p-4 sm:p-6"
                         style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
                       >
                         <h2
@@ -1493,7 +1494,7 @@ export default function SettingsPage() {
                             <button
                               type="button"
                               onClick={() => router.push('/seller/onboard')}
-                              className="shrink-0 px-5 py-2.5 bg-[#ff6600] text-black text-sm font-bold rounded-xl hover:bg-[#cc5200] transition-colors"
+                              className="btn-mobile w-full shrink-0 rounded-xl bg-[#ff6600] px-5 py-3 text-sm font-bold text-black transition-colors hover:bg-[#cc5200] sm:w-auto sm:py-2.5"
                             >
                               Complete Onboarding
                             </button>
@@ -1662,7 +1663,7 @@ export default function SettingsPage() {
                                     />
                                     <label
                                       htmlFor="idImage"
-                                      className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition ${kycUploading.idImage
+                                      className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 transition sm:p-6 ${kycUploading.idImage
                                         ? 'border-[#ff6600] bg-[#ff6600]/10 cursor-wait'
                                         : kycForm.idImage
                                           ? 'border-green-500 bg-green-900/20'
@@ -1732,7 +1733,7 @@ export default function SettingsPage() {
                                     />
                                     <label
                                       htmlFor="addressProofImage"
-                                      className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition ${kycUploading.addressProofImage
+                                      className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 transition sm:p-6 ${kycUploading.addressProofImage
                                         ? 'border-[#ff6600] bg-[#ff6600]/10 cursor-wait'
                                         : kycForm.addressProofImage
                                           ? 'border-green-500 bg-green-900/20'
@@ -1764,7 +1765,7 @@ export default function SettingsPage() {
                                   <button
                                     type="submit"
                                     disabled={kycSubmitting || !kycForm.idNumber || !kycForm.idImage || !sellerProfile}
-                                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#ff6600] text-black text-sm font-bold rounded-xl hover:bg-[#cc5200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="btn-mobile flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#ff6600] px-6 py-3 text-sm font-bold text-black transition-colors hover:bg-[#cc5200] disabled:cursor-not-allowed disabled:opacity-50"
                                   >
                                     <Save className="w-4 h-4" />
                                     {kycSubmitting ? 'Submitting...' : 'Submit Verification'}
@@ -1780,7 +1781,7 @@ export default function SettingsPage() {
                     {/* Payout Account Settings */}
                     {activeTab === 'payout' && (
                       <div
-                        className="rounded-xl p-6"
+                        className="rounded-xl p-4 sm:p-6"
                         style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
                       >
                         <h2
@@ -1797,18 +1798,20 @@ export default function SettingsPage() {
                           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl">
                             <p className="text-white font-medium mb-4">Are you sure you want to remove this bank account?</p>
                             <p className="text-[#ffcc99] text-sm mb-4">This action cannot be undone.</p>
-                            <div className="flex gap-3">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
                               <button
+                                type="button"
                                 onClick={handleBankAccountDelete}
                                 disabled={saving}
-                                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="btn-mobile min-h-[48px] rounded-xl bg-red-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:py-2"
                               >
                                 {saving ? 'Removing...' : 'Yes, Remove'}
                               </button>
                               <button
+                                type="button"
                                 onClick={handleBankAccountDeleteCancel}
                                 disabled={saving}
-                                className="px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] rounded-lg text-sm font-medium hover:bg-[#ff6600]/10 transition-colors disabled:opacity-50"
+                                className="btn-mobile min-h-[48px] rounded-xl border border-[#ff6600]/30 bg-[#1a1a1a] px-4 py-3 text-sm font-medium text-[#ffcc99] transition-colors hover:bg-[#ff6600]/10 disabled:opacity-50 sm:min-h-0 sm:py-2"
                               >
                                 Cancel
                               </button>
@@ -1818,9 +1821,9 @@ export default function SettingsPage() {
 
                         {bankAccount && !isAddingBank && !showDeleteConfirm ? (
                           <div className="mb-6">
-                            <div className="bg-black border border-[#ff6600]/30 rounded-xl p-6">
-                              <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
+                            <div className="rounded-xl border border-[#ff6600]/30 bg-black p-4 sm:p-6">
+                              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="flex min-w-0 items-center gap-3">
                                   <div className="p-3 bg-[#ff6600]/20 rounded-xl">
                                     <CreditCard className="w-6 h-6 text-[#ff6600]" />
                                   </div>
@@ -1830,17 +1833,18 @@ export default function SettingsPage() {
                                   </div>
                                 </div>
                                 <button
+                                  type="button"
                                   onClick={handleBankAccountDeleteClick}
-                                  className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                  className="btn-mobile self-end rounded-lg p-2.5 text-red-400 transition-colors hover:bg-red-500/10 sm:self-auto"
                                   title="Remove bank account"
                                 >
                                   <Trash2 className="w-5 h-5" />
                                 </button>
                               </div>
                               <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[#ffcc99] text-sm">Account Number</span>
-                                  <span className="text-white font-mono">
+                                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                  <span className="text-sm text-[#ffcc99]">Account Number</span>
+                                  <span className="break-all font-mono text-sm text-white sm:text-right">
                                     {bankAccount.accountNumber ? bankAccount.accountNumber.replace(/\d(?=\d{4})/g, '*') : 'N/A'}
                                   </span>
                                 </div>
@@ -1856,7 +1860,7 @@ export default function SettingsPage() {
                                   bankName: bankAccount.bankName || '',
                                 });
                               }}
-                              className="mt-4 flex items-center justify-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] rounded-xl text-sm font-medium hover:bg-[#ff6600]/10 hover:text-white transition-colors"
+                              className="btn-mobile mt-4 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-[#ff6600]/30 bg-[#1a1a1a] px-4 py-3 text-sm font-medium text-[#ffcc99] transition-colors hover:bg-[#ff6600]/10 hover:text-white sm:w-auto sm:py-2"
                             >
                               <Save className="w-4 h-4" />
                               Update Bank Account
@@ -1916,13 +1920,13 @@ export default function SettingsPage() {
                               </select>
                             </div>
 
-                            <div className="flex gap-3">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
                               <button
                                 type="submit"
                                 disabled={saving}
-                                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#ff6600] text-black text-sm font-bold rounded-xl hover:bg-[#cc5200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="btn-mobile flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-[#ff6600] px-6 py-3 text-sm font-bold text-black transition-colors hover:bg-[#cc5200] disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                <Save className="w-4 h-4" />
+                                <Save className="h-4 w-4" />
                                 {saving ? 'Saving...' : bankAccount ? 'Update Account' : 'Link Bank Account'}
                               </button>
                               {isAddingBank && (
@@ -1937,7 +1941,7 @@ export default function SettingsPage() {
                                       bankName: '',
                                     });
                                   }}
-                                  className="px-6 py-3 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] text-sm font-medium rounded-xl hover:bg-[#ff6600]/10 hover:text-white transition-colors"
+                                  className="btn-mobile min-h-[48px] rounded-xl border border-[#ff6600]/30 bg-[#1a1a1a] px-6 py-3 text-sm font-medium text-[#ffcc99] transition-colors hover:bg-[#ff6600]/10 hover:text-white"
                                 >
                                   Cancel
                                 </button>
@@ -1949,7 +1953,7 @@ export default function SettingsPage() {
                         {!bankAccount && !isAddingBank && (
                           <button
                             onClick={() => setIsAddingBank(true)}
-                            className="w-full mt-4 flex items-center justify-center gap-2 px-6 py-3 bg-[#1a1a1a] border border-[#ff6600]/30 text-[#ffcc99] rounded-xl text-sm font-medium hover:bg-[#ff6600]/10 hover:text-white transition-colors"
+                            className="btn-mobile mt-4 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-[#ff6600]/30 bg-[#1a1a1a] px-6 py-3 text-sm font-medium text-[#ffcc99] transition-colors hover:bg-[#ff6600]/10 hover:text-white"
                           >
                             <Plus className="w-5 h-5" />
                             Add Bank Account
@@ -1968,7 +1972,7 @@ export default function SettingsPage() {
                     {/* Security Settings */}
                     {activeTab === 'security' && (
                       <div
-                        className="rounded-xl p-6"
+                        className="rounded-xl p-4 sm:p-6"
                         style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
                       >
                         <h2
@@ -1994,9 +1998,9 @@ export default function SettingsPage() {
                               <button
                                 type="button"
                                 onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0A0] hover:text-white"
+                                className="btn-mobile absolute right-1 top-1/2 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center rounded-lg text-[#A0A0A0] hover:text-white"
                               >
-                                {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                {showPasswords.current ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                               </button>
                             </div>
                           </div>
@@ -2016,9 +2020,9 @@ export default function SettingsPage() {
                               <button
                                 type="button"
                                 onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0A0] hover:text-white"
+                                className="btn-mobile absolute right-1 top-1/2 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center rounded-lg text-[#A0A0A0] hover:text-white"
                               >
-                                {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                {showPasswords.new ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                               </button>
                             </div>
                             {passwordForm.newPassword && (
@@ -2076,9 +2080,9 @@ export default function SettingsPage() {
                               <button
                                 type="button"
                                 onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0A0] hover:text-white"
+                                className="btn-mobile absolute right-1 top-1/2 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center rounded-lg text-[#A0A0A0] hover:text-white"
                               >
-                                {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                {showPasswords.confirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                               </button>
                             </div>
                           </div>
@@ -2086,18 +2090,18 @@ export default function SettingsPage() {
                           <button
                             type="submit"
                             disabled={saving}
-                            className="flex items-center justify-center gap-2 w-full h-11 rounded-lg bg-[#FF6B00] text-black text-sm font-bold hover:bg-[#E65100] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="btn-mobile flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#FF6B00] text-sm font-bold text-black transition-colors hover:bg-[#E65100] disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:min-h-0 sm:rounded-lg"
                           >
                             <Save className="w-4 h-4" />
                             {saving ? 'Updating...' : 'Update Password'}
                           </button>
                         </form>
 
-                        <div className="pt-6 border-t" style={{ borderColor: '#2A2A2A' }}>
-                          <div className="flex items-start justify-between gap-4">
-                            <div>
-                              <h3 className="text-white font-semibold text-sm mb-1">Enable 2FA via SMS</h3>
-                              <p className="text-[#A0A0A0] text-sm">
+                        <div className="border-t pt-6" style={{ borderColor: '#2A2A2A' }}>
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                            <div className="min-w-0">
+                              <h3 className="mb-1 text-sm font-semibold text-white">Enable 2FA via SMS</h3>
+                              <p className="text-sm text-[#A0A0A0]">
                                 Get a code sent to your phone for each login
                               </p>
                             </div>
@@ -2106,7 +2110,7 @@ export default function SettingsPage() {
                               role="switch"
                               aria-checked={twoFactorEnabled}
                               onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
-                              className={`relative w-14 h-8 rounded-full shrink-0 transition-colors ${twoFactorEnabled ? 'bg-[#FF6B00]' : 'bg-[#2A2A2A]'
+                              className={`btn-mobile relative h-9 w-14 shrink-0 self-start rounded-full transition-colors sm:self-auto ${twoFactorEnabled ? 'bg-[#FF6B00]' : 'bg-[#2A2A2A]'
                                 }`}
                             >
                               <span
@@ -2122,7 +2126,7 @@ export default function SettingsPage() {
                     {/* Notifications Settings */}
                     {activeTab === 'notifications' && (
                       <div
-                        className="rounded-xl p-6"
+                        className="rounded-xl p-4 sm:p-6"
                         style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
                       >
                         <h2
@@ -2175,14 +2179,14 @@ export default function SettingsPage() {
                             ].map(({ key, label, desc, hasPush }) => (
                               <div
                                 key={key}
-                                className="flex flex-wrap items-center justify-between gap-4 py-4 border-b"
+                                className="flex flex-col gap-4 border-b py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
                                 style={{ borderColor: '#2A2A2A' }}
                               >
-                                <div className="flex-1 min-w-[200px]">
-                                  <p className="text-white font-bold text-sm">{label}</p>
-                                  <p className="text-[#A0A0A0] text-xs mt-0.5">{desc}</p>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-bold text-white">{label}</p>
+                                  <p className="mt-0.5 text-xs text-[#A0A0A0]">{desc}</p>
                                 </div>
-                                <div className="flex items-center gap-6">
+                                <div className="flex w-full items-center justify-between gap-6 sm:w-auto sm:justify-end">
                                   <div className="flex items-center gap-2">
                                     <span className="text-[#A0A0A0] text-xs">Email</span>
                                     <button
@@ -2255,7 +2259,7 @@ export default function SettingsPage() {
                             <button
                               type="submit"
                               disabled={savingPreferences}
-                              className="flex items-center justify-center gap-2 w-full h-11 rounded-lg bg-[#FF6B00] text-black text-sm font-bold hover:bg-[#E65100] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="btn-mobile flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#FF6B00] text-sm font-bold text-black transition-colors hover:bg-[#E65100] disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:min-h-0 sm:rounded-lg"
                             >
                               <Save className="w-4 h-4" />
                               {savingPreferences ? 'Saving...' : 'Save Preferences'}
@@ -2268,9 +2272,9 @@ export default function SettingsPage() {
                 )}
               </div>
             </div>
-          </div >
-        </div >
-      </SellerLayout >
+          </div>
+        </div>
+      </SellerLayout>
     </>
   );
 }

@@ -3,8 +3,9 @@
  * Uses admin `icon` when it is already an image URL; otherwise maps slug/name to curated stock photography.
  */
 
+/** Stable Unsplash CDN URLs (ixlib helps avoid intermittent optimizer/CDN issues). */
 const unsplash = (path: string) =>
-  `https://images.unsplash.com/${path}?auto=format&fit=crop&w=560&h=640&q=82`;
+  `https://images.unsplash.com/${path}?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=1000&q=85`;
 
 const COVERS = {
   watches: unsplash('photo-1523170335258-fcd31818e03f'),
@@ -16,7 +17,7 @@ const COVERS = {
   sports: unsplash('photo-1571019613454-1cb2f99b2d8b'),
   health: unsplash('photo-1576091160399-112ba8d25d1d'),
   beauty: unsplash('photo-1596462502278-27bfd403ccb2'),
-  toys: unsplash('photo-1558064944-ff56791837e8'),
+  toys: unsplash('photo-1558618666-fcd25c85cd64'),
   home: unsplash('photo-1556911220-bff31c812dba'),
   computers: unsplash('photo-1517336714731-489689fd1ca8'),
   electronics: unsplash('photo-1498049794561-7780e7231661'),
@@ -30,7 +31,7 @@ const RULES: { re: RegExp; src: string }[] = [
   { re: /jewelry|luxury/i, src: COVERS.jewelry },
   { re: /\bbaby\b|baby[\s-]product/i, src: COVERS.baby },
   { re: /pet[\s-]suppl|\bpets?\b/i, src: COVERS.pet },
-  { re: /automotive|\bauto\b|car\s*&\s*tool/i, src: COVERS.automotive },
+  { re: /automotive|automobile|car\s*&\s*tool/i, src: COVERS.automotive },
   { re: /office|school\s*suppl/i, src: COVERS.office },
   { re: /sports|fitness/i, src: COVERS.sports },
   { re: /health|household/i, src: COVERS.health },
@@ -50,10 +51,19 @@ function parseIconFieldAsUrl(icon: string | null | undefined): string | null {
   if (!icon) return null;
   const t = icon.trim();
   if (!t) return null;
+  // DB often stores Lucide icon names (e.g. "Package", "Sparkles") — not loadable as images.
+  if (/^[A-Za-z][a-zA-Z0-9]*$/.test(t) && t.length <= 32) {
+    return null;
+  }
   if (/^https?:\/\//i.test(t)) return t;
   if (t.startsWith('/') && /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(t)) return t;
   if (t.startsWith('/') && (t.includes('/storage/') || t.includes('/uploads/'))) return t;
   return null;
+}
+
+/** Last-resort cover when a URL fails to load (used by BuyerCategoryCoverMedia). */
+export function getCategoryCoverFallbackUrl(): string {
+  return COVERS.default;
 }
 
 function curatedCoverForText(haystack: string): string {

@@ -79,7 +79,7 @@ export function getAdminBreadcrumbs(pathname: string, query: ParsedUrlQuery): Br
     const parentSeg = i > 0 ? rest[i - 1] : undefined;
     const built = `/admin/${rest.slice(0, i + 1).join('/')}`;
     const isLast = i === rest.length - 1;
-    let label = labelForSegment(seg, parentSeg);
+    const label = labelForSegment(seg, parentSeg);
 
     crumbs.push({
       label,

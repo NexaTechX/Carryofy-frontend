@@ -98,7 +98,7 @@ function formatPrice(priceInKobo: number) {
 function filterByDateRange(orders: Order[], range: string): Order[] {
   if (range === 'all') return orders;
   const now = new Date();
-  let cutoff = new Date();
+  const cutoff = new Date();
   if (range === '7d') cutoff.setDate(now.getDate() - 7);
   else if (range === '30d') cutoff.setDate(now.getDate() - 30);
   else if (range === '90d') cutoff.setDate(now.getDate() - 90);

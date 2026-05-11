@@ -20,7 +20,7 @@ const signupSchema = z
     email: z.string().email('Please enter a valid email address'),
     phone: z.preprocess((val) => {
       if (typeof val !== 'string') return val;
-      let cleaned = val.replace(/[\s-]/g, '');
+      const cleaned = val.replace(/[\s-]/g, '');
       if (cleaned.startsWith('0')) return '+234' + cleaned.substring(1);
       if (cleaned.startsWith('234')) return '+' + cleaned;
       if (!cleaned.startsWith('+') && cleaned.length >= 10) return '+234' + cleaned;

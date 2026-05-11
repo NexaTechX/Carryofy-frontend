@@ -159,7 +159,7 @@ export default function BuyerHelpPage() {
   };
 
   const filteredFaqs = useMemo(() => {
-    let list = faqsData.filter(
+    const list = faqsData.filter(
       f =>
         (faqCategory === 'All' || f.category === faqCategory) &&
         (!searchQuery.trim() ||

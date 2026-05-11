@@ -19,7 +19,8 @@ import {
   X,
   ListPlus,
 } from 'lucide-react';
-import { getWishlist, removeFromWishlist, WishlistItem } from '../../lib/api/wishlist';
+import { removeFromWishlist, WishlistItem } from '../../lib/api/wishlist';
+import { useWishlist } from '../../lib/hooks/useWishlist';
 import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
 import { useCart } from '../../lib/contexts/CartContext';
 import type { ShopProductCardProduct } from '../../components/buyer/shop/ShopProductCard';
@@ -91,11 +92,9 @@ function wishlistItemToProduct(item: WishlistItem): ShopProductCardProduct {
 export default function SavedListsPage() {
   const router = useRouter();
   const { addToCart } = useCart();
+  const { items, loading, initialized, loadError, refreshWishlist, replaceWishlistItems } = useWishlist();
   const [mounted, setMounted] = useState(false);
   const [lists, setLists] = useState<SavedList[]>([]);
-  const [apiItems, setApiItems] = useState<WishlistItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [removingItems, setRemovingItems] = useState<{ [key: string]: boolean }>({});
   const [editingListId, setEditingListId] = useState<string | null>(null);
@@ -137,17 +136,29 @@ export default function SavedListsPage() {
   }, [router]);
 
   useEffect(() => {
-    if (mounted) fetchWishlist();
-  }, [mounted]);
+    if (!initialized) return;
+    const personalProducts = items.map(wishlistItemToProduct);
+    const personalList: SavedList[] = [
+      {
+        id: PERSONAL_LIST_ID,
+        name: PERSONAL_LIST_NAME,
+        type: 'personal',
+        products: personalProducts,
+        updatedAt: items[0]?.createdAt || new Date().toISOString(),
+      },
+    ];
+    const customLists = loadCustomLists();
+    setLists([...personalList, ...customLists]);
+  }, [initialized, items]);
 
   useEffect(() => {
-    if (!mounted || loading || !router.isReady) return;
+    if (!mounted || !initialized || loading || !router.isReady) return;
     const q = router.query.list;
     if (typeof q !== 'string' || !q) return;
     if (lists.some((l) => l.id === q)) {
       setSelectedListId(q);
     }
-  }, [mounted, loading, router.isReady, router.query.list, lists]);
+  }, [mounted, initialized, loading, router.isReady, router.query.list, lists]);
 
   useEffect(() => {
     if (!showCreateModal) return;
@@ -158,56 +169,12 @@ export default function SavedListsPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [showCreateModal]);
 
-  const fetchWishlist = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await getWishlist();
-      const items = response.items || [];
-      setApiItems(items);
-
-      // Primary list mirrors API wishlist (always show so buyers know where heart-saves go)
-      const personalProducts = items.map(wishlistItemToProduct);
-      const personalList: SavedList[] = [
-        {
-          id: PERSONAL_LIST_ID,
-          name: PERSONAL_LIST_NAME,
-          type: 'personal',
-          products: personalProducts,
-          updatedAt: items[0]?.createdAt || new Date().toISOString(),
-        },
-      ];
-
-      const customLists = loadCustomLists();
-      setLists([...personalList, ...customLists]);
-    } catch (err: any) {
-      console.error('Error fetching saved lists:', err);
-      if (err.response?.status === 500) {
-        setError('Server error: The saved lists service is unavailable. Please check backend logs.');
-      } else if (err.response?.status === 401) {
-        setError('Please log in to view your saved lists');
-      } else {
-        setError(err.response?.data?.message || 'Failed to load saved lists. Please try again.');
-      }
-      setLists([...loadCustomLists()]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleRemoveFromList = async (productId: string, listId: string) => {
     if (isPersonalList(listId)) {
       try {
         setRemovingItems((prev) => ({ ...prev, [productId]: true }));
-        await removeFromWishlist(productId);
-        setLists((prev) =>
-          prev.map((list) =>
-            isPersonalList(list.id)
-              ? { ...list, products: list.products.filter((p) => p.id !== productId) }
-              : list
-          )
-        );
-        setApiItems((prev) => prev.filter((i) => i.productId !== productId));
+        const res = await removeFromWishlist(productId);
+        replaceWishlistItems(res.items || []);
         showSuccessToast('Removed from saved list');
       } catch (err: any) {
         console.error('Error removing:', err);
@@ -299,14 +266,16 @@ export default function SavedListsPage() {
     if (!window.confirm(`Remove all ${ids.length} saved product${ids.length !== 1 ? 's' : ''} from your account?`)) return;
     setClearingPersonal(true);
     try {
+      let last: WishlistItem[] = [];
       for (const id of ids) {
         try {
-          await removeFromWishlist(id);
+          const res = await removeFromWishlist(id);
+          last = res.items || [];
         } catch (e) {
           console.error(e);
         }
       }
-      await fetchWishlist();
+      replaceWishlistItems(last);
       showSuccessToast('Saved list cleared');
     } finally {
       setClearingPersonal(false);
@@ -397,8 +366,9 @@ export default function SavedListsPage() {
   const personalRow = lists.find((l) => isPersonalList(l.id));
   const hasCustomLists = lists.some((l) => !isPersonalList(l.id));
   const isEmpty =
+    initialized &&
     !loading &&
-    !error &&
+    !loadError &&
     (personalRow ? personalRow.products.length === 0 : true) &&
     !hasCustomLists;
 
@@ -436,7 +406,7 @@ export default function SavedListsPage() {
           </div>
 
           {/* Loading */}
-          {loading && (
+          {(!initialized || loading) && (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#FF6B00]" />
               <p className="text-[#ffcc99] mt-4">Loading saved lists...</p>
@@ -444,17 +414,21 @@ export default function SavedListsPage() {
           )}
 
           {/* Error */}
-          {error && (
+          {loadError && (
             <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-6 text-center mb-8">
-              <p className="text-red-400 mb-4">{error}</p>
-              <button onClick={fetchWishlist} className="px-6 py-2 bg-[#FF6B00] text-black rounded-xl font-bold hover:bg-[#cc5200] transition">
+              <p className="text-red-400 mb-4">{loadError}</p>
+              <button
+                type="button"
+                onClick={() => void refreshWishlist()}
+                className="px-6 py-2 bg-[#FF6B00] text-black rounded-xl font-bold hover:bg-[#cc5200] transition"
+              >
                 Try Again
               </button>
             </div>
           )}
 
           {/* Individual List View */}
-          {!loading && selectedList && (
+          {initialized && !loading && !loadError && selectedList && (
             <div className="space-y-6">
               <div className="flex flex-wrap items-center gap-3">
                 <button
@@ -603,7 +577,7 @@ export default function SavedListsPage() {
           )}
 
           {/* List Management View */}
-          {!loading && !selectedList && !isEmpty && (
+          {initialized && !loading && !loadError && !selectedList && !isEmpty && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {lists.map((list) => (
                 <div
@@ -728,7 +702,7 @@ export default function SavedListsPage() {
           )}
 
           {/* Empty State */}
-          {!loading && !error && isEmpty && (
+          {initialized && !loading && !loadError && isEmpty && (
             <div className="bg-[#1a1a1a] border border-[#FF6B00]/30 rounded-2xl p-12 text-center max-w-xl mx-auto">
               <div className="w-24 h-24 mx-auto mb-6 rounded-2xl bg-[#FF6B00]/10 flex items-center justify-center">
                 <Bookmark className="w-12 h-12 text-[#FF6B00]" />

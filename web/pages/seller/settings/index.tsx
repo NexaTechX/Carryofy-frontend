@@ -5,9 +5,9 @@ import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager, userManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
-import { User, Building2, Shield, Bell, Save, Eye, EyeOff, CheckCircle2, XCircle, Clock, CreditCard, Plus, Trash2, ShieldCheck, Upload, AlertCircle, Lock, Loader2, Moon } from 'lucide-react';
+import { User, Building2, Shield, Bell, Save, Eye, EyeOff, CheckCircle2, XCircle, Clock, CreditCard, Plus, Trash2, ShieldCheck, Upload, AlertCircle, Lock, Loader2, Moon, MapPin } from 'lucide-react';
 
-import { geocodeString } from '../../../lib/api/geocode';
+import { geocodeString, getCurrentPosition, reverseGeocode } from '../../../lib/api/geocode';
 
 interface UserProfile {
   id: string;
@@ -68,6 +68,7 @@ export default function SettingsPage() {
     longitude: '' as any,
   });
   const [logoUploading, setLogoUploading] = useState(false);
+  const [gettingBusinessLocation, setGettingBusinessLocation] = useState(false);
 
   // Payout Account state
   const [bankAccount, setBankAccount] = useState<{
@@ -393,30 +394,23 @@ export default function SettingsPage() {
     return { level: 'very strong', percent: 100 };
   };
 
-  const handleBusinessUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!businessForm.businessAddress?.trim()) {
-      toast.error('Business address is required');
-      return;
-    }
-
+  const persistBusinessInformation = async (form: typeof businessForm) => {
     setSaving(true);
 
     const token = tokenManager.getAccessToken();
-    let lat = businessForm.latitude;
-    let lng = businessForm.longitude;
+    let lat = form.latitude;
+    let lng = form.longitude;
 
     // Automatically geocode if coordinates are missing
     if (!lat || !lng) {
-      const geoResult = await geocodeString(businessForm.businessAddress, {
+      const geoResult = await geocodeString(form.businessAddress, {
         preferServer: true,
         accessToken: token ?? undefined,
       });
       if (geoResult) {
         lat = geoResult.latitude;
         lng = geoResult.longitude;
-        // Update local state so it's reflected if form stays open
-        setBusinessForm(prev => ({ ...prev, latitude: lat, longitude: lng }));
+        setBusinessForm((prev) => ({ ...prev, latitude: lat, longitude: lng }));
       } else {
         toast.error('Address saved without coordinates. You can update location again later.');
       }
@@ -427,13 +421,13 @@ export default function SettingsPage() {
       const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
 
       const payload = {
-        businessName: businessForm.businessName,
-        businessType: businessForm.businessType,
-        cacNumber: businessForm.cacNumber || undefined,
-        businessAddress: businessForm.businessAddress || undefined,
-        businessDescription: businessForm.businessDescription || undefined,
-        logo: businessForm.logo || undefined,
-        pickupInstructions: businessForm.pickupInstructions || undefined,
+        businessName: form.businessName,
+        businessType: form.businessType,
+        cacNumber: form.cacNumber || undefined,
+        businessAddress: form.businessAddress || undefined,
+        businessDescription: form.businessDescription || undefined,
+        logo: form.logo || undefined,
+        pickupInstructions: form.pickupInstructions || undefined,
         latitude: lat ? Number(lat) : undefined,
         longitude: lng ? Number(lng) : undefined,
       };
@@ -461,6 +455,52 @@ export default function SettingsPage() {
       toast.error('Failed to update business information. Please try again.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleBusinessUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!businessForm.businessAddress?.trim()) {
+      toast.error('Business address is required');
+      return;
+    }
+    await persistBusinessInformation(businessForm);
+  };
+
+  const handleUseBusinessLocation = async () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      return;
+    }
+    setGettingBusinessLocation(true);
+    try {
+      const coords = await getCurrentPosition();
+      if (!coords) {
+        toast.error('Failed to get location. Please enable location permissions.');
+        return;
+      }
+      const reversed = await reverseGeocode(coords.latitude, coords.longitude);
+      if (!reversed) {
+        toast.error('Could not resolve address from your location. Enter the address manually or try again.');
+        return;
+      }
+      const fullAddress = [reversed.line1, reversed.city, reversed.state, reversed.country].filter(Boolean).join(', ');
+      if (!fullAddress.trim()) {
+        toast.error('Could not build address from your location.');
+        return;
+      }
+      const merged = {
+        ...businessForm,
+        businessAddress: fullAddress,
+        latitude: reversed.latitude,
+        longitude: reversed.longitude,
+      };
+      setBusinessForm(merged);
+      await persistBusinessInformation(merged);
+    } catch {
+      toast.error('Failed to get location. Please try again.');
+    } finally {
+      setGettingBusinessLocation(false);
     }
   };
 
@@ -1375,6 +1415,20 @@ export default function SettingsPage() {
                               placeholder="e.g. 14 Bode Thomas Street, Surulere, Lagos"
                               required
                             />
+                            <button
+                              type="button"
+                              onClick={handleUseBusinessLocation}
+                              disabled={gettingBusinessLocation || saving}
+                              className="mt-2 inline-flex items-center gap-2 text-sm text-[#FF6B00] hover:text-[#ff8533] disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6B00] rounded-md"
+                              title="Use device location to fill and save this address"
+                            >
+                              {gettingBusinessLocation || saving ? (
+                                <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                              ) : (
+                                <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+                              )}
+                              <span>{gettingBusinessLocation ? 'Getting location…' : saving ? 'Saving…' : 'Use my location'}</span>
+                            </button>
                             <p className="text-xs text-[#A0A0A0] mt-1">
                               This is the location where riders will pick up your orders.
                             </p>

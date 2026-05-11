@@ -4,8 +4,8 @@ import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import { useAuth, tokenManager } from '../../lib/auth';
 import { refreshAccessTokenBeforeRedirect } from '../../lib/api/client';
-import { geocodeString } from '../../lib/api/geocode';
-import { Building2, CheckCircle, Phone, AlertTriangle, ArrowLeft, ArrowRight, Store, Package } from 'lucide-react';
+import { geocodeString, getCurrentPosition, reverseGeocode } from '../../lib/api/geocode';
+import { Building2, CheckCircle, Phone, AlertTriangle, ArrowLeft, ArrowRight, Store, Package, MapPin, Loader2 } from 'lucide-react';
 
 /**
  * Normalize phone to international format.
@@ -64,6 +64,7 @@ export default function SellerOnboardingPage() {
   const [pickupInstructions, setPickupInstructions] = useState('');
   const [latitude, setLatitude] = useState<number | ''>('');
   const [longitude, setLongitude] = useState<number | ''>('');
+  const [gettingPickupLocation, setGettingPickupLocation] = useState(false);
 
   const totalSteps = 5;
   const togglePlannedCategory = (cat: string) => {
@@ -161,6 +162,39 @@ export default function SellerOnboardingPage() {
       return false;
     }
     return true;
+  };
+
+  const handleUsePickupLocation = async () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      return;
+    }
+    setGettingPickupLocation(true);
+    try {
+      const coords = await getCurrentPosition();
+      if (!coords) {
+        toast.error('Failed to get location. Please enable location permissions.');
+        return;
+      }
+      const reversed = await reverseGeocode(coords.latitude, coords.longitude);
+      if (!reversed) {
+        toast.error('Could not resolve address from your location. Enter the address manually or try again.');
+        return;
+      }
+      const fullAddress = [reversed.line1, reversed.city, reversed.state, reversed.country].filter(Boolean).join(', ');
+      if (!fullAddress.trim()) {
+        toast.error('Could not build address from your location.');
+        return;
+      }
+      setBusinessAddress(fullAddress);
+      setLatitude(reversed.latitude);
+      setLongitude(reversed.longitude);
+      toast.success('Address filled from your location');
+    } catch {
+      toast.error('Failed to get location. Please try again.');
+    } finally {
+      setGettingPickupLocation(false);
+    }
   };
 
   const handleNextStep = () => {
@@ -399,8 +433,22 @@ export default function SellerOnboardingPage() {
                         className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 h-24"
                       />
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleUsePickupLocation}
+                      disabled={gettingPickupLocation || loading}
+                      className="mt-2 inline-flex items-center gap-2 text-sm text-[#ff6600] hover:text-[#ff8533] disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6600] rounded-md"
+                      title="Use device location to fill this address and coordinates"
+                    >
+                      {gettingPickupLocation ? (
+                        <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                      ) : (
+                        <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+                      )}
+                      <span>{gettingPickupLocation ? 'Getting location…' : 'Use my location'}</span>
+                    </button>
                     <p className="mt-2 text-xs text-gray-500">
-                      This is where riders will come to pick up your products.
+                      This is where riders will come to pick up your products. Coordinates are saved when you finish onboarding.
                     </p>
                   </div>
 
@@ -416,62 +464,6 @@ export default function SellerOnboardingPage() {
                       className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-black focus:border-[#ff6600] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
                     />
                   </div>
-
-                  {/* 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-white text-sm font-medium mb-2">Latitude <span className="text-red-400">*</span></label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={latitude}
-                        onChange={(e) => setLatitude(e.target.value ? parseFloat(e.target.value) : '')}
-                        disabled
-                        placeholder="Coordinates"
-                        className="form-input flex w-full resize-none overflow-hidden rounded-xl text-[#A0A0A0] border border-[#ff6600]/20 bg-black/50 h-14 p-4 text-base font-normal leading-normal"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-white text-sm font-medium mb-2">Longitude <span className="text-red-400">*</span></label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={longitude}
-                        onChange={(e) => setLongitude(e.target.value ? parseFloat(e.target.value) : '')}
-                        disabled
-                        placeholder="Coordinates"
-                        className="form-input flex w-full resize-none overflow-hidden rounded-xl text-[#A0A0A0] border border-[#ff6600]/20 bg-black/50 h-14 p-4 text-base font-normal leading-normal"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (typeof navigator !== 'undefined' && navigator.geolocation) {
-                        toast.loading('Getting location...', { id: 'geo' });
-                        navigator.geolocation.getCurrentPosition(
-                          (pos) => {
-                            setLatitude(pos.coords.latitude);
-                            setLongitude(pos.coords.longitude);
-                            toast.success('Location updated!', { id: 'geo' });
-                          },
-                          (err) => {
-                            toast.error('Could not get location. Please enter manually.', { id: 'geo' });
-                            console.error(err);
-                          }
-                        );
-                      }
-                    }}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[#ff6600] text-[#ff6600] hover:bg-[#ff6600]/10 transition"
-                  >
-                    <Building2 className="w-5 h-5" />
-                    Use my current location
-                  </button>
-                  <p className="text-center text-[#ffcc99] text-xs">
-                    Riders need these coordinates to find you precisely.
-                  </p>
-                  */}
                 </div>
               </>
             )}

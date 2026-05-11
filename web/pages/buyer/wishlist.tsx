@@ -268,21 +268,16 @@ export default function SavedListsPage() {
   };
 
   const copyProductToCustomList = (targetListId: string, product: ShopProductCardProduct) => {
-    type Feedback = 'added' | 'duplicate' | 'invalid';
-    let feedback: Feedback = 'invalid';
-    let listName = '';
     setLists((prev) => {
       const target = prev.find((l) => l.id === targetListId);
       if (!target || isPersonalList(target.id)) {
-        feedback = 'invalid';
         return prev;
       }
       if (target.products.some((p) => p.id === product.id)) {
-        feedback = 'duplicate';
+        showErrorToast('Already in that list');
         return prev;
       }
-      listName = target.name;
-      feedback = 'added';
+      showSuccessToast(`Copied to "${target.name}"`);
       const next = prev.map((l) =>
         l.id === targetListId
           ? {
@@ -295,8 +290,6 @@ export default function SavedListsPage() {
       saveCustomLists(next);
       return next;
     });
-    if (feedback === 'added') showSuccessToast(`Copied to "${listName}"`);
-    else if (feedback === 'duplicate') showErrorToast('Already in that list');
   };
 
   const handleClearPersonalList = async () => {

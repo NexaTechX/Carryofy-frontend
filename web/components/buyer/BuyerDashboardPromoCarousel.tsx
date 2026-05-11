@@ -3,16 +3,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, ShoppingBag, Sparkles } from 'lucide-react';
-import { getPublicBanners, type MarketingBanner } from '../../lib/api/banners';
+import {
+  getPublicBanners,
+  heroCopyFromBanner,
+  type MarketingBanner,
+  BUYER_HERO_DEFAULT_CTA,
+  BUYER_HERO_DEFAULT_CTA_HREF,
+  BUYER_HERO_DEFAULT_HEADLINE,
+  BUYER_HERO_DEFAULT_SUBLINE,
+} from '../../lib/api/banners';
 
 const HERO_CLASS = 'relative h-[200px] w-full overflow-hidden md:h-[320px]';
 const AUTO_MS = 5000;
-
-const DEFAULT_HEADLINE = 'Everything your business needs, delivered in Lagos';
-const DEFAULT_SUBLINE =
-  'Verified vendors, wholesale-friendly ordering, and coordinated delivery — built for retailers who move fast.';
-const DEFAULT_CTA = 'Shop Now';
-const DEFAULT_CTA_HREF = '/buyer/products';
 
 function SlideLink({
   href,
@@ -44,28 +46,12 @@ function SlideLink({
   );
 }
 
-type HeroCopy = {
-  headline: string;
-  subline: string;
-  ctaLabel: string;
-  ctaUrl: string;
-};
-
-function bannerToCopy(b: MarketingBanner): HeroCopy {
-  return {
-    headline: b.headline?.trim() || DEFAULT_HEADLINE,
-    subline: b.subline?.trim() || DEFAULT_SUBLINE,
-    ctaLabel: b.ctaLabel?.trim() || DEFAULT_CTA,
-    ctaUrl: b.ctaUrl?.trim() || DEFAULT_CTA_HREF,
-  };
-}
-
 function GradientHeroSlide() {
-  const copy: HeroCopy = {
-    headline: DEFAULT_HEADLINE,
-    subline: DEFAULT_SUBLINE,
-    ctaLabel: DEFAULT_CTA,
-    ctaUrl: DEFAULT_CTA_HREF,
+  const copy = {
+    headline: BUYER_HERO_DEFAULT_HEADLINE,
+    subline: BUYER_HERO_DEFAULT_SUBLINE,
+    ctaLabel: BUYER_HERO_DEFAULT_CTA,
+    ctaUrl: BUYER_HERO_DEFAULT_CTA_HREF,
   };
   const { headline, subline, ctaLabel, ctaUrl } = copy;
   return (
@@ -159,7 +145,7 @@ function ImageHeroSlide({
   banner: MarketingBanner;
   priorityImage?: boolean;
 }) {
-  const copy = bannerToCopy(banner);
+  const copy = heroCopyFromBanner(banner);
   const { headline, subline, ctaLabel, ctaUrl } = copy;
   const imageUrl = banner.imageUrl.trim();
   return (

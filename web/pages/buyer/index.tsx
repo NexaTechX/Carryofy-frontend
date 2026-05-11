@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useQuery } from '@tanstack/react-query';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import BuyerDashboardPromoCarousel from '../../components/buyer/BuyerDashboardPromoCarousel';
 import BuyerCategoryStrip from '../../components/buyer/BuyerCategoryStrip';
@@ -10,6 +11,10 @@ import ShopProductCard, { ShopProductCardProduct } from '../../components/buyer/
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
+import { getPublicBanners, heroCopyFromBanner, defaultBuyerHeroCopy } from '../../lib/api/banners';
+import { categoryDisplayName } from '../../lib/buyer/categoryDisplay';
+import { getCategoryCoverImageUrl } from '../../lib/buyer/categoryCoverImage';
+import BuyerCategoryCoverMedia from '../../components/buyer/BuyerCategoryCoverMedia';
 import {
   Package,
   FileText,
@@ -19,114 +24,14 @@ import {
   ShoppingBag,
   Layers,
   Sparkles,
-  Wheat,
-  Droplet,
-  Flame,
-  Coffee,
-  Smartphone,
-  Shirt,
   ExternalLink,
   ArrowUpRight,
   ArrowDownRight,
   Wallet,
-  Laptop,
-  Home,
-  Gamepad2,
-  HeartPulse,
-  Dumbbell,
-  PawPrint,
-  Car,
-  Briefcase,
-  ShoppingBasket,
-  Baby,
-  Gem,
-  Watch,
   ChevronDown,
   Store,
   Zap,
 } from 'lucide-react';
-
-type CategoryIcon = React.ComponentType<{ className?: string }>;
-
-const CATEGORY_ICONS: Record<string, CategoryIcon> = {
-  cream: Sparkles,
-  'beauty-personal-care': Sparkles,
-  'personal-care': Sparkles,
-  grains: Wheat,
-  'grain-and-rice': Wheat,
-  'grains-rice': Wheat,
-  groceries: Wheat,
-  oils: Droplet,
-  packaged: Package,
-  spices: Flame,
-  beverages: Coffee,
-  fashion: Shirt,
-  clothing: Shirt,
-  apparel: Shirt,
-  'electronics-gadgets': Smartphone,
-  electronics: Smartphone,
-  'computers-accessories': Laptop,
-  computers: Laptop,
-  'clothing-accessories': Shirt,
-  'home-kitchen': Home,
-  home: Home,
-  kitchen: Home,
-  'toys-games': Gamepad2,
-  toys: Gamepad2,
-  'health-household': HeartPulse,
-  health: HeartPulse,
-  household: HeartPulse,
-  'sports-fitness': Dumbbell,
-  sports: Dumbbell,
-  fitness: Dumbbell,
-  'pet-supplies': PawPrint,
-  pets: PawPrint,
-  pet: PawPrint,
-  'automotive-tools': Car,
-  automotive: Car,
-  'office-school-supplies': Briefcase,
-  office: Briefcase,
-  school: Briefcase,
-  'grocery-gourmet-food': ShoppingBasket,
-  'grocery-gourmet': ShoppingBasket,
-  gourmet: ShoppingBasket,
-  'baby-products': Baby,
-  baby: Baby,
-  'jewelry-luxury-accessories': Gem,
-  jewelry: Gem,
-  luxury: Gem,
-  'watches-premium-timepieces': Watch,
-  watches: Watch,
-  timepieces: Watch,
-};
-
-function getCategoryIconByText(haystack: string): CategoryIcon | null {
-  const s = haystack.toLowerCase();
-  if (/watches|timepiece/.test(s)) return Watch;
-  if (/jewelry|luxury/.test(s)) return Gem;
-  if (/\bbaby\b/.test(s) || /baby\s+product/.test(s)) return Baby;
-  if (/grocery|gourmet/.test(s)) return ShoppingBasket;
-  if (/office|school\s+suppl/.test(s) || /\boffice\b.*\bschool\b/.test(s)) return Briefcase;
-  if (/automotive|car\s*&\s*tool|\btools?\b.*auto/.test(s)) return Car;
-  if (/pet\s+suppl|\bpet\b/.test(s)) return PawPrint;
-  if (/sports|fitness/.test(s)) return Dumbbell;
-  if (/health|household/.test(s)) return HeartPulse;
-  if (/beauty|personal\s+care|cosmetic/.test(s)) return Sparkles;
-  if (/toys|games/.test(s)) return Gamepad2;
-  if (/home|kitchen/.test(s)) return Home;
-  if (/computers|computer|laptop|pc\b/.test(s)) return Laptop;
-  if (/electronics|gadget/.test(s)) return Smartphone;
-  if (/clothing|apparel|fashion/.test(s)) return Shirt;
-  return null;
-}
-
-function getCategoryIcon(slug: string, name?: string): CategoryIcon {
-  const key = (slug || '').trim().toLowerCase().replace(/\s+/g, '-');
-  if (key && CATEGORY_ICONS[key]) return CATEGORY_ICONS[key];
-  const fromName = getCategoryIconByText(`${key} ${name || ''}`);
-  if (fromName) return fromName;
-  return Package;
-}
 
 const ACTIVE_ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY'];
 
@@ -218,6 +123,15 @@ export default function BuyerDashboard() {
   const categoryStrip = categories
     .filter((c) => c.isActive)
     .sort((a, b) => a.displayOrder - b.displayOrder);
+
+  const { data: bannersData, isPending: bannersPending } = useQuery({
+    queryKey: ['banners', 'public'],
+    queryFn: getPublicBanners,
+    staleTime: 2 * 60 * 1000,
+  });
+  const firstHeroBanner = bannersData?.hero?.[0];
+  const heroCopy = firstHeroBanner ? heroCopyFromBanner(firstHeroBanner) : defaultBuyerHeroCopy();
+  const heroImageUrl = firstHeroBanner?.imageUrl?.trim() || '';
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -394,43 +308,124 @@ export default function BuyerDashboard() {
               />
             </form>
 
-            <div className="flex items-center justify-between gap-2 rounded-xl border border-orange-500/30 bg-[#1a1d27] p-3">
-              <div>
-                <p className="mb-0.5 text-[8px] font-bold uppercase tracking-wide text-orange-500">Carryofy</p>
-                <p className="text-[13px] font-extrabold leading-snug text-white">
-                  REFILL YOUR SHOP
-                  <br />
-                  FROM YOUR PHONE
-                </p>
-                <p className="mt-0.5 text-[9px] text-gray-500">Shop from verified Lagos suppliers</p>
-                <Link
-                  href="/buyer/products"
-                  className="mt-2 inline-flex items-center gap-1 rounded-md bg-orange-500 px-2.5 py-1.5"
-                >
-                  <ShoppingBag className="h-3 w-3 text-white" />
-                  <span className="text-[9px] font-bold text-white">Shop now</span>
-                </Link>
-              </div>
-              <Store className="h-9 w-9 shrink-0 text-orange-500/30" aria-hidden />
-            </div>
+            {bannersPending ? (
+              <div className="h-[120px] animate-pulse rounded-xl border border-white/10 bg-white/5" aria-hidden />
+            ) : (
+              (() => {
+                const cta = heroCopy.ctaUrl.trim() || '/buyer/products';
+                const cardInner = (
+                  <div className="relative h-[122px] w-full overflow-hidden rounded-xl border border-orange-500/30">
+                    {heroImageUrl ? (
+                      <>
+                        <Image
+                          src={heroImageUrl}
+                          alt=""
+                          fill
+                          className="object-cover object-center"
+                          sizes="(max-width: 1024px) 100vw, 50vw"
+                          priority
+                        />
+                        <div
+                          className="absolute inset-0 z-[1] bg-gradient-to-r from-black/88 via-black/55 to-black/25"
+                          aria-hidden
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <div
+                          className="absolute inset-0 z-[0] bg-gradient-to-br from-[#FF6B00] via-[#c2410c] to-[#0a0705]"
+                          aria-hidden
+                        />
+                        <div
+                          className="absolute inset-0 z-[0] bg-gradient-to-t from-black/65 via-black/25 to-orange-400/10"
+                          aria-hidden
+                        />
+                        <div className="pointer-events-none absolute right-2 top-1/2 z-[1] -translate-y-1/2">
+                          <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 p-2 ring-1 ring-white/20">
+                            <Image
+                              src="/logo.png"
+                              alt=""
+                              width={80}
+                              height={80}
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    <div
+                      className={`relative z-[2] flex h-full flex-col justify-center p-3 ${heroImageUrl ? 'pr-3' : 'pr-[4.5rem]'}`}
+                    >
+                      <span className="mb-1 inline-flex w-fit items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-amber-100 ring-1 ring-white/15">
+                        <Sparkles className="h-2.5 w-2.5 text-amber-200" aria-hidden />
+                        Carryofy
+                      </span>
+                      <h2 className="line-clamp-3 text-[13px] font-extrabold leading-snug text-white drop-shadow-md">
+                        {heroCopy.headline}
+                      </h2>
+                      <p className="mt-0.5 line-clamp-2 text-[9px] font-medium leading-snug text-white/85">
+                        {heroCopy.subline}
+                      </p>
+                      <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-md bg-orange-500 px-2.5 py-1.5 text-[9px] font-bold text-white shadow-lg">
+                        <ShoppingBag className="h-3 w-3 shrink-0 text-white" aria-hidden />
+                        {heroCopy.ctaLabel}
+                      </span>
+                    </div>
+                  </div>
+                );
+                if (cta.startsWith('/') && !cta.startsWith('//')) {
+                  return (
+                    <Link href={cta} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/80 rounded-xl">
+                      {cardInner}
+                    </Link>
+                  );
+                }
+                return (
+                  <a
+                    href={cta}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/80"
+                  >
+                    {cardInner}
+                  </a>
+                );
+              })()
+            )}
 
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold text-white">Categories</p>
-              <div className="-mx-0.5 flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+              <p className="mb-1.5 text-[11px] font-semibold text-white">Shop by category</p>
+              <div className="-mx-0.5 flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
                 {categoriesLoading
                   ? Array.from({ length: 6 }).map((_, i) => (
-                      <div key={i} className="h-16 w-16 shrink-0 animate-pulse rounded-lg bg-white/5" />
+                      <div
+                        key={i}
+                        className="h-[102px] w-[88px] shrink-0 animate-pulse rounded-xl bg-white/5 ring-1 ring-white/[0.06]"
+                      />
                     ))
                   : categoryStrip.slice(0, 8).map((cat) => {
-                      const Icon = getCategoryIcon(cat.slug, cat.name);
+                      const label = categoryDisplayName(cat.slug, cat.name);
+                      const coverUrl = getCategoryCoverImageUrl(cat.slug, cat.name, cat.icon);
                       return (
                         <Link
                           key={cat.id}
                           href={`/buyer/products?category=${encodeURIComponent(cat.slug)}`}
-                          className="flex w-[72px] shrink-0 flex-col items-center gap-0.5 rounded-lg border border-white/[0.06] bg-[#1a1d27] px-1.5 py-1.5"
+                          aria-label={`Shop ${label}`}
+                          className="group relative block h-[102px] w-[88px] shrink-0 overflow-hidden rounded-xl ring-1 ring-white/[0.08] transition hover:ring-orange-500/40"
                         >
-                          <Icon className="h-[17px] w-[17px] text-gray-500" />
-                          <span className="line-clamp-2 text-center text-[7px] text-gray-500">{cat.name}</span>
+                          <BuyerCategoryCoverMedia
+                            src={coverUrl}
+                            alt=""
+                            sizes="88px"
+                            className="object-cover transition duration-300 group-hover:scale-[1.05]"
+                          />
+                          <div
+                            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent"
+                            aria-hidden
+                          />
+                          <span className="absolute bottom-1.5 left-1 right-1 line-clamp-2 text-center text-[8px] font-bold leading-tight text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+                            {label}
+                          </span>
                         </Link>
                       );
                     })}
@@ -492,11 +487,7 @@ export default function BuyerDashboard() {
           </div>
 
           <div className="hidden lg:block">
-            <BuyerCategoryStrip
-              categories={categoryStrip}
-              loading={categoriesLoading}
-              getCategoryIcon={getCategoryIcon}
-            />
+            <BuyerCategoryStrip categories={categoryStrip} loading={categoriesLoading} />
           </div>
 
           {/* 3 — Flash deals / featured products */}

@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Grid3X3 } from 'lucide-react';
 import type { Category } from '../../types/category';
 import { categoryDisplayName } from '../../lib/buyer/categoryDisplay';
+import { getCategoryCoverImageUrl } from '../../lib/buyer/categoryCoverImage';
+import BuyerCategoryCoverMedia from './BuyerCategoryCoverMedia';
 
 const CARD_W = 120;
 const CARD_H = 140;
@@ -47,18 +49,14 @@ function expandShortHex(short: string): string {
   return `#${r}${r}${g}${g}${b}${b}`;
 }
 
-type IconRenderer = ComponentType<{ className?: string }>;
-
 interface BuyerCategoryStripProps {
   categories: Category[];
   loading: boolean;
-  getCategoryIcon: (slug: string, name?: string) => IconRenderer;
 }
 
 export default function BuyerCategoryStrip({
   categories,
   loading,
-  getCategoryIcon,
 }: BuyerCategoryStripProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
@@ -156,44 +154,50 @@ export default function BuyerCategoryStrip({
           style={{ scrollSnapType: 'x proximity' }}
         >
           {categories.map((cat) => {
-            const Icon = getCategoryIcon(cat.slug, cat.name);
             const label = categoryDisplayName(cat.slug, cat.name);
-            const bg = categoryBackground(cat);
+            const coverUrl = getCategoryCoverImageUrl(cat.slug, cat.name, cat.icon);
+            const tint = categoryBackground(cat);
 
             return (
               <Link
                 key={cat.id}
                 href={`/buyer/products?category=${cat.slug}`}
-                className="group relative shrink-0 overflow-hidden rounded-xl shadow-[0_4px_14px_-4px_rgba(0,0,0,0.6)] ring-1 ring-white/10 transition hover:ring-primary/50 hover:brightness-105"
+                aria-label={`Shop ${label}`}
+                className="group relative block shrink-0 overflow-hidden rounded-xl shadow-[0_4px_14px_-4px_rgba(0,0,0,0.6)] ring-1 ring-white/10 transition hover:ring-primary/50 hover:brightness-105"
                 style={{
                   width: CARD_W,
                   height: CARD_H,
                   scrollSnapAlign: 'start',
                 }}
               >
-                <div className="absolute inset-0" style={{ background: bg }} aria-hidden />
+                <div className="absolute inset-0" aria-hidden>
+                  <BuyerCategoryCoverMedia
+                    src={coverUrl}
+                    alt=""
+                    sizes={`${CARD_W}px`}
+                    className="object-cover transition duration-300 group-hover:scale-[1.05]"
+                  />
+                </div>
                 <div
-                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-white/10"
+                  className="pointer-events-none absolute inset-0 mix-blend-multiply opacity-35"
+                  style={{ background: tint }}
                   aria-hidden
                 />
                 <div
-                  className="pointer-events-none absolute inset-0 opacity-[0.07]"
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"
+                  aria-hidden
+                />
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-[0.06]"
                   style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
                   }}
                   aria-hidden
                 />
 
-                <div className="relative flex h-full flex-col items-center px-1.5 pt-3 pb-2">
-                  <div className="flex min-h-0 flex-1 items-center justify-center">
-                    <div className="rounded-2xl bg-white/15 p-2.5 ring-2 ring-white/25 shadow-inner backdrop-blur-[2px]">
-                      <Icon className="h-8 w-8 text-white drop-shadow-md" aria-hidden />
-                    </div>
-                  </div>
-                  <p className="line-clamp-2 w-full text-center text-[10px] font-bold leading-tight text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]">
-                    {label}
-                  </p>
-                </div>
+                <p className="absolute bottom-2 left-1.5 right-1.5 line-clamp-2 text-center text-[10px] font-bold leading-tight text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
+                  {label}
+                </p>
               </Link>
             );
           })}

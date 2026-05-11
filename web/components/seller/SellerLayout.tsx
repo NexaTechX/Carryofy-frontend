@@ -24,7 +24,6 @@ import {
   AlertTriangle,
   ClipboardList,
   MoreHorizontal,
-  Zap,
   Plus,
 } from 'lucide-react';
 import { useAuth, tokenManager } from '../../lib/auth';
@@ -518,11 +517,20 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       {showSellerMobileChrome && (
         <header className="lg:hidden sticky top-0 shrink-0 z-50 safe-top border-b border-white/[0.06] bg-[#0f1117]">
           <div className="flex items-center justify-between px-3 py-2">
-            <Link href="/seller" className="flex min-w-0 items-center gap-1.5">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-orange-500">
-                <Zap className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
+            <Link href="/seller" className="flex min-w-0 items-center gap-2">
+              <div className="relative h-8 w-8 shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="Carryofy"
+                  width={32}
+                  height={32}
+                  className="h-full w-full object-contain"
+                  priority
+                />
               </div>
-              <span className="truncate text-sm font-extrabold text-white">{sellerMobileTopTitle()}</span>
+              {router.pathname !== '/seller' && (
+                <span className="truncate text-sm font-extrabold text-white">{sellerMobileTopTitle()}</span>
+              )}
             </Link>
             <div className="flex shrink-0 items-center gap-1.5">
               {productsListMobilePlus && (

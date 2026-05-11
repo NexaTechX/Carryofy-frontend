@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -17,6 +17,7 @@ import {
   Plus,
   Pencil,
   X,
+  ListPlus,
 } from 'lucide-react';
 import { getWishlist, removeFromWishlist, WishlistItem } from '../../lib/api/wishlist';
 import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
@@ -26,6 +27,9 @@ import type { ShopProductCardProduct } from '../../components/buyer/shop/ShopPro
 type ListType = 'personal' | 'business';
 
 const CUSTOM_LISTS_STORAGE_KEY = 'carryofy-custom-saved-lists';
+/** API wishlist is shown as this list (id must stay `personal` for storage helpers). */
+const PERSONAL_LIST_ID = 'personal';
+const PERSONAL_LIST_NAME = 'Saved for later';
 
 interface SavedList {
   id: string;
@@ -62,8 +66,12 @@ function loadCustomLists(): SavedList[] {
 
 function saveCustomLists(lists: SavedList[]) {
   if (typeof window === 'undefined') return;
-  const custom = lists.filter((l) => l.id !== 'personal');
+  const custom = lists.filter((l) => l.id !== PERSONAL_LIST_ID);
   localStorage.setItem(CUSTOM_LISTS_STORAGE_KEY, JSON.stringify(custom));
+}
+
+function isPersonalList(listId: string) {
+  return listId === PERSONAL_LIST_ID;
 }
 
 function wishlistItemToProduct(item: WishlistItem): ShopProductCardProduct {
@@ -95,6 +103,22 @@ export default function SavedListsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [newListType, setNewListType] = useState<ListType>('personal');
+  const [addAllForListId, setAddAllForListId] = useState<string | null>(null);
+  const [clearingPersonal, setClearingPersonal] = useState(false);
+
+  const customListsForSelect = lists.filter((l) => !isPersonalList(l.id));
+
+  const syncListInUrl = useCallback(
+    (listId: string | null) => {
+      if (!router.isReady) return;
+      if (listId) {
+        void router.replace({ pathname: '/buyer/wishlist', query: { list: listId } }, undefined, { shallow: true });
+      } else {
+        void router.replace({ pathname: '/buyer/wishlist' }, undefined, { shallow: true });
+      }
+    },
+    [router]
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -116,6 +140,24 @@ export default function SavedListsPage() {
     if (mounted) fetchWishlist();
   }, [mounted]);
 
+  useEffect(() => {
+    if (!mounted || loading || !router.isReady) return;
+    const q = router.query.list;
+    if (typeof q !== 'string' || !q) return;
+    if (lists.some((l) => l.id === q)) {
+      setSelectedListId(q);
+    }
+  }, [mounted, loading, router.isReady, router.query.list, lists]);
+
+  useEffect(() => {
+    if (!showCreateModal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowCreateModal(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showCreateModal]);
+
   const fetchWishlist = async () => {
     try {
       setLoading(true);
@@ -124,22 +166,18 @@ export default function SavedListsPage() {
       const items = response.items || [];
       setApiItems(items);
 
-      // Build lists from API wishlist (only add Personal when it has products)
+      // Primary list mirrors API wishlist (always show so buyers know where heart-saves go)
       const personalProducts = items.map(wishlistItemToProduct);
-      const personalList =
-        personalProducts.length > 0
-          ? [
-              {
-                id: 'personal',
-                name: 'Personal',
-                type: 'personal' as const,
-                products: personalProducts,
-                updatedAt: items[0]?.createdAt || new Date().toISOString(),
-              },
-            ]
-          : [];
+      const personalList: SavedList[] = [
+        {
+          id: PERSONAL_LIST_ID,
+          name: PERSONAL_LIST_NAME,
+          type: 'personal',
+          products: personalProducts,
+          updatedAt: items[0]?.createdAt || new Date().toISOString(),
+        },
+      ];
 
-      // Merge with custom lists from localStorage
       const customLists = loadCustomLists();
       setLists([...personalList, ...customLists]);
     } catch (err: any) {
@@ -151,27 +189,45 @@ export default function SavedListsPage() {
       } else {
         setError(err.response?.data?.message || 'Failed to load saved lists. Please try again.');
       }
-      setLists([]);
+      setLists([...loadCustomLists()]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRemoveFromList = async (productId: string) => {
+  const handleRemoveFromList = async (productId: string, listId: string) => {
+    if (isPersonalList(listId)) {
+      try {
+        setRemovingItems((prev) => ({ ...prev, [productId]: true }));
+        await removeFromWishlist(productId);
+        setLists((prev) =>
+          prev.map((list) =>
+            isPersonalList(list.id)
+              ? { ...list, products: list.products.filter((p) => p.id !== productId) }
+              : list
+          )
+        );
+        setApiItems((prev) => prev.filter((i) => i.productId !== productId));
+        showSuccessToast('Removed from saved list');
+      } catch (err: any) {
+        console.error('Error removing:', err);
+        showErrorToast(err.response?.data?.message || 'Failed to remove');
+      } finally {
+        setRemovingItems((prev) => ({ ...prev, [productId]: false }));
+      }
+      return;
+    }
+
+    setRemovingItems((prev) => ({ ...prev, [productId]: true }));
     try {
-      setRemovingItems((prev) => ({ ...prev, [productId]: true }));
-      await removeFromWishlist(productId);
-      setLists((prev) =>
-        prev.map((list) => ({
-          ...list,
-          products: list.products.filter((p) => p.id !== productId),
-        }))
-      );
-      setApiItems((prev) => prev.filter((i) => i.productId !== productId));
+      setLists((prev) => {
+        const next = prev.map((list) =>
+          list.id === listId ? { ...list, products: list.products.filter((p) => p.id !== productId), updatedAt: new Date().toISOString() } : list
+        );
+        saveCustomLists(next);
+        return next;
+      });
       showSuccessToast('Removed from list');
-    } catch (err: any) {
-      console.error('Error removing:', err);
-      showErrorToast(err.response?.data?.message || 'Failed to remove');
     } finally {
       setRemovingItems((prev) => ({ ...prev, [productId]: false }));
     }
@@ -186,27 +242,107 @@ export default function SavedListsPage() {
     }
   };
 
-  const handleAddAllToCart = (list: SavedList) => {
-    list.products.forEach((p) => {
-      if (p.quantity > 0) addToCart(p.id);
+  const handleAddAllToCart = async (list: SavedList) => {
+    const eligible = list.products.filter((p) => p.quantity > 0);
+    if (eligible.length === 0) {
+      showErrorToast('No in-stock items in this list');
+      return;
+    }
+    setAddAllForListId(list.id);
+    let ok = 0;
+    try {
+      for (const p of eligible) {
+        const success = await addToCart(p.id);
+        if (success) ok += 1;
+      }
+      if (ok === eligible.length) {
+        showSuccessToast(`Added ${ok} item${ok !== 1 ? 's' : ''} to cart`);
+      } else if (ok > 0) {
+        showSuccessToast(`Added ${ok} of ${eligible.length} item${eligible.length !== 1 ? 's' : ''} to cart`);
+      } else {
+        showErrorToast('Could not add items to cart');
+      }
+    } finally {
+      setAddAllForListId(null);
+    }
+  };
+
+  const copyProductToCustomList = (targetListId: string, product: ShopProductCardProduct) => {
+    type Feedback = 'added' | 'duplicate' | 'invalid';
+    let feedback: Feedback = 'invalid';
+    let listName = '';
+    setLists((prev) => {
+      const target = prev.find((l) => l.id === targetListId);
+      if (!target || isPersonalList(target.id)) {
+        feedback = 'invalid';
+        return prev;
+      }
+      if (target.products.some((p) => p.id === product.id)) {
+        feedback = 'duplicate';
+        return prev;
+      }
+      listName = target.name;
+      feedback = 'added';
+      const next = prev.map((l) =>
+        l.id === targetListId
+          ? {
+              ...l,
+              products: [...l.products.filter((p) => p.id !== product.id), product],
+              updatedAt: new Date().toISOString(),
+            }
+          : l
+      );
+      saveCustomLists(next);
+      return next;
     });
-    showSuccessToast(`Added ${list.products.length} items to cart`);
+    if (feedback === 'added') showSuccessToast(`Copied to "${listName}"`);
+    else if (feedback === 'duplicate') showErrorToast('Already in that list');
+  };
+
+  const handleClearPersonalList = async () => {
+    const personal = lists.find((l) => isPersonalList(l.id));
+    const ids = personal?.products.map((p) => p.id) ?? [];
+    if (ids.length === 0) return;
+    if (!window.confirm(`Remove all ${ids.length} saved product${ids.length !== 1 ? 's' : ''} from your account?`)) return;
+    setClearingPersonal(true);
+    try {
+      for (const id of ids) {
+        try {
+          await removeFromWishlist(id);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      await fetchWishlist();
+      showSuccessToast('Saved list cleared');
+    } finally {
+      setClearingPersonal(false);
+    }
   };
 
   const handleDeleteList = (listId: string) => {
+    if (isPersonalList(listId)) return;
     setLists((prev) => {
       const next = prev.filter((l) => l.id !== listId);
       saveCustomLists(next);
       return next;
     });
-    if (selectedListId === listId) setSelectedListId(null);
+    if (selectedListId === listId) {
+      setSelectedListId(null);
+      syncListInUrl(null);
+    }
     showSuccessToast('List deleted');
   };
 
   const handleSaveListName = (listId: string) => {
+    if (isPersonalList(listId)) {
+      setEditingListId(null);
+      setEditName('');
+      return;
+    }
     setLists((prev) => {
       const next = prev.map((l) =>
-        l.id === listId ? { ...l, name: editName || l.name } : l
+        l.id === listId ? { ...l, name: editName.trim() || l.name, updatedAt: new Date().toISOString() } : l
       );
       saveCustomLists(next);
       return next;
@@ -236,26 +372,42 @@ export default function SavedListsPage() {
   };
 
   const handleShareList = () => {
+    const list = lists.find((l) => l.id === selectedListId);
+    if (!list || !selectedListId) return;
+    const shareUrl =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/buyer/wishlist?list=${encodeURIComponent(selectedListId)}`
+        : '';
     if (navigator.share) {
-      const list = lists.find((l) => l.id === selectedListId);
-      if (list) {
-        navigator
-          .share({
-            title: `${list.name} - Carryofy`,
-            text: `Check out my saved list "${list.name}" on Carryofy`,
-            url: window.location.href,
-          })
-          .then(() => showSuccessToast('List shared'))
-          .catch(() => showErrorToast('Could not share'));
-      }
+      navigator
+        .share({
+          title: `${list.name} - Carryofy`,
+          text: `Open my Carryofy list: ${list.name}`,
+          url: shareUrl,
+        })
+        .then(() => showSuccessToast('List shared'))
+        .catch(() => {
+          void navigator.clipboard.writeText(shareUrl).then(
+            () => showSuccessToast('Link copied'),
+            () => showErrorToast('Could not share or copy')
+          );
+        });
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      showSuccessToast('Link copied to clipboard');
+      void navigator.clipboard.writeText(shareUrl).then(
+        () => showSuccessToast('Link copied to clipboard'),
+        () => showErrorToast('Could not copy link')
+      );
     }
   };
 
   const selectedList = selectedListId ? lists.find((l) => l.id === selectedListId) : null;
-  const isEmpty = !loading && !error && lists.length === 0;
+  const personalRow = lists.find((l) => isPersonalList(l.id));
+  const hasCustomLists = lists.some((l) => !isPersonalList(l.id));
+  const isEmpty =
+    !loading &&
+    !error &&
+    (personalRow ? personalRow.products.length === 0 : true) &&
+    !hasCustomLists;
 
   if (!mounted) return null;
 
@@ -276,8 +428,9 @@ export default function SavedListsPage() {
                 <Bookmark className="w-8 h-8 text-[#FF6B00]" />
                 Saved Lists
               </h1>
-              <p className="text-[#ffcc99] text-base md:text-lg">
-                Save products for later, create shopping lists, or build procurement templates
+              <p className="text-[#ffcc99] text-base md:text-lg max-w-2xl">
+                Tap the heart while shopping to add items to <span className="text-white font-medium">Saved for later</span>.
+                Create named lists for projects or repeat orders, then copy products from your main saved list into them.
               </p>
             </div>
             <button
@@ -312,7 +465,11 @@ export default function SavedListsPage() {
             <div className="space-y-6">
               <div className="flex flex-wrap items-center gap-3">
                 <button
-                  onClick={() => setSelectedListId(null)}
+                  type="button"
+                  onClick={() => {
+                    setSelectedListId(null);
+                    syncListInUrl(null);
+                  }}
                   className="flex items-center gap-1 text-[#ffcc99] hover:text-white transition"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -320,12 +477,23 @@ export default function SavedListsPage() {
                 </button>
                 <span className="text-[#ffcc99]/60">/</span>
                 <span className="text-white font-semibold">{selectedList.name}</span>
+                {isPersonalList(selectedList.id) && selectedList.products.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => void handleClearPersonalList()}
+                    disabled={clearingPersonal}
+                    className="px-3 py-2 text-sm text-red-400/90 border border-red-500/40 rounded-lg hover:bg-red-500/10 disabled:opacity-50"
+                  >
+                    {clearingPersonal ? 'Clearing…' : 'Clear all'}
+                  </button>
+                )}
                 <button
+                  type="button"
                   onClick={handleShareList}
                   className="ml-auto flex items-center gap-2 px-4 py-2 border border-[#FF6B00]/50 text-[#FF6B00] rounded-lg font-semibold hover:bg-[#FF6B00]/10 transition"
                 >
                   <Share2 className="w-4 h-4" />
-                  Share List
+                  Share list link
                 </button>
               </div>
 
@@ -334,7 +502,11 @@ export default function SavedListsPage() {
                   <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
                     <Package className="w-16 h-16 text-[#ffcc99]/30 mb-4" />
                     <p className="text-[#ffcc99] mb-2">This list is empty</p>
-                    <p className="text-[#ffcc99]/70 text-sm mb-4">Save products while browsing to add them here</p>
+                    <p className="text-[#ffcc99]/70 text-sm mb-4 max-w-md mx-auto">
+                      {isPersonalList(selectedList.id)
+                        ? 'Use the heart on product cards while you shop — items appear here on your account.'
+                        : 'Copy products from Saved for later into this list, or remove items you no longer need here.'}
+                    </p>
                     <Link
                       href="/buyer/products"
                       className="inline-flex items-center gap-2 px-4 py-2 bg-[#FF6B00] text-black rounded-lg font-semibold hover:bg-[#ff8533] transition"
@@ -377,31 +549,58 @@ export default function SavedListsPage() {
                         <p className="text-[#FF6B00] font-bold text-lg">{formatPrice(product.price)}</p>
                       </div>
                     </Link>
-                    <div className="p-4 pt-0 flex gap-2 flex-wrap">
-                      <button
-                        onClick={() => handleRemoveFromList(product.id)}
-                        disabled={removingItems[product.id]}
-                        className="flex items-center gap-1 px-3 py-2 text-red-400 text-sm border border-red-500/30 rounded-lg hover:bg-red-500/10 disabled:opacity-50"
-                        title="Remove from list"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Remove
-                      </button>
-                      <button
-                        onClick={() => handleAddToCart(product.id)}
-                        disabled={product.quantity === 0}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#FF6B00] text-black text-sm font-bold rounded-lg hover:bg-[#ff8533] disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ShoppingCart className="w-4 h-4" />
-                        Add to Cart
-                      </button>
-                      <Link
-                        href={`/buyer/bulk-order`}
-                        className="flex items-center gap-1 px-3 py-2 border border-[#FF6B00]/50 text-[#FF6B00] text-sm font-semibold rounded-lg hover:bg-[#FF6B00]/10"
-                      >
-                        <Layers className="w-4 h-4" />
-                        Bulk Order
-                      </Link>
+                    <div className="p-4 pt-0 flex flex-col gap-2">
+                      {isPersonalList(selectedList.id) && customListsForSelect.length > 0 && (
+                        <label className="flex items-center gap-2 text-xs text-[#ffcc99]/80">
+                          <ListPlus className="w-3.5 h-3.5 shrink-0 text-[#FF6B00]" />
+                          <span className="sr-only">Copy to named list</span>
+                          <select
+                            aria-label="Copy product to a named list"
+                            className="flex-1 min-w-0 bg-[#111111] border border-[#2a2a2a] rounded-lg px-2 py-2 text-white text-xs focus:outline-none focus:border-[#FF6B00]"
+                            defaultValue=""
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              e.target.value = '';
+                              if (v) copyProductToCustomList(v, product);
+                            }}
+                          >
+                            <option value="">Copy to named list…</option>
+                            {customListsForSelect.map((l) => (
+                              <option key={l.id} value={l.id}>
+                                {l.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                      <div className="flex gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFromList(product.id, selectedList.id)}
+                          disabled={removingItems[product.id]}
+                          className="flex items-center gap-1 px-3 py-2 text-red-400 text-sm border border-red-500/30 rounded-lg hover:bg-red-500/10 disabled:opacity-50"
+                          title={isPersonalList(selectedList.id) ? 'Remove from account saved list' : 'Remove from this list'}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          {isPersonalList(selectedList.id) ? 'Unsave' : 'Remove'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleAddToCart(product.id)}
+                          disabled={product.quantity === 0}
+                          className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#FF6B00] text-black text-sm font-bold rounded-lg hover:bg-[#ff8533] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ShoppingCart className="w-4 h-4" />
+                          Add to Cart
+                        </button>
+                        <Link
+                          href="/buyer/bulk-order"
+                          className="flex items-center gap-1 px-3 py-2 border border-[#FF6B00]/50 text-[#FF6B00] text-sm font-semibold rounded-lg hover:bg-[#FF6B00]/10"
+                        >
+                          <Layers className="w-4 h-4" />
+                          Bulk Order
+                        </Link>
+                      </div>
                     </div>
                   </article>
                 ))
@@ -460,16 +659,19 @@ export default function SavedListsPage() {
                       ) : (
                         <>
                           <h3 className="text-white font-bold text-lg truncate flex-1">{list.name}</h3>
-                          <button
-                            onClick={() => {
-                              setEditingListId(list.id);
-                              setEditName(list.name);
-                            }}
-                            className="p-1.5 text-[#ffcc99]/60 hover:text-[#FF6B00] rounded transition"
-                            title="Edit list name"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
+                          {!isPersonalList(list.id) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingListId(list.id);
+                                setEditName(list.name);
+                              }}
+                              className="p-1.5 text-[#ffcc99]/60 hover:text-[#FF6B00] rounded transition"
+                              title="Edit list name"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
@@ -481,7 +683,7 @@ export default function SavedListsPage() {
                           : 'bg-emerald-500/20 text-emerald-400'
                       }`}
                     >
-                      {list.type === 'personal' ? 'Personal' : 'Business'}
+                      {isPersonalList(list.id) ? 'Account sync' : list.type === 'personal' ? 'Personal' : 'Business'}
                     </span>
 
                     <p className="text-[#ffcc99]/70 text-sm mb-3">
@@ -490,17 +692,23 @@ export default function SavedListsPage() {
 
                     <div className="mt-auto flex flex-wrap gap-2">
                       <button
-                        onClick={() => setSelectedListId(list.id)}
+                        type="button"
+                        onClick={() => {
+                          setSelectedListId(list.id);
+                          syncListInUrl(list.id);
+                        }}
                         className="flex-1 min-w-[100px] flex items-center justify-center gap-2 px-4 py-2.5 bg-[#FF6B00] text-black rounded-lg font-bold hover:bg-[#ff8533] transition"
                       >
                         View List
                       </button>
                       <button
-                        onClick={() => handleAddAllToCart(list)}
-                        className="flex items-center justify-center gap-1 px-4 py-2.5 border border-[#FF6B00] text-[#FF6B00] rounded-lg font-semibold hover:bg-[#FF6B00]/10 transition"
+                        type="button"
+                        onClick={() => void handleAddAllToCart(list)}
+                        disabled={addAllForListId === list.id}
+                        className="flex items-center justify-center gap-1 px-4 py-2.5 border border-[#FF6B00] text-[#FF6B00] rounded-lg font-semibold hover:bg-[#FF6B00]/10 transition disabled:opacity-50"
                       >
                         <ShoppingCart className="w-4 h-4" />
-                        Add to Cart (All)
+                        {addAllForListId === list.id ? 'Adding…' : 'Add to Cart (All)'}
                       </button>
                       <Link
                         href="/buyer/bulk-order"
@@ -509,13 +717,16 @@ export default function SavedListsPage() {
                         <Layers className="w-4 h-4" />
                         Convert to Bulk Order
                       </Link>
-                      <button
-                        onClick={() => handleDeleteList(list.id)}
-                        className="p-2.5 text-red-400 hover:bg-red-500/10 rounded-lg transition"
-                        title="Delete list"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!isPersonalList(list.id) && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteList(list.id)}
+                          className="p-2.5 text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                          title="Delete list"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -530,8 +741,8 @@ export default function SavedListsPage() {
                 <Bookmark className="w-12 h-12 text-[#FF6B00]" />
               </div>
               <h2 className="text-white text-2xl font-bold mb-2">No saved lists yet</h2>
-              <p className="text-[#ffcc99] mb-8">
-                Save products as you browse — for personal shopping or business procurement
+              <p className="text-[#ffcc99] mb-8 max-w-md mx-auto">
+                Tap the heart on any product to build your account list, then create named lists and copy items into them for quotes or repeat buying.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Link
@@ -558,14 +769,21 @@ export default function SavedListsPage() {
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
             onClick={() => setShowCreateModal(false)}
+            role="presentation"
           >
             <div
               className="w-full max-w-md bg-[#1a1a1a] border border-[#FF6B00]/30 rounded-2xl p-6 shadow-xl"
               onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="create-list-title"
             >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-white text-xl font-bold">Create New List</h2>
+                <h2 id="create-list-title" className="text-white text-xl font-bold">
+                  Create New List
+                </h2>
                 <button
+                  type="button"
                   onClick={() => setShowCreateModal(false)}
                   className="p-2 text-[#ffcc99]/60 hover:text-white rounded-lg transition"
                   aria-label="Close"
@@ -573,10 +791,19 @@ export default function SavedListsPage() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="space-y-4">
+              <form
+                className="space-y-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleCreateList();
+                }}
+              >
                 <div>
-                  <label className="block text-[#ffcc99] text-sm font-medium mb-2">List name</label>
+                  <label htmlFor="new-list-name" className="block text-[#ffcc99] text-sm font-medium mb-2">
+                    List name
+                  </label>
                   <input
+                    id="new-list-name"
                     type="text"
                     value={newListName}
                     onChange={(e) => setNewListName(e.target.value)}
@@ -586,7 +813,7 @@ export default function SavedListsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[#ffcc99] text-sm font-medium mb-2">List type</label>
+                  <span className="block text-[#ffcc99] text-sm font-medium mb-2">List type</span>
                   <div className="flex gap-3">
                     <button
                       type="button"
@@ -612,21 +839,19 @@ export default function SavedListsPage() {
                     </button>
                   </div>
                 </div>
-              </div>
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-3 border border-[#2a2a2a] text-[#ffcc99] rounded-xl font-semibold hover:bg-[#2a2a2a] transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateList}
-                  className="flex-1 px-4 py-3 bg-[#FF6B00] text-black rounded-xl font-bold hover:bg-[#ff8533] transition"
-                >
-                  Create List
-                </button>
-              </div>
+                <div className="flex gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="flex-1 px-4 py-3 border border-[#2a2a2a] text-[#ffcc99] rounded-xl font-semibold hover:bg-[#2a2a2a] transition"
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="flex-1 px-4 py-3 bg-[#FF6B00] text-black rounded-xl font-bold hover:bg-[#ff8533] transition">
+                    Create List
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

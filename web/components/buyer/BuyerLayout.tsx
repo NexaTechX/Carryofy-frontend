@@ -21,7 +21,6 @@ import {
   Wallet as WalletIcon,
   Bell,
   ClipboardList,
-  Zap,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import NotificationsDropdown from './NotificationsDropdown';
@@ -234,22 +233,26 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
 
       <header className="sticky top-0 z-50 shrink-0 border-b border-white/[0.06] bg-[#0f1117] safe-top lg:hidden">
         <div className="flex items-center justify-between px-3 py-2">
-          <Link href="/buyer" className="flex min-w-0 items-center gap-1.5">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-orange-500">
-              <Zap className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
+          <Link href="/buyer" className="flex min-w-0 items-center gap-2">
+            <div className="relative h-8 w-8 shrink-0">
+              <Image src="/logo.png" alt="Carryofy" width={32} height={32} className="h-full w-full object-contain" priority />
             </div>
-            <span className="truncate text-sm font-extrabold text-white">{buyerMobileTopTitle()}</span>
+            {router.pathname !== '/buyer' && (
+              <span className="truncate text-sm font-extrabold text-white">{buyerMobileTopTitle()}</span>
+            )}
           </Link>
           <div className="flex shrink-0 items-center gap-1.5">
             <button
               type="button"
               onClick={openDrawer}
               className="relative flex h-[30px] w-[30px] items-center justify-center rounded-full border border-white/[0.07] bg-[#1a1d27]"
-              aria-label={`Cart ${cartCount > 0 ? `(${cartCount} items)` : ''}`}
+              aria-label={`Cart${cartCount > 0 ? `, ${cartCount} items` : ''}`}
             >
               <ShoppingCart className="h-[15px] w-[15px] text-gray-400" />
               {cartCount > 0 && (
-                <span className="absolute right-[5px] top-[5px] h-[7px] w-[7px] rounded-full border-[1.5px] border-[#0f1117] bg-orange-500" />
+                <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[#0f1117] bg-orange-500 px-1 text-[10px] font-bold leading-none text-white">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
               )}
             </button>
             {mounted && user && <NotificationsDropdown className="relative" carryofyMobileShell />}

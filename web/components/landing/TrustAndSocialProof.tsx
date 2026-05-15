@@ -13,42 +13,42 @@ const testimonials: {
 }[] = [
   {
     name: 'Chioma Okafor',
-    business: 'Fashion boutique',
+    business: 'Boutique retail',
     location: 'Yaba',
     avatar:
       'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&h=200&auto=format&fit=crop',
-    avatarAlt: 'Portrait of Chioma Okafor, fashion boutique owner in Yaba',
+    avatarAlt: 'Portrait of Chioma Okafor, boutique retailer in Yaba',
     quote: (
       <>
-        &ldquo;I restocked Ankara and ready-to-wear pieces without sending someone to Balogun. The{' '}
+        &ldquo;I restocked without sending someone to Balogun. The{' '}
         <span className="font-semibold text-[#FF6B00]">prices were clear before I paid</span>.&rdquo;
       </>
     ),
   },
   {
     name: 'Ibrahim Lawal',
-    business: 'Phone accessories shop',
+    business: 'Specialty retail',
     location: 'Ikeja',
     avatar:
       'https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=200&h=200&auto=format&fit=crop',
-    avatarAlt: 'Portrait of Ibrahim Lawal, phone accessories retailer in Ikeja',
+    avatarAlt: 'Portrait of Ibrahim Lawal, retailer in Ikeja',
     quote: (
       <>
-        &ldquo;For chargers and earpieces, I need vendors I can call again. Carryofy helped me compare{' '}
+        &ldquo;For fast-moving stock, I need vendors I can call again. Carryofy helped me compare{' '}
         <span className="font-semibold text-[#FF6B00]">stock and delivery in one place</span>.&rdquo;
       </>
     ),
   },
   {
     name: 'Funke Adeyemi',
-    business: 'Beauty supply store',
+    business: 'Retail supply',
     location: 'Lekki',
     avatar:
       'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=200&h=200&auto=format&fit=crop',
-    avatarAlt: 'Portrait of Funke Adeyemi, beauty supply store owner in Lekki',
+    avatarAlt: 'Portrait of Funke Adeyemi, retailer in Lekki',
     quote: (
       <>
-        &ldquo;My customers ask for the same creams every week. Reordering was faster, and I could{' '}
+        &ldquo;My customers ask for the same products every week. Reordering was faster, and I could{' '}
         <span className="font-semibold text-[#FF6B00]">track when dispatch left</span>.&rdquo;
       </>
     ),
@@ -58,7 +58,7 @@ const testimonials: {
 const corridorPartners = [
   { value: '200+ retailers', label: 'Mainland retail', sub: 'Yaba · Surulere · Ikeja' },
   { value: '4 corridors', label: 'Island corridors', sub: 'Lekki · Ajah · VI' },
-  { value: '4 categories', label: 'Category depth', sub: 'Fashion · Beauty · Tech · Grocery' },
+  { value: 'All retail categories', label: 'Product range', sub: 'Verified suppliers, open catalogue' },
   { value: '1 logistics partner', label: 'Logistics reach', sub: 'Coordinated last-mile' },
 ];
 

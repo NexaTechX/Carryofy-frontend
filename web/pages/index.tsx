@@ -13,10 +13,11 @@ export default function Home() {
 
   const additionalKeywords = [
     'B2B marketplace Lagos',
+    'wholesale suppliers Lagos',
+    'retail sourcing Nigeria',
     'retailers Lagos',
     'verified vendors Nigeria',
     'wholesale marketplace Lagos',
-    'fashion beauty electronics grocery Lagos',
     'Lagos retailers sourcing',
     'Yaba Surulere Lekki Ajah',
   ].join(', ');
@@ -27,7 +28,7 @@ export default function Home() {
     <>
       <SEO
         title="Carryofy | Trusted B2B Trade in Lagos — Verified Suppliers & Retailers"
-        description="Connect with verified suppliers, streamline your business, and grow with confidence. Fashion, beauty, electronics, and grocery — authentic products, competitive pricing, and reliable logistics for Lagos."
+        description="Connect with verified suppliers, streamline your procurement, and grow with confidence — authentic wholesale supply, transparent pricing, and logistics built for Lagos."
         keywords={fullKeywords}
         canonical="https://carryofy.com"
         ogType="website"
@@ -44,7 +45,7 @@ export default function Home() {
           {
             question: 'What is Carryofy?',
             answer:
-              'Carryofy is a B2B marketplace connecting Lagos retailers with verified vendors across fashion, beauty, electronics, and grocery. We coordinate delivery so you can restock without repeated market trips.',
+              'Carryofy is a B2B wholesale marketplace connecting Lagos retailers with verified vendors. We coordinate delivery so you can restock without repeated market trips.',
           },
           {
             question: 'Where does Carryofy operate?',

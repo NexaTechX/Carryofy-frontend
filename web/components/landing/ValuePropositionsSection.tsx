@@ -174,7 +174,7 @@ export default function ValuePropositionsSection() {
                 <ArrowUpRight className="h-4 w-4 shrink-0 text-primary" strokeWidth={2} />
               </Link>
               <p className="mt-3 text-[12px] leading-snug text-zinc-500">
-                Suppliers across fashion, beauty, electronics &amp; grocery
+                Verified suppliers across all product categories
               </p>
             </div>
           </motion.article>

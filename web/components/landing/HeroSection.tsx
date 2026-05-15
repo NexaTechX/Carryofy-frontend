@@ -63,8 +63,8 @@ export default function HeroSection() {
             </h1>
 
             <p className="mt-6 max-w-xl text-base leading-relaxed text-zinc-200 sm:text-lg">
-              One platform for fashion, beauty, electronics, and grocery — authentic wholesale
-              supply, transparent pricing, and logistics built for how Lagos actually moves.
+              One platform for wholesale sourcing — authentic supply, transparent pricing, and
+              logistics built for how Lagos actually moves.
             </p>
 
             <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
@@ -91,8 +91,8 @@ export default function HeroSection() {
                 </div>
                 <p className="text-sm leading-relaxed text-zinc-200">
                   <span className="font-semibold text-white">On Carryofy — </span>
-                  verified supplier network, category depth across fashion, beauty, electronics
-                  &amp; grocery, and delivery you can track instead of chasing on WhatsApp.
+                  verified supplier network, deep wholesale selection across product categories, and
+                  delivery you can track instead of chasing on WhatsApp.
                 </p>
               </div>
             </div>
@@ -120,12 +120,12 @@ export default function HeroSection() {
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <dt className="text-[11px] font-medium uppercase tracking-wider text-zinc-300">
-                  Coverage
+                  Inventory depth
                 </dt>
                 <dd className="mt-2 font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  4 categories
+                  All product types
                 </dd>
-                <dd className="mt-1 text-xs text-zinc-300">deep wholesale inventory</dd>
+                <dd className="mt-1 text-xs text-zinc-300">wide wholesale selection</dd>
               </div>
             </dl>
           </motion.div>

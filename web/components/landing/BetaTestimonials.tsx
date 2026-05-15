@@ -11,7 +11,7 @@ const testimonials: {
 }[] = [
   {
     name: 'Chioma G.',
-    attribution: 'Fashion boutique owner · Yaba, Lagos',
+    attribution: 'Boutique retailer · Yaba, Lagos',
     quote: (
       <>
         &ldquo;Sourcing from one place instead of chasing{' '}
@@ -22,7 +22,7 @@ const testimonials: {
   },
   {
     name: 'Ibrahim K.',
-    attribution: 'Phone & accessories retailer · Yaba, Lagos',
+    attribution: 'Specialty retailer · Yaba, Lagos',
     quote: (
       <>
         &ldquo;Having verified vendors on the platform means I spend{' '}
@@ -32,7 +32,7 @@ const testimonials: {
   },
   {
     name: 'Funke A.',
-    attribution: 'Beauty supply store · Lekki, Lagos',
+    attribution: 'Retail operator · Lekki, Lagos',
     quote: (
       <>
         &ldquo;I placed my first order in{' '}

@@ -78,7 +78,7 @@ export default function Document() {
                 height: 512,
               },
               description:
-                "The B2B marketplace for Lagos retailers. Source fashion, beauty, electronics, and grocery from verified vendors — Carryofy coordinates delivery.",
+                'The B2B wholesale marketplace for Lagos retailers. Connect with verified suppliers, streamline procurement, and grow with confidence — authentic wholesale supply, transparent pricing, and logistics built for Lagos.',
               email: 'support@carryofy.com',
               foundingDate: '2024',
               address: {

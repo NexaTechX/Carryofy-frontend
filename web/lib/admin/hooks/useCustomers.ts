@@ -199,3 +199,31 @@ export function useUpdateCustomerStatus() {
   });
 }
 
+function unwrapMessage(data: unknown): { message?: string } {
+  if (data && typeof data === 'object' && 'data' in data && 'statusCode' in data) {
+    return (data as { data: { message?: string } }).data;
+  }
+  return data as { message?: string };
+}
+
+export function useDeleteCustomer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (customerId: string) => {
+      const { data } = await apiClient.delete(`/users/admin/customer/${customerId}`);
+      return unwrapMessage(data);
+    },
+    onSuccess: (data, customerId) => {
+      toast.success(data.message || 'User deleted successfully');
+      queryClient.invalidateQueries({ queryKey: [CUSTOMERS_CACHE_KEY] });
+      queryClient.removeQueries({
+        queryKey: [CUSTOMERS_CACHE_KEY, 'detail', customerId],
+      });
+    },
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      toast.error(error.response?.data?.message || 'Failed to delete user');
+    },
+  });
+}
+

@@ -370,23 +370,40 @@ export async function bulkStatusChangeRequest(productIds: string[], status: stri
   return normalizeResponse<{ updated: number; failed: number }>(data);
 }
 
-/** Unwrap TransformInterceptor envelope and read paginated order list (same pattern as useAdminCustomers). */
-function parseOrdersListPayload(raw: unknown): AdminOrder[] {
-  let payload: unknown = raw;
-  if (raw && typeof raw === 'object' && 'data' in raw && 'statusCode' in raw) {
-    payload = (raw as { data: unknown }).data;
+type AdminOrdersPagination = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+function unwrapInterceptorEnvelope(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object') return raw;
+  const record = raw as Record<string, unknown>;
+  if ('data' in record && ('statusCode' in record || 'success' in record)) {
+    return record.data;
+  }
+  return raw;
+}
+
+/** Unwrap TransformInterceptor envelope and read one paginated orders page (same pattern as useAdminCustomers). */
+function parseOrdersListPage(raw: unknown): {
+  orders: AdminOrder[];
+  pagination?: AdminOrdersPagination;
+} {
+  const payload = unwrapInterceptorEnvelope(raw);
+  const body = normalizeResponse<Record<string, unknown> | AdminOrder[]>(payload);
+
+  if (Array.isArray(body)) {
+    return { orders: body };
   }
 
-  const unwrapped = normalizeResponse<{ orders?: AdminOrder[] } | AdminOrder[]>(payload);
+  const orders = Array.isArray(body?.orders)
+    ? (body.orders as AdminOrder[])
+    : normalizeListResponse<AdminOrder>(body ?? payload, ['orders', 'results', 'items']);
 
-  if (Array.isArray(unwrapped)) {
-    return unwrapped;
-  }
-  if (unwrapped && typeof unwrapped === 'object' && Array.isArray(unwrapped.orders)) {
-    return unwrapped.orders;
-  }
-
-  return normalizeListResponse<AdminOrder>(payload, ['orders', 'results']);
+  const pagination = body?.pagination as AdminOrdersPagination | undefined;
+  return { orders, pagination };
 }
 
 function mapAdminOrderFromApi(order: AdminOrder & { orderType?: 'CONSUMER' | 'B2B' }): AdminOrder {
@@ -398,13 +415,45 @@ function mapAdminOrderFromApi(order: AdminOrder & { orderType?: 'CONSUMER' | 'B2
 }
 
 export async function fetchAdminOrders(params?: { orderType?: 'CONSUMER' | 'B2B' }): Promise<AdminOrder[]> {
-  const queryParams: Record<string, string | number> = { page: 1, limit: 100 };
-  if (params?.orderType) {
-    queryParams.orderType = params.orderType;
+  const allOrders: AdminOrder[] = [];
+  const limit = 100;
+  let page = 1;
+  let totalPages = 1;
+
+  while (page <= totalPages) {
+    const queryParams: Record<string, string | number> = { page, limit };
+    if (params?.orderType) {
+      queryParams.orderType = params.orderType;
+    }
+
+    const { data } = await apiClient.get('/orders', { params: queryParams });
+    const { orders, pagination } = parseOrdersListPage(data);
+
+    if (page === 1 && pagination && pagination.total > 0 && orders.length === 0) {
+      throw new Error(
+        `The server reported ${pagination.total} order(s) but returned an empty page. Check API logs for database errors.`,
+      );
+    }
+
+    allOrders.push(...orders.map(mapAdminOrderFromApi));
+
+    if (orders.length === 0) {
+      break;
+    }
+
+    if (pagination?.totalPages != null) {
+      totalPages = Math.max(1, pagination.totalPages);
+    } else if (orders.length < limit) {
+      break;
+    }
+
+    page += 1;
+    if (page > 100) {
+      break;
+    }
   }
 
-  const { data } = await apiClient.get('/orders', { params: queryParams });
-  return parseOrdersListPayload(data).map(mapAdminOrderFromApi);
+  return allOrders;
 }
 
 export async function fetchAdminOrderById(orderId: string): Promise<AdminOrder> {

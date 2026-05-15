@@ -14,11 +14,29 @@ const orderKeys = {
   validTransitions: (orderId: string) => ['admin', 'orders', orderId, 'valid-transitions'] as const,
 };
 
+function getAdminOrdersErrorMessage(error: unknown): string {
+  const err = error as { response?: { data?: { message?: string | string[] }; status?: number }; message?: string };
+  const msg = err?.response?.data?.message;
+  if (typeof msg === 'string' && msg.length) return msg;
+  if (Array.isArray(msg) && msg.length) return msg.join(', ');
+  if (err?.response?.status === 401) return 'Not signed in or session expired. Sign in again as an admin.';
+  if (err?.response?.status === 403) return 'Access denied. This page requires an admin account.';
+  if (error instanceof Error && error.message) return error.message;
+  return 'Failed to load orders.';
+}
+
 export function useAdminOrders(options?: { refetchInterval?: number | false; orderType?: 'CONSUMER' | 'B2B' }) {
   return useQuery<AdminOrder[]>({
     queryKey: [...orderKeys.all, options?.orderType],
-    queryFn: () => fetchAdminOrders({ orderType: options?.orderType }),
+    queryFn: async () => {
+      try {
+        return await fetchAdminOrders({ orderType: options?.orderType });
+      } catch (error) {
+        throw new Error(getAdminOrdersErrorMessage(error));
+      }
+    },
     refetchInterval: options?.refetchInterval ?? 30_000, // near-real-time: 30s
+    retry: 1,
   });
 }
 

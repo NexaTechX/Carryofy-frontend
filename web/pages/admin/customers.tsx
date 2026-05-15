@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
   AdminCard,
@@ -21,12 +21,15 @@ import {
   useCustomerDetail,
   useCustomerStats,
   useUpdateCustomerStatus,
+  useDeleteCustomer,
   type AdminCustomer,
   type UserRole,
   type UserStatus,
   type LastActiveFilter,
 } from '../../lib/admin/hooks/useCustomers';
 import { toast } from 'react-hot-toast';
+import { useConfirmation } from '../../lib/hooks/useConfirmation';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 import { formatNgnFromKobo } from '../../lib/api/utils';
 import {
   MoreVertical,
@@ -139,6 +142,8 @@ export default function AdminCustomers() {
     refetch: refetchDetail,
   } = useCustomerDetail(selectedCustomerId);
   const updateStatus = useUpdateCustomerStatus();
+  const deleteCustomer = useDeleteCustomer();
+  const confirmation = useConfirmation();
 
   const customers = data?.users || [];
   const pagination = data?.pagination;
@@ -162,13 +167,38 @@ export default function AdminCustomers() {
     setActionMenuOpen(null);
   };
 
-  const handleDelete = (customer: AdminCustomer) => {
+  const handleDelete = async (customer: AdminCustomer) => {
     if (customer.role === 'ADMIN') {
       toast.error('Cannot delete admin accounts');
       return;
     }
-    toast('Delete customer – connect to API when endpoint is ready.');
     setActionMenuOpen(null);
+
+    const confirmed = await confirmation.confirm({
+      title: 'Delete User',
+      message: `Permanently delete ${customer.name} (${customer.email})? This cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    confirmation.setLoading(true);
+    try {
+      await deleteCustomer.mutateAsync(customer.id);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(customer.id);
+        return next;
+      });
+      if (selectedCustomerId === customer.id) {
+        setSelectedCustomerId(null);
+      }
+    } catch {
+      // Error handled by mutation
+    } finally {
+      confirmation.setLoading(false);
+    }
   };
 
   const handleImpersonate = (customer: AdminCustomer) => {
@@ -207,6 +237,7 @@ export default function AdminCustomers() {
   };
 
   return (
+    <Fragment>
     <AdminLayout>
       <div className="admin-page-shell max-w-7xl">
           <AdminPageHeader
@@ -503,13 +534,16 @@ export default function AdminCustomers() {
                                       <PlayCircle className="h-4 w-4" /> Unsuspend
                                     </button>
                                   )}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDelete(customer)}
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-400 hover:bg-[#1a1f2e]"
-                                  >
-                                    <Trash2 className="h-4 w-4" /> Delete
-                                  </button>
+                                  {customer.role !== 'ADMIN' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDelete(customer)}
+                                      disabled={deleteCustomer.isPending}
+                                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-400 hover:bg-[#1a1f2e] disabled:opacity-50"
+                                    >
+                                      <Trash2 className="h-4 w-4" /> Delete
+                                    </button>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() => handleImpersonate(customer)}
@@ -764,5 +798,17 @@ export default function AdminCustomers() {
         ) : null}
       </AdminDrawer>
     </AdminLayout>
+    <ConfirmationDialog
+      open={confirmation.open}
+      title={confirmation.title}
+      message={confirmation.message}
+      confirmText={confirmation.confirmText}
+      cancelText={confirmation.cancelText}
+      variant={confirmation.variant}
+      loading={confirmation.loading}
+      onConfirm={confirmation.handleConfirm}
+      onCancel={confirmation.handleCancel}
+    />
+    </Fragment>
   );
 }

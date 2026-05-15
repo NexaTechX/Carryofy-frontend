@@ -86,7 +86,6 @@ export default function DashboardStats() {
       // Fetch dashboard KPIs, payouts, reports, seller product count, seller stats (pending quotes), and B2B orders
       const [
         dashboardResponse,
-        payoutsResponse,
         payoutRequestsResponse,
         salesTrendResponse,
         orderDistributionResponse,
@@ -95,7 +94,6 @@ export default function DashboardStats() {
         ordersB2BResponse,
       ] = await Promise.all([
         fetch(`${apiUrl}/reports/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${apiUrl}/payouts`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${apiUrl}/payouts/requests`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${apiUrl}/reports/sales-trend`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${apiUrl}/reports/order-distribution`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -106,7 +104,6 @@ export default function DashboardStats() {
 
       const dashboardJson =
         dashboardResponse.ok ? await dashboardResponse.json().catch(() => null) : null;
-      const payoutsJson = payoutsResponse.ok ? await payoutsResponse.json() : null;
       const payoutRequestsJson = payoutRequestsResponse.ok ? await payoutRequestsResponse.json() : null;
       const salesTrendJson = salesTrendResponse.ok ? await salesTrendResponse.json().catch(() => null) : null;
       const orderDistributionJson = orderDistributionResponse.ok
@@ -138,15 +135,14 @@ export default function DashboardStats() {
       const dashboardData = dashboardJson?.data ?? dashboardJson ?? {};
       const salesTrendData = salesTrendJson?.data ?? salesTrendJson ?? {};
       const orderDistributionData = orderDistributionJson?.data ?? orderDistributionJson ?? {};
-      const payoutsList = Array.isArray(payoutsJson?.data || payoutsJson) ? (payoutsJson?.data || payoutsJson) : [];
       const payoutRequestsList = Array.isArray(payoutRequestsJson?.data || payoutRequestsJson)
         ? (payoutRequestsJson?.data || payoutRequestsJson)
         : [];
 
-      // Available balance is derived from pending earnings (source of truth remains earnings)
-      const availableBalance = payoutsList
-        .filter((p: any) => p?.status === 'PENDING')
-        .reduce((sum: number, p: any) => sum + (p?.net || 0), 0);
+      const availableBalance =
+        Number(dashboardData.sellerAvailableBalanceKobo) ||
+        Number(dashboardData.availableBalance) ||
+        0;
 
       const pendingRequestStatuses = new Set(['REQUESTED', 'APPROVED', 'PROCESSING']);
       const pendingPayoutRequests = payoutRequestsList.filter((r: any) => pendingRequestStatuses.has(r?.status));
@@ -170,8 +166,8 @@ export default function DashboardStats() {
         Number(dashboardData.totalOrders) ??
         0;
       const totalRevenue =
-        Number(salesTrendData.totalSales) ??
         Number(dashboardData.totalRevenue) ??
+        Number(salesTrendData.totalSales) ??
         0;
 
       setStats({
@@ -262,6 +258,7 @@ export default function DashboardStats() {
       />
       <StatCard
         title="Total Revenue"
+        description="Your net from delivered orders (product payout)"
         value={stats ? formatPrice(stats.totalRevenue) : '₦0.00'}
         loading={loading}
         icon={DollarSign}
@@ -270,7 +267,7 @@ export default function DashboardStats() {
       <StatCard
         title="Available Balance"
         value={stats ? formatPrice(stats.availableBalance) : '₦0.00'}
-        description="Available to request for payout"
+        description="From delivered orders; matches payout eligibility"
         loading={loading}
         icon={Wallet}
         isRevenue

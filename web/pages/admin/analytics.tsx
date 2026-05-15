@@ -207,6 +207,11 @@ export default function AdminAnalytics() {
   const totalRevenueKobo = metrics?.totalRevenue ?? 0;
   const processedGmv = metrics?.periodProcessedGmvKobo ?? 0;
   const platformCommission = metrics?.platformCommissionKobo ?? 0;
+  const deliverySpreadKobo = metrics?.deliverySpreadKobo ?? 0;
+  const platformRevenueKobo =
+    metrics?.platformRevenueKobo ?? platformCommission + deliverySpreadKobo;
+  const riderPayoutTotalKobo =
+    metrics?.riderPayoutTotalKobo ?? metrics?.riderCommissionKobo ?? 0;
   const aovKobo = totalOrders > 0 ? Math.round(totalRevenueKobo / totalOrders) : 0;
 
   const visitors = metrics?.funnelUniqueVisitors ?? 0;
@@ -405,7 +410,7 @@ export default function AdminAnalytics() {
 
               <KpiCard
                 label="Gross revenue"
-                description="All non-cancelled orders (incl. pending payment)"
+                description="Product subtotal GMV (orders in range, excl. delivery)"
                 loading={kpiLoading}
                 trendPct={pctDelta(totalRevenueKobo, prior?.gmvKobo ?? 0)}
                 trendSuffix={vsSuffix}
@@ -430,13 +435,24 @@ export default function AdminAnalytics() {
 
               <KpiCard
                 label="Platform revenue"
-                description="Commission earned (period)"
+                description="Seller commission plus delivery spread (period)"
                 loading={kpiLoading}
-                trendPct={pctDelta(platformCommission, prior?.platformCommissionKobo ?? 0)}
+                trendPct={pctDelta(platformRevenueKobo, prior?.platformRevenueKobo ?? 0)}
                 trendSuffix={vsSuffix}
                 fetching={dashboardFetching}
               >
-                {formatNairaKobo(platformCommission)}
+                {formatNairaKobo(platformRevenueKobo)}
+              </KpiCard>
+
+              <KpiCard
+                label="Rider payouts"
+                description="Net paid to riders (period)"
+                loading={kpiLoading}
+                trendPct={pctDelta(riderPayoutTotalKobo, prior?.riderPayoutTotalKobo ?? 0)}
+                trendSuffix={vsSuffix}
+                fetching={dashboardFetching}
+              >
+                {formatNairaKobo(riderPayoutTotalKobo)}
               </KpiCard>
 
               <KpiCard
@@ -484,7 +500,7 @@ export default function AdminAnalytics() {
 
               <KpiCard
                 label="Avg. order value"
-                description="Revenue ÷ orders"
+                description="Product GMV ÷ orders"
                 loading={kpiLoading}
                 trendPct={null}
                 trendSuffix=""

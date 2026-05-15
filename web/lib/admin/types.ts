@@ -17,6 +17,14 @@ export interface DashboardMetrics {
   /** Paid-through-delivered GMV in kobo (selected period) */
   periodProcessedGmvKobo?: number;
   platformCommissionKobo?: number;
+  /** Total buyer paid (kobo) in selected period */
+  buyerTotalPaidKobo?: number;
+  /** Delivery fee minus rider payout (kobo), selected period */
+  deliverySpreadKobo?: number;
+  /** Sum of rider net earnings (kobo), selected period */
+  riderPayoutTotalKobo?: number;
+  /** Seller commission plus delivery spread (kobo), selected period */
+  platformRevenueKobo?: number;
   activeSellersThisPeriod?: number;
   pendingPayoutsKobo?: number;
   repeatOrderRatePercent?: number;
@@ -26,6 +34,10 @@ export interface DashboardMetrics {
     gmvKobo: number;
     processedGmvKobo: number;
     platformCommissionKobo: number;
+    buyerTotalPaidKobo?: number;
+    deliverySpreadKobo?: number;
+    riderPayoutTotalKobo?: number;
+    platformRevenueKobo?: number;
   };
 }
 
@@ -277,6 +289,13 @@ export interface AdminOrder {
   carryofyMarginKobo?: number;
   shippingFeeKobo?: number;
   subtotalKobo?: number;
+  /** Snapshot at checkout (product lines) */
+  productSubtotalKobo?: number;
+  platformCommissionTotalKobo?: number;
+  totalSellerPayoutProductKobo?: number;
+  totalBuyerPaidKobo?: number;
+  deliverySpreadKobo?: number;
+  riderPayoutKobo?: number;
   couponDiscountKobo?: number;
   chargeableWeightKg?: number;
   distanceKmForPricing?: number;
@@ -378,6 +397,8 @@ export interface AdminPayout {
   earnings?: Array<{
     id: string;
     orderId: string;
+    gross?: number;
+    commission?: number;
     net: number; // in kobo
   }>;
 }

@@ -35,7 +35,10 @@ interface Order {
   id: string;
   userId: string;
   items: OrderItem[];
-  amount: number;
+  amount?: number;
+  orderValueProductKobo?: number;
+  platformFeeKobo?: number;
+  yourPayoutKobo?: number;
   status: string;
   paymentRef?: string;
   delivery?: Delivery;
@@ -328,10 +331,24 @@ export default function OrderDetailPage() {
                     ))}
                   </div>
 
-                  <div className="mt-6 pt-6 border-t border-[#ff6600]/30">
+                  <div className="mt-6 pt-6 border-t border-[#ff6600]/30 space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-[#ffcc99]">Product total (your items)</span>
+                      <span className="text-white font-semibold">
+                        {formatNgnFromKobo(order.orderValueProductKobo ?? 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-[#ffcc99]">Platform fee</span>
+                      <span className="text-white font-semibold">
+                        {formatNgnFromKobo(order.platformFeeKobo ?? 0)}
+                      </span>
+                    </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-white text-lg font-bold">Total Amount</span>
-                      <span className="text-[#ff6600] text-2xl font-bold">{formatPrice(order.amount)}</span>
+                      <span className="text-white text-lg font-bold">Your payout</span>
+                      <span className="text-[#ff6600] text-2xl font-bold">
+                        {formatNgnFromKobo(order.yourPayoutKobo ?? order.amount ?? 0)}
+                      </span>
                     </div>
                   </div>
                 </div>

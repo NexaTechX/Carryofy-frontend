@@ -818,6 +818,11 @@ export async function fetchAdminDashboard(params?: ReportsQueryParams): Promise<
       pendingPayoutsKobo: rawMetrics?.pendingPayoutsKobo as number | undefined,
       repeatOrderRatePercent: rawMetrics?.repeatOrderRatePercent as number | undefined,
       funnelUniqueVisitors: rawMetrics?.funnelUniqueVisitors as number | undefined,
+      buyerTotalPaidKobo: rawMetrics?.buyerTotalPaidKobo as number | undefined,
+      deliverySpreadKobo: rawMetrics?.deliverySpreadKobo as number | undefined,
+      riderPayoutTotalKobo: rawMetrics?.riderPayoutTotalKobo as number | undefined,
+      platformRevenueKobo: rawMetrics?.platformRevenueKobo as number | undefined,
+      riderCommissionKobo: rawMetrics?.riderCommissionKobo as number | undefined,
       priorPeriod: rawMetrics?.priorPeriod as DashboardMetrics['priorPeriod'],
     };
 

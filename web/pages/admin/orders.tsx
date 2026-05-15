@@ -63,7 +63,11 @@ const ORDER_TABLE_COLUMNS = [
   { id: 'customer', label: 'Customer' },
   { id: 'seller', label: 'Seller' },
   { id: 'items', label: 'Items' },
-  { id: 'orderValue', label: 'Order value' },
+  { id: 'buyerTotal', label: 'Buyer total' },
+  { id: 'productSubtotal', label: 'Product subtotal' },
+  { id: 'deliveryFee', label: 'Delivery fee' },
+  { id: 'platformCommission', label: 'Platform commission' },
+  { id: 'sellerPayout', label: 'Seller product payout' },
   { id: 'status', label: 'Status' },
   { id: 'rider', label: 'Assigned Rider' },
   { id: 'timeElapsed', label: 'Time elapsed' },
@@ -96,6 +100,14 @@ function getOrderSeller(order: AdminOrder): string {
   if (first) return first;
   const names = [...new Set(order.items?.map((i) => i.product?.seller?.businessName).filter(Boolean))] as string[];
   return names[0] ?? '—';
+}
+
+function buyerTotalKobo(order: AdminOrder): number {
+  return order.totalBuyerPaidKobo ?? order.amount ?? 0;
+}
+
+function productSubtotalKobo(order: AdminOrder): number {
+  return order.productSubtotalKobo ?? order.subtotalKobo ?? 0;
 }
 
 function getRiderName(order: AdminOrder): string {
@@ -237,7 +249,11 @@ export default function AdminOrders() {
       customer: order.user?.name ?? '',
       seller: getOrderSeller(order),
       items: order.items?.length ?? 0,
-      orderValue: formatNgnFromKobo(order.amount),
+      buyerTotal: formatNgnFromKobo(buyerTotalKobo(order)),
+      productSubtotal: formatNgnFromKobo(productSubtotalKobo(order)),
+      deliveryFee: formatNgnFromKobo(order.shippingFeeKobo ?? 0),
+      platformCommission: formatNgnFromKobo(order.platformCommissionTotalKobo ?? 0),
+      sellerPayout: formatNgnFromKobo(order.totalSellerPayoutProductKobo ?? 0),
       status: ORDER_STATUS_OPTIONS.find((o) => o.value === order.status)?.label ?? order.status,
       rider: getRiderName(order),
       timeElapsed: timeElapsed(order.updatedAt),
@@ -537,10 +553,38 @@ export default function AdminOrders() {
                               <span className="text-sm text-gray-300">{order.items?.length ?? 0}</span>
                             </DataTableCell>
                           )}
-                          {visibleCols.some((c) => c.id === 'orderValue') && (
+                          {visibleCols.some((c) => c.id === 'buyerTotal') && (
                             <DataTableCell>
                               <span className="text-sm font-semibold text-white">
-                                {formatNgnFromKobo(order.amount)}
+                                {formatNgnFromKobo(buyerTotalKobo(order))}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'productSubtotal') && (
+                            <DataTableCell>
+                              <span className="text-sm text-gray-300">
+                                {formatNgnFromKobo(productSubtotalKobo(order))}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'deliveryFee') && (
+                            <DataTableCell>
+                              <span className="text-sm text-gray-300">
+                                {formatNgnFromKobo(order.shippingFeeKobo ?? 0)}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'platformCommission') && (
+                            <DataTableCell>
+                              <span className="text-sm text-gray-300">
+                                {formatNgnFromKobo(order.platformCommissionTotalKobo ?? 0)}
+                              </span>
+                            </DataTableCell>
+                          )}
+                          {visibleCols.some((c) => c.id === 'sellerPayout') && (
+                            <DataTableCell>
+                              <span className="text-sm text-gray-300">
+                                {formatNgnFromKobo(order.totalSellerPayoutProductKobo ?? 0)}
                               </span>
                             </DataTableCell>
                           )}
@@ -579,7 +623,11 @@ export default function AdminOrders() {
         open={Boolean(focusedOrderId)}
         onClose={() => setFocusedOrder(null)}
         title={detailOrder?.id ? `Order #${detailOrder.id.slice(0, 8)}` : 'Order details'}
-        description={detailOrder?.amount ? `Total ${formatNgnFromKobo(detailOrder.amount)}` : ''}
+        description={
+          detailOrder
+            ? `Buyer total ${formatNgnFromKobo(buyerTotalKobo(detailOrder))} · Product ${formatNgnFromKobo(productSubtotalKobo(detailOrder))}`
+            : ''
+        }
       >
         {detailOrder ? (
           <div className="space-y-6 text-sm text-gray-300">
@@ -724,11 +772,27 @@ export default function AdminOrders() {
               </p>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Items Subtotal</span>
-                  <span className="text-white">{formatNgnFromKobo(detailOrder.subtotalKobo ?? 0)}</span>
+                  <span className="text-gray-400">Product subtotal (snapshot)</span>
+                  <span className="text-white">{formatNgnFromKobo(detailOrder.productSubtotalKobo ?? detailOrder.subtotalKobo ?? 0)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Shipping (Customer Paid)</span>
+                  <span className="text-gray-400">Platform commission (order)</span>
+                  <span className="text-white">{formatNgnFromKobo(detailOrder.platformCommissionTotalKobo ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Seller product payout (order)</span>
+                  <span className="text-white">{formatNgnFromKobo(detailOrder.totalSellerPayoutProductKobo ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Delivery spread (snapshot)</span>
+                  <span className="text-white">{formatNgnFromKobo(detailOrder.deliverySpreadKobo ?? detailOrder.carryofyMarginKobo ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Rider payout (snapshot)</span>
+                  <span className="text-white">{formatNgnFromKobo(detailOrder.riderPayoutKobo ?? detailOrder.riderCostKobo ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Shipping (customer paid)</span>
                   <span className="text-white">{formatNgnFromKobo(detailOrder.shippingFeeKobo ?? 0)}</span>
                 </div>
                 {detailOrder.couponDiscountKobo ? (
@@ -739,8 +803,8 @@ export default function AdminOrders() {
                 ) : null}
                 <div className="my-2 border-t border-[#1f1f1f] pt-2">
                   <div className="flex justify-between font-semibold">
-                    <span className="text-gray-400">Customer Total</span>
-                    <span className="text-primary">{formatNgnFromKobo(detailOrder.amount)}</span>
+                    <span className="text-gray-400">Buyer total</span>
+                    <span className="text-primary">{formatNgnFromKobo(buyerTotalKobo(detailOrder))}</span>
                   </div>
                 </div>
 

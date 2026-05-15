@@ -24,7 +24,7 @@ import {
   useRejectPayoutMutation,
 } from '../../lib/admin/hooks/usePayouts';
 import { useAdminRefunds } from '../../lib/admin/hooks/useRefunds';
-import { AdminPayout, ProcessPayoutPayload, PayoutStatus } from '../../lib/admin/types';
+import { AdminPayout, ProcessPayoutPayload, PayoutStatus, type ReportsQueryParams } from '../../lib/admin/types';
 import { formatNgnFromKobo } from '../../lib/api/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Search, Calendar } from 'lucide-react';
@@ -108,33 +108,24 @@ function buildPayoutCountSparkline(payouts: AdminPayout[]): Array<{ date: string
   return base.map((b) => ({ date: b.date, value: byDate[b.date] ?? 0 }));
 }
 
-function filterByPeriod(
-  period: FinancePeriod,
-  trend: Array<{ date: string; amount: number }>,
-  key: 'amount'
-): number {
-  const now = new Date();
-  const today = now.toISOString().slice(0, 10);
-  const weekStart = new Date(now);
-  weekStart.setDate(weekStart.getDate() - 6);
-  const monthStart = new Date(now);
-  monthStart.setMonth(monthStart.getMonth() - 1);
-
-  const sum = (arr: Array<{ date: string; amount: number }>) =>
-    arr.reduce((acc, t) => acc + (t[key] ?? 0), 0);
-
+function financeDashboardParams(period: FinancePeriod): ReportsQueryParams {
+  const end = new Date();
+  const endIso = end.toISOString();
+  const ymd = (d: Date) => d.toISOString().slice(0, 10);
   if (period === 'TODAY') {
-    return sum(trend.filter((t) => t.date.slice(0, 10) === today));
+    return { startDate: ymd(end), endDate: endIso };
   }
   if (period === 'WEEK') {
-    const weekStr = weekStart.toISOString().slice(0, 10);
-    return sum(trend.filter((t) => t.date.slice(0, 10) >= weekStr && t.date.slice(0, 10) <= today));
+    const s = new Date(end);
+    s.setUTCDate(s.getUTCDate() - 6);
+    return { startDate: ymd(s), endDate: endIso };
   }
   if (period === 'MONTH') {
-    const monthStr = monthStart.toISOString().slice(0, 10);
-    return sum(trend.filter((t) => t.date.slice(0, 10) >= monthStr && t.date.slice(0, 10) <= today));
+    const s = new Date(end);
+    s.setUTCMonth(s.getUTCMonth() - 1);
+    return { startDate: ymd(s), endDate: endIso };
   }
-  return sum(trend);
+  return { startDate: '2020-01-01', endDate: endIso };
 }
 
 export default function AdminFinance() {
@@ -152,7 +143,9 @@ export default function AdminFinance() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkModal, setBulkModal] = useState<'approve' | 'reject' | null>(null);
 
-  const { data: dashboardData, isLoading: metricsLoading } = useAdminDashboard();
+  const dashboardParams = useMemo(() => financeDashboardParams(period), [period]);
+
+  const { data: dashboardData, isLoading: metricsLoading } = useAdminDashboard(dashboardParams);
   const { data: payouts, isLoading: payoutsLoading, isError: payoutsError, error: payoutsErrorObj, refetch } =
     useAdminPayouts();
   const { data: refundsData } = useAdminRefunds({ limit: 500 });
@@ -176,19 +169,17 @@ export default function AdminFinance() {
       .reduce((acc, r) => acc + (r.amount ?? 0), 0);
   }, [refundsData]);
 
-  const grossOrderVolumeKobo = metrics?.totalRevenue ?? 0;
-  const platformCommissionKobo = metrics?.totalCommissions ?? 0; // seller commissions
-  const riderCommissionKobo = metrics?.riderCommissionKobo ?? 0; // 15% from delivery fees (separate)
-  const netPlatformRevenueKobo = (metrics?.totalCommissions ?? 0) - totalRefundedKobo;
-
-  const grossByPeriodKobo = useMemo(
-    () => filterByPeriod(period, salesTrend, 'amount'),
-    [period, salesTrend]
-  );
-  const commissionByPeriodKobo = useMemo(
-    () => filterByPeriod(period, commissionTrend, 'amount'),
-    [period, commissionTrend]
-  );
+  const productGmvKobo = metrics?.totalRevenue ?? 0;
+  const periodPlatformCommissionKobo =
+    metrics?.platformCommissionKobo ?? metrics?.totalCommissions ?? 0;
+  const buyerTotalPaidKobo = metrics?.buyerTotalPaidKobo ?? 0;
+  const deliverySpreadKobo = metrics?.deliverySpreadKobo ?? 0;
+  const riderPayoutTotalKobo =
+    metrics?.riderPayoutTotalKobo ?? metrics?.riderCommissionKobo ?? 0;
+  const platformRevenueKobo =
+    metrics?.platformRevenueKobo ??
+    periodPlatformCommissionKobo + deliverySpreadKobo;
+  const netPlatformRevenueKobo = platformRevenueKobo - totalRefundedKobo;
 
   const pendingPayouts = payouts?.filter((p) => p.status === 'REQUESTED') ?? [];
   const payoutCountByPeriod = useMemo(() => {
@@ -311,20 +302,20 @@ export default function AdminFinance() {
   };
 
   const financeSummaryDonut = useMemo(() => {
-    const sellerCommissionKobo = metrics?.totalCommissions ?? 0;
-    const riderCommissionKobo = metrics?.riderCommissionKobo ?? 0;
+    const sellerCommissionKobo = periodPlatformCommissionKobo;
+    const riderKobo = riderPayoutTotalKobo;
     const refundsKobo = totalRefundedKobo;
     const pendingKobo = pendingPayouts.reduce((acc, p) => acc + p.amount, 0);
     return [
-      { name: 'Seller Commission', value: Math.max(0, sellerCommissionKobo), color: '#FF6B00' },
-      { name: 'Rider Commission', value: Math.max(0, riderCommissionKobo), color: '#6ce7a2' },
+      { name: 'Seller commission', value: Math.max(0, sellerCommissionKobo), color: '#FF6B00' },
+      { name: 'Rider payouts', value: Math.max(0, riderKobo), color: '#6ce7a2' },
       { name: 'Refunds', value: Math.max(0, refundsKobo), color: '#ff8484' },
-      { name: 'Pending', value: Math.max(0, pendingKobo), color: '#ffb169' },
+      { name: 'Pending payouts', value: Math.max(0, pendingKobo), color: '#ffb169' },
     ].filter((d) => d.value > 0);
-  }, [metrics?.totalCommissions, metrics?.riderCommissionKobo, totalRefundedKobo, pendingPayouts]);
+  }, [periodPlatformCommissionKobo, riderPayoutTotalKobo, totalRefundedKobo, pendingPayouts]);
 
-  const displayGrossKobo = period === 'ALL_TIME' ? grossOrderVolumeKobo : grossByPeriodKobo;
-  const displayCommissionKobo = period === 'ALL_TIME' ? platformCommissionKobo : commissionByPeriodKobo;
+  const displayGrossKobo = productGmvKobo;
+  const displayCommissionKobo = periodPlatformCommissionKobo;
   const displayPayoutCount = period === 'ALL_TIME' ? (payouts?.length ?? 0) : payoutCountByPeriod;
 
   const handleSimulatePayout = () => {
@@ -357,44 +348,62 @@ export default function AdminFinance() {
                     <option value="ALL_TIME">All Time</option>
                   </select>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                   <AdminCard
-                    title="Gross Order Volume"
-                    description="Total value of paid orders (before commissions)."
+                    title="Product GMV"
+                    description="Product subtotal for orders in this period (excludes delivery)."
                   >
                     <p className="text-3xl font-semibold text-white">{formatNgnFromKobo(displayGrossKobo)}</p>
                     <Sparkline data={sparklineGross} color="#e5e7eb" height={44} />
                   </AdminCard>
                   <AdminCard
-                    title="Platform Commission Revenue"
-                    description="Commissions from seller orders (product sales)."
+                    title="Total buyer paid"
+                    description="Buyer totals collected in this period (incl. delivery)."
+                  >
+                    <p className="text-3xl font-semibold text-white">{formatNgnFromKobo(buyerTotalPaidKobo)}</p>
+                    <div className="h-11 flex items-center text-xs text-gray-500">
+                      Wallet and coupons already reflected where applicable
+                    </div>
+                  </AdminCard>
+                  <AdminCard
+                    title="Platform commission"
+                    description="Seller product commissions in this period."
                   >
                     <p className="text-3xl font-semibold text-primary">{formatNgnFromKobo(displayCommissionKobo)}</p>
                     <Sparkline data={sparklineCommission} color="#FF6B00" height={44} />
                   </AdminCard>
                   <AdminCard
-                    title="Rider Commission"
-                    description="15% from delivery fees (separate from seller commissions)."
+                    title="Delivery spread revenue"
+                    description="Buyer delivery fee minus rider logistics payout (period)."
                   >
-                    <p className="text-3xl font-semibold text-[#6ce7a2]">{formatNgnFromKobo(riderCommissionKobo)}</p>
+                    <p className="text-3xl font-semibold text-amber-200">{formatNgnFromKobo(deliverySpreadKobo)}</p>
                     <div className="h-11 flex items-center text-xs text-gray-500">
-                      From rider delivery fees
+                      Platform logistics margin
                     </div>
                   </AdminCard>
                   <AdminCard
-                    title="Payout Operations"
+                    title="Rider payouts"
+                    description="Net rider earnings (sum of rider payout lines) in this period."
+                  >
+                    <p className="text-3xl font-semibold text-[#6ce7a2]">{formatNgnFromKobo(riderPayoutTotalKobo)}</p>
+                    <div className="h-11 flex items-center text-xs text-gray-500">
+                      What riders earn from deliveries
+                    </div>
+                  </AdminCard>
+                  <AdminCard
+                    title="Payout operations"
                     description="Review and process seller payout requests."
                   >
                     <p className="text-3xl font-semibold text-[#6ce7a2]">{displayPayoutCount}</p>
                     <Sparkline data={sparklinePayouts} color="#6ce7a2" height={44} />
                   </AdminCard>
                   <AdminCard
-                    title="Net Platform Revenue"
-                    description="Seller commission revenue minus refunds issued."
+                    title="Net platform revenue"
+                    description="Commission plus delivery spread, minus completed refunds."
                   >
                     <p className="text-3xl font-semibold text-white">{formatNgnFromKobo(netPlatformRevenueKobo)}</p>
                     <div className="h-11 flex items-center text-xs text-gray-500">
-                      Commissions − Refunds
+                      (Commission + spread) − refunds
                     </div>
                   </AdminCard>
                 </div>

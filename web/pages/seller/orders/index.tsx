@@ -48,7 +48,10 @@ interface Order {
   orderType?: string;
   quoteId?: string;
   items: OrderItem[];
-  amount: number;
+  amount?: number;
+  orderValueProductKobo?: number;
+  platformFeeKobo?: number;
+  yourPayoutKobo?: number;
   status: string;
   paymentRef?: string;
   delivery?: Delivery;
@@ -59,6 +62,10 @@ interface Order {
     name: string;
     email: string;
   };
+}
+
+function sellerPayoutDisplayKobo(o: Order): number {
+  return o.yourPayoutKobo ?? o.amount ?? 0;
 }
 
 /** Status category for filtering/counting */
@@ -274,11 +281,11 @@ export default function OrdersPage() {
   };
 
   const handleExportCsv = () => {
-    const headers = ['Order ID', 'Date', 'Amount', 'Status', 'Type'];
+    const headers = ['Order ID', 'Date', 'Your payout (kobo)', 'Status', 'Type'];
     const rows = filteredOrders.map((o) => [
       o.id,
       formatDateWithTime(o.createdAt),
-      formatPrice(o.amount),
+      String(sellerPayoutDisplayKobo(o)),
       getStatusDisplay(o),
       isB2B(o) ? 'B2B' : 'Consumer',
     ]);
@@ -508,7 +515,7 @@ export default function OrdersPage() {
                           className="font-mono text-lg font-bold text-white"
                           style={{ fontFamily: "'DM Mono', ui-monospace, monospace" }}
                         >
-                          {formatPrice(order.amount)}
+                          {formatPrice(sellerPayoutDisplayKobo(order))}
                         </span>
                         <button
                           type="button"
@@ -554,7 +561,7 @@ export default function OrdersPage() {
                       Date
                     </th>
                     <th className="w-[120px] px-4 py-3 text-right text-sm font-medium text-white">
-                      Amount
+                      Your payout
                     </th>
                     <th className="w-[140px] px-4 py-3 text-left text-sm font-medium text-white">
                       Status
@@ -659,7 +666,7 @@ export default function OrdersPage() {
                               className="font-mono font-bold text-white"
                               style={{ fontFamily: "'DM Mono', monospace" }}
                             >
-                              {formatPrice(order.amount)}
+                              {formatPrice(sellerPayoutDisplayKobo(order))}
                             </span>
                           </td>
                           <td className="h-[72px] px-4 py-2">

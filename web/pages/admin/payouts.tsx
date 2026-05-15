@@ -1000,6 +1000,45 @@ export default function AdminPayouts() {
                   </div>
                 </div>
               </div>
+              {Array.isArray(selectedPayout.earnings) && selectedPayout.earnings.length > 0 ? (
+                <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Linked earnings</p>
+                  <div className="mt-3 space-y-2 text-xs">
+                    <div className="flex justify-between text-gray-400">
+                      <span>Product sales (gross)</span>
+                      <span className="text-white">
+                        {formatNgnFromKobo(
+                          selectedPayout.earnings.reduce((s, e) => s + (e.gross ?? 0), 0)
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-gray-400">
+                      <span>Commission deducted</span>
+                      <span className="text-white">
+                        {formatNgnFromKobo(
+                          selectedPayout.earnings.reduce((s, e) => s + (e.commission ?? 0), 0)
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-[#1f1f1f] pt-2 font-semibold text-gray-300">
+                      <span>Net (eligible payout)</span>
+                      <span className="text-primary">
+                        {formatNgnFromKobo(selectedPayout.earnings.reduce((s, e) => s + (e.net ?? 0), 0))}
+                      </span>
+                    </div>
+                  </div>
+                  <ul className="mt-3 max-h-40 space-y-1 overflow-y-auto border-t border-[#1f1f1f] pt-2 text-[11px] text-gray-500">
+                    {selectedPayout.earnings.map((e) => (
+                      <li key={e.id} className="flex justify-between gap-2 font-mono">
+                        <span className="truncate" title={e.orderId}>
+                          Order {e.orderId.slice(0, 8)}…
+                        </span>
+                        <span className="shrink-0 text-gray-300">{formatNgnFromKobo(e.net)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Audit</p>
                 <div className="mt-3 space-y-2">

@@ -7,6 +7,10 @@ import { useAuth } from '../../../../lib/auth';
 import apiClient from '../../../../lib/api/client';
 import { ArrowLeft, Package, MapPin, CreditCard, Calendar, Loader2 } from 'lucide-react';
 import { formatNgnFromKobo, formatDateTime } from '../../../../lib/api/utils';
+import {
+  formatSellerPayoutLabel,
+  sellerPayoutDetailMessage,
+} from '../../../../lib/seller/order-payout';
 import toast from 'react-hot-toast';
 
 interface OrderItem {
@@ -38,7 +42,8 @@ interface Order {
   amount?: number;
   orderValueProductKobo?: number;
   platformFeeKobo?: number;
-  yourPayoutKobo?: number;
+  yourPayoutKobo?: number | null;
+  payoutStatus?: 'awaiting_payment' | 'pending_confirmation' | 'confirmed' | 'canceled';
   status: string;
   paymentRef?: string;
   delivery?: Delivery;
@@ -332,22 +337,30 @@ export default function OrderDetailPage() {
                   </div>
 
                   <div className="mt-6 pt-6 border-t border-[#ff6600]/30 space-y-3">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-[#ffcc99]">Product total (your items)</span>
-                      <span className="text-white font-semibold">
-                        {formatNgnFromKobo(order.orderValueProductKobo ?? 0)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-[#ffcc99]">Platform fee</span>
-                      <span className="text-white font-semibold">
-                        {formatNgnFromKobo(order.platformFeeKobo ?? 0)}
-                      </span>
-                    </div>
+                    {sellerPayoutDetailMessage(order) ? (
+                      <p className="text-sm text-amber-300/90">{sellerPayoutDetailMessage(order)}</p>
+                    ) : (
+                      <>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-[#ffcc99]">Order subtotal (your items)</span>
+                          <span className="text-white font-semibold">
+                            {formatNgnFromKobo(order.orderValueProductKobo ?? 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-[#ffcc99]">Commission deducted</span>
+                          <span className="text-white font-semibold">
+                            {order.platformFeeKobo != null
+                              ? `-${formatNgnFromKobo(order.platformFeeKobo)}`
+                              : '—'}
+                          </span>
+                        </div>
+                      </>
+                    )}
                     <div className="flex justify-between items-center">
                       <span className="text-white text-lg font-bold">Your payout</span>
                       <span className="text-[#ff6600] text-2xl font-bold">
-                        {formatNgnFromKobo(order.yourPayoutKobo ?? order.amount ?? 0)}
+                        {formatSellerPayoutLabel(order)}
                       </span>
                     </div>
                   </div>

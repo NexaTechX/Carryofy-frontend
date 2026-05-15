@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { useAuth, tokenManager } from '../../lib/auth';
 import { getApiBaseUrl, getApiUrl, formatNgnFromKobo } from '../../lib/api/utils';
 import { resolveSellerKycStatus } from '../../lib/seller/kyc-status';
+import { formatSellerPayoutLabel } from '../../lib/seller/order-payout';
 
 interface RecentOrderRow {
   id: string;
@@ -97,13 +98,12 @@ export default function SellerDashboard() {
           const title = product?.title ?? 'Order';
           const buyer = o.user?.name ?? o.user?.email ?? 'Customer';
           const { label, badgeClass } = badgeForSellerOrder(o.status, o.delivery);
-          const amount = o.amount ?? o.totalAmount ?? 0;
           return {
             id: o.id,
             title,
             buyer,
             timeLabel: o.createdAt ? formatRelativeTime(o.createdAt) : '',
-            amountLabel: formatNgnFromKobo(typeof amount === 'number' ? amount : 0),
+            amountLabel: formatSellerPayoutLabel(o),
             badgeClass,
             badgeLabel: label,
           };

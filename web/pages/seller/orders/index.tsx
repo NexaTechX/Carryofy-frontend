@@ -19,6 +19,7 @@ import {
   formatDateWithTime,
 } from '../../../lib/api/utils';
 import toast from 'react-hot-toast';
+import { formatSellerPayoutLabel } from '../../../lib/seller/order-payout';
 
 interface OrderItem {
   id: string;
@@ -51,7 +52,8 @@ interface Order {
   amount?: number;
   orderValueProductKobo?: number;
   platformFeeKobo?: number;
-  yourPayoutKobo?: number;
+  yourPayoutKobo?: number | null;
+  payoutStatus?: 'awaiting_payment' | 'pending_confirmation' | 'confirmed' | 'canceled';
   status: string;
   paymentRef?: string;
   delivery?: Delivery;
@@ -62,10 +64,6 @@ interface Order {
     name: string;
     email: string;
   };
-}
-
-function sellerPayoutDisplayKobo(o: Order): number {
-  return o.yourPayoutKobo ?? o.amount ?? 0;
 }
 
 /** Status category for filtering/counting */
@@ -289,11 +287,11 @@ export default function OrdersPage() {
   };
 
   const handleExportCsv = () => {
-    const headers = ['Order ID', 'Date', 'Your payout (kobo)', 'Status', 'Type'];
+    const headers = ['Order ID', 'Date', 'Your payout', 'Status', 'Type'];
     const rows = filteredOrders.map((o) => [
       o.id,
       formatDateWithTime(o.createdAt),
-      String(sellerPayoutDisplayKobo(o)),
+      formatSellerPayoutLabel(o),
       getStatusDisplay(o),
       isB2B(o) ? 'B2B' : 'Consumer',
     ]);
@@ -523,7 +521,7 @@ export default function OrdersPage() {
                           className="font-mono text-lg font-bold text-white"
                           style={{ fontFamily: "'DM Mono', ui-monospace, monospace" }}
                         >
-                          {formatPrice(sellerPayoutDisplayKobo(order))}
+                          {formatSellerPayoutLabel(order)}
                         </span>
                         <button
                           type="button"
@@ -674,7 +672,7 @@ export default function OrdersPage() {
                               className="font-mono font-bold text-white"
                               style={{ fontFamily: "'DM Mono', monospace" }}
                             >
-                              {formatPrice(sellerPayoutDisplayKobo(order))}
+                              {formatSellerPayoutLabel(order)}
                             </span>
                           </td>
                           <td className="h-[72px] px-4 py-2">

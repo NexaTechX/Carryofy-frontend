@@ -370,9 +370,41 @@ export async function bulkStatusChangeRequest(productIds: string[], status: stri
   return normalizeResponse<{ updated: number; failed: number }>(data);
 }
 
+/** Unwrap TransformInterceptor envelope and read paginated order list (same pattern as useAdminCustomers). */
+function parseOrdersListPayload(raw: unknown): AdminOrder[] {
+  let payload: unknown = raw;
+  if (raw && typeof raw === 'object' && 'data' in raw && 'statusCode' in raw) {
+    payload = (raw as { data: unknown }).data;
+  }
+
+  const unwrapped = normalizeResponse<{ orders?: AdminOrder[] } | AdminOrder[]>(payload);
+
+  if (Array.isArray(unwrapped)) {
+    return unwrapped;
+  }
+  if (unwrapped && typeof unwrapped === 'object' && Array.isArray(unwrapped.orders)) {
+    return unwrapped.orders;
+  }
+
+  return normalizeListResponse<AdminOrder>(payload, ['orders', 'results']);
+}
+
+function mapAdminOrderFromApi(order: AdminOrder & { orderType?: 'CONSUMER' | 'B2B' }): AdminOrder {
+  return {
+    ...order,
+    customerType: order.customerType ?? (order.orderType === 'B2B' ? 'B2B' : 'B2C'),
+    items: Array.isArray(order.items) ? order.items : [],
+  };
+}
+
 export async function fetchAdminOrders(params?: { orderType?: 'CONSUMER' | 'B2B' }): Promise<AdminOrder[]> {
-  const { data } = await apiClient.get('/orders', { params });
-  return normalizeListResponse<AdminOrder>(data, ['orders', 'items', 'data', 'results']);
+  const queryParams: Record<string, string | number> = { page: 1, limit: 100 };
+  if (params?.orderType) {
+    queryParams.orderType = params.orderType;
+  }
+
+  const { data } = await apiClient.get('/orders', { params: queryParams });
+  return parseOrdersListPayload(data).map(mapAdminOrderFromApi);
 }
 
 export async function fetchAdminOrderById(orderId: string): Promise<AdminOrder> {
@@ -802,7 +834,7 @@ export async function fetchAdminDashboard(params?: ReportsQueryParams): Promise<
       totalSellers,
       totalProducts: (rawMetrics?.totalProducts as number) ?? defaultMetrics.totalProducts,
       totalOrders: (rawMetrics?.totalOrders as number) ?? defaultMetrics.totalOrders,
-      todaysOrders: (rawMetrics?.todaysOrders as number) ?? (rawMetrics?.totalOrders as number) ?? defaultMetrics.todaysOrders,
+      todaysOrders: (rawMetrics?.todaysOrders as number) ?? defaultMetrics.todaysOrders,
       totalRevenue,
       totalCommissions: (rawMetrics?.totalCommissions as number) ?? defaultMetrics.totalCommissions,
       pendingOrders: (rawMetrics?.pendingOrders as number) ?? defaultMetrics.pendingOrders,

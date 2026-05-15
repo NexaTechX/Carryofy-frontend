@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager, userManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
+import { resolveSellerKycStatus } from '../../../lib/seller/kyc-status';
 import { User, Building2, Shield, Bell, Save, Eye, EyeOff, CheckCircle2, XCircle, Clock, CreditCard, Plus, Trash2, ShieldCheck, Upload, AlertCircle, Lock, Loader2, Moon, MapPin } from 'lucide-react';
 
 import { geocodeString, getCurrentPosition, reverseGeocode } from '../../../lib/api/geocode';
@@ -262,7 +263,10 @@ export default function SettingsPage() {
       // Handle KYC Status
       if (kycRes.status === 'fulfilled') {
         const responseData = kycRes.value.data.data || kycRes.value.data;
-        const status = (responseData.status || 'NOT_SUBMITTED').toUpperCase();
+        const status = resolveSellerKycStatus(
+          responseData.status,
+          responseData.kyc,
+        );
         setKycStatus(status);
         if (responseData.kyc) {
           setKycForm({
@@ -1343,7 +1347,13 @@ export default function SettingsPage() {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="text-[#A0A0A0] text-sm font-medium mb-1">KYC Status</p>
-                                {getKycStatusBadge(kycStatus || sellerProfile.kycStatus?.toString().toUpperCase() || 'NOT_SUBMITTED')}
+                                {getKycStatusBadge(
+                                  resolveSellerKycStatus(
+                                    kycStatus,
+                                    kycForm.kyc,
+                                    sellerProfile?.kycStatus?.toString(),
+                                  ),
+                                )}
                               </div>
                             </div>
                             {kycStatus === 'PENDING' && (

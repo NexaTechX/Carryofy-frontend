@@ -10,6 +10,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useAuth, tokenManager } from '../../lib/auth';
 import { getApiBaseUrl, getApiUrl, formatNgnFromKobo } from '../../lib/api/utils';
+import { resolveSellerKycStatus } from '../../lib/seller/kyc-status';
 
 interface RecentOrderRow {
   id: string;
@@ -127,7 +128,9 @@ export default function SellerDashboard() {
       if (response.ok) {
         const data = await response.json();
         const responseData = data.data || data;
-        setKycStatus(responseData.status);
+        setKycStatus(
+          resolveSellerKycStatus(responseData.status, responseData.kyc),
+        );
       }
     } catch (error) {
       console.error('Error fetching KYC status:', error);

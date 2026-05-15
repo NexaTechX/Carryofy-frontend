@@ -285,6 +285,8 @@ export interface AdminOrder {
   updatedAt: string;
   /** Optional: B2B or B2C for fulfillment display; defaults to B2C when absent. */
   customerType?: AdminOrderCustomerType | null;
+  /** API order type (CONSUMER retail vs B2B); used to derive customerType when needed. */
+  orderType?: 'CONSUMER' | 'B2B';
   riderCostKobo?: number;
   carryofyMarginKobo?: number;
   shippingFeeKobo?: number;

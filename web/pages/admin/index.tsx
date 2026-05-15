@@ -26,7 +26,12 @@ import {
 import { AdminCard, AdminErrorState, AdminPageHeader } from '../../components/admin/ui';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import type { CommissionPeriodEntry, SalesTrendPoint } from '../../lib/admin/types';
+import type {
+  CommissionPeriodEntry,
+  CohortRetentionResponse,
+  DashboardMetrics,
+  SalesTrendPoint,
+} from '../../lib/admin/types';
 
 const TrendChart = dynamic(() => import('../../components/admin/charts/TrendChart'), { ssr: false });
 const BarChart = dynamic(() => import('../../components/admin/charts/BarChart'), { ssr: false });
@@ -56,43 +61,77 @@ const getTrendPercentage = (values: number[]) => {
 /** Orange accent — aligned with `--color-primary` */
 const ACCENT = '#FF6B00';
 
-const DEMO_VS_YESTERDAY = [2.4, -1.2, 2.9, 1.6, -0.7] as const;
-
-const DEMO_COMMISSION_PERIODS: CommissionPeriodEntry[] = [
-  { period: 'Jan', amount: 980_000_00, percentage: 72 },
-  { period: 'Feb', amount: 1_120_000_00, percentage: 78 },
-  { period: 'Mar', amount: 1_050_000_00, percentage: 74 },
-  { period: 'Apr', amount: 1_310_000_00, percentage: 82 },
-  { period: 'May', amount: 1_240_000_00, percentage: 79 },
-  { period: 'Jun', amount: 1_420_000_00, percentage: 88 },
-];
+function pctChange(current: number, previous: number): number | null {
+  if (previous === 0) {
+    if (current === 0) return 0;
+    return null;
+  }
+  return ((current - previous) / previous) * 100;
+}
 
 function pctChangeLastTwoPoints(trend: SalesTrendPoint[], mode: 'amount' | 'orders'): number | null {
   if (trend.length < 2) return null;
   const a = trend[trend.length - 2];
   const b = trend[trend.length - 1];
   if (mode === 'orders') {
-    if (a.orderCount != null && b.orderCount != null && a.orderCount > 0) {
-      return ((b.orderCount - a.orderCount) / a.orderCount) * 100;
-    }
+    const prev = a.orderCount ?? 0;
+    const curr = b.orderCount ?? 0;
+    return pctChange(curr, prev);
   }
-  if (a.amount > 0) return ((b.amount - a.amount) / a.amount) * 100;
-  return null;
+  return pctChange(b.amount, a.amount);
 }
 
-/** Per-KPI “vs yesterday” delta: last two trend points when available; else illustrative demo. */
-function vsYesterdayForKpi(index: number, salesTrend: SalesTrendPoint[]): number {
-  const gmv = pctChangeLastTwoPoints(salesTrend, 'amount');
-  const ord = pctChangeLastTwoPoints(salesTrend, 'orders');
+type KpiComparison = { delta: number | null; label: string };
 
-  if (index === 0) return ord ?? gmv ?? DEMO_VS_YESTERDAY[0];
-  if (index === 1) {
-    if (gmv != null) return Math.round(gmv * 0.35 * 10) / 10;
-    return DEMO_VS_YESTERDAY[1];
+/** Real period-over-period or day-over-day deltas — never placeholder percentages. */
+function getKpiComparison(
+  index: number,
+  metrics: DashboardMetrics,
+  salesTrend: SalesTrendPoint[]
+): KpiComparison {
+  const prior = metrics.priorPeriod;
+
+  if (index === 0) {
+    const dayOverDay = pctChangeLastTwoPoints(salesTrend, 'orders');
+    if (dayOverDay != null) return { delta: dayOverDay, label: 'vs prior day' };
+    if (prior) {
+      const periodOrders = metrics.totalOrders ?? 0;
+      const delta = pctChange(periodOrders, prior.totalOrders);
+      if (delta != null) return { delta, label: 'vs prior period' };
+    }
+    return { delta: null, label: 'vs prior day' };
   }
-  if (index === 2) return gmv ?? DEMO_VS_YESTERDAY[2];
-  if (index === 3) return DEMO_VS_YESTERDAY[3];
-  return DEMO_VS_YESTERDAY[4];
+
+  if (index === 2 && prior) {
+    const delta = pctChange(metrics.totalRevenue ?? 0, prior.gmvKobo ?? 0);
+    if (delta != null) return { delta, label: 'vs prior period' };
+  }
+
+  return { delta: null, label: '' };
+}
+
+function buildRetentionTrendFromCohort(
+  cohort: CohortRetentionResponse | undefined
+): { period: string; rate: number }[] {
+  if (!cohort?.rows?.length || !cohort.monthLabels?.length) return [];
+
+  const points: { period: string; rate: number }[] = [];
+  for (let lag = 0; lag < cohort.monthLabels.length; lag += 1) {
+    const rates = cohort.rows
+      .map((row) => row.retentionByMonth[lag])
+      .filter((r): r is number => typeof r === 'number' && !Number.isNaN(r));
+    if (rates.length === 0) continue;
+    const avg = rates.reduce((sum, r) => sum + r, 0) / rates.length;
+    points.push({
+      period: cohort.monthLabels[lag] ?? `M${lag}`,
+      rate: Math.round(avg * 10) / 10,
+    });
+  }
+  return points;
+}
+
+function formatPeriodLabel(days = 30): string {
+  return `Last ${days} days`;
 }
 
 function DashboardSkeleton() {
@@ -149,10 +188,12 @@ export default function AdminDashboard() {
     salesTrend,
     topCategories,
     commissionRevenue,
+    cohortRetention,
     pendingSellerApprovals,
     pendingPayments,
     pendingQuoteRequestsCount = 0,
     b2bOrdersCount = 0,
+    dateRange,
   } = data;
 
   const trendPoints = salesTrend?.trend ?? [];
@@ -181,46 +222,53 @@ export default function AdminDashboard() {
     day: 'numeric',
   });
 
+  const periodDays =
+    dateRange?.startDate && dateRange?.endDate
+      ? Math.max(
+          1,
+          Math.round(
+            (new Date(dateRange.endDate).getTime() - new Date(dateRange.startDate).getTime()) /
+              86400000
+          ) + 1
+        )
+      : 30;
+
   const heroMetrics = [
     {
       label: "Today's Orders",
-      value: metrics.todaysOrders ?? metrics.totalOrders ?? 0,
-      formatted: formatNumber(metrics.todaysOrders ?? metrics.totalOrders ?? 0),
+      formatted: formatNumber(metrics.todaysOrders ?? 0),
       sparkline: sparklineData,
       icon: ShoppingCart,
     },
     {
       label: 'Pending Deliveries',
-      value: metrics.activeDeliveries,
-      formatted: formatNumber(metrics.activeDeliveries),
-      sparkline: sparklineData,
+      formatted: formatNumber(metrics.activeDeliveries ?? 0),
+      sparkline: [],
       icon: Truck,
     },
     {
-      label: 'Gross Order Volume',
-      value: (metrics.totalRevenue ?? 0) / 100,
+      label: 'GMV',
+      subtitle: formatPeriodLabel(periodDays),
       formatted: formatCurrency((metrics.totalRevenue ?? 0) / 100),
       sparkline: sparklineData,
       icon: BarChart3,
     },
     {
       label: 'Total Sellers',
-      value: metrics.totalSellers ?? 0,
       formatted: formatNumber(metrics.totalSellers ?? 0),
-      sparkline: sparklineData,
+      sparkline: [],
       icon: Users,
     },
     {
-      label: 'Total Signups',
-      value: metrics.totalUsers ?? 0,
+      label: 'Total Users',
       formatted: formatNumber(metrics.totalUsers ?? 0),
-      sparkline: sparklineData,
+      sparkline: [],
       icon: UserPlus,
     },
-  ].map((row, index) => ({
-    ...row,
-    vsYesterday: vsYesterdayForKpi(index, trendPoints),
-  }));
+  ].map((row, index) => {
+    const comparison = getKpiComparison(index, metrics, trendPoints);
+    return { ...row, comparison };
+  });
 
   const urgentChips: { label: string; count: number; href: string }[] = [];
   if (pendingSellerApprovals > 0) {
@@ -248,7 +296,7 @@ export default function AdminDashboard() {
     urgentChips.push({
       label: 'Stalled orders',
       count: stalledOrders,
-      href: '/admin/orders?status=pending',
+      href: '/admin/orders?status=PENDING_PAYMENT',
     });
   }
   if ((pendingQuoteRequestsCount ?? 0) > 0) {
@@ -267,18 +315,25 @@ export default function AdminDashboard() {
     topCategories?.categories.length > 0 ? topCategories.categories[0].percentage.toFixed(0) : '0';
 
   const commissionPeriods = commissionRevenue?.periods ?? [];
-  const usingDemoCommission = commissionPeriods.length === 0;
-  const effectiveCommissionPeriods = usingDemoCommission ? DEMO_COMMISSION_PERIODS : commissionPeriods;
+  const effectiveCommissionPeriods: CommissionPeriodEntry[] = commissionPeriods;
   const commissionBarData = effectiveCommissionPeriods.map((p) => ({
     label: p.period.length > 5 ? p.period.slice(0, 3) : p.period,
     value: (p.amount || 0) / 100,
   }));
-  const commissionDisplayKobo = usingDemoCommission
-    ? DEMO_COMMISSION_PERIODS.reduce((sum, p) => sum + p.amount, 0)
-    : commissionRevenue?.totalRevenue || metrics.totalCommissions || 0;
-  const commissionGrowthDisplay = usingDemoCommission
-    ? 12.4
-    : (commissionRevenue?.growth ?? 0);
+  const commissionDisplayKobo =
+    commissionRevenue?.totalRevenue ||
+    metrics.platformCommissionKobo ||
+    metrics.totalCommissions ||
+    0;
+  const commissionGrowthDisplay =
+    commissionRevenue?.growth ??
+    (metrics.priorPeriod
+      ? pctChange(
+          metrics.platformCommissionKobo ?? metrics.totalCommissions ?? 0,
+          metrics.priorPeriod.platformCommissionKobo ?? 0
+        ) ?? 0
+      : 0);
+  const retentionTrendData = buildRetentionTrendFromCohort(cohortRetention);
   const monthlyTargetKobo = typeof process.env.NEXT_PUBLIC_COMMISSION_TARGET_KOBO === 'string'
     ? Number(process.env.NEXT_PUBLIC_COMMISSION_TARGET_KOBO)
     : undefined;
@@ -344,30 +399,43 @@ export default function AdminDashboard() {
           <section className="mb-8">
             <h2 className="sr-only">Key Metrics</h2>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-              {heroMetrics.map(({ label, formatted, vsYesterday, sparkline, icon: Icon }) => (
+              {heroMetrics.map(({ label, subtitle, formatted, comparison, sparkline, icon: Icon }) => (
                 <div
                   key={label}
                   className="rounded-2xl border border-border-custom bg-card p-5 shadow-sm shadow-black/25 transition hover:border-primary/25"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-400">{label}</span>
+                    <div>
+                      <span className="text-xs font-medium uppercase tracking-wider text-gray-400">{label}</span>
+                      {subtitle ? (
+                        <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                          {subtitle}
+                        </p>
+                      ) : null}
+                    </div>
                     <Icon className="h-5 w-5 shrink-0 text-primary" aria-hidden />
                   </div>
                   <p className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-[2rem] font-inter">
                     {formatted}
                   </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span
-                      className={`inline-flex items-center gap-1 text-xs font-semibold ${
-                        vsYesterday >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                      }`}
-                    >
-                      {vsYesterday >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                      {vsYesterday >= 0 ? '+' : ''}
-                      {vsYesterday.toFixed(1)}%
-                    </span>
-                    <span className="text-xs text-gray-500">vs yesterday</span>
-                  </div>
+{comparison.delta != null && comparison.label ? (
+                    <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span
+                        className={`inline-flex items-center gap-1 text-xs font-semibold ${
+                          comparison.delta >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                        }`}
+                      >
+                        {comparison.delta >= 0 ? (
+                          <TrendingUp className="h-3.5 w-3.5" />
+                        ) : (
+                          <TrendingDown className="h-3.5 w-3.5" />
+                        )}
+                        {comparison.delta >= 0 ? '+' : ''}
+                        {comparison.delta.toFixed(1)}%
+                      </span>
+                      <span className="text-xs text-gray-500">{comparison.label}</span>
+                    </div>
+                  ) : null}
                   {sparkline.length > 0 && (
                     <div className="mt-3 h-12 w-full opacity-90">
                       <Sparkline data={sparkline} color={ACCENT} height={48} />
@@ -471,10 +539,10 @@ export default function AdminDashboard() {
               <p className="mt-1 text-sm text-gray-400">Repeat customer rate over time (weekly)</p>
               <div className="mt-4 h-[220px] w-full min-h-[220px] rounded-xl border border-border-custom bg-background/50 p-2">
                 <RetentionTrendChart
-                  data={[]}
-                  currentRate={metrics.customerRetentionRate || 42}
+                  data={retentionTrendData}
                   color={ACCENT}
                   height={204}
+                  emptyMessage={cohortRetention?.message ?? 'Not enough retention history to chart yet.'}
                 />
               </div>
             </div>
@@ -494,10 +562,7 @@ export default function AdminDashboard() {
                     {commissionGrowthDisplay.toFixed(1)}% growth this period
                   </p>
                   <p className="mt-1 text-xs text-gray-500">Seller commissions from product sales</p>
-                  {usingDemoCommission ? (
-                    <p className="mt-2 text-xs text-gray-500">Sample monthly totals for layout preview — replaces when API returns periods.</p>
-                  ) : null}
-                  {!usingDemoCommission && (commissionRevenue?.totalB2B != null || commissionRevenue?.totalB2C != null) ? (
+                  {(commissionRevenue?.totalB2B != null || commissionRevenue?.totalB2C != null) ? (
                     <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-400">
                       <span>B2C: {formatCurrency((commissionRevenue?.totalB2C ?? 0) / 100)}</span>
                       <span>B2B: {formatCurrency((commissionRevenue?.totalB2B ?? 0) / 100)}</span>
@@ -543,7 +608,7 @@ export default function AdminDashboard() {
               <div className="flex flex-col gap-4 rounded-2xl border border-border-custom bg-card p-6 shadow-sm shadow-black/20">
                 <p className="text-base font-medium text-foreground">Daily Order Trends</p>
                 <p className="text-2xl font-bold text-primary">{trendLabel}</p>
-                <p className="text-sm text-gray-400">Last 7 days</p>
+                <p className="text-sm text-gray-400">{salesTrend?.period ?? formatPeriodLabel(periodDays)}</p>
                 <div className="h-[220px] rounded-xl border border-border-custom bg-background/50 p-3">
                   <TrendChart data={salesTrend?.trend || []} color={ACCENT} />
                 </div>

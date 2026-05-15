@@ -74,6 +74,17 @@ const ORDER_TABLE_COLUMNS = [
 ];
 type OrderFilter = (typeof ORDER_FILTERS)[number];
 
+/** Map dashboard/report query params to Prisma order status filters. */
+const ORDER_STATUS_QUERY_ALIASES: Record<string, OrderFilter> = {
+  pending: 'PENDING_PAYMENT',
+  paid: 'PAID',
+  processing: 'PROCESSING',
+  out_for_delivery: 'OUT_FOR_DELIVERY',
+  delivered: 'DELIVERED',
+  canceled: 'CANCELED',
+  cancelled: 'CANCELED',
+};
+
 const STALLED_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 function isToday(iso: string): boolean {
@@ -207,8 +218,12 @@ export default function AdminOrders() {
   useEffect(() => {
     const status = router.query.status;
     if (typeof status !== 'string') return;
-    const valid = ORDER_FILTERS.includes(status as OrderFilter);
-    if (valid) setFilter(status as OrderFilter);
+    if (ORDER_FILTERS.includes(status as OrderFilter)) {
+      setFilter(status as OrderFilter);
+      return;
+    }
+    const alias = ORDER_STATUS_QUERY_ALIASES[status.toLowerCase()];
+    if (alias) setFilter(alias);
   }, [router.query.status]);
 
   const updateOrderStatus = useOrderStatusMutation();

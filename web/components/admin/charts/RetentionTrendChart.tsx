@@ -8,30 +8,30 @@ export interface RetentionDataPoint {
 }
 
 interface RetentionTrendChartProps {
-  /** Current rate (single number) — will generate a 6-period trend for display if data length < 2 */
   data: RetentionDataPoint[];
-  /** Current retention rate when data is derived from a single value */
-  currentRate?: number;
   color?: string;
   height?: number;
-}
-
-function deriveTrendFromRate(rate: number): RetentionDataPoint[] {
-  const periods = ['6w ago', '5w ago', '4w ago', '3w ago', '2w ago', 'Last week', 'Now'];
-  const base = Math.max(0, rate - 8);
-  return periods.map((period, i) => ({
-    period,
-    rate: i === periods.length - 1 ? rate : Math.round(base + (rate - base) * (i / (periods.length - 1)) * 100) / 100,
-  }));
+  emptyMessage?: string;
 }
 
 export default function RetentionTrendChart({
   data,
-  currentRate = 0,
   color = '#FF6B00',
   height = 160,
+  emptyMessage = 'Not enough retention history to chart yet.',
 }: RetentionTrendChartProps) {
-  const chartData = data.length >= 2 ? data : deriveTrendFromRate(currentRate);
+  if (data.length < 2) {
+    return (
+      <div
+        className="flex h-full min-h-[120px] items-center justify-center rounded-xl px-4 text-center text-sm text-gray-500"
+        style={{ minHeight: height }}
+      >
+        {emptyMessage}
+      </div>
+    );
+  }
+
+  const chartData = data;
 
   return (
     <ResponsiveContainer width="100%" height={height}>

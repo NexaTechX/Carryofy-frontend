@@ -7,6 +7,7 @@ import SellerLayout from '../SellerLayout';
 import { useAuth } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
 import { useCategories } from '../../../lib/buyer/hooks/useCategories';
+import { resolveSellerKycStatus } from '../../../lib/seller/kyc-status';
 import {
   Package,
   X,
@@ -234,7 +235,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
 
       if (kycRes.status === 'fulfilled') {
         const data = kycRes.value.data?.data || kycRes.value.data;
-        setKycStatus(data.status);
+        setKycStatus(resolveSellerKycStatus(data.status, data.kyc));
       }
 
       if (sellerRes.status === 'fulfilled') {

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useAuth, tokenManager } from '../../lib/auth';
 import { getApiBaseUrl } from '../../lib/api/utils';
+import { resolveSellerKycStatus } from '../../lib/seller/kyc-status';
 
 
 interface Notification {
@@ -182,7 +183,9 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       if (response.ok) {
         const data = await response.json();
         const responseData = data.data || data;
-        setKycStatus(responseData.status);
+        setKycStatus(
+          resolveSellerKycStatus(responseData.status, responseData.kyc),
+        );
       }
     } catch (error) {
       console.error('Error fetching KYC status:', error);

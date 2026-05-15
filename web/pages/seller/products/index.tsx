@@ -10,6 +10,7 @@ import { apiClient } from '../../../lib/api/client';
 import Link from 'next/link';
 import { useConfirmation } from '../../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
+import { resolveSellerKycStatus } from '../../../lib/seller/kyc-status';
 
 interface Product {
   id: string;
@@ -90,15 +91,12 @@ export default function ProductsPage() {
       if (response.ok) {
         const data = await response.json();
         const responseData = data.data || data;
-        const status = responseData.status || 'NOT_SUBMITTED';
+        const status = resolveSellerKycStatus(
+          responseData.status,
+          responseData.kyc,
+        );
         setKycStatus(status);
-        
-        // Only fetch products if KYC is approved
-        if (status === 'APPROVED') {
-          fetchProducts();
-        } else {
-          setLoading(false);
-        }
+        await fetchProducts();
       } else if (response.status === 404) {
         // KYC not submitted yet - seller may or may not exist
         setKycStatus('NOT_SUBMITTED');
@@ -534,7 +532,9 @@ export default function ProductsPage() {
               <p className="text-[#A0A0A0] text-sm mb-8 max-w-sm">
                 {searchQuery
                   ? 'Try a different search term'
-                  : kycStatus !== 'APPROVED'
+                  : kycStatus === 'PENDING'
+                    ? 'Your KYC is under review. You can manage existing products once approved.'
+                    : kycStatus !== 'APPROVED'
                     ? 'Complete KYC verification to start adding products'
                     : sellerNotFound && kycStatus === 'APPROVED'
                       ? 'We could not find your seller profile. Please contact support.'

@@ -11,6 +11,10 @@ import Link from 'next/link';
 import { useConfirmation } from '../../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 import { resolveSellerKycStatus } from '../../../lib/seller/kyc-status';
+import {
+  unwrapSellerMePayload,
+  sellerNeedsProfileOnboardingFromProfile,
+} from '../../../lib/seller/onboarding';
 
 interface Product {
   id: string;
@@ -62,6 +66,7 @@ export default function ProductsPage() {
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [kycLoading, setKycLoading] = useState(true);
   const [sellerNotFound, setSellerNotFound] = useState(false);
+  const [needsProfileOnboarding, setNeedsProfileOnboarding] = useState(false);
   const confirmation = useConfirmation();
 
   useEffect(() => {
@@ -121,8 +126,9 @@ export default function ProductsPage() {
       setSellerNotFound(false);
       setLoading(true);
       const sellerResponse = await apiClient.get('/sellers/me');
-      const sellerData = sellerResponse.data?.data || sellerResponse.data;
+      const sellerData = unwrapSellerMePayload(sellerResponse.data) ?? sellerResponse.data?.data ?? sellerResponse.data;
       const sellerId = sellerData?.id;
+      setNeedsProfileOnboarding(sellerNeedsProfileOnboardingFromProfile(sellerData));
 
       if (!sellerId) {
         console.error('Could not get seller ID');
@@ -532,7 +538,9 @@ export default function ProductsPage() {
               <p className="text-[#A0A0A0] text-sm mb-8 max-w-sm">
                 {searchQuery
                   ? 'Try a different search term'
-                  : kycStatus === 'PENDING'
+                  : needsProfileOnboarding
+                    ? 'Complete your business profile and pickup location before listing products.'
+                    : kycStatus === 'PENDING'
                     ? 'Your KYC is under review. You can manage existing products once approved.'
                     : kycStatus !== 'APPROVED'
                     ? 'Complete KYC verification to start adding products'
@@ -540,7 +548,16 @@ export default function ProductsPage() {
                       ? 'We could not find your seller profile. Please contact support.'
                       : 'Start by adding your first product'}
               </p>
-              {!searchQuery && kycStatus === 'APPROVED' && !sellerNotFound && (
+              {!searchQuery && needsProfileOnboarding && (
+                <Link
+                  href="/seller/onboard"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-[#ff6600] text-white font-bold rounded-xl hover:bg-[#cc5200] transition-colors"
+                >
+                  <ShieldAlert className="w-6 h-6" />
+                  Complete Store Setup
+                </Link>
+              )}
+              {!searchQuery && !needsProfileOnboarding && kycStatus === 'APPROVED' && !sellerNotFound && (
                 <Link
                   href="/seller/products/new"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-[#ff6600] text-white font-bold rounded-xl hover:bg-[#cc5200] transition-colors text-base"
@@ -549,7 +566,7 @@ export default function ProductsPage() {
                   Add Your First Product
                 </Link>
               )}
-              {!searchQuery && kycStatus !== 'APPROVED' && (
+              {!searchQuery && !needsProfileOnboarding && kycStatus !== 'APPROVED' && (
                 <Link
                   href="/seller/settings?tab=kyc"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 transition-colors"
@@ -558,7 +575,7 @@ export default function ProductsPage() {
                   {kycStatus === 'PENDING' ? 'View KYC Status' : kycStatus === 'REJECTED' ? 'Resubmit KYC' : 'Apply for KYC Verification'}
                 </Link>
               )}
-              {!searchQuery && sellerNotFound && kycStatus === 'APPROVED' && (
+              {!searchQuery && !needsProfileOnboarding && sellerNotFound && kycStatus === 'APPROVED' && (
                 <Link
                   href="/seller/onboard"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-[#ff6600] text-white font-bold rounded-xl hover:bg-[#cc5200] transition-colors"

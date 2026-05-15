@@ -29,6 +29,10 @@ import {
 import { useAuth, tokenManager } from '../../lib/auth';
 import { getApiBaseUrl } from '../../lib/api/utils';
 import { resolveSellerKycStatus } from '../../lib/seller/kyc-status';
+import {
+  unwrapSellerMePayload,
+  sellerNeedsProfileOnboardingFromProfile,
+} from '../../lib/seller/onboarding';
 
 
 interface Notification {
@@ -64,6 +68,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [kycBannerDismissed, setKycBannerDismissed] = useState(false);
+  const [needsProfileOnboarding, setNeedsProfileOnboarding] = useState(false);
   const notificationDropdownRef = useRef<HTMLDivElement>(null);
   const notificationDropdownRefMobile = useRef<HTMLDivElement>(null);
 
@@ -79,6 +84,24 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       setKycBannerDismissed(!!sessionStorage.getItem(KYC_BANNER_DISMISSED_KEY));
     }
   }, []);
+
+  const PROFILE_ONBOARD_ALLOWLIST = [
+    '/seller/onboard',
+    '/seller/settings',
+    '/seller/help',
+    '/seller/feedback',
+  ];
+
+  useEffect(() => {
+    if (!mounted || !needsProfileOnboarding) return;
+    const path = router.pathname;
+    const allowed = PROFILE_ONBOARD_ALLOWLIST.some(
+      (p) => path === p || path.startsWith(`${p}/`),
+    );
+    if (!allowed) {
+      router.replace('/seller/onboard');
+    }
+  }, [mounted, needsProfileOnboarding, router.pathname, router]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -152,17 +175,25 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
       if (response.ok) {
         const result = await response.json();
-        const sellerData = result.data || result;
-        setSellerProfile({
-          id: sellerData.id,
-          businessName: sellerData.businessName,
-          logo: sellerData.logo,
-          pickupAddress: sellerData.pickupAddress,
-          latitude: sellerData.latitude,
-          longitude: sellerData.longitude,
-        });
+        const sellerData = unwrapSellerMePayload(result);
+        if (sellerData) {
+          setNeedsProfileOnboarding(
+            sellerNeedsProfileOnboardingFromProfile(sellerData),
+          );
+          setSellerProfile({
+            id: sellerData.id as string,
+            businessName: sellerData.businessName as string,
+            logo: sellerData.logo as string | undefined,
+            pickupAddress: (sellerData.pickupAddress ?? sellerData.businessAddress) as
+              | string
+              | undefined,
+            latitude: sellerData.latitude as number | undefined,
+            longitude: sellerData.longitude as number | undefined,
+          });
+        }
       } else if (response.status === 404) {
         setSellerProfile(null);
+        setNeedsProfileOnboarding(true);
       }
     } catch (error) {
       setSellerProfile(null);

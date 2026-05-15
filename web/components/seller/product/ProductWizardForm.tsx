@@ -980,7 +980,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                   ? 'Your KYC documents are currently being reviewed by our compliance team. Product uploads will be unlocked as soon as your verification is approved — typically within 1–2 business days.'
                   : isRejected
                     ? 'Your KYC submission was not approved. Please review the rejection reason in your settings, correct your documents, and resubmit. Product uploads will be enabled once your verification is approved.'
-                    : 'To protect buyers and sellers on Carryofy, all sellers must complete a one-time identity verification (KYC) before listing products. This process is quick and your verification never expires once approved.'}
+                    : 'To protect buyers and sellers on Carryofy, all sellers must complete identity verification (KYC) before listing products. Approved verification may need renewal when it expires.'}
               </p>
 
               {/* Steps (only for NOT_SUBMITTED) */}
@@ -992,7 +992,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                       { step: '1', text: 'Go to Settings → KYC Verification tab' },
                       { step: '2', text: 'Upload your government-issued ID and proof of address' },
                       { step: '3', text: 'Submit and wait for approval (1–2 business days)' },
-                      { step: '4', text: 'Start listing products — your KYC never expires!' },
+                      { step: '4', text: 'Start listing products once approved' },
                     ].map(({ step, text }) => (
                       <div key={step} className="flex items-start gap-3">
                         <div className="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">

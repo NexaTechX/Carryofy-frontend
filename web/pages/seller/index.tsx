@@ -40,8 +40,10 @@ function badgeForSellerOrder(status: string, delivery?: { status?: string }): { 
     return { label: 'Cancelled', badgeClass: 'bg-red-500/10 text-red-400' };
   if (s === 'OUT_FOR_DELIVERY' || delivery?.status === 'IN_TRANSIT' || delivery?.status === 'PICKED_UP')
     return { label: 'In transit', badgeClass: 'bg-sky-500/10 text-sky-400' };
-  if (s === 'PENDING_PAYMENT' || s === 'PAID' || s === 'PROCESSING')
-    return { label: 'Pending', badgeClass: 'bg-orange-500/10 text-orange-500' };
+  if (s === 'PENDING_PAYMENT')
+    return { label: 'Awaiting payment', badgeClass: 'bg-gray-500/10 text-gray-400' };
+  if (s === 'PAID' || s === 'PROCESSING')
+    return { label: 'Prepare order', badgeClass: 'bg-orange-500/10 text-orange-500' };
   return { label: s.replace(/_/g, ' ') || 'Pending', badgeClass: 'bg-orange-500/10 text-orange-500' };
 }
 

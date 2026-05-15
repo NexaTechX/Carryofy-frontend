@@ -190,9 +190,9 @@ export default function OrdersPage() {
     }
     switch (order.status) {
       case 'PENDING_PAYMENT':
-        return 'Pending';
+        return 'Awaiting payment';
       case 'PAID':
-        return 'Payment Confirmed';
+        return 'Prepare order';
       case 'PROCESSING':
         return 'Packaging';
       case 'OUT_FOR_DELIVERY':
@@ -207,6 +207,14 @@ export default function OrdersPage() {
   };
 
   const getStatusColor = (order: Order) => {
+    if (order.status === 'PENDING_PAYMENT') {
+      return {
+        bg: 'bg-[#6B7280]/20',
+        border: 'border-[#6B7280]/50',
+        dot: 'bg-[#9CA3AF]',
+        text: 'text-[#D1D5DB]',
+      };
+    }
     const key = getStatusKey(order);
     switch (key) {
       case 'pending':

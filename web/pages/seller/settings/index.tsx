@@ -6,6 +6,10 @@ import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager, userManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
 import { resolveSellerKycStatus } from '../../../lib/seller/kyc-status';
+import {
+  unwrapSellerMePayload,
+  sellerNeedsProfileOnboardingFromProfile,
+} from '../../../lib/seller/onboarding';
 import { User, Building2, Shield, Bell, Save, Eye, EyeOff, CheckCircle2, XCircle, Clock, CreditCard, Plus, Trash2, ShieldCheck, Upload, AlertCircle, Lock, Loader2, Moon, MapPin } from 'lucide-react';
 
 import { geocodeString, getCurrentPosition, reverseGeocode } from '../../../lib/api/geocode';
@@ -234,9 +238,13 @@ export default function SettingsPage() {
 
       // Handle Seller Profile
       if (sellerRes.status === 'fulfilled') {
-        const sellerData = sellerRes.value.data.data || sellerRes.value.data;
+        const sellerData =
+          unwrapSellerMePayload(sellerRes.value.data) ??
+          (sellerRes.value.data.data || sellerRes.value.data);
         setSellerProfile(sellerData);
-        setSellerNotOnboarded(false);
+        setSellerNotOnboarded(
+          sellerNeedsProfileOnboardingFromProfile(sellerData),
+        );
         setBusinessForm({
           businessName: sellerData.businessName || '',
           businessType: sellerData.businessType || 'Individual',
@@ -743,9 +751,9 @@ export default function SettingsPage() {
     e.preventDefault();
     setKycSubmitting(true);
 
-    if (!sellerProfile) {
-      if (sellerNotOnboarded) {
-        toast.error('You need to complete seller onboarding first. Redirecting...');
+    if (!sellerProfile || sellerNotOnboarded) {
+      if (sellerNotOnboarded || !sellerProfile) {
+        toast.error('Complete your business profile and pickup location first.');
         setKycSubmitting(false);
         setTimeout(() => router.push('/seller/onboard'), 1500);
       } else {

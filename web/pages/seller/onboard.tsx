@@ -5,7 +5,11 @@ import toast from 'react-hot-toast';
 import { useAuth, tokenManager } from '../../lib/auth';
 import { refreshAccessTokenBeforeRedirect } from '../../lib/api/client';
 import { geocodeString, getCurrentPosition, reverseGeocode } from '../../lib/api/geocode';
-import { Building2, CheckCircle, Phone, AlertTriangle, ArrowLeft, ArrowRight, Store, Package, MapPin, Loader2 } from 'lucide-react';
+import {
+  unwrapSellerMePayload,
+  sellerNeedsProfileOnboardingFromProfile,
+} from '../../lib/seller/onboarding';
+import { Building2, CheckCircle, Phone, AlertTriangle, ArrowLeft, ArrowRight, MapPin, Loader2 } from 'lucide-react';
 
 /**
  * Normalize phone to international format.
@@ -30,19 +34,6 @@ const SELLER_BUSINESS_TYPES = [
   { id: 'both', label: 'Both', description: 'Sell to individuals and businesses (retail and wholesale)' },
 ];
 
-const SELLER_PLANNED_CATEGORIES = [
-  'Electronics & Gadgets',
-  'Fashion & Apparel',
-  'Home & Living',
-  'Health & Beauty',
-  'Groceries & Food',
-  'Sports & Outdoors',
-  'Baby & Kids',
-  'Books & Stationery',
-  'Automotive',
-  'Other',
-];
-
 export default function SellerOnboardingPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -53,8 +44,6 @@ export default function SellerOnboardingPage() {
   const [businessName, setBusinessName] = useState('');
   const [step, setStep] = useState(1);
   const [businessType, setBusinessType] = useState<string>('');
-  const [plannedCategories, setPlannedCategories] = useState<string[]>([]);
-
   // Phone state — shown when user's saved phone is missing/invalid
   const [currentPhone, setCurrentPhone] = useState('');
   const [phoneInput, setPhoneInput] = useState('');
@@ -66,12 +55,7 @@ export default function SellerOnboardingPage() {
   const [longitude, setLongitude] = useState<number | ''>('');
   const [gettingPickupLocation, setGettingPickupLocation] = useState(false);
 
-  const totalSteps = 5;
-  const togglePlannedCategory = (cat: string) => {
-    setPlannedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
-  };
+  const totalSteps = 4;
 
   useEffect(() => {
     setMounted(true);
@@ -106,12 +90,26 @@ export default function SellerOnboardingPage() {
       });
 
       if (sellerRes.ok) {
-        setAlreadyOnboarded(true);
-        setTimeout(() => router.push('/seller'), 2000);
-        return;
+        const sellerJson = await sellerRes.json();
+        const profile = unwrapSellerMePayload(sellerJson);
+        if (profile && !sellerNeedsProfileOnboardingFromProfile(profile)) {
+          setAlreadyOnboarded(true);
+          setTimeout(() => router.push('/seller'), 2000);
+          return;
+        }
+        if (profile?.businessName) setBusinessName(String(profile.businessName));
+        if (profile?.businessAddress) setBusinessAddress(String(profile.businessAddress));
+        if (profile?.pickupInstructions) setPickupInstructions(String(profile.pickupInstructions));
+        if (profile?.latitude != null) setLatitude(Number(profile.latitude));
+        if (profile?.longitude != null) setLongitude(Number(profile.longitude));
+        if (profile?.sellingMode === 'B2C_ONLY') setBusinessType('retail');
+        else if (profile?.sellingMode === 'B2B_ONLY') setBusinessType('wholesale');
+        else if (profile?.sellingMode === 'B2C_AND_B2B') setBusinessType('both');
+      } else if (sellerRes.status === 404) {
+        // No seller row yet — continue with form
       }
 
-      // Not onboarded — also load user profile to pre-check phone
+      // Load user profile to pre-check phone
       const userRes = await fetch(`${apiUrl}/users/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -210,6 +208,11 @@ export default function SellerOnboardingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canProceedFromStep1()) return;
+    if (!canProceedFromStep2()) return;
+    if (!businessType) {
+      toast.error('Please select your business type');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -239,22 +242,40 @@ export default function SellerOnboardingPage() {
       }
 
       // Step 2: Onboard seller
-      let lat = latitude;
-      let lng = longitude;
+      let submitLat: number | undefined;
+      let submitLng: number | undefined;
 
-      if (lat === '' || lng === '') {
+      if (latitude !== '' && longitude !== '') {
+        submitLat = Number(latitude);
+        submitLng = Number(longitude);
+      } else {
         const geoResult = await geocodeString(businessAddress.trim(), {
           preferServer: true,
           accessToken: token ?? undefined,
         });
         if (geoResult) {
-          lat = geoResult.latitude;
-          lng = geoResult.longitude;
-          setLatitude(lat);
-          setLongitude(lng);
+          submitLat = geoResult.latitude;
+          submitLng = geoResult.longitude;
+          setLatitude(geoResult.latitude);
+          setLongitude(geoResult.longitude);
         } else {
-          toast.error('We could not auto-locate this address now. Your profile will be saved and coordinates can be added later.');
+          toast.error(
+            'We could not locate this address. Use “Use my location” or check the address, then try again.',
+          );
+          setLoading(false);
+          return;
         }
+      }
+
+      if (
+        submitLat == null ||
+        submitLng == null ||
+        Number.isNaN(submitLat) ||
+        Number.isNaN(submitLng)
+      ) {
+        toast.error('Pickup coordinates are required. Use “Use my location” or verify your address.');
+        setLoading(false);
+        return;
       }
 
       const response = await fetch(`${apiUrl}/sellers/onboard`, {
@@ -268,8 +289,8 @@ export default function SellerOnboardingPage() {
           businessType: businessType,
           businessAddress: businessAddress.trim(),
           pickupInstructions: pickupInstructions.trim() || undefined,
-          latitude: lat === '' ? undefined : Number(lat),
-          longitude: lng === '' ? undefined : Number(lng),
+          latitude: submitLat,
+          longitude: submitLng,
         }),
       });
 
@@ -342,7 +363,7 @@ export default function SellerOnboardingPage() {
           {/* Progress */}
           <div className="mb-8">
             <div className="flex justify-between mb-2">
-              {[1, 2, 3, 4, 5].map((s) => (
+              {[1, 2, 3, 4].map((s) => (
                 <span
                   key={s}
                   className={`text-sm font-medium ${step >= s ? 'text-[#ff6600]' : 'text-[#ffcc99]/50'}`}
@@ -352,7 +373,7 @@ export default function SellerOnboardingPage() {
               ))}
             </div>
             <div className="h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden flex">
-              {[1, 2, 3, 4, 5].map((s) => (
+              {[1, 2, 3, 4].map((s) => (
                 <div
                   key={s}
                   className={`h-full flex-1 ${step >= s ? 'bg-[#ff6600]' : 'bg-white/5'}`}
@@ -493,28 +514,6 @@ export default function SellerOnboardingPage() {
 
             {step === 4 && (
               <>
-                <h2 className="text-white text-2xl font-bold mb-2">What do you plan to sell?</h2>
-                <p className="text-[#ffcc99] text-sm mb-6">Select the categories you want to list products in (you can add more later).</p>
-                <div className="flex flex-wrap gap-2">
-                  {SELLER_PLANNED_CATEGORIES.map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => togglePlannedCategory(cat)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition ${plannedCategories.includes(cat)
-                        ? 'bg-[#ff6600] text-black'
-                        : 'bg-white/10 text-[#ffcc99] hover:bg-white/20'
-                        }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {step === 5 && (
-              <>
                 <h2 className="text-white text-2xl font-bold mb-6">Review & submit</h2>
                 <div className="space-y-4 mb-6">
                   <div className="p-4 rounded-xl bg-black/50 border border-white/10">
@@ -539,12 +538,6 @@ export default function SellerOnboardingPage() {
                     {SELLER_BUSINESS_TYPES.find((t) => t.id === businessType)?.label ?? '—'}
                   </p>
                 </div>
-                {plannedCategories.length > 0 && (
-                  <div className="p-4 rounded-xl bg-black/50 border border-white/10">
-                    <p className="text-[#ffcc99] text-xs uppercase tracking-wide mb-1">Planned categories</p>
-                    <p className="text-white font-medium">{plannedCategories.join(', ')}</p>
-                  </div>
-                )}
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
                   <h3 className="text-white font-semibold mb-2">What happens next?</h3>
                   <ul className="text-[#ffcc99] text-sm space-y-2">
@@ -574,8 +567,8 @@ export default function SellerOnboardingPage() {
               </>
             )}
 
-            {/* Navigation (steps 1–4) */}
-            {step < 5 && (
+            {/* Navigation (steps 1–3) */}
+            {step < 4 && (
               <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/10">
                 <button
                   type="button"

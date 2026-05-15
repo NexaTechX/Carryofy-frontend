@@ -239,7 +239,11 @@ export default function SettingsPage() {
         setBusinessForm({
           businessName: sellerData.businessName || '',
           businessType: sellerData.businessType || 'Individual',
-          cacNumber: sellerData.cacNumber || '',
+          cacNumber:
+            sellerData.registrationNumber ||
+            sellerData.cacNumber ||
+            sellerData.kyc?.registrationNumber ||
+            '',
           businessAddress: sellerData.businessAddress || '',
           businessDescription: sellerData.businessDescription || '',
           logo: sellerData.logo || '',
@@ -423,9 +427,9 @@ export default function SettingsPage() {
       const payload = {
         businessName: form.businessName,
         businessType: form.businessType,
-        cacNumber: form.cacNumber || undefined,
+        registrationNumber: form.cacNumber?.trim() || undefined,
         businessAddress: form.businessAddress || undefined,
-        businessDescription: form.businessDescription || undefined,
+        businessDescription: form.businessDescription?.trim() || undefined,
         logo: form.logo || undefined,
         pickupInstructions: form.pickupInstructions || undefined,
         latitude: lat ? Number(lat) : undefined,

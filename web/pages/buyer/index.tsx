@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import BuyerDashboardPromoCarousel from '../../components/buyer/BuyerDashboardPromoCarousel';
+import RestockSuggestionCard from '../../components/buyer/RestockSuggestionCard';
 import BuyerCategoryStrip from '../../components/buyer/BuyerCategoryStrip';
 import ShopProductCard, { ShopProductCardProduct } from '../../components/buyer/shop/ShopProductCard';
 import { tokenManager, userManager } from '../../lib/auth';
@@ -291,6 +292,7 @@ export default function BuyerDashboard() {
       </Head>
       <BuyerLayout>
         <div className="font-inter antialiased">
+          <RestockSuggestionCard />
           {/* Mobile home — Carryofy mobile nav reference */}
           <div className="space-y-2.5 pb-2 lg:hidden">
             <form
@@ -417,6 +419,8 @@ export default function BuyerDashboard() {
                             src={coverUrl}
                             alt=""
                             sizes="88px"
+                            categorySlug={cat.slug}
+                            categoryName={cat.name}
                             className="object-cover transition duration-300 group-hover:scale-[1.05]"
                           />
                           <div
@@ -871,6 +875,9 @@ export default function BuyerDashboard() {
               <FileText className="h-5 w-5 shrink-0" />
               Request a quote
             </Link>
+            <p className="w-full text-center text-xs text-[#ffcc99]/70 lg:hidden">
+              On a quote request, use <strong className="text-[#ff6600]">Paste your order list</strong> to turn a text list into line items with AI.
+            </p>
           </div>
         </div>
       </BuyerLayout>

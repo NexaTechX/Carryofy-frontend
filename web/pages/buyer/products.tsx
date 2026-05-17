@@ -4,6 +4,7 @@ import Link from 'next/link';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager, useAuth } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
+import { getApiConnectionErrorMessage, isApiConnectionError } from '../../lib/api/utils';
 import { ChevronLeft, ChevronRight, Filter, PanelLeftClose, PanelLeft, Search } from 'lucide-react';
 import { useCategories } from '../../lib/buyer/hooks/useCategories';
 import SEO from '../../components/seo/SEO';
@@ -34,6 +35,7 @@ interface Product {
   priceTiers?: { minQuantity: number; maxQuantity: number; priceKobo: number }[];
   keyFeatures?: string[];
   tags?: string[];
+  match_reason?: string;
 }
 
 interface ProductsResponse {
@@ -63,6 +65,8 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [aiSearchLoading, setAiSearchLoading] = useState(false);
+  const [searchIntent, setSearchIntent] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
@@ -210,9 +214,48 @@ export default function ProductsPage() {
     try {
       setLoading(true);
       setError(null);
+      setSearchIntent(null);
       const searchTerm =
         searchOverride !== undefined ? String(searchOverride).trim() : debouncedSearch.trim();
       const pageNum = pageOverride !== undefined ? pageOverride : currentPage;
+
+      if (searchTerm) {
+        try {
+          setAiSearchLoading(true);
+          const aiEndpoint = tokenManager.isAuthenticated() ? '/search/ai' : '/search/ai/public';
+          const aiRes = await apiClient.post(aiEndpoint, { query: searchTerm });
+          const aiData = (aiRes.data as { data?: unknown })?.data ?? aiRes.data;
+          const aiResults = (aiData as { results?: Product[] })?.results;
+          const interpreted = (aiData as { interpreted?: { intent?: string } })?.interpreted;
+          if (Array.isArray(aiResults)) {
+            setProducts(
+              aiResults.map((r) => ({
+                id: r.id,
+                title: r.title,
+                description: r.description,
+                price: r.price,
+                images: r.images || [],
+                quantity: (r as Product).quantity ?? 1,
+                seller: {
+                  id: r.seller?.id ?? '',
+                  businessName: r.seller?.businessName ?? 'Seller',
+                  isVerified: true,
+                },
+                match_reason: (r as Product).match_reason,
+              })),
+            );
+            setTotalPages(1);
+            setTotal(aiResults.length);
+            setSearchIntent(interpreted?.intent ?? searchTerm);
+            return;
+          }
+        } catch {
+          // silent fallback to keyword search
+        } finally {
+          setAiSearchLoading(false);
+        }
+      }
+
       const params = new URLSearchParams();
       params.append('page', String(pageNum));
       params.append('limit', String(PRODUCTS_PAGE_SIZE));
@@ -248,12 +291,9 @@ export default function ProductsPage() {
         setTotal(0);
       }
     } catch (err: any) {
-      const isNetworkError =
-        err.code === 'ERR_NETWORK' || err.code === 'ECONNREFUSED' ||
-        (err.message && String(err.message).toLowerCase().includes('network error'));
       setError(
-        isNetworkError
-          ? 'Cannot reach the API. Start the API server and ensure it is running.'
+        isApiConnectionError(err)
+          ? getApiConnectionErrorMessage('load')
           : err.response?.data?.message || 'Failed to load products'
       );
       setProducts([]);
@@ -315,6 +355,7 @@ export default function ProductsPage() {
     requestQuoteOnly: p.requestQuoteOnly,
     priceTiers: p.priceTiers,
     fulfilledByCarryofy: true,
+    match_reason: p.match_reason,
   });
 
   const displayProducts = products.length > 0 ? products.map(toShopCard) : [];
@@ -508,7 +549,9 @@ export default function ProductsPage() {
               {loading && (
                 <div className="flex flex-col items-center justify-center py-16">
                   <div className="animate-spin rounded-full h-12 w-12 border-2 border-primary border-t-transparent" />
-                  <p className="text-foreground/70 mt-4">Loading products...</p>
+                  <p className="text-foreground/70 mt-4">
+                    {aiSearchLoading ? 'Understanding your search...' : 'Loading products...'}
+                  </p>
                 </div>
               )}
 
@@ -531,6 +574,15 @@ export default function ProductsPage() {
 
               {!loading && !error && products.length > 0 && (
                 <>
+                  {debouncedSearch.trim() && (
+                    <p className="text-foreground/80 text-sm mb-3">
+                      Here&apos;s what we found for:{' '}
+                      <span className="font-semibold text-foreground">&quot;{debouncedSearch.trim()}&quot;</span>
+                      {searchIntent && searchIntent !== debouncedSearch.trim() && (
+                        <span className="text-foreground/50"> — {searchIntent}</span>
+                      )}
+                    </p>
+                  )}
                   <p className="text-foreground/60 text-sm mb-4">
                     Showing <span className="font-semibold text-foreground">{displayProducts.length}</span> of {displayTotal.toLocaleString()} products
                   </p>

@@ -1,10 +1,11 @@
 'use client';
 
-import Image from 'next/image';
+import StockPhoto from '../common/StockPhoto';
 import { useCallback, useEffect, useState } from 'react';
 import {
   categoryCoverShouldUseNextImage,
   getCategoryCoverFallbackUrl,
+  getCategoryCoverRemoteFallback,
 } from '../../lib/buyer/categoryCoverImage';
 
 interface BuyerCategoryCoverMediaProps {
@@ -13,6 +14,9 @@ interface BuyerCategoryCoverMediaProps {
   sizes: string;
   className?: string;
   priority?: boolean;
+  /** Used when primary URL fails (hotlink / expired CDN) */
+  categorySlug?: string;
+  categoryName?: string;
 }
 
 /**
@@ -25,8 +29,12 @@ export default function BuyerCategoryCoverMedia({
   sizes,
   className = '',
   priority = false,
+  categorySlug,
+  categoryName,
 }: BuyerCategoryCoverMediaProps) {
-  const fallback = getCategoryCoverFallbackUrl();
+  const unsplashFallback = categorySlug
+    ? getCategoryCoverRemoteFallback(categorySlug, categoryName ?? '')
+    : getCategoryCoverFallbackUrl();
   const [effectiveSrc, setEffectiveSrc] = useState(src);
 
   useEffect(() => {
@@ -34,15 +42,18 @@ export default function BuyerCategoryCoverMedia({
   }, [src]);
 
   const handleError = useCallback(() => {
-    setEffectiveSrc((current) => (current === fallback ? current : fallback));
-  }, [fallback]);
+    setEffectiveSrc((current) => {
+      if (current === unsplashFallback) return current;
+      return unsplashFallback;
+    });
+  }, [unsplashFallback]);
 
   const useNext = categoryCoverShouldUseNextImage(effectiveSrc);
 
   if (useNext) {
     return (
       <div className="relative h-full w-full">
-        <Image
+        <StockPhoto
           key={effectiveSrc}
           src={effectiveSrc}
           alt={alt}

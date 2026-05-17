@@ -1,14 +1,31 @@
 import path from "path";
 import { withSentryConfig } from "@sentry/nextjs";
+import bundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
 
-// Bundle analyzer configuration
-let withBundleAnalyzer: any = (config: NextConfig) => config;
-if (process.env.ANALYZE === 'true') {
-  withBundleAnalyzer = require('@next/bundle-analyzer')({
-    enabled: true,
-  });
-}
+// Bundle analyzer configuration (enabled via ANALYZE=true npm run analyze)
+const withBundleAnalyzer =
+  process.env.ANALYZE === "true"
+    ? bundleAnalyzer({ enabled: true })
+    : (config: NextConfig) => config;
+
+const isDev = process.env.NODE_ENV !== 'production';
+
+/** Dev frontend (3001) must reach local Nest API (3000) over http — production CSP is https-only. */
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+  "img-src 'self' data: https: blob:",
+  "font-src 'self' https: data:",
+  "style-src 'self' 'unsafe-inline' https:",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+  isDev
+    ? "connect-src 'self' http://localhost:3000 http://127.0.0.1:3000 http://localhost:3001 http://127.0.0.1:3001 https: wss: blob:"
+    : "connect-src 'self' https://api.carryofy.com https: wss: blob:",
+  "frame-src 'self' https:",
+].join('; ');
 
 const nextConfig: NextConfig = {
   // Turbopack: use this app as root so multiple lockfiles don't trigger a warning
@@ -86,8 +103,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value:
-              "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; img-src 'self' data: https: blob:; font-src 'self' https: data:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss:; frame-src 'self' https:",
+            value: contentSecurityPolicy,
           },
         ],
       },

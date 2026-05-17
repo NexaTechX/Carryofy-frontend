@@ -29,6 +29,10 @@ import NotificationsDropdown from './NotificationsDropdown';
 const CartDrawer = dynamic(() => import('./CartDrawer'), {
   ssr: false,
 });
+
+const FloatingAssistant = dynamic(() => import('../ai-assistant/FloatingAssistant'), {
+  ssr: false,
+});
 import { useAuth } from '../../lib/auth';
 import { useCart } from '../../lib/contexts/CartContext';
 import ErrorBoundary from '../common/ErrorBoundary';
@@ -182,6 +186,9 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
           <form onSubmit={handleSearch} className="mx-4 hidden max-w-xl flex-1 md:flex">
             <div className="flex flex-1 items-center rounded-lg border border-border-custom bg-card transition-colors focus-within:border-primary/50">
               <Search className="ml-3 h-4 w-4 shrink-0 text-foreground/50" />
+              <span className="mr-1 shrink-0 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary" title="AI-powered search">
+                AI
+              </span>
               <input
                 type="search"
                 value={searchQuery}
@@ -327,6 +334,8 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
       </nav>
 
       <CartDrawer />
+
+      {mounted && user && <FloatingAssistant />}
     </div>
   );
 }

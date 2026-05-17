@@ -3,7 +3,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ShoppingBag, ArrowRight, Star, Sparkles, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
+import StockPhoto from '../common/StockPhoto';
+import { unsplashPhoto } from '../../lib/unsplash';
 import { Product } from '../../types/product';
+
+const productPlaceholder = unsplashPhoto('photo-1505740420928-5e560c06d30e', { w: 500 });
 
 interface FeaturedProductsProps {
   products?: Product[];
@@ -69,38 +73,27 @@ function formatPrice(priceInKobo: number): string {
 
 function FeaturedProducts({ products = [], loading = false, error, onRetry }: FeaturedProductsProps) {
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-linear-to-b from-gray-50 to-white">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10 sm:mb-12 lg:mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center gap-2 bg-linear-to-r from-primary/10 to-purple-500/10 px-4 py-2 rounded-full border border-primary/20 mb-4"
+    <section className="border-b border-zinc-200/80 bg-stone-50 py-14 sm:py-16 lg:py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-10 flex flex-col gap-4 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="landing-eyebrow inline-flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 shrink-0" aria-hidden />
+              Live listings
+            </p>
+            <h2 className="landing-title mt-2 text-2xl sm:text-3xl">Popular wholesale picks</h2>
+            <p className="landing-lead mt-2 max-w-xl text-sm sm:text-base">
+              Real SKUs from verified vendors — transparent unit pricing and coordinated delivery
+              across Lagos.
+            </p>
+          </div>
+          <Link
+            href="/buyer/products"
+            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-primary transition hover:text-primary-dark"
           >
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <span className="text-primary font-semibold tracking-wider uppercase text-xs sm:text-sm">
-              Trending Now
-            </span>
-          </motion.div>
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold mt-2 mb-3 sm:mb-4 text-gray-900"
-          >
-            Featured Products
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            className="text-gray-600 max-w-2xl mx-auto text-sm sm:text-base lg:text-lg"
-          >
-            Real products stocked in our warehouse. Delivered fast by Carryofy.
-          </motion.p>
+            See all products
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-8">
@@ -113,9 +106,15 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
           {error && !loading && products.length === 0 && <ErrorState onRetry={onRetry} />}
 
           {/* Products - Show only 3-5 real products */}
-          {!loading && products.length > 0 && products.slice(0, 5).map((product, index) => {
+          {!loading && products.length > 0 && products.slice(0, 10).map((product, index) => {
             const stock = (product as any).quantity ?? product.stockQuantity ?? 0;
             const isInStock = stock > 0;
+
+            const imageSrc = product.images?.[0] || productPlaceholder;
+            const imageAlt = (product as { title?: string }).title || product.name;
+            const imageClassName =
+              'object-cover group-hover:scale-110 transition-transform duration-500';
+            const imageSizes = '(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 25vw';
 
             return (
               <motion.div
@@ -125,25 +124,35 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 whileHover={{ y: -8 }}
-                className="bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 group border border-gray-100 relative"
+                className="group relative overflow-hidden rounded-xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-950/5 transition hover:-translate-y-1 hover:shadow-md"
               >
                 {/* Fulfilled by Carryofy Badge */}
                 {isInStock && (
                   <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-10">
-                    <div className="bg-linear-to-r from-primary to-orange-600 text-white px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide shadow-lg">
-                      In stock — Fulfilled by Carryofy
-                    </div>
+                    <span className="rounded-md bg-zinc-950/85 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm sm:text-xs">
+                      In stock
+                    </span>
                   </div>
                 )}
 
                 <div className="relative h-40 sm:h-52 lg:h-64 bg-gray-100 overflow-hidden">
-                  <Image
-                    src={product.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80'}
-                    alt={(product as any).title || product.name}
-                    fill
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 25vw"
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
+                  {product.images?.[0] ? (
+                    <Image
+                      src={imageSrc}
+                      alt={imageAlt}
+                      fill
+                      sizes={imageSizes}
+                      className={imageClassName}
+                    />
+                  ) : (
+                    <StockPhoto
+                      src={imageSrc}
+                      alt={imageAlt}
+                      fill
+                      sizes={imageSizes}
+                      className={imageClassName}
+                    />
+                  )}
 
                   {/* Rating Badge */}
                   {product.averageRating && product.averageRating > 0 && (
@@ -165,14 +174,14 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
                 </div>
 
                 <div className="p-3 sm:p-4 lg:p-6">
-                  <div className="text-[10px] sm:text-xs text-primary font-bold mb-1 sm:mb-2 uppercase tracking-wider">
+                  <div className="mb-1 text-[10px] font-medium text-zinc-500 sm:mb-2 sm:text-xs">
                     {product.category}
                   </div>
-                  <h3 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 mb-1 sm:mb-2 group-hover:text-primary transition-colors line-clamp-2 min-h-10 sm:min-h-12">
+                  <h3 className="mb-1 line-clamp-2 min-h-10 text-sm font-semibold text-zinc-900 transition-colors group-hover:text-primary sm:mb-2 sm:min-h-12 sm:text-base lg:text-lg">
                     {(product as any).title || product.name}
                   </h3>
                   <div className="flex items-center justify-between mt-2 sm:mt-4">
-                    <span className="text-base sm:text-lg lg:text-xl font-bold bg-linear-to-r from-primary to-orange-600 bg-clip-text text-transparent">
+                    <span className="text-base font-semibold text-zinc-900 sm:text-lg lg:text-xl">
                       {formatPrice(product.price)}
                     </span>
                     <Link
@@ -183,11 +192,10 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
                     </Link>
                   </div>
 
-                  {/* Fulfilled by Carryofy indicator */}
-                  {isInStock && (
-                    <div className="mt-2 text-[10px] sm:text-xs text-primary font-semibold">
-                      ✓ Fulfilled by Carryofy
-                    </div>
+                  {product.seller?.businessName && (
+                    <p className="mt-2 truncate text-[10px] text-zinc-500 sm:text-xs">
+                      {product.seller.businessName}
+                    </p>
                   )}
                 </div>
               </motion.div>
@@ -218,10 +226,10 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
           >
             <Link
               href="/buyer/products"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-linear-to-r from-primary to-orange-600 text-white rounded-full font-bold hover:shadow-lg hover:shadow-primary/40 transition-all duration-300 group text-base sm:text-lg touch-target"
+              className="inline-flex items-center gap-2 rounded-xl border-2 border-zinc-900 bg-zinc-950 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-800 sm:text-base"
             >
-              View All Products
-              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-2 transition-transform" />
+              Browse full marketplace
+              <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
             </Link>
           </motion.div>
         )}

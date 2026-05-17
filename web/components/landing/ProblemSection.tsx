@@ -1,5 +1,7 @@
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import StockPhoto from '../common/StockPhoto';
+import { unsplashPhoto } from '../../lib/unsplash';
 
 type RetailerProblem =
   | {
@@ -24,8 +26,7 @@ const retailerProblems: RetailerProblem[] = [
     description:
       'Fragmented sourcing makes it hard to know who will deliver quality stock on time — or show up at all.',
     callout: 'Every vendor on Carryofy is verified and rated by real buyers.',
-    image:
-      'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1400&auto=format&fit=crop',
+    image: unsplashPhoto('photo-1454165804606-c3d57bc86b40', { w: 1200 }),
     imageAlt: 'Person reviewing paperwork and logistics stress',
     variant: 'image',
   },
@@ -34,8 +35,7 @@ const retailerProblems: RetailerProblem[] = [
     description:
       'Hours lost traveling and chasing stock — time better spent serving customers and compounding sales.',
     callout: 'Browse, order, and restock from your phone in minutes.',
-    image:
-      'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=1400&auto=format&fit=crop',
+    image: unsplashPhoto('photo-1449824913935-59a10b8d2000', { w: 1200 }),
     imageAlt: 'Urban traffic and commuting in a dense city',
     variant: 'image',
   },
@@ -79,7 +79,7 @@ export default function ProblemSection() {
             >
               {problem.variant === 'image' ? (
                 <div className="relative aspect-[16/11] w-full shrink-0 overflow-hidden">
-                  <Image
+                  <StockPhoto
                     src={problem.image}
                     alt={problem.imageAlt}
                     fill

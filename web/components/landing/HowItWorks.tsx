@@ -6,26 +6,26 @@ import { ArrowDown, ArrowRight, Package, Search, ShoppingCart } from 'lucide-rea
 const steps = [
   {
     id: 1,
-    title: 'Discover',
-    promise: 'Find vetted suppliers in minutes',
+    title: 'Browse the market',
+    promise: 'Shop categories like a wholesale floor',
     description:
-      'Browse categories and suppliers we verify for quality, fulfilment discipline, and retail fit.',
+      'Filter by category, compare unit prices from verified vendors, and build a basket the way you would in the market — but online.',
     Icon: Search,
   },
   {
     id: 2,
-    title: 'Order',
-    promise: 'Confirm with transparent wholesale pricing',
+    title: 'Place your wholesale order',
+    promise: 'MOQ and pricing shown upfront',
     description:
-      'Build repeat baskets with clear unit economics — built for restocking, not one-off chaos.',
+      'Confirm quantities, see totals before you pay, and reorder favourite SKUs without chasing suppliers on WhatsApp.',
     Icon: ShoppingCart,
   },
   {
     id: 3,
-    title: 'Receive',
-    promise: 'Coordinated delivery across Lagos',
+    title: 'Receive at your store',
+    promise: 'Coordinated Lagos delivery',
     description:
-      'We orchestrate dispatch and last-mile handoff so stock lands where it sells, not in limbo.',
+      'Carryofy routes dispatch and last-mile handoff so stock lands at your shop — with status you can follow, not guess.',
     Icon: Package,
   },
 ] as const;
@@ -62,17 +62,15 @@ export default function HowItWorks() {
           viewport={{ once: true }}
           className="mx-auto mb-14 max-w-2xl text-center sm:mb-20"
         >
-          <p className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
-            How it works
-          </p>
-          <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl lg:text-[2.75rem]">
-            From discovery to shelf —{' '}
-            <span className="text-primary">three simple steps</span>
+          <p className="landing-eyebrow">How buying works</p>
+          <h2 className="landing-title mt-3 text-3xl sm:text-4xl lg:text-[2.75rem]">
+            Market day, minus the{' '}
+            <span className="text-primary">market run</span>
           </h2>
           <div className="mx-auto mt-5 h-1 w-20 rounded-full bg-primary" aria-hidden />
-          <p className="mt-4 text-base leading-relaxed text-zinc-600 sm:text-lg">
-            A simple loop for Lagos retail: find trusted supply, place the order, receive stock with
-            routing you can follow.
+          <p className="landing-lead mt-3 text-base sm:text-lg">
+            The same rhythm retailers already know — browse, buy wholesale, receive — with verified
+            listings and delivery coordinated on Carryofy.
           </p>
         </motion.div>
 
@@ -91,10 +89,8 @@ export default function HowItWorks() {
                     <step.Icon className="h-7 w-7" strokeWidth={1.75} aria-hidden />
                   </div>
                   <div className="min-w-0">
-                    <span className="font-mono text-[11px] font-semibold text-zinc-400">
-                      Step {step.id}
-                    </span>
-                    <h3 className="mt-1 font-heading text-xl font-semibold tracking-tight text-zinc-950">
+                    <span className="text-xs font-medium text-zinc-500">Step {step.id}</span>
+                    <h3 className="mt-1 text-xl font-bold text-zinc-950">
                       {step.title}
                     </h3>
                     <p className="mt-2 text-sm font-medium text-primary">{step.promise}</p>
@@ -126,7 +122,7 @@ export default function HowItWorks() {
                       {step.id}
                     </span>
                   </div>
-                  <h3 className="mt-6 font-heading text-xl font-semibold tracking-tight text-zinc-950">
+                  <h3 className="mt-6 text-xl font-bold text-zinc-950">
                     {step.title}
                   </h3>
                   <p className="mt-2 text-sm font-medium text-primary">{step.promise}</p>
@@ -144,14 +140,14 @@ export default function HowItWorks() {
           viewport={{ once: true }}
           className="mx-auto mt-16 max-w-xl text-center"
         >
-          <p className="font-heading text-lg font-semibold text-zinc-950 sm:text-xl">
-            Ready to place your first order?
+          <p className="text-lg font-semibold text-zinc-950 sm:text-xl">
+            Ready to browse what&apos;s in stock?
           </p>
           <Link
-            href="/auth/signup"
+            href="/buyer/products"
             className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-primary bg-transparent px-7 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10 sm:text-[15px]"
           >
-            Get started →
+            Open wholesale catalogue →
           </Link>
         </motion.div>
       </div>

@@ -1,6 +1,8 @@
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Sparkles, Truck } from 'lucide-react';
+import StockPhoto from '../common/StockPhoto';
+import { unsplashPhoto } from '../../lib/unsplash';
 
 const imageFeatures = [
   {
@@ -8,8 +10,7 @@ const imageFeatures = [
     title: 'Verified vendor graph',
     description:
       'Buy from suppliers we underwrite — fewer bad batches, fewer disappearing sellers.',
-    image:
-      'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?q=80&w=1400&auto=format&fit=crop',
+    image: unsplashPhoto('photo-1450101499163-c8848c66ca85', { w: 1200 }),
     imageAlt: 'Quality inspection and documents on a desk',
   },
   {
@@ -17,8 +18,7 @@ const imageFeatures = [
     title: 'Logistics orchestration',
     description:
       'Last-mile coordinated with partners you are not texting at midnight for status.',
-    image:
-      'https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c0?q=80&w=1400&auto=format&fit=crop',
+    image: unsplashPhoto('photo-1494412574643-ff11b0a5c1c0', { w: 1200 }),
     imageAlt: 'Shipping containers at port',
   },
 ] as const;
@@ -52,7 +52,7 @@ export default function WhyChooseCarryofy() {
               className="group flex h-full min-h-[420px] flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-stone-50 shadow-sm ring-1 ring-zinc-950/[0.03]"
             >
               <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-zinc-200">
-                <Image
+                <StockPhoto
                   src={feature.image}
                   alt={feature.imageAlt}
                   fill

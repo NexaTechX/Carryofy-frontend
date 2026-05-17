@@ -4,9 +4,16 @@ import { useRouter } from 'next/router';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
+import {
+  getApiConnectionErrorMessage,
+  isApiConnectionError,
+  logApiConnectionError,
+} from '../../lib/api/utils';
 import { validateCoupon } from '../../lib/api/coupons';
 import { fetchShippingQuote } from '../../lib/api/shipping';
 import { geocodeAddress, getCurrentPosition, reverseGeocode } from '../../lib/api/geocode';
+import { normalizeAddress } from '../../lib/api/ai-address';
+import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
 import { getWalletBalance } from '../../lib/api/wallet';
 import {
   Truck,
@@ -129,6 +136,7 @@ export default function CheckoutPage() {
   const [businessName, setBusinessName] = useState('');
   const [businessPurpose, setBusinessPurpose] = useState('');
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [normalizingAddress, setNormalizingAddress] = useState(false);
   const [multiVendorFromApi, setMultiVendorFromApi] = useState(false);
 
   type CartSellerGroup = {
@@ -440,19 +448,9 @@ export default function CheckoutPage() {
     } catch (err: any) {
 
       // Handle network errors specifically
-      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error' || err.code === 'ECONNREFUSED') {
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
-        const fullUrl = `${apiBase}/cart`;
-
-        setError(
-          `Cannot connect to backend server.\n\n` +
-          `API URL: ${fullUrl}\n\n` +
-          `Please check:\n` +
-          `1. Backend server is running (cd apps/api && npm run start:dev)\n` +
-          `2. Backend is on port 3000\n` +
-          `3. Environment variable NEXT_PUBLIC_API_BASE is set correctly\n` +
-          `4. No firewall is blocking the connection`
-        );
+      if (isApiConnectionError(err)) {
+        logApiConnectionError(err, { action: 'load cart', url: '/cart' });
+        setError(getApiConnectionErrorMessage('load'));
       } else if (err.response?.status === 401) {
         // Unauthorized - token might be expired
         setError('Your session has expired. Redirecting to login...');
@@ -516,6 +514,32 @@ export default function CheckoutPage() {
   const handleDeliveryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setDeliveryInfo((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImproveAddress = async () => {
+    const raw = deliveryInfo.address.trim();
+    if (raw.length < 15) {
+      showErrorToast('Enter more of your address before improving it.');
+      return;
+    }
+    setNormalizingAddress(true);
+    try {
+      const normalized = await normalizeAddress(raw);
+      setDeliveryInfo((prev) => ({
+        ...prev,
+        city: normalized.city || prev.city,
+        state: normalized.state || prev.state,
+        landmark:
+          [normalized.landmark, normalized.area, normalized.deliveryNotes]
+            .filter(Boolean)
+            .join(' · ') || prev.landmark,
+      }));
+      showSuccessToast('Address suggestions applied — please confirm before ordering.');
+    } catch {
+      showErrorToast('Could not improve address. Check your details manually.');
+    } finally {
+      setNormalizingAddress(false);
+    }
   };
 
   const handleUseMyLocation = async () => {
@@ -1429,10 +1453,20 @@ export default function CheckoutPage() {
                                     name="address"
                                     value={deliveryInfo.address}
                                     onChange={handleDeliveryChange}
-                                    placeholder="Street address"
+                                    placeholder="Street address, landmarks (e.g. near Shoprite, Lekki)"
                                     className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
                                     required
                                   />
+                                  <button
+                                    type="button"
+                                    onClick={handleImproveAddress}
+                                    disabled={normalizingAddress || deliveryInfo.address.trim().length < 15}
+                                    className="mt-2 text-sm text-[#ff6600] hover:text-[#ff8533] disabled:opacity-50 inline-flex items-center gap-1"
+                                  >
+                                    {normalizingAddress && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Improve address with AI
+                                  </button>
+
                                 </div>
                                 <div>
                                   <label className="block text-white text-sm font-medium mb-2">
@@ -1513,10 +1547,20 @@ export default function CheckoutPage() {
                                     name="address"
                                     value={deliveryInfo.address}
                                     onChange={handleDeliveryChange}
-                                    placeholder="Street address"
+                                    placeholder="Street address, landmarks (e.g. near Shoprite, Lekki)"
                                     className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl text-white placeholder-[#ffcc99]/50 focus:outline-none focus:border-[#ff6600]"
                                     required
                                   />
+                                  <button
+                                    type="button"
+                                    onClick={handleImproveAddress}
+                                    disabled={normalizingAddress || deliveryInfo.address.trim().length < 15}
+                                    className="mt-2 text-sm text-[#ff6600] hover:text-[#ff8533] disabled:opacity-50 inline-flex items-center gap-1"
+                                  >
+                                    {normalizingAddress && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Improve address with AI
+                                  </button>
+
                                 </div>
                                 <div>
                                   <label className="block text-white text-sm font-medium mb-2">

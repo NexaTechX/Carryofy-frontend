@@ -1,5 +1,5 @@
 import apiClient from '../api/client';
-import { getApiBaseUrl } from '../api/utils';
+import { isApiConnectionError, logApiConnectionError } from '../api/utils';
 import {
     AuthResponse,
     ForgotPasswordRequest,
@@ -48,15 +48,8 @@ export const authService = {
             return extractResponseData<AuthResponse>(response);
         } catch (error: any) {
             // Enhanced error logging for login
-            if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
-                const apiBase = getApiBaseUrl();
-                console.error('🚨 Login Network Error:', {
-                    code: error.code,
-                    message: error.message,
-                    apiBase,
-                    fullURL: `${apiBase}/auth/login`,
-                    hint: 'Start the API (e.g. CB/apps/api on PORT 3000) or set NEXT_PUBLIC_API_BASE in .env.local',
-                });
+            if (isApiConnectionError(error)) {
+                logApiConnectionError(error, { action: 'login', url: '/auth/login' });
             }
             throw error;
         }

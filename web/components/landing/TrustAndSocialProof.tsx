@@ -1,7 +1,8 @@
-import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { BadgeCheck, Headphones, Quote, ShieldCheck } from 'lucide-react';
+import StockPhoto from '../common/StockPhoto';
+import { unsplashPhoto } from '../../lib/unsplash';
 
 const testimonials: {
   name: string;
@@ -15,8 +16,7 @@ const testimonials: {
     name: 'Chioma Okafor',
     business: 'Boutique retail',
     location: 'Yaba',
-    avatar:
-      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&h=200&auto=format&fit=crop',
+    avatar: unsplashPhoto('photo-1573496359142-b8d87734a5a2', { w: 200, h: 200 }),
     avatarAlt: 'Portrait of Chioma Okafor, boutique retailer in Yaba',
     quote: (
       <>
@@ -29,8 +29,7 @@ const testimonials: {
     name: 'Ibrahim Lawal',
     business: 'Specialty retail',
     location: 'Ikeja',
-    avatar:
-      'https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=200&h=200&auto=format&fit=crop',
+    avatar: unsplashPhoto('photo-1560250097-0b93528c311a', { w: 200, h: 200 }),
     avatarAlt: 'Portrait of Ibrahim Lawal, retailer in Ikeja',
     quote: (
       <>
@@ -43,8 +42,7 @@ const testimonials: {
     name: 'Funke Adeyemi',
     business: 'Retail supply',
     location: 'Lekki',
-    avatar:
-      'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=200&h=200&auto=format&fit=crop',
+    avatar: unsplashPhoto('photo-1580489944761-15a19d654956', { w: 200, h: 200 }),
     avatarAlt: 'Portrait of Funke Adeyemi, retailer in Lekki',
     quote: (
       <>
@@ -95,16 +93,14 @@ export default function TrustAndSocialProof() {
           viewport={{ once: true }}
           className="mx-auto max-w-2xl text-center"
         >
-          <span className="inline-flex items-center rounded-full border border-zinc-200/90 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-600">
-            Trust &amp; proof
-          </span>
-          <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl lg:text-[2.75rem]">
-            Built for Lagos operators —{' '}
-            <span className="text-[#FF6B00]">backed by real workflows</span>
+          <p className="landing-eyebrow text-zinc-600">Marketplace trust</p>
+          <h2 className="landing-title mt-3 text-3xl sm:text-4xl lg:text-[2.75rem]">
+            Retailers and suppliers already trading on{' '}
+            <span className="text-[#FF6B00]">Carryofy</span>
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-zinc-600 sm:text-lg">
-            Early retailers and suppliers onboarding across the city. No fluff — just dependable B2B
-            rails and support when things move fast.
+          <p className="landing-lead mt-3 text-base sm:text-lg">
+            Real shops across Lagos use Carryofy to source stock, reorder fast, and get support when
+            delivery or orders need a human hand.
           </p>
         </motion.div>
 
@@ -115,16 +111,14 @@ export default function TrustAndSocialProof() {
           transition={{ delay: 0.05 }}
           className="mt-12 rounded-2xl border border-zinc-200/80 bg-white/80 px-4 py-8 shadow-sm ring-1 ring-zinc-950/[0.03] backdrop-blur-sm sm:px-8"
         >
-          <p className="text-center font-mono text-[10px] font-semibold uppercase tracking-[0.28em] text-zinc-500">
-            Ecosystem coverage
-          </p>
+          <p className="text-center text-sm font-semibold text-zinc-600">Ecosystem coverage</p>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {corridorPartners.map((p) => (
               <div
                 key={p.label}
                 className="rounded-xl border border-zinc-100 bg-stone-50/90 px-4 py-4 text-center lg:text-left"
               >
-                <p className="font-heading text-xl font-semibold tracking-tight text-zinc-950">
+                <p className="text-xl font-bold text-zinc-950">
                   {p.value}
                 </p>
                 <p className="mt-2 text-sm font-semibold text-zinc-900">{p.label}</p>
@@ -148,7 +142,7 @@ export default function TrustAndSocialProof() {
                 <b.icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
               </div>
               <div>
-                <p className="font-heading text-sm font-semibold text-zinc-900">{b.title}</p>
+                <p className="text-sm font-semibold text-zinc-900">{b.title}</p>
                 <p className="mt-1 text-sm leading-relaxed text-zinc-600">{b.text}</p>
               </div>
             </motion.div>
@@ -171,7 +165,7 @@ export default function TrustAndSocialProof() {
               </blockquote>
               <div className="flex items-center gap-4 border-t border-zinc-100 pt-5">
                 <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-white ring-offset-2 ring-offset-white">
-                  <Image
+                  <StockPhoto
                     src={t.avatar}
                     alt={t.avatarAlt}
                     fill

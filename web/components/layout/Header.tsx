@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const HERO_CTA_ID = 'hero-primary-cta';
+const HERO_CTA_ID = 'hero-browse-cta';
 
 export default function Header() {
   const router = useRouter();
@@ -13,7 +13,8 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [heroCtaInView, setHeroCtaInView] = useState(true);
-  const transparentNav = isHome && !scrolled && !mobileMenuOpen;
+  /** Home hero is a light marketplace layout — keep nav readable with solid bar */
+  const transparentNav = false;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -48,7 +49,7 @@ export default function Header() {
     return () => observer.disconnect();
   }, [isHome, router.asPath]);
 
-  const showNavStartSourcing = !isHome || !heroCtaInView;
+  const showNavBrowseCta = !isHome || !heroCtaInView;
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -62,8 +63,8 @@ export default function Header() {
   }, [mobileMenuOpen]);
 
   const navLinks = [
-    { name: 'Home', href: '/' },
-    { name: 'Become a Vendor', href: '/merchant-onboarding' },
+    { name: 'Browse catalogue', href: '/buyer/products' },
+    { name: 'Sell wholesale', href: '/merchant-onboarding' },
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
   ];
@@ -105,7 +106,7 @@ export default function Header() {
                 priority
               />
             </div>
-            <span className={`font-inter text-xl sm:text-2xl font-bold transition-colors ${brandTextClass}`}>
+            <span className={`text-xl font-bold tracking-tight transition-colors sm:text-2xl ${brandTextClass}`}>
               Carryofy
             </span>
           </Link>
@@ -124,24 +125,24 @@ export default function Header() {
             <Link href="/auth/login" className={secondaryLinkClass}>
               Sign in
             </Link>
-            {showNavStartSourcing && (
-              <Link href="/auth/signup" className={primaryCtaClass}>
-                Get started
+            {showNavBrowseCta && (
+              <Link href="/buyer/products" className={primaryCtaClass}>
+                Browse catalogue
               </Link>
             )}
           </div>
 
           <div className="flex items-center gap-2 lg:hidden">
-            {showNavStartSourcing && (
+            {showNavBrowseCta && (
               <Link
-                href="/auth/signup"
+                href="/buyer/products"
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                   transparentNav
                     ? 'bg-white text-zinc-950 hover:bg-zinc-100'
                     : 'bg-[#FF6B00] text-black hover:bg-[#E65100]'
                 }`}
               >
-                Get started
+                Browse
               </Link>
             )}
             <button
@@ -197,11 +198,11 @@ export default function Header() {
                       Sign in
                     </Link>
                     <Link
-                      href="/auth/signup"
+                      href="/buyer/products"
                       className="block w-full py-3 text-center bg-[#FF6B00] text-black rounded-xl font-semibold touch-target btn-mobile"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Get started
+                      Browse catalogue
                     </Link>
                   </div>
                 </div>

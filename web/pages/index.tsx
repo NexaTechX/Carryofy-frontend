@@ -1,6 +1,8 @@
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
+import MarketplaceCategoriesSection from '../components/landing/MarketplaceCategoriesSection';
+import FeaturedProductsSection from '../components/landing/FeaturedProductsSection';
 import HowItWorks from '../components/landing/HowItWorks';
 import TrustAndSocialProof from '../components/landing/TrustAndSocialProof';
 import ValuePropositionsSection from '../components/landing/ValuePropositionsSection';
@@ -27,8 +29,8 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="Carryofy | Trusted B2B Trade in Lagos — Verified Suppliers & Retailers"
-        description="Connect with verified suppliers, streamline your procurement, and grow with confidence — authentic wholesale supply, transparent pricing, and logistics built for Lagos."
+        title="Carryofy | Lagos B2B Wholesale Marketplace — Browse & Order Stock"
+        description="Browse verified wholesale suppliers across Lagos. Compare unit prices, shop by category, and reorder stock with coordinated delivery — built for retailers, not software demos."
         keywords={fullKeywords}
         canonical="https://carryofy.com"
         ogType="website"
@@ -65,10 +67,12 @@ export default function Home() {
         ]}
       />
 
-      <div className="flex min-h-screen flex-col bg-stone-50 font-inter text-zinc-900 antialiased">
+      <div className="landing-page flex min-h-screen flex-col bg-stone-50 text-zinc-900 antialiased">
         <Header />
         <main className="grow">
           <HeroSection />
+          <MarketplaceCategoriesSection />
+          <FeaturedProductsSection />
           <ValuePropositionsSection />
           <HowItWorks />
           <TrustAndSocialProof />

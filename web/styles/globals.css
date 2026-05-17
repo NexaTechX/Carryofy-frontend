@@ -31,9 +31,10 @@
   --color-gray-800: #1F2937;
   --color-gray-900: #111827;
 
-  --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-heading: 'Manrope', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-inter: var(--font-sans);
   --font-mono: 'DM Mono', ui-monospace, 'Cascadia Mono', 'Consolas', monospace;
 
   /* Responsive breakpoints reference */
@@ -76,10 +77,43 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: var(--font-inter), sans-serif;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Marketing / landing — restrained trade-catalog typography (no mono labels) */
+  .landing-page {
+    font-family: var(--font-sans);
+  }
+
+  .landing-page .landing-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--color-primary);
+  }
+
+  .landing-page .landing-eyebrow.text-zinc-600 {
+    color: #52525b;
+  }
+
+  .landing-page .landing-title {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #18181b;
+  }
+
+  .landing-page .landing-lead {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    line-height: 1.6;
+    color: #52525b;
   }
 }
 

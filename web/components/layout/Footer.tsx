@@ -44,7 +44,7 @@ export default function Footer() {
                 height={40}
                 className="w-10 h-10 object-contain"
               />
-              <span className="font-inter text-xl font-bold">Carryofy</span>
+              <span className="text-xl font-bold tracking-tight">Carryofy</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
               AI-native B2B commerce for Lagos — verified supply, orchestrated logistics, built for
@@ -68,7 +68,7 @@ export default function Footer() {
 
           {/* Company */}
           <div>
-            <h3 className="font-inter font-bold text-base mb-4">Company</h3>
+            <h3 className="mb-4 text-base font-bold">Company</h3>
             <ul className="space-y-3">
               {companyLinks.map((item) => (
                 <li key={item.name}>
@@ -85,7 +85,7 @@ export default function Footer() {
 
           {/* Resources */}
           <div>
-            <h3 className="font-inter font-bold text-base mb-4">Resources</h3>
+            <h3 className="mb-4 text-base font-bold">Resources</h3>
             <ul className="space-y-3">
               {resourcesLinks.map((item) => (
                 <li key={item.name}>
@@ -102,7 +102,7 @@ export default function Footer() {
 
           {/* For Sellers */}
           <div>
-            <h3 className="font-inter font-bold text-base mb-4">For Sellers</h3>
+            <h3 className="mb-4 text-base font-bold">For Sellers</h3>
             <ul className="space-y-3">
               {sellerLinks.map((item) => (
                 <li key={item.name}>
@@ -119,7 +119,7 @@ export default function Footer() {
 
           {/* Contact Us */}
           <div className="col-span-2 md:col-span-1">
-            <h3 className="font-inter font-bold text-base mb-4">Contact Us</h3>
+            <h3 className="mb-4 text-base font-bold">Contact Us</h3>
             <ul className="space-y-3">
               {contactLinks.map((item) => (
                 <li key={item.name}>

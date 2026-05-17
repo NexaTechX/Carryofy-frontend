@@ -49,6 +49,54 @@ export const getApiUrl = (endpoint: string = ''): string => {
   return endpoint ? `${apiUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}` : apiUrl;
 };
 
+export function isApiConnectionError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const e = error as { code?: string; message?: string; name?: string };
+  return (
+    e.code === 'ERR_NETWORK' ||
+    e.code === 'ECONNREFUSED' ||
+    e.message === 'Network Error' ||
+    e.name === 'AbortError' ||
+    (typeof e.message === 'string' &&
+      (e.message.includes('fetch failed') || e.message.includes('Network Error')))
+  );
+}
+
+export type ApiConnectionErrorContext = 'auth' | 'load' | 'save' | 'general';
+
+const API_CONNECTION_USER_MESSAGES: Record<ApiConnectionErrorContext, string> = {
+  auth: "Unable to sign in. We couldn't reach the server—please check your connection and try again.",
+  load: "We couldn't load this content. Please check your connection and try again.",
+  save: "We couldn't save your changes. Please check your connection and try again.",
+  general: "Something went wrong. We couldn't reach the server—please try again.",
+};
+
+/** User-facing copy when the app cannot reach the Carryofy API. */
+export function getApiConnectionErrorMessage(
+  context: ApiConnectionErrorContext = 'general',
+): string {
+  return API_CONNECTION_USER_MESSAGES[context];
+}
+
+/** Developer diagnostics — never show this string in the UI. */
+export function logApiConnectionError(
+  error: unknown,
+  context?: { action?: string; url?: string },
+): void {
+  console.error('API connection failed', {
+    action: context?.action,
+    url: context?.url,
+    apiBase: getApiBaseUrl(),
+    error,
+    ...(process.env.NODE_ENV === 'development'
+      ? {
+          devHint:
+            'Ensure the API is running (default http://localhost:3000) or set NEXT_PUBLIC_API_BASE in .env.local',
+        }
+      : {}),
+  });
+}
+
 /**
  * Format a date string or Date for display (date only).
  * Uses en-NG locale by default; pass opts to customize.

@@ -30,6 +30,7 @@ export interface ShopProductCardProduct {
   priceTiers?: { minQuantity: number; maxQuantity: number; priceKobo: number }[];
   tags?: string[];
   fulfilledByCarryofy?: boolean;
+  match_reason?: string;
 }
 
 interface ShopProductCardProps {
@@ -203,6 +204,14 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
               <span className="inline-flex rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-[#ffcc99]/80 max-lg:px-2.5 max-lg:py-1 max-lg:text-[11px]">
                 {product.sellingMode === 'B2B_ONLY' ? 'Wholesale' : 'Retail & wholesale'}
                 {hasPriceTiers ? ' · Tiered pricing' : ''}
+              </span>
+            </div>
+          )}
+
+          {product.match_reason && (
+            <div className="mb-2 max-lg:mb-2.5 lg:mb-2">
+              <span className="match-chip inline-flex max-w-full rounded-md border border-violet-500/35 bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-300 line-clamp-2 max-lg:text-[11px]">
+                {product.match_reason}
               </span>
             </div>
           )}

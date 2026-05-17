@@ -4,7 +4,10 @@
 
 import * as Sentry from "@sentry/nextjs";
 import posthog from "posthog-js";
-import { shouldDropFirebaseIndexedDbEvent } from "./lib/sentryFirebaseIdbFilter";
+import {
+  shouldDropAxiosNetworkEvent,
+  shouldDropFirebaseIndexedDbEvent,
+} from "./lib/sentryFirebaseIdbFilter";
 
 Sentry.init({
   dsn: "https://6a03d8c49c07e03faab1d05020b0487f@o4510481037131776.ingest.us.sentry.io/4510682689503232",
@@ -36,10 +39,15 @@ Sentry.init({
     /Connection is closing/i,
     /^AbortError:\s*AbortError$/i,
     /UnknownError:\s*Connection is closing/i,
+    'Network Error',
+    'ERR_NETWORK',
   ],
 
   beforeSend(event, hint) {
     if (shouldDropFirebaseIndexedDbEvent(event, hint)) {
+      return null;
+    }
+    if (shouldDropAxiosNetworkEvent(event, hint)) {
       return null;
     }
     return event;

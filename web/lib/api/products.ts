@@ -86,24 +86,71 @@ export async function createProductReview(
     }
 }
 
+/** Unwrap Nest transform interceptor + ProductListResponseDto shapes */
+export function unwrapProductListPayload(payload: unknown): Record<string, unknown>[] {
+    if (!payload || typeof payload !== 'object') return [];
+    const root = payload as Record<string, unknown>;
+    const nested = root.data;
+
+    if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+        const bag = nested as Record<string, unknown>;
+        if (Array.isArray(bag.products)) {
+            return bag.products as Record<string, unknown>[];
+        }
+    }
+    if (Array.isArray(root.products)) {
+        return root.products as Record<string, unknown>[];
+    }
+    if (Array.isArray(nested)) {
+        return nested as Record<string, unknown>[];
+    }
+    if (Array.isArray(root.data)) {
+        return root.data as Record<string, unknown>[];
+    }
+    return [];
+}
+
+function normalizeCatalogProduct(raw: Record<string, unknown>): Product {
+    const title = (raw.title as string) || (raw.name as string) || 'Product';
+    const qty = (raw.quantity as number) ?? (raw.stockQuantity as number) ?? 0;
+    const base = raw as unknown as Product;
+    return {
+        ...base,
+        id: String(raw.id),
+        name: title,
+        price: Number(raw.price) || 0,
+        stockQuantity: qty,
+        images: Array.isArray(raw.images) ? (raw.images as string[]) : base.images ?? [],
+        category: (raw.category as string) || base.category || '',
+        status: (raw.status as Product['status']) || base.status,
+    };
+}
+
 /**
- * Get featured products for landing page
- * Fetches approved products with limit
+ * Featured / landing catalogue — all selling modes (B2C, B2B, both), public GET.
  */
 export async function getFeaturedProducts(limit: number = 8): Promise<Product[]> {
     try {
-        const response = await getProducts({
-            status: 'ACTIVE' as any, // ProductStatus.ACTIVE (backend uses ACTIVE, not APPROVED)
-            limit,
-            page: 1,
+        const params = new URLSearchParams({
+            page: '1',
+            limit: String(limit),
+            sortBy: 'newest',
+            inStockOnly: 'false',
         });
 
-        // API may return { data: [] } or { products: [] }
-        const products = response.data ?? (response as any).products ?? [];
-        return Array.isArray(products) ? products : [];
-    } catch (error: any) {
+        const response = await apiClient.get(`/products?${params.toString()}`);
+        const rows = unwrapProductListPayload(response.data);
+
+        if (rows.length > 0) {
+            return rows.map((row) => normalizeCatalogProduct(row));
+        }
+
+        // Fallback: legacy getProducts path
+        const legacy = await getProducts({ limit, page: 1 });
+        const legacyRows = unwrapProductListPayload(legacy);
+        return legacyRows.map((row) => normalizeCatalogProduct(row));
+    } catch (error: unknown) {
         console.error('Error fetching featured products:', error);
-        // Return empty array on error for graceful degradation
         return [];
     }
 }

@@ -1,6 +1,7 @@
 import { Star, Quote } from 'lucide-react';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
+import StockPhoto from '../common/StockPhoto';
+import { unsplashPhoto } from '../../lib/unsplash';
 
 export default function Testimonials() {
   const testimonials = [
@@ -10,7 +11,7 @@ export default function Testimonials() {
       location: 'Ikoyi, Lagos',
       tag: 'Buyer',
       quote: 'Ordered a smartphone from a seller in Victoria Island. The delivery was super fast - got it in just 3 hours! No hassle, just smooth shopping. Carryofy is a game-changer.',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&q=80',
+      avatar: unsplashPhoto('photo-1494790108377-be9c29b29330', { w: 150, h: 150 }),
     },
     {
       name: 'Chukwudi Eze',
@@ -18,7 +19,7 @@ export default function Testimonials() {
       location: 'Surulere, Lagos',
       tag: 'Buyer',
       quote: 'Bought some designer sneakers from a verified seller. The real-time tracking showed exactly when my order would arrive. Delivered same day as promised. This is how online shopping should be!',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&q=80',
+      avatar: unsplashPhoto('photo-1507003211169-0a1dd7228f2d', { w: 150, h: 150 }),
     },
     {
       name: 'Ngozi Adebayo',
@@ -26,7 +27,7 @@ export default function Testimonials() {
       location: 'Lekki, Lagos',
       tag: 'Buyer',
       quote: 'As someone who shops online frequently, I appreciate the secure payment options and buyer protection. Ordered home decor items and received them within 4 hours. Carryofy is now my go-to for online shopping in Lagos.',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&q=80',
+      avatar: unsplashPhoto('photo-1438761681033-6461ffad8d80', { w: 150, h: 150 }),
     },
     {
       name: 'Emeka Nwosu',
@@ -34,7 +35,7 @@ export default function Testimonials() {
       location: 'Victoria Island, Lagos',
       tag: 'Seller',
       quote: 'Before Carryofy I was juggling couriers, packing orders myself, and chasing payments. Now I ship inventory to their warehouse and focus on growing my business. Same-day delivery is a game-changer for my customers.',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&q=80',
+      avatar: unsplashPhoto('photo-1472099645785-5658abf4ff4e', { w: 150, h: 150 }),
     },
   ];
 
@@ -81,7 +82,7 @@ export default function Testimonials() {
               </blockquote>
               <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
                 <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-200 shrink-0">
-                  <Image
+                  <StockPhoto
                     src={testimonial.avatar}
                     alt={testimonial.name}
                     fill

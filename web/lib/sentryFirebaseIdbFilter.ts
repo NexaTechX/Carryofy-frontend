@@ -67,3 +67,30 @@ export function shouldDropFirebaseIndexedDbEvent(
   }
   return false;
 }
+
+function isAxiosNetworkNoise(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const e = error as { code?: string; message?: string; name?: string; response?: unknown };
+  return (
+    e.name === 'AxiosError' &&
+    (e.code === 'ERR_NETWORK' || e.message === 'Network Error' || e.response === undefined)
+  );
+}
+
+/** Expected when API is down or blocked by CSP/CORS — not an app bug. */
+export function shouldDropAxiosNetworkEvent(
+  event: SentryEventLike,
+  hint: SentryBeforeSendHint,
+): boolean {
+  if (isAxiosNetworkNoise(hint.originalException)) {
+    return true;
+  }
+  const values = event.exception?.values;
+  if (values?.some((ex) => ex.type === 'AxiosError' && ex.value === 'Network Error')) {
+    return true;
+  }
+  if (event.message === 'Network Error') {
+    return true;
+  }
+  return false;
+}

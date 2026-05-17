@@ -1,29 +1,16 @@
-import Image from 'next/image';
-import { useRouter } from 'next/router';
-import { useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { ArrowRight, Store, Truck } from 'lucide-react';
+import StockPhoto from '../common/StockPhoto';
+import { unsplashPhoto } from '../../lib/unsplash';
 
-const ctaBg =
-  'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=2400&auto=format&fit=crop';
+const ctaBg = unsplashPhoto('photo-1604719312566-8912e9227c6a', { w: 1920 });
 
 export default function CallToAction() {
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = email.trim();
-    if (trimmed.includes('@')) {
-      void router.push(`/auth/signup?email=${encodeURIComponent(trimmed)}`);
-      return;
-    }
-    void router.push('/auth/signup');
-  };
-
   return (
     <section className="relative overflow-hidden py-16 sm:py-24 lg:py-28">
       <div className="absolute inset-0">
-        <Image
+        <StockPhoto
           src={ctaBg}
           alt=""
           fill
@@ -31,8 +18,7 @@ export default function CallToAction() {
           sizes="100vw"
           priority={false}
         />
-        <div className="absolute inset-0 bg-zinc-950/82" />
-        <div className="landing-vignette absolute inset-0 opacity-60" aria-hidden />
+        <div className="absolute inset-0 bg-zinc-950/88" aria-hidden />
       </div>
 
       <div className="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
@@ -40,18 +26,18 @@ export default function CallToAction() {
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="font-mono text-[11px] font-medium uppercase tracking-[0.28em] text-zinc-400"
+          className="text-sm font-semibold text-zinc-400"
         >
-          Growing community of Lagos retailers and vendors
+          Lagos wholesale · Open catalogue
         </motion.p>
         <motion.h2
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.04 }}
-          className="mt-4 font-heading text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-[2.65rem]"
+          className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-[2.65rem]"
         >
-          Your next bulk order shouldn&apos;t start in a market.
+          Your next restock starts in the catalogue — not in traffic.
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 12 }}
@@ -60,45 +46,60 @@ export default function CallToAction() {
           transition={{ delay: 0.08 }}
           className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-zinc-400"
         >
-          Join Lagos retailers already sourcing smarter on Carryofy. Verified vendors. Coordinated
-          delivery. No middlemen.
+          Browse verified vendors, compare wholesale prices, and place orders with delivery coordinated
+          across Yaba, Surulere, Lekki, and more.
         </motion.p>
-        <motion.form
+
+        <motion.div
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.12 }}
-          onSubmit={handleSubmit}
-          className="mx-auto mt-10 flex max-w-2xl flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center"
+          className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center"
         >
-          <label htmlFor="cta-email" className="sr-only">
-            Your email address
-          </label>
-          <input
-            id="cta-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            placeholder="Your email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-white bg-white px-4 py-3.5 text-sm text-zinc-950 shadow-sm placeholder:text-zinc-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 sm:min-w-0 sm:flex-1"
-          />
-          <button
-            type="submit"
-            className="group inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition hover:bg-primary-dark sm:shrink-0 sm:px-9 sm:py-4 sm:text-[15px]"
+          <Link
+            href="/buyer/products"
+            className="group inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-primary/25 transition hover:bg-primary-dark sm:text-[15px]"
           >
-            Get started →
-          </button>
-        </motion.form>
-        <motion.p
+            Browse wholesale catalogue
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+          <Link
+            href="/auth/signup"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/15 sm:text-[15px]"
+          >
+            Create retailer account
+          </Link>
+        </motion.div>
+
+        <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.14 }}
-          className="mt-3 text-xs text-zinc-500"
+          className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-400"
         >
-          No commitment. We&apos;ll reach out within 24hrs.
+          <span className="inline-flex items-center gap-2">
+            <Store className="h-4 w-4 text-primary-light" aria-hidden />
+            Verified vendor listings
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <Truck className="h-4 w-4 text-primary-light" aria-hidden />
+            Coordinated Lagos delivery
+          </span>
+        </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.16 }}
+          className="mt-8 text-sm text-zinc-500"
+        >
+          Selling wholesale?{' '}
+          <Link href="/merchant-onboarding" className="font-medium text-primary-light hover:text-white">
+            List on Carryofy →
+          </Link>
         </motion.p>
       </div>
     </section>

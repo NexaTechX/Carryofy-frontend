@@ -175,6 +175,8 @@ export default function BuyerCategoryStrip({
                     src={coverUrl}
                     alt=""
                     sizes={`${CARD_W}px`}
+                    categorySlug={cat.slug}
+                    categoryName={cat.name}
                     className="object-cover transition duration-300 group-hover:scale-[1.05]"
                   />
                 </div>

@@ -5,9 +5,10 @@ import Link from 'next/link';
 import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
-import { FileText, ArrowLeft, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { FileText, ArrowLeft, CheckCircle, XCircle, Loader2, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatDateTime, formatNgnFromKobo } from '../../../lib/api/utils';
+import { suggestQuoteResponse } from '../../../lib/api/ai-quote';
 
 interface QuoteItem {
   id: string;
@@ -41,6 +42,7 @@ export default function SellerQuoteDetailPage() {
   const [sellerResponse, setSellerResponse] = useState('');
   const [validUntil, setValidUntil] = useState('');
   const [itemPrices, setItemPrices] = useState<Record<string, { sellerQuotedPriceKobo?: number; sellerNotes?: string }>>({});
+  const [suggesting, setSuggesting] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -100,6 +102,35 @@ export default function SellerQuoteDetailPage() {
       toast.error(e?.response?.data?.message || 'Failed to approve quote');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSuggestResponse = async () => {
+    if (!quote) return;
+    setSuggesting(true);
+    try {
+      const suggestion = await suggestQuoteResponse(quote.id);
+      setSellerResponse(suggestion.sellerResponse);
+      if (suggestion.suggestedValidUntil) {
+        setValidUntil(suggestion.suggestedValidUntil.slice(0, 10));
+      }
+      const next: Record<string, { sellerQuotedPriceKobo?: number; sellerNotes?: string }> = {
+        ...itemPrices,
+      };
+      for (const item of suggestion.items) {
+        next[item.id] = {
+          ...next[item.id],
+          sellerQuotedPriceKobo: item.sellerQuotedPriceKobo ?? next[item.id]?.sellerQuotedPriceKobo,
+          sellerNotes: item.sellerNotes ?? next[item.id]?.sellerNotes,
+        };
+      }
+      setItemPrices(next);
+      toast.success('Suggestions applied — review before sending');
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'Could not generate suggestions');
+    } finally {
+      setSuggesting(false);
     }
   };
 
@@ -237,6 +268,15 @@ export default function SellerQuoteDetailPage() {
 
             {quote.status === 'PENDING' && (
               <>
+                <button
+                  type="button"
+                  onClick={handleSuggestResponse}
+                  disabled={suggesting}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#ff6600]/40 text-[#ff6600] hover:bg-[#ff6600]/10 text-sm font-medium disabled:opacity-50"
+                >
+                  {suggesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  Suggest response (review before sending)
+                </button>
                 <div>
                   <label className="block text-[#ffcc99] text-sm font-medium mb-2">Your response (optional)</label>
                   <textarea

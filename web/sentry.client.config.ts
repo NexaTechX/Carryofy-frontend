@@ -3,7 +3,10 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
-import { shouldDropFirebaseIndexedDbEvent } from "./lib/sentryFirebaseIdbFilter";
+import {
+  shouldDropAxiosNetworkEvent,
+  shouldDropFirebaseIndexedDbEvent,
+} from "./lib/sentryFirebaseIdbFilter";
 
 // Only initialize Sentry if DSN is provided
 if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
@@ -51,8 +54,11 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
       // Network errors
       "Network request failed",
       "NetworkError",
+      "Network Error",
+      "ERR_NETWORK",
       "Failed to fetch",
       "Load failed",
+      /^AxiosError: Network Error$/,
       // Third-party scripts
       "Non-Error promise rejection captured",
     ],
@@ -80,6 +86,9 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
 
     beforeSend(event, hint) {
       if (shouldDropFirebaseIndexedDbEvent(event, hint)) {
+        return null;
+      }
+      if (shouldDropAxiosNetworkEvent(event, hint)) {
         return null;
       }
       return event;

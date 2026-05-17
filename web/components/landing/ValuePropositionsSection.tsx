@@ -1,12 +1,11 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, Check } from 'lucide-react';
+import StockPhoto from '../common/StockPhoto';
+import { unsplashPhoto } from '../../lib/unsplash';
 
-const retailImg =
-  'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1600&auto=format&fit=crop';
-const vendorImg =
-  'https://images.unsplash.com/photo-1553413077-190dd305871c?q=80&w=1600&auto=format&fit=crop';
+const retailImg = unsplashPhoto('photo-1441986300917-64674bd600d8', { w: 1200 });
+const vendorImg = unsplashPhoto('photo-1553413077-190dd305871c', { w: 1200 });
 
 const retailerFeatures = [
   {
@@ -56,16 +55,15 @@ export default function ValuePropositionsSection() {
           viewport={{ once: true }}
           className="mx-auto mb-14 max-w-2xl text-center sm:mb-20"
         >
-          <p className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
-            Who it serves
-          </p>
-          <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl lg:text-[2.75rem]">
-            One platform. Two sides of the <span className="text-primary">aisle</span>.
+          <p className="landing-eyebrow">Two sides of the market</p>
+          <h2 className="landing-title mt-3 text-3xl sm:text-4xl lg:text-[2.75rem]">
+            Retailers buy. Suppliers sell.{' '}
+            <span className="text-primary">One wholesale floor.</span>
           </h2>
           <div className="mx-auto mt-5 h-1 w-20 rounded-full bg-primary" aria-hidden />
-          <p className="mt-4 text-base leading-relaxed text-zinc-600 sm:text-lg">
-            Procurement for retailers. Distribution rails for vendors — with fulfilment that matches
-            how Lagos actually runs.
+          <p className="landing-lead mt-3 text-base sm:text-lg">
+            Carryofy is where Lagos shops source stock and where verified vendors reach serious
+            buyers — with pricing, MOQs, and delivery in one place.
           </p>
         </motion.div>
 
@@ -78,7 +76,7 @@ export default function ValuePropositionsSection() {
           >
             <div className="absolute inset-x-0 top-0 z-10 h-1 bg-primary" aria-hidden />
             <div className="relative aspect-16/11 sm:aspect-16/10">
-              <Image
+              <StockPhoto
                 src={retailImg}
                 alt="Modern retail floor with shelving and inventory"
                 fill
@@ -87,10 +85,8 @@ export default function ValuePropositionsSection() {
               />
               <div className="absolute inset-0 bg-linear-to-t from-zinc-950/85 via-zinc-950/25 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-                <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.25em] text-primary-light">
-                  For retailers
-                </p>
-                <h3 className="mt-2 font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                <p className="text-sm font-semibold text-primary-light">For retailers</p>
+                <h3 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
                   Stock Smart, Sell More.
                 </h3>
               </div>
@@ -110,11 +106,11 @@ export default function ValuePropositionsSection() {
                 ))}
               </ul>
               <Link
-                href="/auth/signup"
+                href="/buyer/products"
                 className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-zinc-900 transition hover:text-primary"
               >
                 <span className="border-b border-zinc-900/30 transition group-hover/link:border-primary/50">
-                  Explore buyer experience
+                  Browse wholesale as a retailer
                 </span>
                 <ArrowUpRight className="h-4 w-4 shrink-0 text-primary" strokeWidth={2} />
               </Link>
@@ -133,7 +129,7 @@ export default function ValuePropositionsSection() {
           >
             <div className="absolute inset-x-0 top-0 z-10 h-1 bg-primary" aria-hidden />
             <div className="relative aspect-16/11 sm:aspect-16/10">
-              <Image
+              <StockPhoto
                 src={vendorImg}
                 alt="Warehouse pallets and logistics"
                 fill
@@ -142,10 +138,8 @@ export default function ValuePropositionsSection() {
               />
               <div className="absolute inset-0 bg-linear-to-t from-zinc-950/85 via-zinc-950/25 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-                <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.25em] text-primary-light">
-                  For suppliers
-                </p>
-                <h3 className="mt-2 font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                <p className="text-sm font-semibold text-primary-light">For suppliers</p>
+                <h3 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
                   Expand Your Reach, Simplify Your Sales.
                 </h3>
               </div>

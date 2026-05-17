@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
+import { showErrorToast } from '../../../lib/ui/toast';
 import SellerLayout from '../SellerLayout';
 import { useAuth } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
@@ -29,6 +30,7 @@ import {
   ShoppingBag,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 
 interface FormData {
@@ -50,6 +52,38 @@ interface WholesalePriceTierForm {
   minQuantity: string;
   maxQuantity: string;
   unitPrice: string;
+}
+
+type WholesalePriceTierPayload = {
+  minQuantity: number;
+  maxQuantity: number;
+  priceKobo: number;
+};
+
+/** API requires B2B products to have at least one tier (or requestQuoteOnly). */
+const WHOLESALE_TIER_OPEN_END_MAX = 999_999;
+
+function buildWholesalePriceTiersPayload(
+  formTiers: WholesalePriceTierForm[],
+  unitPriceNaira: number,
+  moq: number,
+): WholesalePriceTierPayload[] {
+  const fromForm = formTiers
+    .filter((t) => t.minQuantity && t.maxQuantity && t.unitPrice)
+    .map((t) => ({
+      minQuantity: parseInt(t.minQuantity, 10),
+      maxQuantity: parseInt(t.maxQuantity, 10),
+      priceKobo: Math.round(parseFloat(t.unitPrice) * 100),
+    }));
+  if (fromForm.length > 0) return fromForm;
+  if (!Number.isFinite(unitPriceNaira) || unitPriceNaira <= 0 || moq < 1) return [];
+  return [
+    {
+      minQuantity: moq,
+      maxQuantity: WHOLESALE_TIER_OPEN_END_MAX,
+      priceKobo: Math.round(unitPriceNaira * 100),
+    },
+  ];
 }
 
 const DRAFT_STORAGE_KEY = 'carryofy-seller-add-product-draft-v1';
@@ -166,6 +200,9 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
   const [priceTiers, setPriceTiers] = useState<WholesalePriceTierForm[]>([]);
   const [draftSavedVisible, setDraftSavedVisible] = useState(false);
   const [draftRestoreOffer, setDraftRestoreOffer] = useState<ProductDraftV1 | null>(null);
+  const [isGeneratingVision, setIsGeneratingVision] = useState(false);
+  const [aiGenerated, setAiGenerated] = useState(false);
+  const [aiPriceRangeHint, setAiPriceRangeHint] = useState<string | null>(null);
 
   const draftSnapshotRef = useRef({
     mode,
@@ -629,6 +666,41 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
     e.stopPropagation();
   };
 
+  const handleGenerateDescriptionFromImage = async () => {
+    const imageUrl = productImages[0];
+    if (!imageUrl) {
+      showErrorToast('Upload a product image first');
+      return;
+    }
+
+    setIsGeneratingVision(true);
+    try {
+      const response = await apiClient.post(
+        '/products/ai/generate-description',
+        { imageUrl },
+        { timeout: 90000 },
+      );
+      const data = response.data?.data ?? response.data;
+
+      setFormData((prev) => ({
+        ...prev,
+        title: data.title ?? prev.title,
+        description: data.description ?? prev.description,
+        categoryIds: data.categoryId
+          ? [data.categoryId, ...prev.categoryIds.filter((id) => id !== data.categoryId)]
+          : prev.categoryIds,
+      }));
+      if (data.priceRange) {
+        setAiPriceRangeHint(data.priceRange);
+      }
+      setAiGenerated(true);
+      toast.success('Listing generated — review before publishing');
+    } catch {
+      showErrorToast('Could not generate description. Please type it manually.');
+    } finally {
+      setIsGeneratingVision(false);
+    }
+  };
 
   type AIGenerateField = 'description' | 'keyFeatures' | 'material' | 'careInfo';
 
@@ -767,24 +839,30 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
         productData.detailSpecifications = specRows;
       }
 
-      if (mode === 'wholesale' && formData.moq) {
-        productData.moq = parseInt(formData.moq, 10);
+      const moqNum =
+        mode === 'wholesale' && formData.moq ? parseInt(formData.moq, 10) : 0;
+      if (mode === 'wholesale' && moqNum >= 1) {
+        productData.moq = moqNum;
       }
 
       const tiersPayload =
-        mode === 'wholesale' && priceTiers.length > 0
-          ? priceTiers
-              .filter((t) => t.minQuantity && t.maxQuantity && t.unitPrice)
-              .map((t) => ({
-                minQuantity: parseInt(t.minQuantity, 10),
-                maxQuantity: parseInt(t.maxQuantity, 10),
-                priceKobo: Math.round(parseFloat(t.unitPrice) * 100),
-              }))
+        mode === 'wholesale'
+          ? buildWholesalePriceTiersPayload(
+              priceTiers,
+              parseFloat(formData.price),
+              moqNum,
+            )
           : [];
 
-      if (variant === 'edit') {
-        productData.priceTiers = mode === 'wholesale' && tiersPayload.length > 0 ? tiersPayload : [];
-      } else if (mode === 'wholesale' && tiersPayload.length > 0) {
+      if (mode === 'wholesale' && tiersPayload.length === 0) {
+        toast.error(
+          'Wholesale listings need a valid unit price and MOQ, or at least one bulk price tier.',
+        );
+        setLoading(false);
+        return;
+      }
+
+      if (mode === 'wholesale') {
         productData.priceTiers = tiersPayload;
       }
 
@@ -1346,6 +1424,34 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                         At least one product image is required
                       </p>
                     )}
+                    {productImages.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        <button
+                          type="button"
+                          onClick={handleGenerateDescriptionFromImage}
+                          disabled={isGeneratingVision || uploadingImages}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#ff6600]/20 to-[#F97316]/10 border border-[#ff6600]/40 text-[#ffcc99] font-medium text-sm hover:border-[#ff6600] hover:bg-[#ff6600]/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isGeneratingVision ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin text-[#ff6600]" />
+                              Analysing your product...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4 text-[#ff6600]" />
+                              ✦ Generate Description with AI
+                            </>
+                          )}
+                        </button>
+                        {aiGenerated && (
+                          <p className="text-center text-xs text-[#ffcc99]/90 flex items-center justify-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-[#ff6600]" />
+                            AI generated — please review and edit before publishing
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   )}
 
@@ -1903,7 +2009,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                           <div className="mt-4 pt-4 border-t border-[#2A2A2A] space-y-3">
                             <p className="text-[#ffcc99] text-sm font-medium">Bulk pricing tiers (optional)</p>
                             <p className="text-[#ffcc99]/60 text-xs">
-                              Define unit prices by quantity range (e.g. 1–10 units at one price, 11–50 at another). Use a high max (e.g. 999999) for &quot;and above&quot;.
+                              If you skip tiers, your wholesale price applies from MOQ upward. Add tiers for volume discounts (e.g. 10–50 vs 51+ units). Use a high max (e.g. 999999) for &quot;and above&quot;.
                             </p>
                             {priceTiers.map((tier, idx) => (
                               <div key={idx} className="flex flex-wrap items-center gap-2">

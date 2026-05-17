@@ -5,7 +5,9 @@ import Link from 'next/link';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import apiClient from '../../lib/api/client';
 import { tokenManager } from '../../lib/auth';
-import { FileText, ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react';
+import { FileText, ArrowLeft, Loader2, Plus, Trash2, Sparkles } from 'lucide-react';
+import { parseOrderList } from '../../lib/api/ai-order-list';
+import toast from 'react-hot-toast';
 
 interface ProductInfo {
   id: string;
@@ -31,6 +33,8 @@ export default function QuoteRequestPage() {
   const [items, setItems] = useState<QuoteRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [parsingList, setParsingList] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -113,6 +117,37 @@ export default function QuoteRequestPage() {
     }
   };
 
+  const handleParseList = async () => {
+    if (!pasteText.trim() || !product?.seller.id) return;
+    setParsingList(true);
+    setError(null);
+    try {
+      const lines = await parseOrderList(pasteText, product.seller.id);
+      const resolved = lines.filter((l) => l.suggestedProductId);
+      if (resolved.length === 0) {
+        setError('Could not match products. Try clearer names or add rows manually.');
+        return;
+      }
+      setItems(
+        resolved.map((l) => ({
+          productId: l.suggestedProductId!,
+          requestedQuantity: l.quantity,
+          product: {
+            id: l.suggestedProductId!,
+            title: l.title ?? l.rawLabel,
+            sellerId: product.seller.id,
+          },
+        })),
+      );
+      toast.success(`Added ${resolved.length} line(s) — review before submitting`);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setError(msg || 'Failed to parse list');
+    } finally {
+      setParsingList(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const sellerIdRes = product?.seller.id;
@@ -177,6 +212,25 @@ export default function QuoteRequestPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <p className="text-[#ffcc99] text-sm">Seller: {product.seller.businessName}</p>
               <p className="text-[#ffcc99]/70 text-xs">Sellers typically respond within 1–2 business days.</p>
+              <div className="p-4 bg-[#1a1a1a] border border-[#ff6600]/20 rounded-xl space-y-2">
+                <label className="block text-[#ffcc99] text-sm font-medium">Paste your order list</label>
+                <textarea
+                  value={pasteText}
+                  onChange={(e) => setPasteText(e.target.value)}
+                  placeholder="e.g. 50 cartons Indomie, 20 gallons cooking oil"
+                  rows={4}
+                  className="w-full px-3 py-2 bg-black border border-[#ff6600]/30 rounded-lg text-white text-sm placeholder:text-[#ffcc99]/40"
+                />
+                <button
+                  type="button"
+                  onClick={handleParseList}
+                  disabled={parsingList || !pasteText.trim()}
+                  className="inline-flex items-center gap-2 text-sm text-[#ff6600] hover:text-[#ff9955] disabled:opacity-50"
+                >
+                  {parsingList ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  Parse with AI
+                </button>
+              </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-[#ffcc99] text-sm font-medium">Products</label>

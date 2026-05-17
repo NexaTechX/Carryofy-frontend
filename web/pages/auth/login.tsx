@@ -6,14 +6,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { authService, tokenManager, useAuth, getRoleRedirect } from '../../lib/auth';
-import { getApiBaseUrl } from '../../lib/api/utils';
+import {
+  getApiConnectionErrorMessage,
+  isApiConnectionError,
+  logApiConnectionError,
+} from '../../lib/api/utils';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
 import SEO from '../../components/seo/SEO';
 import { BreadcrumbSchema } from '../../components/seo/JsonLd';
 
 // Use existing asset so missing /logo.png does not break the page
 const LOGO_SRC = '/logo.png';
-const LOGO_FALLBACK = '/vercel.svg';
+const LOGO_FALLBACK = '/logo.png';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -107,22 +111,16 @@ export default function Login() {
         router.push(redirectPath);
       }
     } catch (error: any) {
-      console.error('Login error:', error);
-
       let message = 'Invalid email or password';
 
-      // Handle network errors specifically
-      if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.message === 'Network Error') {
-        const apiBase = getApiBaseUrl();
-        message =
-          `Cannot reach the API at ${apiBase}. Start the backend (Nest on port 3000 by default), or set NEXT_PUBLIC_API_BASE in .env.local and restart Next.js.`;
-        console.error('Network Error Details:', {
-          code: error.code,
-          message: error.message,
-          apiBase,
-          fullURL: `${apiBase}/auth/login`,
-        });
-      } else if (error.response?.data) {
+      if (isApiConnectionError(error)) {
+        logApiConnectionError(error, { action: 'login', url: '/auth/login' });
+        message = getApiConnectionErrorMessage('auth');
+      } else {
+        console.error('Login error:', error);
+      }
+
+      if (!isApiConnectionError(error) && error.response?.data) {
         const errorData = error.response.data;
         if (typeof errorData === 'object' && errorData.message) {
           message = Array.isArray(errorData.message)
@@ -131,7 +129,7 @@ export default function Login() {
         } else if (typeof errorData === 'string') {
           message = errorData;
         }
-      } else if (error.message) {
+      } else if (!isApiConnectionError(error) && error.message) {
         message = error.message;
       }
 

@@ -1,0 +1,68 @@
+﻿import { useState, useRef, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { Send, Sparkles, ShoppingCart, Bot, Loader2, X } from 'lucide-react';
+import Image from 'next/image';
+import { aiChatApi, ChatMessage } from '../../lib/api/ai-chat';
+import { formatNgnFromKobo } from '../../lib/api/utils';
+import apiClient from '../../lib/api/client';
+import { useCart } from '../../lib/contexts/CartContext';
+import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
+
+interface AIChatWindowProps {
+  onClose: () => void;
+}
+
+interface ChatProduct {
+  id: string;
+  title: string;
+  price: number;
+  images?: string[];
+}
+
+export default function AIChatWindow({ onClose }: AIChatWindowProps) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [addingProductId, setAddingProductId] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { refreshCart } = useCart();
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+    const text = input.trim();
+    setMessages((prev) => [...prev, { id: Date.now().toString(), sender: 'user', text, timestamp: new Date() }]);
+    setInput('');
+    setIsLoading(true);
+    try {
+      const response = await aiChatApi.sendMessage(text);
+      setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), sender: 'ai', text: response.reply, timestamp: new Date(), products: response.products }]);
+    } catch {
+      setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), sender: 'ai', text: 'Sorry, the assistant is unavailable right now. Please try again in a moment.', timestamp: new Date() }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddToCart = useCallback(async (product: ChatProduct) => {
+    setAddingProductId(product.id);
+    try {
+      await apiClient.post('/cart/items', { productId: product.id, quantity: 1 });
+      await refreshCart();
+      showSuccessToast(`Added ${product.title} to cart`);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Could not add to cart';
+      showErrorToast(msg);
+    } finally {
+      setAddingProductId(null);
+    }
+  }, [refreshCart]);
+
+  return (
+    <div className="flex flex-col h-full rounded-3xl shadow-2xl overflow-hidden bg-white/95 border border-gray-200">
+      <motion.div className="p-4 bg-primary text-white flex items-center justify-between">

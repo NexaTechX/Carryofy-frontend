@@ -14,7 +14,7 @@ export default function FeaturedProductsSection() {
     try {
       setLoading(true);
       setError(null);
-      const data = await getFeaturedProducts(5);
+      const data = await getFeaturedProducts(10);
       setProducts(data || []);
     } catch (err) {
       console.error('Failed to fetch featured products:', err);

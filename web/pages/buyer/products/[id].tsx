@@ -6,6 +6,11 @@ import { GetServerSideProps } from 'next';
 import BuyerLayout from '../../../components/buyer/BuyerLayout';
 import apiClient from '../../../lib/api/client';
 import {
+  getApiConnectionErrorMessage,
+  isApiConnectionError,
+  logApiConnectionError,
+} from '../../../lib/api/utils';
+import {
   ChevronLeft,
   ChevronRight,
   ShoppingCart,
@@ -34,6 +39,7 @@ import { showSuccessToast, showErrorToast } from '../../../lib/ui/toast';
 import ShareButton from '../../../components/products/ShareButton';
 import ProductReviewModal from '../../../components/products/ProductReviewModal';
 import RelatedProducts from '../../../components/products/RelatedProducts';
+import ProductAskAI from '../../../components/buyer/ProductAskAI';
 import { getBaseUrl, buildProductOgImageUrl, buildProductUrl } from '../../../lib/og';
 
 interface PriceTier {
@@ -348,19 +354,9 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
       console.error('Error fetching product:', err);
 
       // Handle network errors with helpful messages
-      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error' || err.code === 'ECONNREFUSED') {
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
-        const fullUrl = `${apiBase}/products/${id}`;
-
-        setError(
-          `Cannot connect to backend server.\n\n` +
-          `API URL: ${fullUrl}\n\n` +
-          `Please check:\n` +
-          `1. Backend server is running (cd apps/api && npm run start:dev)\n` +
-          `2. Backend is on port 3000\n` +
-          `3. Environment variable NEXT_PUBLIC_API_BASE is set correctly\n` +
-          `4. No firewall is blocking the connection`
-        );
+      if (isApiConnectionError(err)) {
+        logApiConnectionError(err, { action: 'load product', url: `/products/${id}` });
+        setError(getApiConnectionErrorMessage('load'));
       } else if (err.response?.status === 404) {
         setError('Product not found');
       } else if (err.response?.status === 401) {
@@ -922,6 +918,8 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                     )}
                   </div>
                 )}
+
+                {product && <ProductAskAI productId={product.id} />}
 
                 {cartMessage && (
                   <div

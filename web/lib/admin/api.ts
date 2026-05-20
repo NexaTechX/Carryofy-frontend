@@ -575,6 +575,14 @@ export async function assignDeliveryRequest(input: {
   }
 }
 
+export async function assignDeliveryToFleetRequest(payload: {
+  deliveryId: string;
+  fleetOperatorId: string;
+}): Promise<AdminDelivery> {
+  const { data } = await apiClient.post('/delivery/assign-fleet', payload);
+  return normalizeResponse<AdminDelivery>(data);
+}
+
 export async function updateDeliveryStatusRequest(
   deliveryId: string,
   status: AdminDeliveryStatus,

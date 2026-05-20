@@ -228,7 +228,15 @@ export type AdminOrderStatus =
   | 'DELIVERED'
   | 'CANCELED';
 
-export type AdminDeliveryStatus = 'PREPARING' | 'PICKED_UP' | 'IN_TRANSIT' | 'DELIVERED' | 'ISSUE';
+export type AdminDeliveryStatus =
+  | 'AWAITING_ASSIGNMENT'
+  | 'ASSIGNED'
+  | 'PICKED_UP'
+  | 'IN_TRANSIT'
+  | 'DELIVERED'
+  | 'CANCELED'
+  | 'PREPARING'
+  | 'ISSUE';
 
 export interface AdminOrderItem {
   id: string;
@@ -250,6 +258,9 @@ export interface AdminDelivery {
   id: string;
   orderId: string;
   status: AdminDeliveryStatus;
+  assignedFleetOperatorId?: string | null;
+  assignedFleetOperator?: { id: string; name: string } | null;
+  dispatchJob?: { id: string; status: string } | null;
   rider?: string | { id: string; name: string; phone?: string } | null;
   riderId?: string | null;
   eta?: string | null;

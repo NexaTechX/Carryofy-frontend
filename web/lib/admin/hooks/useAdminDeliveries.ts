@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import {
   assignDeliveryRequest,
+  assignDeliveryToFleetRequest,
   fetchActiveDeliveries,
   fetchDeliveryByOrderId,
   updateDeliveryStatusRequest,
@@ -52,6 +53,28 @@ export function useAssignDeliveryMutation() {
     onError: (error: unknown) => {
       console.error(error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to assign delivery.';
+      toast.error(errorMessage);
+    },
+  });
+}
+
+export function useAssignDeliveryToFleetMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: assignDeliveryToFleetRequest,
+    onSuccess: async (delivery) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: deliveryKeys.active }),
+        queryClient.invalidateQueries({ queryKey: deliveryKeys.order(delivery.orderId) }),
+        queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] }),
+      ]);
+      toast.success('Order assigned to fleet');
+    },
+    onError: (error: unknown) => {
+      console.error(error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to assign delivery to fleet.';
       toast.error(errorMessage);
     },
   });

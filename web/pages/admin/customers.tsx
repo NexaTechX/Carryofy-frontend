@@ -14,7 +14,10 @@ import {
   DataTableHead,
   LoadingState,
   StatusBadge,
+  buildCSV,
+  downloadBlob,
 } from '../../components/admin/ui';
+import apiClient from '../../lib/api/client';
 import RoleDistributionDonut from '../../components/admin/charts/RoleDistributionDonut';
 import {
   useAdminCustomers,
@@ -23,6 +26,8 @@ import {
   useUpdateCustomerStatus,
   useDeleteCustomer,
   type AdminCustomer,
+  type AdminCustomerDetail,
+  type CustomersResponse,
   type UserRole,
   type UserStatus,
   type LastActiveFilter,
@@ -106,6 +111,183 @@ function formatLastActive(lastLoginAt?: string): string {
   return d.toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+const CUSTOMER_EXPORT_COLUMNS = [
+  { id: 'id', label: 'Customer ID' },
+  { id: 'name', label: 'Name' },
+  { id: 'email', label: 'Email' },
+  { id: 'phone', label: 'Phone' },
+  { id: 'role', label: 'Role' },
+  { id: 'status', label: 'Status' },
+  { id: 'verified', label: 'Verified' },
+  { id: 'orderCount', label: 'Order Count' },
+  { id: 'totalSpent', label: 'Total Spent (NGN)' },
+  { id: 'lastActive', label: 'Last Active' },
+  { id: 'joined', label: 'Joined' },
+] as const;
+
+function unwrapCustomersResponse(data: unknown): CustomersResponse {
+  if (data && typeof data === 'object' && 'data' in data && 'statusCode' in data) {
+    return (data as { data: CustomersResponse }).data;
+  }
+  return data as CustomersResponse;
+}
+
+function customerToExportRow(customer: AdminCustomer): Record<string, unknown> {
+  return {
+    id: customer.id,
+    name: customer.name,
+    email: customer.email,
+    phone: customer.phone ?? '',
+    role: ROLE_LABEL[customer.role],
+    status: getEffectiveStatus(customer).label,
+    verified: customer.verified ? 'Yes' : 'No',
+    orderCount: customer.orderCount,
+    totalSpent: formatNgnFromKobo(customer.totalSpent),
+    lastActive: formatLastActive(customer.lastLoginAt),
+    joined: formatJoinDate(customer.createdAt),
+  };
+}
+
+function buildCustomerDetailCsv(detail: AdminCustomerDetail): string {
+  const lines: string[] = [];
+
+  lines.push('Profile');
+  lines.push(
+    buildCSV(
+      [
+        { id: 'field', label: 'Field' },
+        { id: 'value', label: 'Value' },
+      ],
+      [
+        { field: 'Customer ID', value: detail.id },
+        { field: 'Name', value: detail.name },
+        { field: 'Email', value: detail.email },
+        { field: 'Phone', value: detail.phone ?? '' },
+        { field: 'Role', value: ROLE_LABEL[detail.role] },
+        { field: 'Status', value: getEffectiveStatus(detail).label },
+        { field: 'Verified', value: detail.verified ? 'Yes' : 'No' },
+        { field: 'Total Spent (NGN)', value: formatNgnFromKobo(detail.totalSpent) },
+        { field: 'Order Count', value: String(detail.orderCount) },
+        { field: 'Reviews Written', value: String(detail.reviewsWritten ?? 0) },
+        { field: 'Support Tickets', value: String(detail.supportTicketsRaised ?? 0) },
+        { field: 'Joined', value: formatJoinDate(detail.createdAt) },
+        { field: 'Last Active', value: formatLastActive(detail.lastLoginAt) },
+      ]
+    )
+  );
+
+  if (detail.addresses?.length) {
+    lines.push('');
+    lines.push('Addresses');
+    lines.push(
+      buildCSV(
+        [
+          { id: 'label', label: 'Label' },
+          { id: 'line1', label: 'Line 1' },
+          { id: 'line2', label: 'Line 2' },
+          { id: 'city', label: 'City' },
+          { id: 'state', label: 'State' },
+          { id: 'postalCode', label: 'Postal Code' },
+        ],
+        detail.addresses.map((a) => ({
+          label: a.label,
+          line1: a.line1,
+          line2: a.line2 ?? '',
+          city: a.city,
+          state: a.state,
+          postalCode: a.postalCode ?? '',
+        }))
+      )
+    );
+  }
+
+  if (detail.orders?.length) {
+    lines.push('');
+    lines.push('Orders');
+    lines.push(
+      buildCSV(
+        [
+          { id: 'orderId', label: 'Order ID' },
+          { id: 'amount', label: 'Amount (NGN)' },
+          { id: 'status', label: 'Status' },
+          { id: 'createdAt', label: 'Created' },
+        ],
+        detail.orders.map((o) => ({
+          orderId: o.id,
+          amount: formatNgnFromKobo(o.amount),
+          status: o.status,
+          createdAt: new Date(o.createdAt).toLocaleString('en-NG'),
+        }))
+      )
+    );
+  }
+
+  if (detail.sellerEarnings?.length) {
+    lines.push('');
+    lines.push('Seller Earnings');
+    lines.push(
+      buildCSV(
+        [
+          { id: 'orderId', label: 'Order ID' },
+          { id: 'gross', label: 'Gross (NGN)' },
+          { id: 'net', label: 'Net (NGN)' },
+          { id: 'createdAt', label: 'Created' },
+        ],
+        detail.sellerEarnings.map((e) => ({
+          orderId: e.orderId,
+          gross: formatNgnFromKobo(e.gross),
+          net: formatNgnFromKobo(e.net),
+          createdAt: new Date(e.createdAt).toLocaleString('en-NG'),
+        }))
+      )
+    );
+  }
+
+  if (detail.riderDeliveries?.length) {
+    lines.push('');
+    lines.push('Rider Deliveries');
+    lines.push(
+      buildCSV(
+        [
+          { id: 'deliveryId', label: 'Delivery ID' },
+          { id: 'orderId', label: 'Order ID' },
+          { id: 'amount', label: 'Amount (NGN)' },
+          { id: 'status', label: 'Status' },
+          { id: 'deliveredAt', label: 'Delivered At' },
+        ],
+        detail.riderDeliveries.map((d) => ({
+          deliveryId: d.id,
+          orderId: d.orderId,
+          amount: formatNgnFromKobo(d.amount),
+          status: d.status,
+          deliveredAt: d.deliveredAt ? new Date(d.deliveredAt).toLocaleString('en-NG') : '',
+        }))
+      )
+    );
+  }
+
+  if (detail.activityLog?.length) {
+    lines.push('');
+    lines.push('Activity Log');
+    lines.push(
+      buildCSV(
+        [
+          { id: 'action', label: 'Action' },
+          { id: 'at', label: 'At' },
+          { id: 'meta', label: 'Details' },
+        ],
+        detail.activityLog.map((entry) => ({
+          action: entry.action,
+          at: formatLastActive(entry.at),
+          meta: entry.meta ?? '',
+        }))
+      )
+    );
+  }
+
+  return lines.join('\r\n');
+}
+
 export default function AdminCustomers() {
   const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | UserStatus>('ALL');
@@ -117,6 +299,7 @@ export default function AdminCustomers() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isExporting, setIsExporting] = useState(false);
 
   const queryParams = useMemo(
     () => ({
@@ -220,12 +403,61 @@ export default function AdminCustomers() {
     else setSelectedIds(new Set(customers.map((c) => c.id)));
   };
 
-  const handleBulkExport = () => {
+  const handleBulkExport = async () => {
     if (selectedIds.size === 0) {
       toast.error('Select at least one customer');
       return;
     }
-    toast('Bulk export – generate CSV when endpoint is ready.');
+
+    setIsExporting(true);
+    try {
+      let rows = customers.filter((c) => selectedIds.has(c.id));
+
+      if (rows.length < selectedIds.size) {
+        const fetchLimit = Math.min(pagination?.total ?? 5000, 5000);
+        const { data: responseData } = await apiClient.get('/users/admin/all', {
+          params: {
+            page: 1,
+            limit: fetchLimit,
+            search: search || undefined,
+            role: roleFilter !== 'ALL' ? roleFilter : undefined,
+            status: statusFilter !== 'ALL' ? statusFilter : undefined,
+          },
+        });
+        const fetched = unwrapCustomersResponse(responseData);
+        rows = (fetched.users ?? []).filter((c) => selectedIds.has(c.id));
+      }
+
+      if (rows.length === 0) {
+        toast.error('No customer data to export');
+        return;
+      }
+
+      const csv = buildCSV(
+        CUSTOMER_EXPORT_COLUMNS.map((c) => ({ id: c.id, label: c.label })),
+        rows.map(customerToExportRow)
+      );
+      downloadBlob(
+        new Blob([csv], { type: 'text/csv;charset=utf-8' }),
+        `customers-export-${new Date().toISOString().split('T')[0]}.csv`
+      );
+      toast.success(`Exported ${rows.length} customer(s)`);
+    } catch {
+      toast.error('Failed to export customers');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportCustomerDetails = () => {
+    if (!customerDetail) return;
+    const csv = buildCustomerDetailCsv(customerDetail);
+    const safeName = customerDetail.name.replace(/[^\w\-]+/g, '_').slice(0, 40) || 'customer';
+    downloadBlob(
+      new Blob([csv], { type: 'text/csv;charset=utf-8' }),
+      `customer-${safeName}-${new Date().toISOString().split('T')[0]}.csv`
+    );
+    toast.success('Customer details exported');
   };
 
   const handleBulkSendEmail = () => {
@@ -337,9 +569,10 @@ export default function AdminCustomers() {
                   <button
                     type="button"
                     onClick={handleBulkExport}
-                    className="inline-flex items-center gap-2 rounded-full border border-[#1f2432] bg-[#0e131d] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary"
+                    disabled={isExporting}
+                    className="inline-flex items-center gap-2 rounded-full border border-[#1f2432] bg-[#0e131d] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <Download className="h-4 w-4" /> Bulk Export
+                    <Download className="h-4 w-4" /> {isExporting ? 'Exporting…' : 'Bulk Export'}
                   </button>
                   <button
                     type="button"
@@ -642,6 +875,15 @@ export default function AdminCustomers() {
           />
         ) : customerDetail ? (
           <div className="space-y-6 text-sm text-gray-300">
+            <button
+              type="button"
+              onClick={handleExportCustomerDetails}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#1f2432] bg-[#0e131d] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300 transition hover:border-primary hover:text-primary"
+            >
+              <Download className="h-4 w-4" />
+              Export Details
+            </button>
+
             {/* Profile */}
             <div className="grid grid-cols-2 gap-4 rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
               <div>

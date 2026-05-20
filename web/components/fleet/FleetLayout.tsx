@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ReactNode, useState } from 'react';
 import { useRouter } from 'next/router';
+import useSWR from 'swr';
 import {
   LayoutDashboard,
   Users,
@@ -11,27 +12,82 @@ import {
   Menu,
   LogOut,
   Coffee,
+  Inbox,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
+import { fetchFleetIncomingDeliveries } from '../../lib/api/fleet';
 
 const NAV = [
   { href: '/fleet', label: 'Overview', icon: LayoutDashboard },
   { href: '/fleet/riders', label: 'Riders', icon: Users },
   { href: '/fleet/break-requests', label: 'Break requests', icon: Coffee },
+  { href: '/fleet/deliveries/incoming', label: 'Incoming', icon: Inbox, badge: true },
   { href: '/fleet/deliveries', label: 'Deliveries', icon: Truck },
   { href: '/fleet/earnings', label: 'Earnings', icon: DollarSign },
   { href: '/fleet/payouts', label: 'Payouts', icon: CreditCard },
-];
+] as const;
+
+function NavLink({
+  href,
+  label,
+  icon: Icon,
+  on,
+  onNavigate,
+  badgeCount,
+}: {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  on: boolean;
+  onNavigate?: () => void;
+  badgeCount?: number;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+        on
+          ? 'bg-orange-500/15 text-orange-400'
+          : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+      }`}
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      <span className="flex-1">{label}</span>
+      {badgeCount != null && badgeCount > 0 && (
+        <span className="min-w-[1.25rem] rounded-full bg-[#F97316] px-1.5 py-0.5 text-center text-[10px] font-bold text-white">
+          {badgeCount > 99 ? '99+' : badgeCount}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 export default function FleetLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { logout, user } = useAuth();
+  const { logout, user, isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
 
-  const isActive = (href: string) =>
-    href === '/fleet'
-      ? router.pathname === '/fleet'
-      : router.pathname.startsWith(href);
+  const { data: incoming = [] } = useSWR(
+    isAuthenticated && user?.role === 'FLEET_OPERATOR'
+      ? ['fleet-incoming-count']
+      : null,
+    fetchFleetIncomingDeliveries,
+    { refreshInterval: 60_000 },
+  );
+  const incomingCount = incoming.length;
+
+  const isActive = (href: string) => {
+    if (href === '/fleet') return router.pathname === '/fleet';
+    if (href === '/fleet/deliveries') {
+      return (
+        router.pathname === '/fleet/deliveries' ||
+        (router.pathname.startsWith('/fleet/deliveries') &&
+          !router.pathname.includes('/incoming'))
+      );
+    }
+    return router.pathname.startsWith(href);
+  };
 
   return (
     <div className="min-h-screen bg-[#090c11] text-zinc-100">
@@ -68,23 +124,17 @@ export default function FleetLayout({ children }: { children: ReactNode }) {
         {open && (
           <nav className="border-b border-zinc-800 px-4 py-3 lg:hidden">
             <div className="mx-auto flex max-w-7xl flex-col gap-1">
-              {NAV.map((item) => {
-                const Icon = item.icon;
-                const on = isActive(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-                      on ? 'bg-orange-500/15 text-orange-400' : 'text-zinc-400'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
+              {NAV.map((item) => (
+                <NavLink
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  on={isActive(item.href)}
+                  onNavigate={() => setOpen(false)}
+                  badgeCount={'badge' in item && item.badge ? incomingCount : undefined}
+                />
+              ))}
             </div>
           </nav>
         )}
@@ -93,24 +143,16 @@ export default function FleetLayout({ children }: { children: ReactNode }) {
       <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6 lg:px-8">
         <aside className="hidden w-56 shrink-0 lg:block">
           <nav className="sticky top-20 space-y-1 rounded-xl border border-zinc-800 bg-[#0f1218] p-3">
-            {NAV.map((item) => {
-              const Icon = item.icon;
-              const on = isActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                    on
-                      ? 'bg-orange-500/15 text-orange-400'
-                      : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
-                  }`}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {item.label}
-                </Link>
-              );
-            })}
+            {NAV.map((item) => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                icon={item.icon}
+                on={isActive(item.href)}
+                badgeCount={'badge' in item && item.badge ? incomingCount : undefined}
+              />
+            ))}
           </nav>
         </aside>
 

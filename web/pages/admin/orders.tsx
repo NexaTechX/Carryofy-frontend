@@ -31,9 +31,12 @@ import {
 } from '../../lib/admin/hooks/useAdminOrders';
 import {
   useAssignDeliveryMutation,
+  useAssignDeliveryToFleetMutation,
   useDeliveryByOrder,
   useAvailableRiders,
 } from '../../lib/admin/hooks/useAdminDeliveries';
+import { fetchAdminFleetOperators } from '../../lib/admin/api';
+import { useQuery } from '@tanstack/react-query';
 import { AdminDeliveryStatus, AdminOrder, AdminOrderStatus } from '../../lib/admin/types';
 import { toast } from 'react-hot-toast';
 import { formatNgnFromKobo } from '../../lib/api/utils';
@@ -228,7 +231,14 @@ export default function AdminOrders() {
 
   const updateOrderStatus = useOrderStatusMutation();
   const assignDelivery = useAssignDeliveryMutation();
+  const assignDeliveryToFleet = useAssignDeliveryToFleetMutation();
   const { data: availableRiders, isLoading: loadingRiders } = useAvailableRiders();
+  const { data: fleetOperators = [] } = useQuery({
+    queryKey: ['admin', 'fleet', 'operators'],
+    queryFn: fetchAdminFleetOperators,
+    staleTime: 60_000,
+  });
+  const activeFleetOperators = fleetOperators.filter((f) => f.isActive);
 
   const filteredByStatus = useMemo(() => {
     if (!orders) return [];
@@ -318,6 +328,12 @@ export default function AdminOrders() {
     detailOrder?.status === 'PROCESSING' ||
     detailOrder?.status === 'OUT_FOR_DELIVERY';
 
+  const canAssignToFleet =
+    !!deliveryDetail &&
+    !deliveryDetail.riderId &&
+    (deliveryDetail.status === 'AWAITING_ASSIGNMENT' ||
+      deliveryDetail.dispatchJob?.status === 'NEEDS_MANUAL');
+
   const handleStatusUpdate = (orderId: string, status: AdminOrderStatus) => {
     if (detailOrder && status === detailOrder.status) return;
     updateOrderStatus.mutate({ orderId, status }, { onSuccess: () => setFocusedOrder(null) });
@@ -339,6 +355,22 @@ export default function AdminOrders() {
     });
 
     toast.success('Delivery assigned.');
+    form.reset();
+  };
+
+  const handleAssignToFleet = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!deliveryDetail) return;
+    const form = event.currentTarget;
+    const fleetOperatorId = String(new FormData(form).get('fleetOperatorId') || '');
+    if (!fleetOperatorId) {
+      toast.error('Select a fleet operator.');
+      return;
+    }
+    await assignDeliveryToFleet.mutateAsync({
+      deliveryId: deliveryDetail.id,
+      fleetOperatorId,
+    });
     form.reset();
   };
 
@@ -887,6 +919,49 @@ export default function AdminOrders() {
                         )}
                       </div>
                     </div>
+                  )}
+                  {deliveryDetail.assignedFleetOperator && !deliveryDetail.riderId && (
+                    <p className="mt-3 rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-200">
+                      Routed to fleet: {deliveryDetail.assignedFleetOperator.name} — awaiting rider assignment.
+                    </p>
+                  )}
+                  {canAssignToFleet && (
+                    <form
+                      className="mt-4 space-y-3 rounded-lg border border-orange-500/25 bg-orange-500/5 p-3"
+                      onSubmit={handleAssignToFleet}
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-300">
+                        Assign to Fleet
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        <label htmlFor="fleetOperatorId" className="text-xs text-gray-500">
+                          Fleet operator
+                        </label>
+                        <select
+                          id="fleetOperatorId"
+                          name="fleetOperatorId"
+                          required
+                          className="rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
+                          disabled={activeFleetOperators.length === 0 || assignDeliveryToFleet.isPending}
+                        >
+                          <option value="">Select fleet</option>
+                          {activeFleetOperators.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={
+                          activeFleetOperators.length === 0 || assignDeliveryToFleet.isPending
+                        }
+                        className="w-full rounded-full border border-orange-500 bg-orange-500/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-orange-300 transition hover:bg-orange-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {assignDeliveryToFleet.isPending ? 'Assigning…' : 'Assign to Fleet'}
+                      </button>
+                    </form>
                   )}
                   {!canAssignDelivery ? (
                     <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">

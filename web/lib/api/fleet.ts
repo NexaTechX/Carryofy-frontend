@@ -86,6 +86,40 @@ export async function fetchFleetDeliveries(params?: {
   return unwrap(data);
 }
 
+export type FleetIncomingDelivery = {
+  id: string;
+  orderId: string;
+  status: string;
+  pickupAddress?: string | null;
+  deliveryAddress?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  order?: {
+    id: string;
+    status: string;
+    createdAt: string;
+    address?: {
+      line1: string;
+      line2?: string | null;
+      city: string;
+      state: string;
+    } | null;
+    user?: { name: string; phone?: string | null };
+    items?: Array<{
+      quantity: number;
+      product?: { title: string; images?: string[] };
+    }>;
+  };
+};
+
+export async function fetchFleetIncomingDeliveries(): Promise<
+  FleetIncomingDelivery[]
+> {
+  const { data } = await apiClient.get('/fleet/deliveries/incoming');
+  const out = unwrap<unknown>(data);
+  return Array.isArray(out) ? (out as FleetIncomingDelivery[]) : [];
+}
+
 export type FleetEarningsRiderRow = {
   riderId: string;
   riderName: string;

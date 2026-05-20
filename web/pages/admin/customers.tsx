@@ -15,6 +15,7 @@ import {
   LoadingState,
   StatusBadge,
   buildCSV,
+  csvUtf8Blob,
   downloadBlob,
 } from '../../components/admin/ui';
 import apiClient from '../../lib/api/client';
@@ -384,7 +385,7 @@ export default function AdminCustomers() {
     }
   };
 
-  const handleImpersonate = (customer: AdminCustomer) => {
+  const handleImpersonate = (_customer: AdminCustomer) => {
     toast('Impersonate – open support session in new tab when implemented.');
     setActionMenuOpen(null);
   };
@@ -435,10 +436,11 @@ export default function AdminCustomers() {
         CUSTOMER_EXPORT_COLUMNS.map((c) => ({ id: c.id, label: c.label })),
         rows.map(customerToExportRow)
       );
-      downloadBlob(
-        new Blob([csv], { type: 'text/csv;charset=utf-8' }),
+      const ok = await downloadBlob(
+        csvUtf8Blob(csv),
         `customers-export-${new Date().toISOString().split('T')[0]}.csv`
       );
+      if (!ok) return;
       toast.success(`Exported ${rows.length} customer(s)`);
     } catch {
       toast.error('Failed to export customers');
@@ -447,14 +449,15 @@ export default function AdminCustomers() {
     }
   };
 
-  const handleExportCustomerDetails = () => {
+  const handleExportCustomerDetails = async () => {
     if (!customerDetail) return;
     const csv = buildCustomerDetailCsv(customerDetail);
     const safeName = customerDetail.name.replace(/[^\w\-]+/g, '_').slice(0, 40) || 'customer';
-    downloadBlob(
-      new Blob([csv], { type: 'text/csv;charset=utf-8' }),
+    const ok = await downloadBlob(
+      csvUtf8Blob(csv),
       `customer-${safeName}-${new Date().toISOString().split('T')[0]}.csv`
     );
+    if (!ok) return;
     toast.success('Customer details exported');
   };
 

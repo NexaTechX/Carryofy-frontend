@@ -19,6 +19,7 @@ import {
   AdminTableToolbar,
   useColumnVisibility,
   buildCSV,
+  csvUtf8Blob,
   downloadBlob,
 } from '../../components/admin/ui';
 import {
@@ -162,7 +163,7 @@ export default function AdminDeliveries() {
     enabled: filteredDeliveries.length > 0,
   });
 
-  const handleExportDeliveriesCSV = () => {
+  const handleExportDeliveriesCSV = async () => {
     const cols = visibleCols.filter((c) => c.id !== 'actions').map((c) => ({ id: c.id, label: c.label }));
     const rows = filteredDeliveries.map((d) => ({
       deliveryId: d.id,
@@ -176,7 +177,7 @@ export default function AdminDeliveries() {
       eta: d.eta ? new Date(d.eta).toLocaleString() : '—',
     }));
     const csv = buildCSV(cols, rows);
-    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `deliveries-${new Date().toISOString().slice(0, 10)}.csv`);
+    await downloadBlob(csvUtf8Blob(csv), `deliveries-${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   const inTransit = deliveries?.filter((d) => d.status === 'IN_TRANSIT').length ?? 0;

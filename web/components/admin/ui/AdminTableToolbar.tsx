@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { Download, Columns } from 'lucide-react';
 import { DataFreshnessIndicator } from './DataFreshnessIndicator';
 
+export { downloadBlob, csvUtf8Blob } from '../../../lib/downloadBlob';
+
 export interface TableColumnConfig {
   id: string;
   label: string;
@@ -24,7 +26,7 @@ export interface AdminTableToolbarProps {
 
 function escapeCsvCell(value: unknown): string {
   if (value == null) return '';
-  const s = String(value);
+  const s = String(value).replace(/\0/g, '');
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }
@@ -42,23 +44,6 @@ export function buildCSV(
     lines.push(cells.join(','));
   }
   return lines.join('\r\n');
-}
-
-/** Trigger download of a blob as a file */
-export function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.rel = 'noopener';
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  // Revoking immediately invalidates the blob before the browser/OS finishes persisting
-  // the file (especially Windows → Downloads), which can corrupt the file or trigger
-  // "The volume for a file has been externally altered..." when opening it.
-  window.setTimeout(() => URL.revokeObjectURL(url), 15_000);
 }
 
 export function AdminTableToolbar({

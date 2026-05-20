@@ -19,6 +19,7 @@ import {
   AdminTableToolbar,
   useColumnVisibility,
   buildCSV,
+  csvUtf8Blob,
   downloadBlob,
 } from '../../components/admin/ui';
 import { useTableKeyboardNav } from '../../lib/admin/hooks/useTableKeyboardNav';
@@ -267,7 +268,7 @@ export default function AdminOrders() {
     enabled: filteredOrders.length > 0,
   });
 
-  const handleExportOrdersCSV = () => {
+  const handleExportOrdersCSV = async () => {
     const cols = visibleCols.map((c) => ({ id: c.id, label: c.label }));
     const rows = filteredOrders.map((order) => ({
       orderId: order.id,
@@ -284,7 +285,7 @@ export default function AdminOrders() {
       timeElapsed: timeElapsed(order.updatedAt),
     }));
     const csv = buildCSV(cols, rows);
-    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `orders-${new Date().toISOString().slice(0, 10)}.csv`);
+    await downloadBlob(csvUtf8Blob(csv), `orders-${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   const stalledOrders = useMemo(() => (orders ?? []).filter(isStalled), [orders]);

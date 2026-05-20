@@ -14,6 +14,7 @@ import {
   AdminTableToolbar,
   useColumnVisibility,
   buildCSV,
+  csvUtf8Blob,
   downloadBlob,
 } from '../../components/admin/ui';
 import {
@@ -237,7 +238,7 @@ export default function AdminQuoteRequestsPage() {
       .finally(() => setLoading(false));
   }, [page, statusTab, sellerId, buyerId, minBudget, maxBudget, startDate, endDate]);
 
-  const handleExportQuotesCSV = () => {
+  const handleExportQuotesCSV = async () => {
     const cols = visibleCols.filter((c) => c.id !== 'actions').map((c) => ({ id: c.id, label: c.label }));
     const rows = items.map((quote) => {
       const deadline = quote.status === 'PENDING' ? getResponseDeadline(quote.createdAt) : null;
@@ -259,7 +260,7 @@ export default function AdminQuoteRequestsPage() {
       };
     });
     const csv = buildCSV(cols, rows);
-    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `quote-requests-${new Date().toISOString().slice(0, 10)}.csv`);
+    await downloadBlob(csvUtf8Blob(csv), `quote-requests-${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   const stats = data?.stats;

@@ -20,6 +20,7 @@ import {
   AdminTableToolbar,
   useColumnVisibility,
   buildCSV,
+  csvUtf8Blob,
   downloadBlob,
 } from '../../components/admin/ui';
 import { useTableKeyboardNav } from '../../lib/admin/hooks/useTableKeyboardNav';
@@ -205,7 +206,7 @@ export default function AdminReviews() {
     enabled: riderRatings.length > 0 && activeTab === 'riders',
   });
 
-  const handleExportReviewsCSV = () => {
+  const handleExportReviewsCSV = async () => {
     const cols = visibleCols.filter((c) => c.id !== 'actions').map((c) => ({ id: c.id, label: c.label }));
     const rows = sortedReviews.map((r) => ({
       reviewer: r.userName,
@@ -216,10 +217,10 @@ export default function AdminReviews() {
       status: r.flagged ? 'Flagged' : 'Clean',
     }));
     const csv = buildCSV(cols, rows);
-    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `reviews-${new Date().toISOString().slice(0, 10)}.csv`);
+    await downloadBlob(csvUtf8Blob(csv), `reviews-${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
-  const handleExportRiderRatingsCSV = () => {
+  const handleExportRiderRatingsCSV = async () => {
     const cols = riderVisibleCols.filter((c) => c.id !== 'actions').map((c) => ({ id: c.id, label: c.label }));
     const rows = riderRatings.map((r) => ({
       reviewer: r.userName || r.user?.name || '—',
@@ -230,7 +231,7 @@ export default function AdminReviews() {
       status: 'Clean',
     }));
     const csv = buildCSV(cols, rows);
-    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `rider-ratings-${new Date().toISOString().slice(0, 10)}.csv`);
+    await downloadBlob(csvUtf8Blob(csv), `rider-ratings-${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   // Product tab stats (independent)

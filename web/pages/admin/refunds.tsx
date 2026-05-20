@@ -18,6 +18,7 @@ import {
   AdminTableToolbar,
   useColumnVisibility,
   buildCSV,
+  csvUtf8Blob,
   downloadBlob,
 } from '../../components/admin/ui';
 import type { AdminCardTrend } from '../../components/admin/ui';
@@ -105,7 +106,7 @@ export default function AdminRefunds() {
     enabled: refunds.length > 0,
   });
 
-  const handleExportRefundsCSV = () => {
+  const handleExportRefundsCSV = async () => {
     const cols = visibleCols.filter((c) => c.id !== 'actions').map((c) => ({ id: c.id, label: c.label }));
     const rows = refunds.map((r) => ({
       refundId: r.id,
@@ -118,7 +119,7 @@ export default function AdminRefunds() {
       status: STATUS_LABEL[r.status],
     }));
     const csv = buildCSV(cols, rows);
-    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `refunds-${new Date().toISOString().slice(0, 10)}.csv`);
+    await downloadBlob(csvUtf8Blob(csv), `refunds-${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   const refundThresholdKobo = platformSettings?.refundAutoApproveThresholdKobo ?? 50000;

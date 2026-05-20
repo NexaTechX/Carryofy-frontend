@@ -29,6 +29,18 @@ export async function fetchFleetOverview(): Promise<{
   return unwrap(data);
 }
 
+export async function createFleetRider(payload: {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  vehicleType: string;
+  vehicleNumber: string;
+}): Promise<{ message: string; riderId: string; email: string }> {
+  const { data } = await apiClient.post('/fleet/riders', payload);
+  return unwrap(data);
+}
+
 export async function fetchFleetRiders(): Promise<
   Array<{
     userId: string;
@@ -74,18 +86,22 @@ export async function fetchFleetDeliveries(params?: {
   return unwrap(data);
 }
 
+export type FleetEarningsRiderRow = {
+  riderId: string;
+  riderName: string;
+  deliveryCount: number;
+  totalAmountKobo: number;
+  pendingAmountKobo: number;
+  paidAmountKobo: number;
+};
+
 export async function fetchFleetEarningsPage(): Promise<{
   summary: {
     totalEarnedKobo: number;
     pendingPoolKobo: number;
     paidOutKobo: number;
   };
-  byRider: Array<{
-    riderId: string;
-    name: string;
-    email: string;
-    fleetEarningsKobo: number;
-  }>;
+  riders: FleetEarningsRiderRow[];
 }> {
   const { data } = await apiClient.get('/fleet/earnings');
   return unwrap(data);

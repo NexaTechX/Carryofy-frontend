@@ -10,6 +10,7 @@ import {
 } from '../../lib/admin/api';
 import type { AdminNotification, NotificationType } from '../../lib/admin/types';
 import { useRouter } from 'next/router';
+import { useAuth } from '../../lib/auth';
 
 export default function NotificationsDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,11 +18,14 @@ export default function NotificationsDropdown() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const canFetch = isAuthenticated && !authLoading;
 
   const { data: notifications = [], isLoading, error: notificationsError } = useQuery({
     queryKey: ['admin', 'notifications', filter],
     queryFn: () => fetchNotifications({ unreadOnly: filter === 'unread' }),
-    refetchInterval: 30000, // Refetch every 30 seconds
+    enabled: canFetch,
+    refetchInterval: canFetch ? 30000 : false,
     retry: (failureCount, error: any) => {
       // Don't retry on 401 (unauthorized) errors
       if (error?.response?.status === 401) {
@@ -44,7 +48,8 @@ export default function NotificationsDropdown() {
   const { data: unreadCount = 0, error: unreadCountError } = useQuery({
     queryKey: ['admin', 'notifications', 'unread-count'],
     queryFn: fetchUnreadNotificationCount,
-    refetchInterval: 30000,
+    enabled: canFetch,
+    refetchInterval: canFetch ? 30000 : false,
     retry: (failureCount, error: any) => {
       // Don't retry on 401 (unauthorized) errors
       if (error?.response?.status === 401) {

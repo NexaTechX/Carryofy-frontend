@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Bell, CheckCheck, Loader2, Package, Shield, Inbox, AlertCircle } from 'lucide-react';
 import apiClient from '../../lib/api/client';
-import { userManager } from '../../lib/auth';
+import { tokenManager, userManager } from '../../lib/auth';
 
 interface NotificationItem {
   id: string;
@@ -45,7 +45,7 @@ export default function NotificationsDropdown({ className, carryofyMobileShell }
   const fetchNotifications = async () => {
     try {
       const user = userManager.getUser();
-      if (!user) {
+      if (!user || !tokenManager.isAuthenticated()) {
         setNotifications([]);
         setUnreadCount(0);
         setLoading(false);

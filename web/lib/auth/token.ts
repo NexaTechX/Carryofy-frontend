@@ -17,6 +17,23 @@ function clearAccessTokenCookie() {
     document.cookie = `${ACCESS_TOKEN_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 
+function readAccessTokenFromCookie(): string | null {
+    if (typeof document === 'undefined') return null;
+    const prefix = `${ACCESS_TOKEN_COOKIE}=`;
+    for (const part of document.cookie.split(';')) {
+        const trimmed = part.trim();
+        if (!trimmed.startsWith(prefix)) continue;
+        const raw = trimmed.slice(prefix.length);
+        if (!raw) return null;
+        try {
+            return decodeURIComponent(raw);
+        } catch {
+            return raw;
+        }
+    }
+    return null;
+}
+
 const isStorageUnavailableError = (error: unknown): boolean => {
     if (typeof DOMException !== 'undefined' && error instanceof DOMException) {
         return (
@@ -48,10 +65,22 @@ export const tokenManager = {
     getAccessToken: (): string | null => {
         if (typeof window === 'undefined') return null;
         try {
-            return localStorage.getItem(ACCESS_TOKEN_KEY);
+            const fromStorage = localStorage.getItem(ACCESS_TOKEN_KEY);
+            if (fromStorage) return fromStorage;
+
+            const fromCookie = readAccessTokenFromCookie();
+            if (fromCookie) {
+                try {
+                    localStorage.setItem(ACCESS_TOKEN_KEY, fromCookie);
+                } catch (error) {
+                    if (!isStorageUnavailableError(error)) throw error;
+                }
+                return fromCookie;
+            }
+            return null;
         } catch (error) {
             if (isStorageUnavailableError(error)) {
-                return null;
+                return readAccessTokenFromCookie();
             }
             throw error;
         }

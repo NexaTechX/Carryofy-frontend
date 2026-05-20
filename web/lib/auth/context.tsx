@@ -47,7 +47,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         // the interceptor will clear tokens and redirect to login. Do NOT clear here
                         // to avoid double-clearing and flicker.
                         if (error?.response?.status === 401) {
-                            // Leave state as-is; redirect will load login page and initAuth will run with no token
+                            tokenManager.clearTokens();
+                            setUser(null);
                             return;
                         }
                         // Only log and clear on unexpected errors

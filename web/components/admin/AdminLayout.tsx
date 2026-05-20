@@ -53,7 +53,7 @@ function isNavItemActive(item: AdminNavItem, pathname: string): boolean {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, isAuthenticated, isLoading: authLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [groupExpanded, setGroupExpanded] = useState<Record<string, boolean>>({});
@@ -71,10 +71,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     }
   }, []);
 
+  const canFetchAdminData = isAuthenticated && !authLoading;
   const { data: safetySosBadge = 0 } = useSWR(
-    router.pathname.startsWith('/admin') ? 'safety-sos-badge' : null,
+    router.pathname.startsWith('/admin') && canFetchAdminData ? 'safety-sos-badge' : null,
     fetchUnacknowledgedSosCount,
-    { refreshInterval: 30000, dedupingInterval: 5000 },
+    { refreshInterval: canFetchAdminData ? 30000 : 0, dedupingInterval: 5000 },
   );
 
   useEffect(() => {

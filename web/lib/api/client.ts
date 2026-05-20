@@ -73,13 +73,10 @@ apiClient.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
 
-      // Add CSRF token for state-changing operations
+      // Add CSRF token for state-changing operations (required by some API routes in production)
       const method = config.method?.toUpperCase();
-      if (method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
-        const csrfToken = getCsrfToken();
-        if (csrfToken && config.headers) {
-          config.headers['X-CSRF-Token'] = csrfToken;
-        }
+      if (method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method) && config.headers) {
+        config.headers['X-CSRF-Token'] = getOrCreateCsrfToken();
       }
     }
     return config;
@@ -89,26 +86,43 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Helper function to get CSRF token
-function getCsrfToken(): string | null {
-  if (typeof window === 'undefined') return null;
+const CSRF_SESSION_KEY = 'carryofy_csrf_token';
 
-  // Try to get from meta tag (set by server-side rendering)
+function readCsrfFromDomOrCookie(): string | null {
   const metaTag = document.querySelector('meta[name="csrf-token"]');
-  if (metaTag) {
-    return metaTag.getAttribute('content');
-  }
+  const fromMeta = metaTag?.getAttribute('content');
+  if (fromMeta) return fromMeta;
 
-  // Try to get from cookie (if accessible)
-  const cookies = document.cookie.split(';');
-  for (const cookie of cookies) {
+  for (const cookie of document.cookie.split(';')) {
     const [name, value] = cookie.trim().split('=');
-    if (name === 'csrf-token') {
+    if (name === 'csrf-token' && value) {
       return decodeURIComponent(value);
     }
   }
-
   return null;
+}
+
+function generateCsrfToken(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID().replace(/-/g, '');
+  }
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+}
+
+/** CSRF header for mutating API calls; persisted per tab when the API does not issue one. */
+function getOrCreateCsrfToken(): string {
+  const fromDom = readCsrfFromDomOrCookie();
+  if (fromDom) return fromDom;
+
+  try {
+    const stored = sessionStorage.getItem(CSRF_SESSION_KEY);
+    if (stored) return stored;
+    const created = generateCsrfToken();
+    sessionStorage.setItem(CSRF_SESSION_KEY, created);
+    return created;
+  } catch {
+    return generateCsrfToken();
+  }
 }
 
 // Response interceptor to handle CSRF, errors, and token refresh
@@ -117,6 +131,11 @@ apiClient.interceptors.response.use(
     // Extract CSRF token from response header and store it
     const csrfToken = response.headers['x-csrf-token'];
     if (csrfToken && typeof document !== 'undefined') {
+      try {
+        sessionStorage.setItem(CSRF_SESSION_KEY, csrfToken);
+      } catch {
+        /* ignore */
+      }
       let metaTag = document.querySelector('meta[name="csrf-token"]');
       if (!metaTag) {
         metaTag = document.createElement('meta');

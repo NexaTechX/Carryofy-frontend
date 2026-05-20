@@ -101,7 +101,10 @@ function transformProducts<T extends { title?: string; name?: string; quantity?:
 }
 
 export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
-  const { data } = await apiClient.get('/reports/dashboard');
+  const [{ data }, customerMetrics] = await Promise.all([
+    apiClient.get('/reports/dashboard'),
+    fetchAdminCustomerMetrics(),
+  ]);
 
   // Normalize response - handle wrapped or unwrapped
   const normalized = normalizeResponse<Record<string, unknown>>(data);
@@ -118,10 +121,13 @@ export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
     pendingOrders: (metrics?.pendingOrders as number) ?? 0,
     activeDeliveries: (metrics?.activeDeliveries as number) ?? 0,
     pendingApprovals: (metrics?.pendingApprovals as number) ?? 0,
-    totalCustomers: (metrics?.totalCustomers as number) ?? 0,
-    newCustomersThisMonth: (metrics?.newCustomersThisMonth as number) ?? 0,
-    activeCustomersThisMonth: (metrics?.activeCustomersThisMonth as number) ?? 0,
-    customerRetentionRate: (metrics?.customerRetentionRate as number) ?? 0,
+    totalCustomers:
+      customerMetrics.totalCustomers > 0
+        ? customerMetrics.totalCustomers
+        : ((metrics?.totalCustomers as number) ?? 0),
+    newCustomersThisMonth: customerMetrics.newCustomersThisMonth,
+    activeCustomersThisMonth: customerMetrics.activeCustomersThisMonth,
+    customerRetentionRate: customerMetrics.customerRetentionRate,
   };
 }
 
@@ -800,7 +806,10 @@ export async function fetchAdminProfile(): Promise<AdminProfile> {
 
 export async function fetchAdminDashboard(params?: ReportsQueryParams): Promise<AdminDashboardData> {
   try {
-    const response = await apiClient.get('/admin/dashboard', { params });
+    const [response, customerMetrics] = await Promise.all([
+      apiClient.get('/admin/dashboard', { params }),
+      fetchAdminCustomerMetrics(),
+    ]);
 
     // Log response in development for debugging
     if (process.env.NODE_ENV === 'development') {
@@ -832,37 +841,23 @@ export async function fetchAdminDashboard(params?: ReportsQueryParams): Promise<
       activeCustomersThisMonth: 0,
       customerRetentionRate: 0,
     };
-    let totalCustomers = (rawMetrics?.totalCustomers as number) ?? defaultMetrics.totalCustomers;
+    let totalCustomers =
+      customerMetrics.totalCustomers > 0
+        ? customerMetrics.totalCustomers
+        : ((rawMetrics?.totalCustomers as number) ?? defaultMetrics.totalCustomers);
     let totalUsers = (rawMetrics?.totalUsers as number) ?? defaultMetrics.totalUsers;
 
-    // Fallback: when dashboard doesn't return customer metrics, fetch from APIs
-    const needsCustomerFallback = totalCustomers === 0 && totalUsers === 0;
-    const hasPartialCustomerData =
-      totalCustomers === 0 &&
-      ((rawMetrics?.newCustomersThisMonth as number) ?? 0) === 0 &&
-      ((rawMetrics?.activeCustomersThisMonth as number) ?? 0) === 0;
-    const needsActiveCustomersFallback = ((rawMetrics?.activeCustomersThisMonth as number) ?? 0) === 0;
+    const newCustomersThisMonth = customerMetrics.newCustomersThisMonth;
+    const activeCustomersThisMonth = customerMetrics.activeCustomersThisMonth;
+    const customerRetentionRate = customerMetrics.customerRetentionRate;
 
-    let newCustomersThisMonth = (rawMetrics?.newCustomersThisMonth as number) ?? defaultMetrics.newCustomersThisMonth;
-    let activeCustomersThisMonth = (rawMetrics?.activeCustomersThisMonth as number) ?? defaultMetrics.activeCustomersThisMonth;
-    let customerRetentionRate = (rawMetrics?.customerRetentionRate as number) ?? defaultMetrics.customerRetentionRate;
-
-    if (needsCustomerFallback || hasPartialCustomerData || needsActiveCustomersFallback) {
-      const [usersTotal, buyersTotal, customerMetrics] = await Promise.all([
+    if (totalCustomers === 0 && totalUsers === 0) {
+      const [usersTotal, buyersTotal] = await Promise.all([
         fetchUsersCount(),
         fetchUsersCount('BUYER'),
-        fetchAdminCustomerMetrics(),
       ]);
       if (usersTotal > 0 && totalUsers === 0) totalUsers = usersTotal;
       if (buyersTotal > 0 && totalCustomers === 0) totalCustomers = buyersTotal;
-      if (customerMetrics.activeCustomersThisMonth > 0 && activeCustomersThisMonth === 0)
-        activeCustomersThisMonth = customerMetrics.activeCustomersThisMonth;
-      if (customerMetrics.newCustomersThisMonth > 0 && newCustomersThisMonth === 0)
-        newCustomersThisMonth = customerMetrics.newCustomersThisMonth;
-      if (customerMetrics.customerRetentionRate > 0 && customerRetentionRate === 0)
-        customerRetentionRate = customerMetrics.customerRetentionRate;
-      if (customerMetrics.totalCustomers > 0 && totalCustomers === 0)
-        totalCustomers = customerMetrics.totalCustomers;
     }
 
     let totalSellers = (rawMetrics?.totalSellers as number) ?? defaultMetrics.totalSellers;
@@ -1070,10 +1065,8 @@ export async function fetchAdminDashboard(params?: ReportsQueryParams): Promise<
 
     const needsFallback =
       (metrics.totalCustomers === 0 && metrics.totalUsers === 0) ||
-      (metrics.totalCustomers === 0 && metrics.newCustomersThisMonth === 0 && metrics.activeCustomersThisMonth === 0) ||
       metrics.totalSellers === 0 ||
-      metrics.totalRevenue === 0 ||
-      metrics.activeCustomersThisMonth === 0;
+      metrics.totalRevenue === 0;
 
     if (needsFallback) {
       const [usersTotal, buyersTotal, sellersTotal, salesTotal, customerMetrics] = await Promise.all([
@@ -1088,21 +1081,22 @@ export async function fetchAdminDashboard(params?: ReportsQueryParams): Promise<
         buyersTotal > 0 ||
         sellersTotal > 0 ||
         salesTotal > 0 ||
-        customerMetrics.activeCustomersThisMonth > 0 ||
-        customerMetrics.newCustomersThisMonth > 0
+        customerMetrics.totalCustomers > 0
       ) {
         finalMetrics = {
           ...metrics,
           totalUsers: metrics.totalUsers > 0 ? metrics.totalUsers : usersTotal,
-          totalCustomers: (metrics.totalCustomers ?? 0) > 0 ? (metrics.totalCustomers ?? buyersTotal) : buyersTotal,
+          totalCustomers:
+            customerMetrics.totalCustomers > 0
+              ? customerMetrics.totalCustomers
+              : (metrics.totalCustomers ?? 0) > 0
+                ? (metrics.totalCustomers ?? buyersTotal)
+                : buyersTotal,
           totalSellers: metrics.totalSellers > 0 ? metrics.totalSellers : sellersTotal,
           totalRevenue: metrics.totalRevenue > 0 ? metrics.totalRevenue : salesTotal,
-          newCustomersThisMonth:
-            (metrics.newCustomersThisMonth ?? 0) > 0 ? (metrics.newCustomersThisMonth ?? customerMetrics.newCustomersThisMonth) : customerMetrics.newCustomersThisMonth,
-          activeCustomersThisMonth:
-            (metrics.activeCustomersThisMonth ?? 0) > 0 ? (metrics.activeCustomersThisMonth ?? customerMetrics.activeCustomersThisMonth) : customerMetrics.activeCustomersThisMonth,
-          customerRetentionRate:
-            (metrics.customerRetentionRate ?? 0) > 0 ? (metrics.customerRetentionRate ?? customerMetrics.customerRetentionRate) : customerMetrics.customerRetentionRate,
+          newCustomersThisMonth: customerMetrics.newCustomersThisMonth,
+          activeCustomersThisMonth: customerMetrics.activeCustomersThisMonth,
+          customerRetentionRate: customerMetrics.customerRetentionRate,
         };
       }
     }

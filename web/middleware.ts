@@ -13,7 +13,7 @@ function getJwtFromCookie(rawToken: string): string {
   }
 }
 
-function decodeJwtRole(token: string): string | null {
+function decodeJwtPayload(token: string): { role?: string; exp?: number } | null {
   try {
     const jwt = getJwtFromCookie(token);
     const parts = jwt.split('.');
@@ -22,18 +22,34 @@ function decodeJwtRole(token: string): string | null {
     const b64 = p.replace(/-/g, '+').replace(/_/g, '/');
     const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
     const json = atob(b64 + pad);
-    const payload = JSON.parse(json) as { role?: string };
-    return payload.role ?? null;
+    return JSON.parse(json) as { role?: string; exp?: number };
   } catch {
     return null;
   }
 }
 
-function loginRedirect(request: NextRequest, pathname: string) {
+function decodeJwtRole(token: string): string | null {
+  return decodeJwtPayload(token)?.role ?? null;
+}
+
+function isJwtExpired(token: string): boolean {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) return false;
+  return payload.exp * 1000 <= Date.now();
+}
+
+function loginRedirect(request: NextRequest, pathname: string, expired = false) {
   const url = new URL('/auth/login', request.url);
   const redirectTarget = pathname + request.nextUrl.search;
   url.searchParams.set('redirect', redirectTarget);
-  return NextResponse.redirect(url);
+  if (expired) {
+    url.searchParams.set('expired', 'true');
+  }
+  const response = NextResponse.redirect(url);
+  if (expired) {
+    response.cookies.set(ACCESS_TOKEN_COOKIE, '', { path: '/', maxAge: 0 });
+  }
+  return response;
 }
 
 function isFleetRole(role: string): boolean {
@@ -49,30 +65,32 @@ export function middleware(request: NextRequest) {
 
   const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
   const role = token ? decodeJwtRole(token) : null;
+  const expired = !!token && isJwtExpired(token);
+  const tokenInvalid = !token || !role || expired;
 
   if (pathname.startsWith('/buyer')) {
     if (isPublicBuyerRoute(pathname)) return NextResponse.next();
-    if (!token || !role) return loginRedirect(request, pathname);
+    if (tokenInvalid) return loginRedirect(request, pathname, expired);
     if (role !== 'BUYER' && role !== 'ADMIN') return loginRedirect(request, pathname);
   }
 
   if (pathname.startsWith('/seller')) {
-    if (!token || !role) return loginRedirect(request, pathname);
+    if (tokenInvalid) return loginRedirect(request, pathname, expired);
     if (role !== 'SELLER' && role !== 'ADMIN') return loginRedirect(request, pathname);
   }
 
   if (pathname.startsWith('/admin')) {
-    if (!token || !role) return loginRedirect(request, pathname);
+    if (tokenInvalid) return loginRedirect(request, pathname, expired);
     if (role !== 'ADMIN') return loginRedirect(request, pathname);
   }
 
   if (pathname.startsWith('/fleet')) {
-    if (!token || !role) return loginRedirect(request, pathname);
+    if (tokenInvalid) return loginRedirect(request, pathname, expired);
     if (!isFleetRole(role)) return loginRedirect(request, pathname);
   }
 
   if (pathname.startsWith('/rider')) {
-    if (!token || !role) return loginRedirect(request, pathname);
+    if (tokenInvalid) return loginRedirect(request, pathname, expired);
     if (role !== 'RIDER') return loginRedirect(request, pathname);
   }
 

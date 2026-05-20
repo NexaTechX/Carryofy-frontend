@@ -417,11 +417,9 @@ export default function AdminCustomers() {
         const fetchLimit = Math.min(pagination?.total ?? 5000, 5000);
         const { data: responseData } = await apiClient.get('/users/admin/all', {
           params: {
+            ...queryParams,
             page: 1,
             limit: fetchLimit,
-            search: search || undefined,
-            role: roleFilter !== 'ALL' ? roleFilter : undefined,
-            status: statusFilter !== 'ALL' ? statusFilter : undefined,
           },
         });
         const fetched = unwrapCustomersResponse(responseData);

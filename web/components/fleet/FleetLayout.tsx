@@ -70,7 +70,7 @@ export default function FleetLayout({ children }: { children: ReactNode }) {
 
   const { data: incoming = [] } = useSWR(
     isAuthenticated && user?.role === 'FLEET_OPERATOR'
-      ? ['fleet-incoming-count']
+      ? ['fleet-deliveries-incoming']
       : null,
     fetchFleetIncomingDeliveries,
     { refreshInterval: 60_000 },

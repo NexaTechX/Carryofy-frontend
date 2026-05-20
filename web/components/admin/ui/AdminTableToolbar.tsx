@@ -50,8 +50,15 @@ export function downloadBlob(blob: Blob, filename: string) {
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  a.rel = 'noopener';
+  a.style.display = 'none';
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+  // Revoking immediately invalidates the blob before the browser/OS finishes persisting
+  // the file (especially Windows → Downloads), which can corrupt the file or trigger
+  // "The volume for a file has been externally altered..." when opening it.
+  window.setTimeout(() => URL.revokeObjectURL(url), 15_000);
 }
 
 export function AdminTableToolbar({

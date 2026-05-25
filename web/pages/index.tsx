@@ -1,14 +1,35 @@
+import dynamic from 'next/dynamic';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
 import MarketplaceCategoriesSection from '../components/landing/MarketplaceCategoriesSection';
-import FeaturedProductsSection from '../components/landing/FeaturedProductsSection';
-import HowItWorks from '../components/landing/HowItWorks';
-import TrustAndSocialProof from '../components/landing/TrustAndSocialProof';
-import ValuePropositionsSection from '../components/landing/ValuePropositionsSection';
-import CallToAction from '../components/landing/CallToAction';
 import SEO, { generateKeywords } from '../components/seo/SEO';
 import { CombinedSchema } from '../components/seo/JsonLd';
+
+const sectionLoading = () => (
+  <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+    <div className="h-48 animate-pulse rounded-2xl bg-stone-200/80" aria-hidden />
+  </div>
+);
+
+const FeaturedProductsSection = dynamic(
+  () => import('../components/landing/FeaturedProductsSection'),
+  { loading: sectionLoading },
+);
+const ValuePropositionsSection = dynamic(
+  () => import('../components/landing/ValuePropositionsSection'),
+  { loading: sectionLoading },
+);
+const HowItWorks = dynamic(() => import('../components/landing/HowItWorks'), {
+  loading: sectionLoading,
+});
+const TrustAndSocialProof = dynamic(
+  () => import('../components/landing/TrustAndSocialProof'),
+  { loading: sectionLoading },
+);
+const CallToAction = dynamic(() => import('../components/landing/CallToAction'), {
+  loading: sectionLoading,
+});
 
 export default function Home() {
   const homeKeywords = generateKeywords(['primary', 'problemAware', 'longTail', 'brand', 'locations', 'industry']);

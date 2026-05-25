@@ -1,6 +1,7 @@
 import { useState, useEffect, ReactNode, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import RemoteImage from '../common/RemoteImage';
 import { useRouter } from 'next/router';
 import {
   LayoutDashboard,
@@ -377,11 +378,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   const sellerAvatarInner = () => {
     if (mounted && sellerProfile?.logo) {
       return (
-        <img
-          src={sellerProfile.logo}
-          alt=""
-          className="h-full w-full object-cover"
-        />
+        <RemoteImage src={sellerProfile.logo} alt="" fill className="object-cover" sizes="40px" />
       );
     }
     const initials =
@@ -526,12 +523,14 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
             <div className="relative">
               <button type="button" className="flex items-center space-x-2">
-                <div className="w-10 h-10 rounded-full bg-card border-2 border-primary flex items-center justify-center overflow-hidden">
+                <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-primary bg-card">
                   {mounted && sellerProfile?.logo ? (
-                    <img
+                    <RemoteImage
                       src={sellerProfile.logo}
                       alt={sellerProfile.businessName || 'Business Logo'}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="40px"
                     />
                   ) : mounted && user?.name ? (
                     <span className="text-foreground font-semibold text-sm">
@@ -649,7 +648,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
               </div>
               <Link
                 href="/seller/more"
-                className="btn-mobile flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center overflow-hidden rounded-full border border-orange-500/50 bg-orange-500/20"
+                className="btn-mobile relative flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center overflow-hidden rounded-full border border-orange-500/50 bg-orange-500/20"
                 aria-label="Account and more"
               >
                 {sellerAvatarInner()}

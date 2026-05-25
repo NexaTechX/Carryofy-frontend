@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
+import RemoteImage from '../../components/common/RemoteImage';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
 import { ShoppingCart, Trash2, Plus, Minus, Package, ArrowRight, ShoppingBag } from 'lucide-react';
@@ -264,12 +265,14 @@ export default function CartPage() {
                           <div className="flex flex-col md:flex-row gap-6">
                             {/* Product Image */}
                             <div className="flex-shrink-0">
-                              <div className="w-full md:w-32 h-32 bg-black rounded-lg overflow-hidden">
+                              <div className="relative h-32 w-full overflow-hidden rounded-lg bg-black md:w-32">
                                 {item.product.images && item.product.images.length > 0 ? (
-                                  <img
+                                  <RemoteImage
                                     src={item.product.images[0]}
                                     alt={item.product.title}
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    className="object-cover"
+                                    sizes="128px"
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-[#ffcc99]">

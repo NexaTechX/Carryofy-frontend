@@ -1,4 +1,5 @@
 import apiClient from '../api/client';
+import { normalizeResponse } from './normalizeResponse';
 import {
   AdminDashboardData,
   DashboardMetrics,
@@ -61,26 +62,6 @@ export const adminDashboardKeys = {
   range: (params: ReportsQueryParams) =>
     [ADMIN_DASHBOARD_CACHE_TAG, params.startDate ?? '', params.endDate ?? ''] as const,
 };
-
-/**
- * Standardized response normalization utility
- * Handles both wrapped (data.data) and unwrapped (data) responses consistently
- */
-function normalizeResponse<T>(response: unknown): T {
-  if (!response || typeof response !== 'object') {
-    return response as T;
-  }
-
-  const dataObj = response as Record<string, unknown>;
-
-  // Check if response is wrapped in a 'data' property (TransformInterceptor pattern)
-  if ('data' in dataObj && dataObj.data !== undefined) {
-    return dataObj.data as T;
-  }
-
-  // Return the response as-is if not wrapped
-  return response as T;
-}
 
 /**
  * Transform product from backend format (title, quantity) to frontend format (name, stockQuantity)
@@ -807,10 +788,7 @@ export async function deleteNotificationRequest(notificationId: string): Promise
   await apiClient.delete(`/notifications/${notificationId}`);
 }
 
-export async function fetchAdminProfile(): Promise<AdminProfile> {
-  const { data } = await apiClient.get('/users/me');
-  return normalizeResponse<AdminProfile>(data);
-}
+export { fetchAdminProfile } from './fetchAdminProfile';
 
 export async function fetchAdminDashboard(params?: ReportsQueryParams): Promise<AdminDashboardData> {
   try {

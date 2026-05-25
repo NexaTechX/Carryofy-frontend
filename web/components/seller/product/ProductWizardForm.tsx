@@ -88,6 +88,19 @@ function buildWholesalePriceTiersPayload(
 
 const DRAFT_STORAGE_KEY = 'carryofy-seller-add-product-draft-v1';
 
+const SPEC_LABEL_SUGGESTIONS = [
+  'Brand',
+  'Weight',
+  'Material',
+  'Dimensions',
+  'Colour',
+  'Size',
+  'Quantity Per Pack',
+  'Minimum Order Quantity',
+  'Expiry Date',
+  'Country of Origin',
+];
+
 interface ProductDraftV1 {
   v: 1;
   savedAt: string;
@@ -152,6 +165,7 @@ export interface ProductWizardInitialProduct {
   sellingMode?: 'B2C_ONLY' | 'B2B_ONLY' | 'B2C_AND_B2B';
   moq?: number;
   priceTiers?: { minQuantity: number; maxQuantity: number; priceKobo: number }[];
+  status?: string;
 }
 
 export interface ProductWizardFormProps {
@@ -167,6 +181,11 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { data: categoriesData, isLoading: categoriesLoading } = useCategories();
   const categories = categoriesData?.categories || [];
+  const [categorySearch, setCategorySearch] = useState('');
+  const categorySearchNorm = categorySearch.trim().toLowerCase();
+  const filteredCategories = categorySearchNorm
+    ? categories.filter((c) => c.name.toLowerCase().includes(categorySearchNorm))
+    : categories;
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [kycStatus, setKycStatus] = useState<string | null>(null);
@@ -203,6 +222,8 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
   const [isGeneratingVision, setIsGeneratingVision] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
   const [aiPriceRangeHint, setAiPriceRangeHint] = useState<string | null>(null);
+  const [productStatus, setProductStatus] = useState<string | null>(null);
+  const publishIntentRef = useRef(false);
 
   const draftSnapshotRef = useRef({
     mode,
@@ -232,6 +253,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
         : [],
       moq: initialProduct.moq != null ? String(initialProduct.moq) : '',
     });
+    setProductStatus(initialProduct.status ?? null);
     setPriceTiers(
       (initialProduct.priceTiers || []).map((t) => ({
         minQuantity: String(t.minQuantity),
@@ -758,6 +780,13 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
     e.preventDefault();
     if (wizardStep !== 4) return;
 
+    const publish = publishIntentRef.current;
+
+    if (publish && productImages.length === 0) {
+      toast.error('Add at least one product image to publish');
+      return;
+    }
+
     // Validate all fields
     const newErrors: Partial<Record<keyof FormData, string>> = {};
 
@@ -801,13 +830,6 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
 
     setLoading(true);
     try {
-      // images validation
-      if (productImages.length === 0) {
-        toast.error('Please upload at least one product image');
-        setLoading(false);
-        return;
-      }
-
       const priceInKobo = Math.round(parseFloat(formData.price) * 100);
       const sellingMode = mode === 'wholesale' ? 'B2B_ONLY' : 'B2C_ONLY';
 
@@ -831,6 +853,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
           ? formData.keyFeatures.filter(f => f.trim()).map(f => f.trim())
           : undefined,
         sellingMode,
+        publish,
       };
 
       if (variant === 'edit') {
@@ -875,11 +898,19 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
           return;
         }
         await apiClient.put(`/products/${productId}`, productData);
-        toast.success('Product updated successfully!');
+        toast.success(
+          publish
+            ? 'Product submitted for review!'
+            : 'Draft saved successfully!',
+        );
       } else {
         await apiClient.post('/products', productData);
         clearDraftStorage();
-        toast.success('Product created successfully!');
+        toast.success(
+          publish
+            ? 'Product submitted for review!'
+            : 'Draft saved successfully!',
+        );
       }
       router.push('/seller/products');
     } catch (error: any) {
@@ -894,7 +925,8 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
     }
   };
 
-  const isFormValid = () => stepImagesOk() && stepBasicOk() && stepPricingOk();
+  const isDraftSaveValid = () => stepBasicOk() && stepPricingOk();
+  const isPublishValid = () => isDraftSaveValid() && stepImagesOk();
 
   const hasFormChanges = () => {
     return (
@@ -918,10 +950,6 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
   };
 
   const goWizardNext = () => {
-    if (wizardStep === 1 && !stepImagesOk()) {
-      toast.error('Add at least one product image to continue');
-      return;
-    }
     if (wizardStep === 2 && !stepBasicOk()) {
       toast.error('Complete title, category, and required product details');
       return;
@@ -1419,9 +1447,9 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                     })()}
 
                     {productImages.length === 0 && (
-                      <p className="mt-3 text-red-400 text-xs flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        At least one product image is required
+                      <p className="mt-3 text-amber-400/90 text-xs flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        Add an image to publish this listing
                       </p>
                     )}
                     {productImages.length > 0 && (
@@ -1612,6 +1640,11 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                           Add rows such as Brand, Dimensions, or Warranty. These appear in the &quot;Product Details&quot;
                           tab on your listing (up to 20 rows).
                         </p>
+                        <datalist id="spec-label-suggestions">
+                          {SPEC_LABEL_SUGGESTIONS.map((label) => (
+                            <option key={label} value={label} />
+                          ))}
+                        </datalist>
                         <div className="space-y-2 mb-3">
                           {(formData.detailSpecifications || []).map((row, index) => (
                             <div
@@ -1630,6 +1663,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                                   });
                                 }}
                                 placeholder="Label (e.g. Brand)"
+                                list="spec-label-suggestions"
                                 maxLength={80}
                                 className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-black border border-[#2A2A2A] text-white text-sm"
                               />
@@ -1670,6 +1704,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                               value={detailSpecDraft.label}
                               onChange={(e) => setDetailSpecDraft((d) => ({ ...d, label: e.target.value }))}
                               placeholder="New label"
+                              list="spec-label-suggestions"
                               maxLength={80}
                               className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-black border border-[#2A2A2A] text-white text-sm"
                             />
@@ -1852,8 +1887,20 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                             <p className="text-[#ffcc99]/70 text-sm mb-3">
                               Select one or more categories (up to 10). First selected is primary for commission — platform commission is deducted from each sale; you receive the remainder after each order.
                             </p>
+                            <input
+                              type="search"
+                              value={categorySearch}
+                              onChange={(e) => setCategorySearch(e.target.value)}
+                              placeholder="Search categories..."
+                              className="w-full mb-3 px-4 py-2.5 rounded-xl bg-black border border-[#2A2A2A] text-white text-sm placeholder:text-[#A0A0A0] focus:border-[#F97316] focus:outline-none"
+                            />
+                            {filteredCategories.length === 0 ? (
+                              <p className="text-[#A0A0A0] text-sm py-4 text-center">
+                                No categories match your search
+                              </p>
+                            ) : (
                             <div className="grid grid-cols-2 gap-3">
-                              {categories.map((cat) => {
+                              {filteredCategories.map((cat) => {
                                 const isSelected = formData.categoryIds.includes(cat.id);
                                 const isPrimary = formData.categoryIds[0] === cat.id;
                                 return (
@@ -1898,6 +1945,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                                 );
                               })}
                             </div>
+                            )}
                             {formData.categoryIds?.length > 0 && (
                               <p className="mt-2 text-[#ffcc99]/70 text-xs">
                                 Selected: {formData.categoryIds.length}/10
@@ -2261,47 +2309,77 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                   </div>
 
                   {wizardStep === 4 && (
-                  <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (hasFormChanges()) setShowCancelConfirm(true);
-                        else router.push('/seller/products');
-                      }}
-                      disabled={loading}
-                      className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-[#1a1a1a] border border-[#2A2A2A] text-[#ffcc99] font-medium hover:bg-[#222] hover:border-[#444444] transition-all disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <div className="flex-1 relative group/submit">
+                  <div className="flex flex-col gap-3 pt-2">
+                    {productImages.length === 0 && (
+                      <p className="text-amber-400/90 text-xs flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        Add an image to publish this listing
+                      </p>
+                    )}
+                    <div className="flex flex-col-reverse sm:flex-row gap-3">
                       <button
-                        type="submit"
-                        disabled={loading || !isFormValid()}
-                        className="w-full h-[52px] rounded-xl bg-gradient-to-r from-[#F97316] to-[#c2410c] text-white font-bold hover:from-[#ea580c] hover:to-[#F97316] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        type="button"
+                        onClick={() => {
+                          if (hasFormChanges()) setShowCancelConfirm(true);
+                          else router.push('/seller/products');
+                        }}
+                        disabled={loading}
+                        className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-[#1a1a1a] border border-[#2A2A2A] text-[#ffcc99] font-medium hover:bg-[#222] hover:border-[#444444] transition-all disabled:opacity-50"
                       >
-                        {loading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            {variant === 'edit'
-                              ? 'Saving...'
-                              : mode === 'wholesale'
-                                ? 'Publishing Wholesale Product...'
-                                : 'Creating Product...'}
-                          </>
-                        ) : (
-                          <>
-                            <Check className="w-5 h-5" />
-                            {variant === 'edit'
-                              ? 'Save changes'
-                              : mode === 'wholesale'
-                                ? 'Publish Wholesale Product'
-                                : 'Publish Product'}
-                          </>
-                        )}
+                        Cancel
                       </button>
-                      {!loading && !isFormValid() && (
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#222] border border-[#2A2A2A] rounded-lg text-xs text-[#ffcc99] whitespace-nowrap opacity-0 group-hover/submit:opacity-100 pointer-events-none transition-opacity z-10">
-                          Complete required fields to continue
+                      <button
+                        type="button"
+                        disabled={loading || !isDraftSaveValid()}
+                        onClick={() => {
+                          publishIntentRef.current = false;
+                          handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+                        }}
+                        className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-[#1a1a1a] border border-[#2A2A2A] text-[#ffcc99] font-medium hover:bg-[#222] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                      >
+                        {loading && !publishIntentRef.current ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : null}
+                        {variant === 'edit' ? 'Save changes' : 'Save draft'}
+                      </button>
+                      {(variant === 'create' || productStatus === 'DRAFT') && (
+                        <div className="flex-1 relative group/submit">
+                          <button
+                            type="submit"
+                            disabled={loading || !isPublishValid()}
+                            onClick={() => {
+                              publishIntentRef.current = true;
+                            }}
+                            className="w-full h-[52px] rounded-xl bg-gradient-to-r from-[#F97316] to-[#c2410c] text-white font-bold hover:from-[#ea580c] hover:to-[#F97316] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          >
+                            {loading && publishIntentRef.current ? (
+                              <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                {mode === 'wholesale'
+                                  ? 'Submitting...'
+                                  : 'Submitting...'}
+                              </>
+                            ) : (
+                              <>
+                                <Check className="w-5 h-5" />
+                                {variant === 'edit'
+                                  ? 'Submit for review'
+                                  : mode === 'wholesale'
+                                    ? 'Publish Wholesale Product'
+                                    : 'Publish Product'}
+                              </>
+                            )}
+                          </button>
+                          {!loading && !isPublishValid() && isDraftSaveValid() && !stepImagesOk() && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#222] border border-[#2A2A2A] rounded-lg text-xs text-[#ffcc99] whitespace-nowrap opacity-0 group-hover/submit:opacity-100 pointer-events-none transition-opacity z-10">
+                              Add an image to publish this listing
+                            </div>
+                          )}
+                          {!loading && !isDraftSaveValid() && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#222] border border-[#2A2A2A] rounded-lg text-xs text-[#ffcc99] whitespace-nowrap opacity-0 group-hover/submit:opacity-100 pointer-events-none transition-opacity z-10">
+                              Complete required fields to continue
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

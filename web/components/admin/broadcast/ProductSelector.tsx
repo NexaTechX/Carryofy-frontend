@@ -5,6 +5,7 @@ import { fetchBroadcastProducts } from '../../../lib/admin/api';
 import { useQuery } from '@tanstack/react-query';
 import { useAdminCategories } from '../../../lib/admin/hooks/useCategories';
 import { LoadingState } from '../ui';
+import RemoteImage from '../../common/RemoteImage';
 
 interface ProductSelectorProps {
   selected: string[];
@@ -167,9 +168,11 @@ export default function ProductSelector({
                   <Square className="h-4 w-4 flex-shrink-0 text-gray-600" />
                 )}
                 {product.images?.[0] ? (
-                  <img
+                  <RemoteImage
                     src={product.images[0]}
                     alt=""
+                    width={48}
+                    height={48}
                     className="h-12 w-12 rounded-lg object-cover"
                   />
                 ) : (

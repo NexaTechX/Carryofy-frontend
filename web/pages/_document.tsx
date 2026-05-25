@@ -40,18 +40,10 @@ export default function Document() {
         <link rel="mask-icon" href="/logo.png" color="#ff6600" />
 
         {/* Preconnect for Performance */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://www.google-analytics.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <link rel="dns-prefetch" href="https://images.pexels.com" />
-
-        {/* Google Fonts - Preload critical fonts */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
-          rel="stylesheet"
-        />
 
         {/* Additional SEO Meta Tags */}
         <meta name="referrer" content="origin-when-cross-origin" />

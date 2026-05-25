@@ -1,3 +1,4 @@
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
@@ -14,7 +15,10 @@ import { Star, MessageSquare, Trash2, User, RefreshCw, CheckCircle2, Download, F
 import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 import { formatDateTime } from '../../lib/api/utils';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+const FeedbackSentimentDonut = dynamic(
+  () => import('../../components/admin/charts/FeedbackSentimentDonut'),
+  { ssr: false, loading: () => <div className="h-[140px] w-full animate-pulse rounded-lg bg-[#1a1a1a]" /> },
+);
 
 const FEEDBACK_FILTERS: Array<{ id: 'all' | string; label: string }> = [
   { id: 'all', label: 'All Feedback' },
@@ -342,51 +346,7 @@ export default function AdminFeedback() {
             <AdminCard className="flex flex-col">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Sentiment</p>
               <div className="mt-2 flex flex-1 min-h-[140px] items-center">
-                {sentimentData.length === 0 ? (
-                  <p className="text-sm text-gray-500">No data</p>
-                ) : (
-                  <ResponsiveContainer width="100%" height={140}>
-                    <PieChart>
-                      <Pie
-                        data={sentimentData}
-                        dataKey="value"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={36}
-                        outerRadius={52}
-                        paddingAngle={2}
-                        stroke="transparent"
-                      >
-                        {sentimentData.map((entry, i) => (
-                          <Cell key={i} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#111',
-                          border: '1px solid #2a2a2a',
-                          borderRadius: 8,
-                          color: '#fff',
-                          fontSize: 12,
-                        }}
-                        formatter={(value: number, name: string) => [`${value}`, name]}
-                      />
-                      <Legend
-                        layout="vertical"
-                        align="right"
-                        verticalAlign="middle"
-                        formatter={(value, entry: { payload?: { value?: number } }) => (
-                          <span className="text-xs text-gray-400">
-                            {value} {typeof entry?.payload?.value === 'number' ? `(${entry.payload.value})` : ''}
-                          </span>
-                        )}
-                        iconSize={8}
-                        iconType="circle"
-                        wrapperStyle={{ fontSize: 11 }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
+                <FeedbackSentimentDonut data={sentimentData} />
               </div>
             </AdminCard>
           </div>

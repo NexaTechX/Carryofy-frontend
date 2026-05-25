@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -54,10 +55,12 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [logoSrc, setLogoSrc] = useState(LOGO_SRC);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -140,6 +143,12 @@ export default function Login() {
 
       setError(message);
       showErrorToast(message);
+      const isInvalidCredentials =
+        message === 'Invalid email or password' ||
+        message.toLowerCase().includes('invalid email or password');
+      if (isInvalidCredentials) {
+        setValue('password', '', { shouldValidate: false });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -186,16 +195,14 @@ export default function Login() {
         <header className="bg-white shadow-sm">
           <nav className="container mx-auto px-4 py-4">
             <Link href="/" className="flex items-center space-x-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={LOGO_SRC}
+              <Image
+                src={logoSrc}
                 alt="Carryofy Logo"
                 width={32}
                 height={32}
-                className="w-8 h-8 object-contain"
-                onError={(e) => {
-                  const target = e.currentTarget;
-                  if (target.src !== LOGO_FALLBACK) target.src = LOGO_FALLBACK;
+                className="h-8 w-8 object-contain"
+                onError={() => {
+                  if (logoSrc !== LOGO_FALLBACK) setLogoSrc(LOGO_FALLBACK);
                 }}
               />
               <span className="text-2xl font-bold text-black">Carryofy</span>

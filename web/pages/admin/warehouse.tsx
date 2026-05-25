@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../components/admin/AdminLayout';
+import RemoteImage from '../../components/common/RemoteImage';
 import {
   AdminCard,
   AdminDrawer,
@@ -74,7 +75,7 @@ function InventoryRow({
       <DataTableCell className="w-12">
         <div className="relative h-10 w-10 rounded-lg border border-[#2a2a2a] bg-[#151515] overflow-hidden flex items-center justify-center">
           {item.imageUrl ? (
-            <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
+            <RemoteImage src={item.imageUrl} alt="" fill className="object-cover" sizes="40px" />
           ) : (
             <span className="text-lg text-gray-500" aria-hidden>📦</span>
           )}

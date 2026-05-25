@@ -1,6 +1,7 @@
 import { X, ShoppingCart, Star, Package } from 'lucide-react';
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
+import RemoteImage from '../common/RemoteImage';
 
 interface Product {
   id: string;
@@ -133,12 +134,14 @@ function ProductComparison({ products, onRemove, onClear }: ProductComparisonPro
                     </button>
                     <div className="clear-both">
                       {/* Product Image */}
-                      <div className="aspect-square bg-black rounded-lg overflow-hidden mb-3">
+                      <div className="relative mb-3 aspect-square overflow-hidden rounded-lg bg-black">
                         {product.images && product.images.length > 0 ? (
-                          <img
+                          <RemoteImage
                             src={product.images[0]}
                             alt={product.title}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 50vw, 200px"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-[#ffcc99]/50">

@@ -2,8 +2,8 @@ import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth';
 import type { User, UserRole } from '../../lib/auth';
-import { fetchAdminProfile } from '../../lib/admin/api';
-import { LoadingState } from '../admin/ui';
+import { fetchAdminProfile } from '../../lib/admin/fetchAdminProfile';
+import { LoadingState } from '../admin/ui/LoadingState';
 import NotFound from '../common/NotFound';
 
 type GuardState = 'idle' | 'checking' | 'authorized' | 'notFound';

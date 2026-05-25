@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import AdminLayout from '../../components/admin/AdminLayout';
+import RemoteImage from '../../components/common/RemoteImage';
 import {
   AdminCard,
   AdminDrawer,
@@ -49,10 +50,12 @@ function DocThumb({ label, url }: { label: string; url: string | null | undefine
         rel="noopener noreferrer"
         className="group flex items-center gap-2 text-sm text-amber-500 hover:text-amber-400"
       >
-        <img
+        <RemoteImage
           src={url}
           alt={label}
-          className="h-28 max-w-full rounded-lg border border-zinc-700 object-contain bg-zinc-900"
+          width={280}
+          height={112}
+          className="h-28 max-w-full rounded-lg border border-zinc-700 bg-zinc-900 object-contain"
         />
         <ExternalLink className="h-4 w-4 shrink-0 opacity-70 group-hover:opacity-100" />
       </a>

@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
+import RemoteImage from '../../components/common/RemoteImage';
 import {
   AdminCard,
   AdminDrawer,
@@ -856,11 +857,13 @@ export default function AdminReviews() {
           {detailItem && !isRiderDetail && (
             <div className="space-y-6">
               {reviewDetail?.productImage && (
-                <div className="overflow-hidden rounded-lg">
-                  <img
+                <div className="relative h-48 w-full overflow-hidden rounded-lg">
+                  <RemoteImage
                     src={reviewDetail.productImage}
                     alt={detailItem.productTitle}
-                    className="h-48 w-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 400px"
                   />
                 </div>
               )}

@@ -1,6 +1,11 @@
+import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { DeliveryMapModal } from '../../components/admin/DeliveryMapModal';
+
+const DeliveryMapModal = dynamic(
+  () => import('../../components/admin/DeliveryMapModal').then((m) => m.DeliveryMapModal),
+  { ssr: false },
+);
 import { IssueResolutionModal } from '../../components/admin/IssueResolutionModal';
 import {
   AdminCard,

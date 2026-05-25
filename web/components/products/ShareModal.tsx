@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, Copy, Check, Share2, MessageCircle, Twitter, Facebook, Instagram, ShoppingCart } from 'lucide-react';
+import RemoteImage from '../common/RemoteImage';
 import { shareProduct } from '../../lib/api/sharing';
 import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
 import { useAuth } from '../../lib/auth';
@@ -132,12 +133,13 @@ export default function ShareModal({
           <div className="mb-6 rounded-xl border border-[#ff6600]/20 overflow-hidden bg-[#0a0a0a]">
             <div className="flex gap-4 p-4">
               {resolvedProductImage && (
-                <div className="relative w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-[#1a1a1a]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[#1a1a1a]">
+                  <RemoteImage
                     src={resolvedProductImage}
                     alt={productTitle}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="80px"
                   />
                 </div>
               )}

@@ -57,6 +57,7 @@ export default function EditProductPage() {
           sellingMode: data.sellingMode,
           moq: data.moq,
           priceTiers: data.priceTiers,
+          status: data.status,
         });
       } catch (e) {
         console.error('Error fetching product:', e);

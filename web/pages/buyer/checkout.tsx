@@ -2,6 +2,7 @@ import Head from 'next/head';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
+import RemoteImage from '../../components/common/RemoteImage';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
 import {
@@ -1048,9 +1049,9 @@ export default function CheckoutPage() {
                               const lineTotal = item.requestedQuantity * unitKobo;
                               return (
                                 <div key={item.id} className="flex gap-4 items-center py-3 border-b border-[#ff6600]/20 last:border-0">
-                                  <div className="w-14 h-14 rounded-lg overflow-hidden bg-black shrink-0">
+                                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-black">
                                     {item.product?.images?.[0] ? (
-                                      <img src={item.product.images[0]} alt={item.product.title} className="w-full h-full object-cover" />
+                                      <RemoteImage src={item.product.images[0]} alt={item.product.title} fill className="object-cover" sizes="64px" />
                                     ) : (
                                       <div className="w-full h-full flex items-center justify-center text-[#ffcc99]"><Package className="w-6 h-6" /></div>
                                     )}
@@ -1066,9 +1067,9 @@ export default function CheckoutPage() {
                           ) : (
                             cart?.items.map((item) => (
                               <div key={item.id} className="flex gap-4 items-center py-3 border-b border-[#ff6600]/20 last:border-0">
-                                <div className="w-14 h-14 rounded-lg overflow-hidden bg-black shrink-0">
+                                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-black">
                                   {item.product.images?.[0] ? (
-                                    <img src={item.product.images[0]} alt={item.product.title} className="w-full h-full object-cover" />
+                                    <RemoteImage src={item.product.images[0]} alt={item.product.title} fill className="object-cover" sizes="64px" />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center text-[#ffcc99]"><Package className="w-6 h-6" /></div>
                                   )}
@@ -1717,9 +1718,9 @@ export default function CheckoutPage() {
                           <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
                             {cart?.items.map((item) => (
                               <div key={item.id} className="flex gap-3 items-center py-2 border-b border-[#ff6600]/20 last:border-0">
-                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-black shrink-0">
+                                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-black">
                                   {item.product.images?.[0] ? (
-                                    <img src={item.product.images[0]} alt={item.product.title} className="w-full h-full object-cover" />
+                                    <RemoteImage src={item.product.images[0]} alt={item.product.title} fill className="object-cover" sizes="64px" />
                                   ) : <div className="w-full h-full flex items-center justify-center text-[#ffcc99]"><Package className="w-5 h-5" /></div>}
                                 </div>
                                 <div className="flex-1 min-w-0">

@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import useSWR, { useSWRConfig } from 'swr';
 import { io } from 'socket.io-client';
 import AdminLayout from '../../components/admin/AdminLayout';
+import RemoteImage from '../../components/common/RemoteImage';
 import {
   AdminCard,
   AdminDrawer,
@@ -956,8 +957,7 @@ export default function AdminSafetyPage() {
                       onClick={() => setPhotoZoom(url)}
                       className="relative h-20 w-20 overflow-hidden rounded-lg border border-zinc-700"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt="" className="h-full w-full object-cover" />
+                      <RemoteImage src={url} alt="" fill className="object-cover" sizes="80px" />
                     </button>
                   ))}
                 </div>
@@ -1016,8 +1016,13 @@ export default function AdminSafetyPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           onClick={() => setPhotoZoom(null)}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photoZoom} alt="" className="max-h-[90vh] max-w-full object-contain" />
+          <RemoteImage
+            src={photoZoom}
+            alt=""
+            width={1200}
+            height={900}
+            className="max-h-[90vh] max-w-full h-auto w-auto object-contain"
+          />
         </button>
       )}
     </AdminLayout>

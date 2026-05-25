@@ -8,6 +8,7 @@ import { useAuth, tokenManager } from '../../../lib/auth';
 import { getApiBaseUrl } from '../../../lib/api/utils';
 import { apiClient } from '../../../lib/api/client';
 import Link from 'next/link';
+import RemoteImage from '../../../components/common/RemoteImage';
 import { useConfirmation } from '../../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 import { resolveSellerKycStatus } from '../../../lib/seller/kyc-status';
@@ -32,11 +33,12 @@ interface Product {
   };
 }
 
-type StatusFilter = 'all' | 'ACTIVE' | 'INACTIVE' | 'PENDING_APPROVAL' | 'REJECTED';
+type StatusFilter = 'all' | 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'PENDING_APPROVAL' | 'REJECTED';
 type SortBy = 'newest' | 'price' | 'stock';
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'All statuses' },
+  { value: 'DRAFT', label: 'Draft' },
   { value: 'ACTIVE', label: 'Active' },
   { value: 'INACTIVE', label: 'Inactive' },
   { value: 'PENDING_APPROVAL', label: 'Pending Review' },
@@ -176,6 +178,7 @@ export default function ProductsPage() {
     const isActive = status === 'ACTIVE';
     const isPendingApproval = status === 'PENDING_APPROVAL';
     const labels: Record<string, string> = {
+      DRAFT: 'Draft',
       ACTIVE: 'Active',
       INACTIVE: 'Inactive',
       PENDING_APPROVAL: 'Pending Review',
@@ -343,7 +346,6 @@ export default function ProductsPage() {
         <meta name="description" content="Manage your products on Carryofy." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
-        <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500&display=swap" rel="stylesheet" />
       </Head>
       <SellerLayout>
         <div className="min-h-full">
@@ -647,12 +649,14 @@ export default function ProductsPage() {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#111111] border border-[#2A2A2A] flex-shrink-0">
+                              <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-[#2A2A2A] bg-[#111111]">
                                 {product.images?.[0] ? (
-                                  <img
+                                  <RemoteImage
                                     src={product.images[0]}
                                     alt={product.title}
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    className="object-cover"
+                                    sizes="40px"
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center">
@@ -773,12 +777,14 @@ export default function ProductsPage() {
                   return (
                     <div key={product.id} className="p-4">
                       <div className="flex gap-4">
-                        <div className="w-14 h-14 rounded-lg overflow-hidden bg-[#111111] border border-[#2A2A2A] flex-shrink-0">
+                        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-[#2A2A2A] bg-[#111111]">
                           {product.images?.[0] ? (
-                            <img
+                            <RemoteImage
                               src={product.images[0]}
                               alt={product.title}
-                              className="w-full h-full object-cover"
+                              fill
+                              className="object-cover"
+                              sizes="56px"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">

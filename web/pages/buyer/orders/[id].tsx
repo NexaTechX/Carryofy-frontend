@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState, ReactElement } from 'react';
 import Link from 'next/link';
 import BuyerLayout from '../../../components/buyer/BuyerLayout';
+import RemoteImage from '../../../components/common/RemoteImage';
 import apiClient from '../../../lib/api/client';
 import { AxiosError } from 'axios';
 import {
@@ -648,12 +649,14 @@ export default function BuyerOrderDetailPage() {
                     <div className="space-y-4">
                       {order.items.map((item) => (
                         <div key={item.id} className="flex gap-4 items-start">
-                          <div className="w-20 h-20 rounded-lg overflow-hidden bg-black flex-shrink-0">
+                          <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-black">
                             {item.product.images?.[0] ? (
-                              <img
+                              <RemoteImage
                                 src={item.product.images[0]}
                                 alt={item.product.title}
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
+                                sizes="80px"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-[#ffcc99]">

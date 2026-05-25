@@ -255,10 +255,6 @@ export default function SEO({
       <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       <link rel="manifest" href="/site.webmanifest" />
 
-      {/* Preconnect for performance */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-
       {/* DNS Prefetch for external resources */}
       <link rel="dns-prefetch" href="https://www.google-analytics.com" />
       <link rel="dns-prefetch" href="https://www.googletagmanager.com" />

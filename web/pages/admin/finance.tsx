@@ -1,3 +1,4 @@
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
@@ -26,8 +27,12 @@ import {
 import { useAdminRefunds } from '../../lib/admin/hooks/useRefunds';
 import { AdminPayout, ProcessPayoutPayload, PayoutStatus, type ReportsQueryParams } from '../../lib/admin/types';
 import { formatNgnFromKobo } from '../../lib/api/utils';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Search, Calendar } from 'lucide-react';
+
+const FinanceSummaryDonut = dynamic(
+  () => import('../../components/admin/charts/FinanceSummaryDonut'),
+  { ssr: false, loading: () => <div className="h-full w-full animate-pulse rounded-lg bg-[#1a1a1a]" /> },
+);
 import { toast } from 'react-hot-toast';
 
 const payoutStatusTone: Record<PayoutStatus, 'warning' | 'success' | 'danger' | 'neutral'> = {
@@ -414,51 +419,7 @@ export default function AdminFinance() {
                   Finance Summary
                 </h3>
                 <div className="mt-3 h-[180px] w-full">
-                  {financeSummaryDonut.length === 0 ? (
-                    <p className="flex h-full items-center justify-center text-xs text-gray-500">No data yet</p>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={financeSummaryDonut}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={42}
-                          outerRadius={64}
-                          paddingAngle={2}
-                          stroke="transparent"
-                        >
-                          {financeSummaryDonut.map((entry, i) => (
-                            <Cell key={i} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: '#111',
-                            border: '1px solid #2a2a2a',
-                            borderRadius: 8,
-                            color: '#fff',
-                            fontSize: 12,
-                          }}
-                          formatter={(value: number, name: string) => [
-                            formatNgnFromKobo(value),
-                            name,
-                          ] as [string, string]}
-                        />
-                        <Legend
-                          layout="vertical"
-                          align="right"
-                          verticalAlign="middle"
-                          formatter={(value) => <span className="text-xs text-gray-400">{value}</span>}
-                          iconSize={8}
-                          iconType="circle"
-                          wrapperStyle={{ fontSize: 11 }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
+                  <FinanceSummaryDonut data={financeSummaryDonut} />
                 </div>
               </aside>
             </div>

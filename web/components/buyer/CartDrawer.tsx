@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { X, ShoppingCart, Trash2, Plus, Minus, Package, ArrowRight, ShoppingBag } from 'lucide-react';
 import { useCart } from '../../lib/contexts/CartContext';
+import RemoteImage from '../common/RemoteImage';
 
 export default function CartDrawer() {
   const router = useRouter();
@@ -150,12 +151,14 @@ export default function CartDrawer() {
                           <div className="flex gap-4">
                             {/* Product Image */}
                             <div className="flex-shrink-0">
-                              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-black rounded-lg overflow-hidden">
+                              <div className="relative h-20 w-20 overflow-hidden rounded-lg bg-black sm:h-24 sm:w-24">
                                 {item.product.images && item.product.images.length > 0 ? (
-                                  <img
+                                  <RemoteImage
                                     src={item.product.images[0]}
                                     alt={item.product.title}
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    className="object-cover"
+                                    sizes="96px"
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-[#ffcc99]">

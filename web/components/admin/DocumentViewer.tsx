@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { useState } from 'react';
 import { ZoomIn, ZoomOut, Download, X, FileText, ExternalLink } from 'lucide-react';
 
@@ -130,10 +131,13 @@ export default function DocumentViewer({
               </a>
             </div>
           ) : (
-            <img
+            <Image
               src={url}
               alt={title}
-              className="w-full h-auto max-h-64 object-contain"
+              width={400}
+              height={256}
+              unoptimized
+              className="h-auto max-h-64 w-full object-contain"
               onError={() => handleImageError(url)}
             />
           )}
@@ -261,10 +265,13 @@ export default function DocumentViewer({
                 <Download className="w-5 h-5 text-white" />
               </button>
             </div>
-            <img
+            <Image
               src={selectedImage}
               alt="Document"
-              className="max-w-full max-h-[80vh] object-contain"
+              width={1200}
+              height={900}
+              unoptimized
+              className="max-h-[80vh] max-w-full object-contain"
               style={{ transform: `scale(${zoom})` }}
               onClick={(e) => e.stopPropagation()}
             />

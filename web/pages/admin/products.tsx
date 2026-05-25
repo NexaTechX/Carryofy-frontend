@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
+import RemoteImage from '../../components/common/RemoteImage';
 import {
   AdminCard,
   AdminDrawer,
@@ -587,9 +588,9 @@ export default function AdminProducts() {
                             />
                           </DataTableCell>
                           <DataTableCell className="w-16" onClick={(e) => e.stopPropagation()}>
-                            <div className="h-12 w-12 rounded-lg border border-[#2a2a2a] bg-[#151515] overflow-hidden flex items-center justify-center shrink-0">
+                            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#2a2a2a] bg-[#151515]">
                               {product.images?.[0] ? (
-                                <img src={product.images[0]} alt="" className="h-full w-full object-cover" />
+                                <RemoteImage src={product.images[0]} alt="" fill className="object-cover" sizes="48px" />
                               ) : (
                                 <span className="text-lg text-gray-500" aria-hidden>📦</span>
                               )}

@@ -12,6 +12,7 @@ import { initAnalytics } from '../lib/firebase/config';
 import posthog from 'posthog-js';
 import { PostHogProvider } from 'posthog-js/react';
 import { useRouter } from 'next/router';
+import { fontClassNames } from '../lib/fonts';
 
 // PostHog initializes in instrumentation-client.ts (Next.js client bundle entry).
 
@@ -57,6 +58,7 @@ export default function App({ Component, pageProps }: AppProps) {
   }, []);
 
   return (
+    <div className={fontClassNames}>
     <PostHogProvider client={posthog}>
     <QueryClientProvider client={queryClient}>
 
@@ -127,6 +129,7 @@ export default function App({ Component, pageProps }: AppProps) {
       </Toaster>
     </QueryClientProvider>
     </PostHogProvider>
+    </div>
   );
 }
 

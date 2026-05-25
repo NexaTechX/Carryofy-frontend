@@ -4,6 +4,7 @@ import type { CreateBroadcastPayload, BroadcastProductOption } from '../../../li
 import { fetchBroadcastProducts } from '../../../lib/admin/api';
 import { useQuery } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
+import RemoteImage from '../../common/RemoteImage';
 
 interface BroadcastPreviewProps {
   payload: Partial<CreateBroadcastPayload>;
@@ -175,11 +176,15 @@ export default function BroadcastPreview({ payload, products = [] }: BroadcastPr
                   {displayProducts.slice(0, 4).map((product) => (
                     <div key={product.id} className="border rounded-lg p-3">
                       {product.images?.[0] && (
-                        <img
-                          src={product.images[0]}
-                          alt={product.title}
-                          className="w-full h-32 object-cover rounded mb-2"
-                        />
+                        <div className="relative mb-2 h-32 w-full overflow-hidden rounded">
+                          <RemoteImage
+                            src={product.images[0]}
+                            alt={product.title}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 640px) 50vw, 200px"
+                          />
+                        </div>
                       )}
                       <h4 className="font-medium text-sm">{product.title}</h4>
                       {product.price && (

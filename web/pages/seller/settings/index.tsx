@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import SellerLayout from '../../../components/seller/SellerLayout';
+import RemoteImage from '../../../components/common/RemoteImage';
 import { useAuth, tokenManager, userManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
 import { resolveSellerKycStatus } from '../../../lib/seller/kyc-status';
@@ -1483,10 +1484,12 @@ export default function SettingsPage() {
                             <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:gap-6">
                               <div className="relative mx-auto flex aspect-square w-full max-w-[200px] shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-[#2A2A2A] bg-black sm:mx-0 sm:w-[200px] sm:max-w-none">
                                 {businessForm.logo ? (
-                                  <img
+                                  <RemoteImage
                                     src={businessForm.logo}
                                     alt="Business Logo"
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    className="object-cover"
+                                    sizes="200px"
                                   />
                                 ) : (
                                   <div className="text-center p-2">

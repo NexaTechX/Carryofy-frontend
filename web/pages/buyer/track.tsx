@@ -6,6 +6,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { io, Socket } from 'socket.io-client';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
+import RemoteImage from '../../components/common/RemoteImage';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
 import { formatDateTime, formatNgnFromKobo } from '../../lib/api/utils';
@@ -505,9 +506,9 @@ export default function TrackOrderPage() {
                 {/* Order Summary Card */}
                 <div className="rounded-xl border border-[#ff6600]/30 bg-[#1a1a1a] p-5 md:p-6">
                   <div className="flex gap-4">
-                    <div className="w-20 h-20 rounded-lg bg-black/60 border border-[#ff6600]/20 shrink-0 overflow-hidden flex items-center justify-center">
+                    <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#ff6600]/20 bg-black/60">
                       {order.items[0]?.product?.images?.[0] ? (
-                        <img src={order.items[0].product.images[0]} alt="" className="w-full h-full object-cover" />
+                        <RemoteImage src={order.items[0].product.images[0]} alt="" fill className="object-cover" sizes="80px" />
                       ) : (
                         <Package className="w-8 h-8 text-[#ffcc99]/50" />
                       )}

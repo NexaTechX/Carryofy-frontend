@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import StockPhoto from '../common/StockPhoto';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -69,12 +70,15 @@ export default function BuyerCategoryCoverMedia({
   }
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {/* eslint-disable-next-line @next/next/no-img-element -- admin-provided URLs may use hosts outside next/image remotePatterns */}
-      <img
+      <Image
         key={effectiveSrc}
         src={effectiveSrc}
         alt={alt}
-        className={`h-full w-full object-cover ${className}`}
+        fill
+        unoptimized
+        className={`object-cover ${className}`}
+        sizes={sizes}
+        priority={priority}
         draggable={false}
         onError={handleError}
       />

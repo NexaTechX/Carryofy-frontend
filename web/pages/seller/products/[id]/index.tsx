@@ -303,10 +303,6 @@ export default function ProductDetailPage() {
         <meta name="description" content={product.description || `View ${product.title} details`} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;0,600&display=swap"
-          rel="stylesheet"
-        />
       </Head>
       <SellerLayout>
         <div

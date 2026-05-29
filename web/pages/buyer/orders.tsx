@@ -6,6 +6,8 @@ import Image from 'next/image';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
+import { parseOrdersList } from '../../lib/api/orders';
+import { unwrapAxiosBody } from '../../lib/api/normalizeResponse';
 import {
   Package,
   Truck,
@@ -220,14 +222,8 @@ export default function OrdersPage() {
       setLoading(true);
       setError(null);
       const response = await apiClient.get('/orders');
-      const responseData = response.data.data || response.data;
-      if (responseData?.orders && Array.isArray(responseData.orders)) {
-        setOrders(responseData.orders);
-      } else if (Array.isArray(responseData)) {
-        setOrders(responseData);
-      } else {
-        setOrders([]);
-      }
+      const responseData = unwrapAxiosBody<unknown>(response.data);
+      setOrders(parseOrdersList(responseData) as Order[]);
     } catch (err: any) {
       console.error('Error fetching orders:', err);
       setError(err.response?.data?.message || 'Failed to load orders');

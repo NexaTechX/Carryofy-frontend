@@ -9,7 +9,10 @@ import { Plus, Share2, Eye, Rocket } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useAuth, tokenManager } from '../../lib/auth';
-import { getApiBaseUrl, getApiUrl, formatNgnFromKobo } from '../../lib/api/utils';
+import { formatNgnFromKobo } from '../../lib/api/utils';
+import { sellerGet } from '../../lib/seller/http';
+import { parseSellerOrdersList } from '../../lib/seller/orders';
+import { unwrapSellerMePayload } from '../../lib/seller/onboarding';
 import { resolveSellerKycStatus } from '../../lib/seller/kyc-status';
 import { formatSellerPayoutLabel } from '../../lib/seller/order-payout';
 
@@ -80,18 +83,13 @@ export default function SellerDashboard() {
     const loadRecent = async () => {
       setRecentLoading(true);
       try {
-        const token = tokenManager.getAccessToken();
-        if (!token) return;
-        const res = await fetch(getApiUrl('/orders'), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
+        if (!tokenManager.getAccessToken()) return;
+        const data = await sellerGet<unknown>('/orders');
+        if (!data) {
           setRecentOrders([]);
           return;
         }
-        const result = await res.json();
-        const data = result.data || result;
-        const orders = Array.isArray(data?.orders) ? data.orders : Array.isArray(data) ? data : [];
+        const orders = parseSellerOrdersList(data);
         const rows: RecentOrderRow[] = orders.slice(0, 3).map((o: any) => {
           const first = o.items?.[0];
           const product = first?.product;
@@ -119,43 +117,19 @@ export default function SellerDashboard() {
   }, [isAuthenticated, user]);
 
   const fetchKycStatus = async () => {
-    try {
-      const token = tokenManager.getAccessToken();
-      const apiUrl = getApiBaseUrl();
-
-      const response = await fetch(`${apiUrl}/sellers/kyc`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const responseData = data.data || data;
-        setKycStatus(
-          resolveSellerKycStatus(responseData.status, responseData.kyc),
-        );
-      }
-    } catch (error) {
-      console.error('Error fetching KYC status:', error);
+    const kyc = await sellerGet<{ status?: string; kyc?: Parameters<typeof resolveSellerKycStatus>[1] }>(
+      '/sellers/kyc',
+    );
+    if (kyc) {
+      setKycStatus(resolveSellerKycStatus(kyc.status, kyc.kyc));
     }
   };
 
   const fetchSellerProfile = async () => {
-    try {
-      const token = tokenManager.getAccessToken();
-      const apiUrl = getApiBaseUrl();
-
-      const response = await fetch(`${apiUrl}/sellers/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        const seller = result.data || result;
-        setSellerId(seller?.id ?? null);
-        setBusinessName(seller?.businessName ?? null);
-      }
-    } catch (error) {
-      console.error('Error fetching seller profile:', error);
+    const seller = unwrapSellerMePayload(await sellerGet('/sellers/me'));
+    if (seller) {
+      setSellerId(seller.id ?? null);
+      setBusinessName(seller.businessName ?? null);
     }
   };
 

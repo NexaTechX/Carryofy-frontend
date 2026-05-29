@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { tokenManager } from '../../lib/auth';
+import { sellerGet } from '../../lib/seller/http';
+import { parseSellerOrdersList } from '../../lib/seller/orders';
 import {
   Package,
   ShoppingCart,
@@ -74,101 +76,65 @@ export default function DashboardStats() {
 
   const fetchDashboardStats = async () => {
     try {
-      const token = tokenManager.getAccessToken();
-      if (!token) {
+      if (!tokenManager.getAccessToken()) {
         setLoading(false);
         return;
       }
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      // Fetch dashboard KPIs, payouts, reports, seller product count, seller stats (pending quotes), and B2B orders
       const [
-        dashboardResponse,
-        payoutRequestsResponse,
-        salesTrendResponse,
-        orderDistributionResponse,
-        productCountResponse,
-        sellerStatsResponse,
-        ordersB2BResponse,
+        dashboardData,
+        payoutRequestsList,
+        salesTrendData,
+        orderDistributionData,
+        productCountData,
+        sellerStatsData,
+        ordersB2BData,
       ] = await Promise.all([
-        fetch(`${apiUrl}/reports/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${apiUrl}/payouts/requests`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${apiUrl}/reports/sales-trend`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${apiUrl}/reports/order-distribution`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${apiUrl}/reports/seller-product-count`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${apiUrl}/sellers/me/stats`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${apiUrl}/orders?orderType=B2B`, { headers: { Authorization: `Bearer ${token}` } }),
+        sellerGet<Record<string, unknown>>('/reports/dashboard'),
+        sellerGet<unknown[]>('/payouts/requests'),
+        sellerGet<Record<string, unknown>>('/reports/sales-trend'),
+        sellerGet<Record<string, unknown>>('/reports/order-distribution'),
+        sellerGet<Record<string, unknown>>('/reports/seller-product-count'),
+        sellerGet<Record<string, unknown>>('/sellers/me/stats'),
+        sellerGet<unknown>('/orders?orderType=B2B'),
       ]);
 
-      const dashboardJson =
-        dashboardResponse.ok ? await dashboardResponse.json().catch(() => null) : null;
-      const payoutRequestsJson = payoutRequestsResponse.ok ? await payoutRequestsResponse.json() : null;
-      const salesTrendJson = salesTrendResponse.ok ? await salesTrendResponse.json().catch(() => null) : null;
-      const orderDistributionJson = orderDistributionResponse.ok
-        ? await orderDistributionResponse.json().catch(() => null)
-        : null;
-      const productCountJson = productCountResponse.ok
-        ? await productCountResponse.json().catch(() => null)
-        : null;
-      const sellerStatsJson = sellerStatsResponse.ok
-        ? await sellerStatsResponse.json().catch(() => null)
-        : null;
-      const sellerStatsData = sellerStatsJson?.data ?? sellerStatsJson ?? {};
-      const pendingQuoteRequestsCount = Number(sellerStatsData.pendingQuoteRequestsCount) ?? 0;
-      const ordersB2BData = ordersB2BResponse.ok
-        ? await ordersB2BResponse.json().catch(() => ({ data: {}, orders: [] }))
-        : { orders: [] };
-      const b2bOrders = ordersB2BData?.orders ?? ordersB2BData?.data?.orders ?? [];
-      const b2bOrdersCount = Array.isArray(b2bOrders) ? b2bOrders.length : 0;
-
-      if (!dashboardResponse.ok) {
-        console.warn(
-          '[DashboardStats] Dashboard KPIs request failed:',
-          dashboardResponse.status,
-          dashboardResponse.statusText,
-        );
+      if (!dashboardData) {
+        console.warn('[DashboardStats] Dashboard KPIs request failed');
       }
 
-      // API wraps response in { data: DTO }; support both wrapped and raw
-      const dashboardData = dashboardJson?.data ?? dashboardJson ?? {};
-      const salesTrendData = salesTrendJson?.data ?? salesTrendJson ?? {};
-      const orderDistributionData = orderDistributionJson?.data ?? orderDistributionJson ?? {};
-      const payoutRequestsList = Array.isArray(payoutRequestsJson?.data || payoutRequestsJson)
-        ? (payoutRequestsJson?.data || payoutRequestsJson)
+      const pendingQuoteRequestsCount =
+        Number(sellerStatsData?.pendingQuoteRequestsCount) ?? 0;
+      const b2bOrders = parseSellerOrdersList(ordersB2BData);
+      const b2bOrdersCount = b2bOrders.length;
+
+      type PayoutRequestRow = { status?: string; amount?: number };
+      const payoutList: PayoutRequestRow[] = Array.isArray(payoutRequestsList)
+        ? (payoutRequestsList as PayoutRequestRow[])
         : [];
 
       const availableBalance =
-        Number(dashboardData.sellerAvailableBalanceKobo) ||
-        Number(dashboardData.availableBalance) ||
+        Number(dashboardData?.sellerAvailableBalanceKobo) ||
+        Number(dashboardData?.availableBalance) ||
         0;
 
       const pendingRequestStatuses = new Set(['REQUESTED', 'APPROVED', 'PROCESSING']);
-      const pendingPayoutRequests = payoutRequestsList.filter((r: any) => pendingRequestStatuses.has(r?.status));
+      const pendingPayoutRequests = payoutList.filter((r) =>
+        pendingRequestStatuses.has(r.status ?? ''),
+      );
       const pendingPayoutRequestsCount = pendingPayoutRequests.length;
       const pendingPayoutRequestsTotal = pendingPayoutRequests.reduce(
-        (sum: number, r: any) => sum + (r?.amount || 0),
+        (sum, r) => sum + (r.amount || 0),
         0,
       );
 
-      // Total products: from seller-product-count (same auth as sales-trend/order-distribution)
-      const productCountData = productCountJson?.data ?? productCountJson ?? {};
       const totalProducts =
-        Number(productCountData?.count) ??
-        Number(dashboardData.totalProducts) ??
-        0;
+        Number(productCountData?.count) ?? Number(dashboardData?.totalProducts) ?? 0;
 
-      // Prefer sales-trend and order-distribution (same data as the charts) so cards
-      // show correct numbers
       const totalOrders =
-        Number(orderDistributionData.total) ??
-        Number(dashboardData.totalOrders) ??
-        0;
+        Number(orderDistributionData?.total) ?? Number(dashboardData?.totalOrders) ?? 0;
       const totalRevenue =
-        Number(dashboardData.totalRevenue) ??
-        Number(salesTrendData.totalSales) ??
-        0;
+        Number(dashboardData?.totalRevenue) ?? Number(salesTrendData?.totalSales) ?? 0;
 
       setStats({
         totalProducts,
@@ -217,48 +183,56 @@ export default function DashboardStats() {
           <DollarSign className="h-3.5 w-3.5 text-orange-500" />
         </div>
         {compactVal(stats ? formatPrice(stats.totalRevenue) : '₦0.00')}
-        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Revenue</p>
+        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Total revenue</p>
       </div>
       <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
         <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
           <Wallet className="h-3.5 w-3.5 text-orange-500" />
         </div>
         {compactVal(stats ? formatPrice(stats.availableBalance) : '₦0.00')}
-        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Balance</p>
-        <p className="mt-0.5 text-[8px] text-emerald-500">Available</p>
+        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Available balance</p>
       </div>
       <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
         <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
           <Clock className="h-3.5 w-3.5 text-orange-500" />
         </div>
-        {compactVal(stats ? `${stats.pendingPayoutRequestsCount}` : '0')}
-        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Pending req.</p>
+        {compactVal(stats ? stats.pendingPayoutRequestsCount.toString() : '0')}
+        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Pending payouts</p>
       </div>
       <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
         <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
           <FileText className="h-3.5 w-3.5 text-orange-500" />
         </div>
-        {compactVal(stats ? String(stats.pendingQuoteRequestsCount ?? 0) : '0')}
-        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Pending quotes</p>
+        {compactVal(stats ? stats.pendingQuoteRequestsCount.toString() : '0')}
+        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Quote requests</p>
+      </div>
+      <div className="col-span-2 rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
+        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
+          <Building2 className="h-3.5 w-3.5 text-orange-500" />
+        </div>
+        {compactVal(stats ? stats.b2bOrdersCount.toString() : '0')}
+        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">B2B orders</p>
       </div>
     </div>
 
-    <div className="hidden gap-4 lg:grid lg:grid-cols-3">
+    {/* Desktop stat cards */}
+    <div className="hidden lg:grid lg:grid-cols-4 lg:gap-4">
       <StatCard
         title="Total Products"
         value={stats ? stats.totalProducts.toString() : '0'}
         loading={loading}
         icon={Package}
+        href="/seller/products"
       />
       <StatCard
         title="Total Orders"
         value={stats ? stats.totalOrders.toString() : '0'}
         loading={loading}
         icon={ShoppingCart}
+        href="/seller/orders"
       />
       <StatCard
         title="Total Revenue"
-        description="Your net from delivered orders (product payout)"
         value={stats ? formatPrice(stats.totalRevenue) : '₦0.00'}
         loading={loading}
         icon={DollarSign}
@@ -267,36 +241,37 @@ export default function DashboardStats() {
       <StatCard
         title="Available Balance"
         value={stats ? formatPrice(stats.availableBalance) : '₦0.00'}
-        description="From delivered orders; matches payout eligibility"
         loading={loading}
         icon={Wallet}
-        isRevenue
+        href="/seller/earnings"
       />
       <StatCard
-        title="Pending Requests"
-        value={stats ? `${stats.pendingPayoutRequestsCount}` : '0'}
-        description={stats ? `Total: ${formatPrice(stats.pendingPayoutRequestsTotal)}` : 'Total: ₦0.00'}
+        title="Pending Payouts"
+        value={stats ? stats.pendingPayoutRequestsCount.toString() : '0'}
+        description={
+          stats && stats.pendingPayoutRequestsTotal > 0
+            ? `${formatPrice(stats.pendingPayoutRequestsTotal)} awaiting`
+            : undefined
+        }
         loading={loading}
         icon={Clock}
-        isRevenue
+        href="/seller/earnings"
       />
       <StatCard
-        title="Pending Quotes"
-        value={stats ? String(stats.pendingQuoteRequestsCount ?? 0) : '0'}
-        description="Awaiting your response"
+        title="Quote Requests"
+        value={stats ? stats.pendingQuoteRequestsCount.toString() : '0'}
         loading={loading}
         icon={FileText}
         href="/seller/quotes"
       />
       <StatCard
         title="B2B Orders"
-        value={stats ? String(stats.b2bOrdersCount ?? 0) : '0'}
-        description="Bulk / business orders"
+        value={stats ? stats.b2bOrdersCount.toString() : '0'}
         loading={loading}
         icon={Building2}
+        href="/seller/orders?orderType=B2B"
       />
     </div>
     </>
   );
 }
-

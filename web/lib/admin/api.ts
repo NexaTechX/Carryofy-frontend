@@ -1,5 +1,5 @@
 import apiClient from '../api/client';
-import { normalizeResponse } from './normalizeResponse';
+import { normalizeResponse, unwrapApiEnvelope } from './normalizeResponse';
 import {
   AdminDashboardData,
   DashboardMetrics,
@@ -364,21 +364,12 @@ type AdminOrdersPagination = {
   totalPages: number;
 };
 
-function unwrapInterceptorEnvelope(raw: unknown): unknown {
-  if (!raw || typeof raw !== 'object') return raw;
-  const record = raw as Record<string, unknown>;
-  if ('data' in record && ('statusCode' in record || 'success' in record)) {
-    return record.data;
-  }
-  return raw;
-}
-
 /** Unwrap TransformInterceptor envelope and read one paginated orders page (same pattern as useAdminCustomers). */
 function parseOrdersListPage(raw: unknown): {
   orders: AdminOrder[];
   pagination?: AdminOrdersPagination;
 } {
-  const payload = unwrapInterceptorEnvelope(raw);
+  const payload = unwrapApiEnvelope(raw);
   const body = normalizeResponse<Record<string, unknown> | AdminOrder[]>(payload);
 
   if (Array.isArray(body)) {

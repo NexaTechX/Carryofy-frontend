@@ -1,4 +1,5 @@
 import apiClient from './client';
+import { unwrapAxiosBody } from './normalizeResponse';
 
 export type BannerPlacement = 'HERO' | 'SHOP' | 'BOTH';
 
@@ -53,15 +54,7 @@ export function defaultBuyerHeroCopy(): BuyerHeroCopy {
   };
 }
 
-function normalize<T>(response: unknown): T {
-  const obj = response as Record<string, unknown>;
-  if (obj?.data != null && typeof obj.data === 'object') {
-    return obj.data as T;
-  }
-  return response as T;
-}
-
 export async function getPublicBanners(): Promise<PublicBannersResponse> {
   const response = await apiClient.get('/banners/public');
-  return normalize<PublicBannersResponse>(response.data);
+  return unwrapAxiosBody<PublicBannersResponse>(response.data);
 }

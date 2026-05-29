@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { tokenManager } from '../../lib/auth';
+import { sellerGet } from '../../lib/seller/http';
 
 interface DistributionItem {
   status: string;
@@ -22,26 +23,12 @@ export default function OrderDistribution() {
 
   const fetchOrderDistribution = async () => {
     try {
-      const token = tokenManager.getAccessToken();
-      if (!token) {
+      if (!tokenManager.getAccessToken()) {
         setLoading(false);
         return;
       }
-
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      const response = await fetch(`${apiUrl}/reports/order-distribution`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        const data = result.data || result;
-        setDistributionData(data);
-      }
+      const data = await sellerGet<OrderDistributionResponse>('/reports/order-distribution');
+      if (data) setDistributionData(data);
     } catch (error) {
       console.error('Error fetching order distribution:', error);
     } finally {

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import apiClient from '../api/client';
+import { unwrapAxiosBody } from '../api/normalizeResponse';
 import { tokenManager, useAuth } from '../auth';
 import { showSuccessToast, showErrorToast } from '../ui/toast';
 
@@ -82,7 +83,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const response = await apiClient.get('/cart');
 
       // Handle API response wrapping
-      const cartData = response.data.data || response.data;
+      const cartData = unwrapAxiosBody<Cart>(response.data);
       setCart(cartData);
     } catch (err: any) {
       if (err.response?.status === 401) {
@@ -118,7 +119,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setUpdatingItems((prev) => ({ ...prev, [itemId]: true }));
       const response = await apiClient.put(`/cart/items/${itemId}`, { quantity: newQuantity });
-      const cartData = response.data.data || response.data;
+      const cartData = unwrapAxiosBody<Cart>(response.data);
       setCart(cartData);
       window.dispatchEvent(new Event('cartUpdated'));
     } catch (err: any) {
@@ -135,7 +136,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setUpdatingItems(prev => ({ ...prev, [itemId]: true }));
       const response = await apiClient.delete(`/cart/items/${itemId}`);
 
-      const cartData = response.data.data || response.data;
+      const cartData = unwrapAxiosBody<Cart>(response.data);
       setCart(cartData);
 
       window.dispatchEvent(new Event('cartUpdated'));

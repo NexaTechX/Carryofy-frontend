@@ -9,6 +9,8 @@ import BuyerLayout from '../../components/buyer/BuyerLayout';
 import RemoteImage from '../../components/common/RemoteImage';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
+import { parseOrdersList } from '../../lib/api/orders';
+import { unwrapAxiosBody } from '../../lib/api/normalizeResponse';
 import { formatDateTime, formatNgnFromKobo } from '../../lib/api/utils';
 import {
   Truck,
@@ -184,10 +186,8 @@ export default function TrackOrderPage() {
     try {
       setLoadingOrders(true);
       const response = await apiClient.get('/orders');
-      const responseData = response.data.data || response.data;
-      let orders: BuyerOrder[] = [];
-      if (responseData?.orders && Array.isArray(responseData.orders)) orders = responseData.orders;
-      else if (Array.isArray(responseData)) orders = responseData;
+      const responseData = unwrapAxiosBody<unknown>(response.data);
+      const orders = parseOrdersList(responseData) as BuyerOrder[];
       setBuyerOrders(orders.filter((o) => o.status !== 'DELIVERED'));
     } catch {
       setBuyerOrders([]);

@@ -6,6 +6,7 @@ import BuyerLayout from '../../components/buyer/BuyerLayout';
 import RemoteImage from '../../components/common/RemoteImage';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
+import { unwrapAxiosBody } from '../../lib/api/normalizeResponse';
 import { ShoppingCart, Trash2, Plus, Minus, Package, ArrowRight, ShoppingBag } from 'lucide-react';
 import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
 
@@ -79,7 +80,7 @@ export default function CartPage() {
       const response = await apiClient.get('/cart');
 
       // Handle API response wrapping
-      const cartData = response.data.data || response.data;
+      const cartData = unwrapAxiosBody<Cart>(response.data);
       setCart(cartData);
     } catch (err: any) {
       console.error('Error fetching cart:', err);
@@ -106,7 +107,7 @@ export default function CartPage() {
     try {
       setUpdatingItems((prev) => ({ ...prev, [itemId]: true }));
       const response = await apiClient.put(`/cart/items/${itemId}`, { quantity: newQuantity });
-      const cartData = response.data.data || response.data;
+      const cartData = unwrapAxiosBody<Cart>(response.data);
       setCart(cartData);
     } catch (err: any) {
       console.error('Error updating quantity:', err);
@@ -122,7 +123,7 @@ export default function CartPage() {
       setUpdatingItems((prev) => ({ ...prev, [itemId]: true }));
       const response = await apiClient.delete(`/cart/items/${itemId}`);
 
-      const cartData = response.data.data || response.data;
+      const cartData = unwrapAxiosBody<Cart>(response.data);
       setCart(cartData);
       window.dispatchEvent(new Event('cartUpdated'));
       showSuccessToast('Item removed from cart');

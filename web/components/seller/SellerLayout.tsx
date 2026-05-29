@@ -28,7 +28,10 @@ import {
   Plus,
 } from 'lucide-react';
 import { useAuth, tokenManager } from '../../lib/auth';
-import { getApiBaseUrl } from '../../lib/api/utils';
+import apiClient from '../../lib/api/client';
+import { unwrapAxiosBody } from '../../lib/api/normalizeResponse';
+import { sellerGet, sellerPut } from '../../lib/seller/http';
+import { AxiosError } from 'axios';
 import { resolveSellerKycStatus } from '../../lib/seller/kyc-status';
 import {
   unwrapSellerMePayload,
@@ -123,104 +126,55 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   }, [notificationsOpen]);
 
   const fetchNotifications = async () => {
-    try {
-      const token = tokenManager.getAccessToken();
-      if (!token) {
-        setNotifications([]);
-        setUnreadCount(0);
-        return;
-      }
-
-      const apiUrl = getApiBaseUrl();
-
-      try {
-        const response = await fetch(`${apiUrl}/notifications?limit=5`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          const notificationsData = result.data || result;
-          setNotifications(Array.isArray(notificationsData) ? notificationsData : []);
-          setUnreadCount(Array.isArray(notificationsData) ? notificationsData.filter((n: Notification) => !n.read).length : 0);
-        } else {
-          // API returned an error status
-          setNotifications([]);
-          setUnreadCount(0);
-        }
-      } catch (fetchError) {
-        // Network error or fetch failed (API server not running, CORS, etc.)
-        console.warn('Failed to fetch notifications from API:', fetchError);
-        // Silently fail - set empty arrays so UI doesn't break
-        setNotifications([]);
-        setUnreadCount(0);
-      }
-    } catch (error) {
-      // Any other error
-      console.error('Error in fetchNotifications:', error);
+    if (!tokenManager.getAccessToken()) {
       setNotifications([]);
       setUnreadCount(0);
+      return;
     }
+
+    const notificationsData = await sellerGet<Notification[]>('/notifications?limit=5');
+    const list = Array.isArray(notificationsData) ? notificationsData : [];
+    setNotifications(list);
+    setUnreadCount(list.filter((n) => !n.read).length);
   };
 
   const fetchSellerProfile = async () => {
     try {
-      const token = tokenManager.getAccessToken();
-      if (!token) return;
+      if (!tokenManager.getAccessToken()) return;
 
-      const apiUrl = getApiBaseUrl();
-
-      const response = await fetch(`${apiUrl}/sellers/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        const sellerData = unwrapSellerMePayload(result);
-        if (sellerData) {
-          setNeedsProfileOnboarding(
-            sellerNeedsProfileOnboardingFromProfile(sellerData),
-          );
-          setSellerProfile({
-            id: sellerData.id as string,
-            businessName: sellerData.businessName as string,
-            logo: sellerData.logo as string | undefined,
-            pickupAddress: (sellerData.pickupAddress ?? sellerData.businessAddress) as
-              | string
-              | undefined,
-            latitude: sellerData.latitude as number | undefined,
-            longitude: sellerData.longitude as number | undefined,
-          });
-        }
-      } else if (response.status === 404) {
-        setSellerProfile(null);
-        setNeedsProfileOnboarding(true);
+      const { data } = await apiClient.get('/sellers/me');
+      const sellerData = unwrapSellerMePayload(unwrapAxiosBody(data));
+      if (sellerData) {
+        setNeedsProfileOnboarding(
+          sellerNeedsProfileOnboardingFromProfile(sellerData),
+        );
+        setSellerProfile({
+          id: sellerData.id as string,
+          businessName: sellerData.businessName as string,
+          logo: sellerData.logo as string | undefined,
+          pickupAddress: (sellerData.pickupAddress ?? sellerData.businessAddress) as
+            | string
+            | undefined,
+          latitude: sellerData.latitude as number | undefined,
+          longitude: sellerData.longitude as number | undefined,
+        });
       }
     } catch (error) {
-      setSellerProfile(null);
+      if (error instanceof AxiosError && error.response?.status === 404) {
+        setSellerProfile(null);
+        setNeedsProfileOnboarding(true);
+      } else {
+        setSellerProfile(null);
+      }
     }
   };
 
   const fetchKycStatus = async () => {
-    try {
-      const token = tokenManager.getAccessToken();
-      if (!token) return;
-
-      const apiUrl = getApiBaseUrl();
-
-      const response = await fetch(`${apiUrl}/sellers/kyc`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const responseData = data.data || data;
-        setKycStatus(
-          resolveSellerKycStatus(responseData.status, responseData.kyc),
-        );
-      }
-    } catch (error) {
-      console.error('Error fetching KYC status:', error);
+    const kyc = await sellerGet<{ status?: string; kyc?: Parameters<typeof resolveSellerKycStatus>[1] }>(
+      '/sellers/kyc',
+    );
+    if (kyc) {
+      setKycStatus(resolveSellerKycStatus(kyc.status, kyc.kyc));
     }
   };
 
@@ -277,13 +231,8 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       // Mark as read via API
       if (!notification.read) {
         try {
-          const token = tokenManager.getAccessToken();
-          const apiUrl = getApiBaseUrl();
-
-          await fetch(`${apiUrl}/notifications/${notification.id}/mark-as-read`, {
-            method: 'PUT',
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const ok = await sellerPut(`/notifications/${notification.id}/mark-as-read`);
+          if (!ok) return;
 
           setNotifications(notifications.map(n =>
             n.id === notification.id ? { ...n, read: true } : n

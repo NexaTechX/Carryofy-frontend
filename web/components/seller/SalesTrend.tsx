@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { tokenManager } from '../../lib/auth';
+import { sellerGet } from '../../lib/seller/http';
 import { TrendingUp } from 'lucide-react';
 
 interface TrendData {
@@ -25,26 +26,12 @@ export default function SalesTrend() {
 
   const fetchSalesTrend = async () => {
     try {
-      const token = tokenManager.getAccessToken();
-      if (!token) {
+      if (!tokenManager.getAccessToken()) {
         setLoading(false);
         return;
       }
-
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com';
-      const apiUrl = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-      const response = await fetch(`${apiUrl}/reports/sales-trend`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        const data = result.data || result;
-        setTrendData(data);
-      }
+      const data = await sellerGet<SalesTrendResponse>('/reports/sales-trend');
+      if (data) setTrendData(data);
     } catch (error) {
       console.error('Error fetching sales trend:', error);
     } finally {

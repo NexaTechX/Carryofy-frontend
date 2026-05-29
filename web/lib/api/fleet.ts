@@ -1,16 +1,5 @@
 import apiClient from './client';
-
-function unwrap<T>(response: unknown): T {
-  if (
-    response &&
-    typeof response === 'object' &&
-    'data' in (response as Record<string, unknown>) &&
-    (response as { data?: unknown }).data !== undefined
-  ) {
-    return (response as { data: T }).data;
-  }
-  return response as T;
-}
+import { normalizeResponse } from './normalizeResponse';
 
 export async function fetchFleetOverview(): Promise<{
   dashboard: {
@@ -26,7 +15,7 @@ export async function fetchFleetOverview(): Promise<{
   };
 }> {
   const { data } = await apiClient.get('/fleet/overview');
-  return unwrap(data);
+  return normalizeResponse(data);
 }
 
 export async function createFleetRider(payload: {
@@ -38,7 +27,7 @@ export async function createFleetRider(payload: {
   vehicleNumber: string;
 }): Promise<{ message: string; riderId: string; email: string }> {
   const { data } = await apiClient.post('/fleet/riders', payload);
-  return unwrap(data);
+  return normalizeResponse(data);
 }
 
 export async function fetchFleetRiders(): Promise<
@@ -53,7 +42,7 @@ export async function fetchFleetRiders(): Promise<
   }>
 > {
   const { data } = await apiClient.get('/fleet/riders');
-  return unwrap(data);
+  return normalizeResponse(data);
 }
 
 export type FleetRiderBreakRequestRow = {
@@ -73,7 +62,7 @@ export async function fetchFleetRiderBreakRequests(params?: {
   to?: string;
 }): Promise<FleetRiderBreakRequestRow[]> {
   const { data } = await apiClient.get('/fleet/rider-break-requests', { params });
-  const out = unwrap<unknown>(data);
+  const out = normalizeResponse<unknown>(data);
   return Array.isArray(out) ? (out as FleetRiderBreakRequestRow[]) : [];
 }
 
@@ -83,7 +72,7 @@ export async function fetchFleetDeliveries(params?: {
   to?: string;
 }): Promise<unknown[]> {
   const { data } = await apiClient.get('/fleet/deliveries', { params });
-  return unwrap(data);
+  return normalizeResponse(data);
 }
 
 export type FleetIncomingDelivery = {
@@ -116,7 +105,7 @@ export async function fetchFleetIncomingDeliveries(): Promise<
   FleetIncomingDelivery[]
 > {
   const { data } = await apiClient.get('/fleet/deliveries/incoming');
-  const out = unwrap<unknown>(data);
+  const out = normalizeResponse<unknown>(data);
   return Array.isArray(out) ? (out as FleetIncomingDelivery[]) : [];
 }
 
@@ -138,7 +127,7 @@ export async function fetchFleetEarningsPage(): Promise<{
   riders: FleetEarningsRiderRow[];
 }> {
   const { data } = await apiClient.get('/fleet/earnings');
-  return unwrap(data);
+  return normalizeResponse(data);
 }
 
 export async function requestFleetPayout(payload: {
@@ -148,12 +137,12 @@ export async function requestFleetPayout(payload: {
   bankCode: string;
 }): Promise<{ message: string; payoutRequestId: string }> {
   const { data } = await apiClient.post('/fleet/payouts/request', payload);
-  return unwrap(data);
+  return normalizeResponse(data);
 }
 
 export async function fetchFleetPayoutHistory(): Promise<unknown[]> {
   const { data } = await apiClient.get('/fleet/payouts');
-  return unwrap(data);
+  return normalizeResponse(data);
 }
 
 export async function assignFleetDelivery(
@@ -163,5 +152,5 @@ export async function assignFleetDelivery(
   const { data } = await apiClient.post(`/fleet/deliveries/${deliveryId}/assign`, {
     riderId,
   });
-  return unwrap(data);
+  return normalizeResponse(data);
 }

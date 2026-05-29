@@ -14,10 +14,11 @@ import SellerLayout from '../../../components/seller/SellerLayout';
 import { useAuth, tokenManager } from '../../../lib/auth';
 import {
   formatNgnFromKobo,
-  getApiUrl,
   copyToClipboard,
   formatDateWithTime,
 } from '../../../lib/api/utils';
+import { sellerGet } from '../../../lib/seller/http';
+import { parseSellerOrdersList } from '../../../lib/seller/orders';
 import toast from 'react-hot-toast';
 import { formatSellerPayoutLabel } from '../../../lib/seller/order-payout';
 
@@ -132,39 +133,20 @@ export default function OrdersPage() {
     setLoading(true);
     setListError(null);
     try {
-      const token = tokenManager.getAccessToken();
       const params = new URLSearchParams();
       if (orderTypeFilter === 'B2B' || orderTypeFilter === 'CONSUMER') {
         params.set('orderType', orderTypeFilter);
       }
       const query = params.toString();
-      const url = query ? getApiUrl(`/orders?${query}`) : getApiUrl('/orders');
+      const path = query ? `/orders?${query}` : '/orders';
 
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        const responseData = result.data || result;
-        if (responseData.orders && Array.isArray(responseData.orders)) {
-          setOrders(responseData.orders);
-        } else if (Array.isArray(responseData)) {
-          setOrders(responseData);
-        } else {
-          setOrders([]);
-        }
-      } else {
-        let msg = 'Could not load orders. Please try again.';
-        try {
-          const errBody = await response.json();
-          if (errBody?.message) msg = String(errBody.message);
-        } catch {
-          /* ignore */
-        }
-        setListError(msg);
+      const responseData = await sellerGet<unknown>(path);
+      if (responseData === null) {
+        setListError('Could not load orders. Please try again.');
         setOrders([]);
+        return;
       }
+      setOrders(parseSellerOrdersList(responseData) as Order[]);
     } catch {
       setListError('Could not load orders. Please try again.');
       setOrders([]);

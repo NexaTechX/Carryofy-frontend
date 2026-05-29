@@ -5,6 +5,7 @@ import Link from 'next/link';
 import BuyerLayout from '../../../components/buyer/BuyerLayout';
 import RemoteImage from '../../../components/common/RemoteImage';
 import apiClient from '../../../lib/api/client';
+import { unwrapAxiosBody } from '../../../lib/api/normalizeResponse';
 import { AxiosError } from 'axios';
 import {
   ArrowLeft,
@@ -162,7 +163,7 @@ export default function BuyerOrderDetailPage() {
       setLoading(true);
       setError(null);
       const response = await apiClient.get(`/orders/${orderId}`);
-      const orderData = response.data.data || response.data;
+      const orderData = unwrapAxiosBody<OrderDetail>(response.data);
       setOrder(orderData);
     } catch (err: unknown) {
       console.error('Error fetching order:', err);
@@ -275,7 +276,7 @@ export default function BuyerOrderDetailPage() {
   const checkRefundStatus = async (orderId: string) => {
     try {
       const response = await apiClient.get(`/refunds/my-refunds`);
-      const refunds = (response.data.data || response.data) as any[];
+      const refunds = unwrapAxiosBody<unknown[]>(response.data) as any[];
       const orderRefund = refunds.find((r: any) => r.orderId === orderId);
       setHasRefund(!!orderRefund);
       setRefundInfo(
@@ -308,7 +309,7 @@ export default function BuyerOrderDetailPage() {
           productIds.map(async (productId) => {
             try {
               const response = await apiClient.get(`/products/${productId}/reviews/mine`);
-              const data = response.data.data || response.data;
+              const data = unwrapAxiosBody<OrderDetail>(response.data);
               return { productId, hasReview: Array.isArray(data) && data.length > 0 };
             } catch (err) {
               console.warn('Failed to fetch user review status', err);
@@ -410,7 +411,7 @@ export default function BuyerOrderDetailPage() {
     try {
       setMarking(true);
       const response = await apiClient.put(`/orders/${order.id}/confirm`);
-      const updatedOrder = response.data.data || response.data;
+      const updatedOrder = unwrapAxiosBody<OrderDetail>(response.data);
       setOrder(updatedOrder);
       showSuccessToast('Order marked as received!');
       // Open rider rating modal if delivery had a rider; after submit we open product review
@@ -476,7 +477,7 @@ export default function BuyerOrderDetailPage() {
       const response = await apiClient.post('/payments/initialize', {
         orderId: order.id,
       });
-      const data = response.data.data || response.data;
+      const data = unwrapAxiosBody<{ authorization_url?: string }>(response.data);
       if (data?.authorization_url) {
         window.location.href = data.authorization_url;
       } else {

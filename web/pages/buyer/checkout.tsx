@@ -5,6 +5,7 @@ import BuyerLayout from '../../components/buyer/BuyerLayout';
 import RemoteImage from '../../components/common/RemoteImage';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
+import { unwrapAxiosBody } from '../../lib/api/normalizeResponse';
 import {
   getApiConnectionErrorMessage,
   isApiConnectionError,
@@ -361,7 +362,7 @@ export default function CheckoutPage() {
     try {
       setLoadingAddresses(true);
       const response = await apiClient.get('/users/me/addresses');
-      const addressesData = response.data.data || response.data;
+      const addressesData = unwrapAxiosBody(response.data);
       setSavedAddresses(Array.isArray(addressesData) ? addressesData : []);
 
       // Auto-select first address if available and not showing new address form
@@ -443,7 +444,7 @@ export default function CheckoutPage() {
       }
 
       const response = await apiClient.get('/cart');
-      const cartData = response.data.data || response.data;
+      const cartData = unwrapAxiosBody<Cart>(response.data);
       setCart(cartData);
       setMultiVendorFromApi(false);
     } catch (err: any) {

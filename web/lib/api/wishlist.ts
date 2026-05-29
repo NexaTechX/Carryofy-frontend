@@ -1,4 +1,5 @@
 import apiClient from './client';
+import { unwrapAxiosBody } from './normalizeResponse';
 
 /**
  * Wishlist API Service
@@ -29,14 +30,6 @@ export interface WishlistResponse {
 }
 
 /**
- * Normalize API response data
- * Handles both wrapped { data: {...} } and direct {...} response shapes
- */
-function normalizeResponse<T>(responseData: any): T {
-  return (responseData?.data ?? responseData) as T;
-}
-
-/**
  * Get user's wishlist
  */
 export async function getWishlist(): Promise<WishlistResponse> {
@@ -49,7 +42,7 @@ export async function getWishlist(): Promise<WishlistResponse> {
     const duration = Date.now() - startTime;
     console.log(`✅ Wishlist fetched successfully in ${duration}ms`);
     
-    return normalizeResponse<WishlistResponse>(response.data);
+    return unwrapAxiosBody<WishlistResponse>(response.data);
   } catch (error: any) {
     const duration = Date.now() - Date.now();
     
@@ -109,7 +102,7 @@ export async function getWishlist(): Promise<WishlistResponse> {
  */
 export async function addToWishlist(productId: string): Promise<WishlistResponse> {
   const response = await apiClient.post(`/wishlist/${productId}`);
-  return normalizeResponse<WishlistResponse>(response.data);
+  return unwrapAxiosBody<WishlistResponse>(response.data);
 }
 
 /**
@@ -117,7 +110,7 @@ export async function addToWishlist(productId: string): Promise<WishlistResponse
  */
 export async function removeFromWishlist(productId: string): Promise<WishlistResponse> {
   const response = await apiClient.delete(`/wishlist/${productId}`);
-  return normalizeResponse<WishlistResponse>(response.data);
+  return unwrapAxiosBody<WishlistResponse>(response.data);
 }
 
 /**
@@ -126,7 +119,7 @@ export async function removeFromWishlist(productId: string): Promise<WishlistRes
 export async function checkWishlist(productId: string): Promise<boolean> {
   try {
     const response = await apiClient.get(`/wishlist/${productId}/check`);
-    const data = normalizeResponse<{ inWishlist: boolean }>(response.data);
+    const data = unwrapAxiosBody<{ inWishlist: boolean }>(response.data);
     return data?.inWishlist ?? false;
   } catch (error: any) {
     // Return false on error - product is not in wishlist if check fails

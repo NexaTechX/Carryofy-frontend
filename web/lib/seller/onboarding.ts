@@ -1,3 +1,5 @@
+import { unwrapAxiosBody } from '../api/normalizeResponse';
+
 export interface SellerMeProfile {
   id?: string;
   businessName?: string;
@@ -15,9 +17,7 @@ export interface SellerMeProfile {
 
 /** Unwrap API envelope `{ data: T }` or raw T. */
 export function unwrapSellerMePayload(raw: unknown): SellerMeProfile | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const obj = raw as Record<string, unknown>;
-  const inner = obj.data ?? raw;
+  const inner = unwrapAxiosBody<unknown>(raw);
   if (!inner || typeof inner !== 'object') return null;
   return inner as SellerMeProfile;
 }

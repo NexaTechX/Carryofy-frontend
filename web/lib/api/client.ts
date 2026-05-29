@@ -1,6 +1,7 @@
 // SECTION 1.4 — resolved: REST uses NEXT_PUBLIC_API_BASE (includes /api/v1)
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { tokenManager } from '../auth/token';
+import { unwrapAxiosBody } from './normalizeResponse';
 import { getApiBaseUrl } from './utils';
 
 const API_BASE_URL = getApiBaseUrl();
@@ -31,8 +32,8 @@ function doRefresh(): Promise<string | null> {
   return axios
     .post(`${API_BASE_URL}/auth/refresh-token`, { refreshToken })
     .then((response) => {
-      const responseData = response.data;
-      const accessToken = responseData?.data?.accessToken || responseData?.accessToken;
+      const responseData = unwrapAxiosBody<{ accessToken?: string }>(response.data);
+      const accessToken = responseData?.accessToken;
       if (accessToken) {
         tokenManager.setTokens(accessToken, refreshToken);
         return accessToken;

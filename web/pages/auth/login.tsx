@@ -107,12 +107,11 @@ export default function Login() {
       showSuccessToast('Login successful!');
 
       const redirectUrl = getSafeRedirectPath(router.query.redirect);
-      if (redirectUrl) {
-        router.push(redirectUrl);
-      } else {
-        const redirectPath = getRoleRedirect(response.user.role);
-        router.push(redirectPath);
-      }
+      const destination =
+        redirectUrl ?? getRoleRedirect(response.user.role);
+      // Full navigation so edge middleware sees the synced access-token cookie.
+      window.location.assign(destination);
+      return;
     } catch (error: any) {
       let message = 'Invalid email or password';
 

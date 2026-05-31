@@ -17,21 +17,56 @@ const isStorageUnavailableError = (error: unknown): boolean => {
   return false;
 };
 
+/** Max-age aligned with API auth cookie defaults — edge middleware reads this on the web origin. */
+const ACCESS_COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 7;
+
+function accessCookieAttributes(maxAgeSeconds: number): string {
+  const parts = ['path=/', `max-age=${maxAgeSeconds}`, 'samesite=lax'];
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    parts.push('secure');
+  }
+  return parts.join('; ');
+}
+
+/** Mirror access token onto the Next.js host so middleware can authorize dashboard routes. */
+function syncAccessTokenCookie(accessToken: string): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(accessToken)}; ${accessCookieAttributes(ACCESS_COOKIE_MAX_AGE_SEC)}`;
+}
+
+function clearAccessTokenCookie(): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${ACCESS_TOKEN_COOKIE}=; path=/; max-age=0; samesite=lax`;
+}
+
 export const tokenManager = {
   setTokens: (accessToken: string, refreshToken: string) => {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
         localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-        // HttpOnly auth cookies are set by the API (Set-Cookie on login/refresh).
+        syncAccessTokenCookie(accessToken);
       } catch (error) {
         if (isStorageUnavailableError(error)) {
           console.warn('Storage unavailable: could not persist auth tokens.');
+          syncAccessTokenCookie(accessToken);
           return;
         }
         throw error;
       }
     }
+  },
+
+  setAccessToken: (accessToken: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    } catch (error) {
+      if (!isStorageUnavailableError(error)) {
+        throw error;
+      }
+    }
+    syncAccessTokenCookie(accessToken);
   },
 
   getAccessToken: (): string | null => {
@@ -60,6 +95,7 @@ export const tokenManager = {
 
   clearTokens: () => {
     if (typeof window !== 'undefined') {
+      clearAccessTokenCookie();
       try {
         localStorage.removeItem(ACCESS_TOKEN_KEY);
         localStorage.removeItem(REFRESH_TOKEN_KEY);

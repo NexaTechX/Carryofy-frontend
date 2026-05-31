@@ -103,7 +103,7 @@ export default function EmailVerification() {
                 redirectPath = '/seller/onboard';
               }
             }
-            router.push(redirectPath);
+            window.location.assign(redirectPath);
           } else {
             // No token, redirect to login
             router.push('/auth/login');

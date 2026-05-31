@@ -39,11 +39,7 @@ function doRefresh(): Promise<string | null> {
         if (rt) {
           tokenManager.setTokens(accessToken, rt);
         } else {
-          try {
-            localStorage.setItem('accessToken', accessToken);
-          } catch {
-            /* cookie-only session */
-          }
+          tokenManager.setAccessToken(accessToken);
         }
         return accessToken;
       }

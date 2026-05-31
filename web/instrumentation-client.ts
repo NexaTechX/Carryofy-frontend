@@ -10,7 +10,7 @@ import {
 } from "./lib/sentryFirebaseIdbFilter";
 
 Sentry.init({
-  dsn: "https://6a03d8c49c07e03faab1d05020b0487f@o4510481037131776.ingest.us.sentry.io/4510682689503232",
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
   // Add optional integrations for additional features
   integrations: [Sentry.replayIntegration()],
@@ -30,7 +30,7 @@ Sentry.init({
 
   // Enable sending user PII (Personally Identifiable Information)
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,
+  sendDefaultPii: false,
 
   ignoreErrors: [
     /^Failed to execute 'transaction' on 'IDBDatabase'/,

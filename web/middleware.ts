@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
 import { ACCESS_TOKEN_COOKIE } from './lib/auth/token';
 
 function getJwtFromCookie(rawToken: string): string {
@@ -13,7 +14,8 @@ function getJwtFromCookie(rawToken: string): string {
   }
 }
 
-function decodeJwtPayload(token: string): { role?: string; exp?: number } | null {
+/** Dev-only fallback when JWT_SECRET is unset locally. */
+function decodeJwtPayloadUnsafe(token: string): { role?: string; exp?: number } | null {
   try {
     const jwt = getJwtFromCookie(token);
     const parts = jwt.split('.');
@@ -28,14 +30,29 @@ function decodeJwtPayload(token: string): { role?: string; exp?: number } | null
   }
 }
 
-function decodeJwtRole(token: string): string | null {
-  return decodeJwtPayload(token)?.role ?? null;
-}
+async function verifyAccessToken(
+  token: string,
+): Promise<{ role?: string; exp?: number } | null> {
+  const secret = process.env.JWT_SECRET;
+  const jwt = getJwtFromCookie(token);
+  if (!jwt) return null;
 
-function isJwtExpired(token: string): boolean {
-  const payload = decodeJwtPayload(token);
-  if (!payload?.exp) return false;
-  return payload.exp * 1000 <= Date.now();
+  if (!secret) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[middleware] JWT_SECRET unset — using unsigned decode (dev only)');
+      return decodeJwtPayloadUnsafe(jwt);
+    }
+    return null;
+  }
+
+  try {
+    const { payload } = await jwtVerify(jwt, new TextEncoder().encode(secret), {
+      algorithms: ['HS256'],
+    });
+    return payload as { role?: string; exp?: number };
+  } catch {
+    return null;
+  }
 }
 
 function loginRedirect(request: NextRequest, pathname: string, expired = false) {
@@ -60,12 +77,13 @@ function isPublicBuyerRoute(pathname: string): boolean {
   return pathname === '/buyer/products' || pathname.startsWith('/buyer/products/');
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
-  const role = token ? decodeJwtRole(token) : null;
-  const expired = !!token && isJwtExpired(token);
+  const payload = token ? await verifyAccessToken(token) : null;
+  const role = payload?.role ?? null;
+  const expired = !!token && !!payload?.exp && payload.exp * 1000 <= Date.now();
   const tokenInvalid = !token || !role || expired;
 
   if (pathname.startsWith('/buyer')) {

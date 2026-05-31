@@ -80,12 +80,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const logout = () => {
+        const refreshToken = tokenManager.getRefreshToken();
+        void import('../api/client').then(({ default: apiClient }) =>
+          apiClient
+            .post('/auth/logout', refreshToken ? { refreshToken } : {}, { withCredentials: true })
+            .catch(() => undefined),
+        );
         tokenManager.clearTokens();
         if (typeof window !== 'undefined') {
             localStorage.removeItem('user');
-            // Redirect immediately without calling setUser(null) - that would trigger
-            // a re-render where AdminGuard sees !isAuthenticated and shows 404 before
-            // the redirect completes. The login page's initAuth will clear user state.
             window.location.href = '/auth/login';
         }
     };

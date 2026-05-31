@@ -42,22 +42,12 @@ export function AdminGuard({ children }: AdminGuardProps) {
 
       // Check if user is authenticated
       if (!isAuthenticated) {
-        // Show 404 instead of redirecting to login
         if (!cancelled) {
           setState('notFound');
         }
         return;
       }
 
-      // Check if current user is already an admin
-      if (user?.role?.toUpperCase() === 'ADMIN') {
-        if (!cancelled) {
-          setState('authorized');
-        }
-        return;
-      }
-
-      // Fetch admin profile to verify role
       setState('checking');
       try {
         const profile = await fetchAdminProfile();

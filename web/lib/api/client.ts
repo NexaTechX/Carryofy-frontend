@@ -28,14 +28,23 @@ let refreshPromise: Promise<string | null> | null = null;
 function doRefresh(): Promise<string | null> {
   if (typeof window === 'undefined') return Promise.resolve(null);
   const refreshToken = tokenManager.getRefreshToken();
-  if (!refreshToken) return Promise.resolve(null);
+  const body = refreshToken ? { refreshToken } : {};
   return axios
-    .post(`${API_BASE_URL}/auth/refresh-token`, { refreshToken })
+    .post(`${API_BASE_URL}/auth/refresh-token`, body, { withCredentials: true })
     .then((response) => {
       const responseData = unwrapAxiosBody<{ accessToken?: string }>(response.data);
       const accessToken = responseData?.accessToken;
       if (accessToken) {
-        tokenManager.setTokens(accessToken, refreshToken);
+        const rt = refreshToken ?? tokenManager.getRefreshToken();
+        if (rt) {
+          tokenManager.setTokens(accessToken, rt);
+        } else {
+          try {
+            localStorage.setItem('accessToken', accessToken);
+          } catch {
+            /* cookie-only session */
+          }
+        }
         return accessToken;
       }
       return null;

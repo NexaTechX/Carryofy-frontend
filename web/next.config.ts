@@ -25,6 +25,7 @@ const contentSecurityPolicy = [
     ? "connect-src 'self' http://localhost:3000 http://127.0.0.1:3000 http://localhost:3001 http://127.0.0.1:3001 https: wss: blob:"
     : "connect-src 'self' https://api.carryofy.com https: wss: blob:",
   "frame-src 'self' https:",
+  "object-src 'none'",
 ].join('; ');
 
 const nextConfig: NextConfig = {

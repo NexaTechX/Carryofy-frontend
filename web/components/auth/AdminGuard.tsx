@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth';
 import type { User, UserRole } from '../../lib/auth';
@@ -22,79 +22,89 @@ export function AdminGuard({ children }: AdminGuardProps) {
   const router = useRouter();
   const { user, isLoading, isAuthenticated, setUser } = useAuth();
   const [state, setState] = useState<GuardState>('idle');
+  const adminVerifiedRef = useRef(false);
 
   const pathname = useMemo(() => router.pathname ?? '', [router.pathname]);
+  const isAdminRoute = useMemo(() => shouldProtect(pathname), [pathname]);
 
   useEffect(() => {
+    if (!isAdminRoute) {
+      setState('authorized');
+      return;
+    }
+
+    if (isLoading) {
+      setState('checking');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      adminVerifiedRef.current = false;
+      setState('notFound');
+      return;
+    }
+
+    // Skip re-verification when admin access was already confirmed this session.
+    // setUser() must not re-trigger this effect (user is intentionally omitted from deps).
+    if (adminVerifiedRef.current && user?.role?.toUpperCase() === 'ADMIN') {
+      setState('authorized');
+      return;
+    }
+
     let cancelled = false;
 
-    async function checkAccess() {
-      if (!shouldProtect(pathname)) {
-        setState('authorized');
-        return;
-      }
-
-      // Wait for auth to initialize
-      if (isLoading) {
-        setState('checking');
-        return;
-      }
-
-      // Check if user is authenticated
-      if (!isAuthenticated) {
-        if (!cancelled) {
-          setState('notFound');
-        }
-        return;
-      }
-
+    async function verifyAdmin() {
       setState('checking');
       try {
         const profile = await fetchAdminProfile();
         if (cancelled) return;
 
-        // Update user in context
-        // Validate and cast role to UserRole type
-        const validRoles: UserRole[] = ['BUYER', 'SELLER', 'ADMIN', 'RIDER'];
-        const role = (validRoles.includes(profile.role?.toUpperCase() as UserRole)
-          ? profile.role.toUpperCase()
-          : 'BUYER') as UserRole;
+        const isAdmin = profile.role?.toUpperCase() === 'ADMIN';
 
-        const normalizedUser: User = {
-          id: profile.id,
-          name: profile.name ?? '',
-          email: profile.email ?? '',
-          role: role,
-          phone: profile.phone,
-          verified: profile.verified ?? true,
-        };
+        if (isAdmin) {
+          adminVerifiedRef.current = true;
 
-        setUser(normalizedUser);
+          const validRoles: UserRole[] = ['BUYER', 'SELLER', 'ADMIN', 'RIDER'];
+          const role = (validRoles.includes(profile.role?.toUpperCase() as UserRole)
+            ? profile.role.toUpperCase()
+            : 'BUYER') as UserRole;
 
-        if (profile.role?.toUpperCase() === 'ADMIN') {
+          const normalizedUser: User = {
+            id: profile.id,
+            name: profile.name ?? '',
+            email: profile.email ?? '',
+            role,
+            phone: profile.phone,
+            verified: profile.verified ?? true,
+          };
+
+          if (
+            user?.id !== normalizedUser.id ||
+            user?.role !== normalizedUser.role ||
+            user?.email !== normalizedUser.email
+          ) {
+            setUser(normalizedUser);
+          }
+
           setState('authorized');
         } else {
-          // If user is not admin, show 404 instead of redirecting
-          if (!cancelled) {
-            setState('notFound');
-          }
+          adminVerifiedRef.current = false;
+          setState('notFound');
         }
       } catch (error) {
         if (cancelled) return;
         console.error('Failed to validate admin access', error);
-        // Show 404 on error instead of redirecting
-        if (!cancelled) {
-          setState('notFound');
-        }
+        adminVerifiedRef.current = false;
+        setState('notFound');
       }
     }
 
-    checkAccess();
+    void verifyAdmin();
 
     return () => {
       cancelled = true;
     };
-  }, [pathname, router, user, isLoading, isAuthenticated, setUser]);
+  }, [isAdminRoute, isLoading, isAuthenticated, pathname, setUser]);
 
   if (state === 'authorized' || !shouldProtect(pathname)) {
     return <>{children}</>;

@@ -1,12 +1,10 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { useRouter } from 'next/router';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../lib/auth';
-import type { User, UserRole } from '../../lib/auth';
 import { fetchAdminProfile } from '../../lib/admin/fetchAdminProfile';
 import { LoadingState } from '../admin/ui/LoadingState';
 import NotFound from '../common/NotFound';
-
-type GuardState = 'idle' | 'checking' | 'authorized' | 'notFound';
 
 const ADMIN_PATH_REGEX = /^\/admin(\/.*)?$/;
 
@@ -20,103 +18,31 @@ function shouldProtect(pathname: string) {
 
 export function AdminGuard({ children }: AdminGuardProps) {
   const router = useRouter();
-  const { user, isLoading, isAuthenticated, setUser } = useAuth();
-  const [state, setState] = useState<GuardState>('idle');
-  const adminVerifiedRef = useRef(false);
+  const { user, isLoading, isAuthenticated } = useAuth();
 
   const pathname = useMemo(() => router.pathname ?? '', [router.pathname]);
   const isAdminRoute = useMemo(() => shouldProtect(pathname), [pathname]);
+  const shouldVerify = isAdminRoute && !isLoading && isAuthenticated;
 
-  useEffect(() => {
-    if (!isAdminRoute) {
-      setState('authorized');
-      return;
-    }
+  const { data: profile, isLoading: profileLoading, isError } = useQuery({
+    queryKey: ['admin-guard-profile', user?.id],
+    queryFn: fetchAdminProfile,
+    enabled: shouldVerify,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
 
-    if (isLoading) {
-      setState('checking');
-      return;
-    }
-
-    if (!isAuthenticated) {
-      adminVerifiedRef.current = false;
-      setState('notFound');
-      return;
-    }
-
-    // Skip re-verification when admin access was already confirmed this session.
-    // setUser() must not re-trigger this effect (user is intentionally omitted from deps).
-    if (adminVerifiedRef.current && user?.role?.toUpperCase() === 'ADMIN') {
-      setState('authorized');
-      return;
-    }
-
-    let cancelled = false;
-
-    async function verifyAdmin() {
-      setState('checking');
-      try {
-        const profile = await fetchAdminProfile();
-        if (cancelled) return;
-
-        const isAdmin = profile.role?.toUpperCase() === 'ADMIN';
-
-        if (isAdmin) {
-          adminVerifiedRef.current = true;
-
-          const validRoles: UserRole[] = ['BUYER', 'SELLER', 'ADMIN', 'RIDER'];
-          const role = (validRoles.includes(profile.role?.toUpperCase() as UserRole)
-            ? profile.role.toUpperCase()
-            : 'BUYER') as UserRole;
-
-          const normalizedUser: User = {
-            id: profile.id,
-            name: profile.name ?? '',
-            email: profile.email ?? '',
-            role,
-            phone: profile.phone,
-            verified: profile.verified ?? true,
-          };
-
-          if (
-            user?.id !== normalizedUser.id ||
-            user?.role !== normalizedUser.role ||
-            user?.email !== normalizedUser.email
-          ) {
-            setUser(normalizedUser);
-          }
-
-          setState('authorized');
-        } else {
-          adminVerifiedRef.current = false;
-          setState('notFound');
-        }
-      } catch (error) {
-        if (cancelled) return;
-        console.error('Failed to validate admin access', error);
-        adminVerifiedRef.current = false;
-        setState('notFound');
-      }
-    }
-
-    void verifyAdmin();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAdminRoute, isLoading, isAuthenticated, pathname, setUser]);
-
-  if (state === 'authorized' || !shouldProtect(pathname)) {
+  if (!isAdminRoute) {
     return <>{children}</>;
   }
 
-  if (state === 'checking' || isLoading) {
+  if (isLoading || (shouldVerify && profileLoading)) {
     return <LoadingState fullscreen />;
   }
 
-  if (state === 'notFound') {
+  if (!isAuthenticated || isError || profile?.role?.toUpperCase() !== 'ADMIN') {
     return <NotFound />;
   }
 
-  return null;
+  return <>{children}</>;
 }

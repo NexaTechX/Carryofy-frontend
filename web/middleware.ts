@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { ACCESS_TOKEN_COOKIE } from './lib/auth/token';
+import { getRoleRedirect } from './lib/auth/utils';
 
 function getJwtFromCookie(rawToken: string): string {
   if (!rawToken) return '';
@@ -55,6 +56,10 @@ async function verifyAccessToken(
   }
 }
 
+function dashboardRedirect(request: NextRequest, role: string) {
+  return NextResponse.redirect(new URL(getRoleRedirect(role), request.url));
+}
+
 function loginRedirect(request: NextRequest, pathname: string, expired = false) {
   const url = new URL('/auth/login', request.url);
   const redirectTarget = pathname + request.nextUrl.search;
@@ -89,27 +94,27 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/buyer')) {
     if (isPublicBuyerRoute(pathname)) return NextResponse.next();
     if (tokenInvalid) return loginRedirect(request, pathname, expired);
-    if (role !== 'BUYER' && role !== 'ADMIN') return loginRedirect(request, pathname);
+    if (role !== 'BUYER' && role !== 'ADMIN') return dashboardRedirect(request, role);
   }
 
   if (pathname.startsWith('/seller')) {
     if (tokenInvalid) return loginRedirect(request, pathname, expired);
-    if (role !== 'SELLER' && role !== 'ADMIN') return loginRedirect(request, pathname);
+    if (role !== 'SELLER' && role !== 'ADMIN') return dashboardRedirect(request, role);
   }
 
   if (pathname.startsWith('/admin')) {
     if (tokenInvalid) return loginRedirect(request, pathname, expired);
-    if (role !== 'ADMIN') return loginRedirect(request, pathname);
+    if (role !== 'ADMIN') return dashboardRedirect(request, role);
   }
 
   if (pathname.startsWith('/fleet')) {
     if (tokenInvalid) return loginRedirect(request, pathname, expired);
-    if (!isFleetRole(role)) return loginRedirect(request, pathname);
+    if (!isFleetRole(role)) return dashboardRedirect(request, role);
   }
 
   if (pathname.startsWith('/rider')) {
     if (tokenInvalid) return loginRedirect(request, pathname, expired);
-    if (role !== 'RIDER') return loginRedirect(request, pathname);
+    if (role !== 'RIDER') return dashboardRedirect(request, role);
   }
 
   return NextResponse.next();

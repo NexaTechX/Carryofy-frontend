@@ -6,7 +6,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { authService, tokenManager, useAuth, getRoleRedirect } from '../../lib/auth';
+import { authService, tokenManager, useAuth } from '../../lib/auth';
+import { resolvePostLoginPath } from '../../lib/auth/redirect';
 import {
   getApiConnectionErrorMessage,
   isApiConnectionError,
@@ -94,7 +95,7 @@ export default function Login() {
         return;
       }
 
-      tokenManager.setTokens(response.accessToken, response.refreshToken);
+      await tokenManager.setTokens(response.accessToken, response.refreshToken);
       setUser(response.user);
       if (typeof window !== 'undefined') {
         try {
@@ -106,10 +107,12 @@ export default function Login() {
 
       showSuccessToast('Login successful!');
 
-      const redirectUrl = getSafeRedirectPath(router.query.redirect);
-      const destination =
-        redirectUrl ?? getRoleRedirect(response.user.role);
-      // Full navigation so edge middleware sees the synced access-token cookie.
+      const safeRedirect = getSafeRedirectPath(router.query.redirect);
+      const destination = resolvePostLoginPath(
+        safeRedirect ?? undefined,
+        response.user.role,
+      );
+      // Full navigation so edge middleware sees the access-token cookie.
       window.location.assign(destination);
       return;
     } catch (error: any) {

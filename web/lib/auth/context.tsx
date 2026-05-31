@@ -47,13 +47,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         // the interceptor will clear tokens and redirect to login. Do NOT clear here
                         // to avoid double-clearing and flicker.
                         if (error?.response?.status === 401) {
-                            tokenManager.clearTokens();
+                            void tokenManager.clearTokens();
                             setUser(null);
                             return;
                         }
                         // Only log and clear on unexpected errors
                         console.error('Failed to initialize auth:', error);
-                        tokenManager.clearTokens();
+                        void tokenManager.clearTokens();
                         setUser(null);
                     }
                 } else {
@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             } catch (error) {
                 // Only log unexpected errors during initialization
                 console.error('Failed to initialize auth:', error);
-                tokenManager.clearTokens();
+                void tokenManager.clearTokens();
                 setUser(null);
             } finally {
                 setIsLoading(false);
@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const login = async (email: string, password: string) => {
         const response = await authService.login({ email, password });
-        tokenManager.setTokens(response.accessToken, response.refreshToken);
+        await tokenManager.setTokens(response.accessToken, response.refreshToken);
         setUser(response.user);
     };
 
@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             .post('/auth/logout', refreshToken ? { refreshToken } : {}, { withCredentials: true })
             .catch(() => undefined),
         );
-        tokenManager.clearTokens();
+        void tokenManager.clearTokens();
         if (typeof window !== 'undefined') {
             localStorage.removeItem('user');
             window.location.href = '/auth/login';

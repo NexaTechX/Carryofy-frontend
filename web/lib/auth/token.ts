@@ -31,7 +31,31 @@ function accessCookieAttributes(maxAgeSeconds: number): string {
 /** Mirror access token onto the Next.js host so middleware can authorize dashboard routes. */
 function syncAccessTokenCookie(accessToken: string): void {
   if (typeof document === 'undefined') return;
-  document.cookie = `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(accessToken)}; ${accessCookieAttributes(ACCESS_COOKIE_MAX_AGE_SEC)}`;
+  document.cookie = `${ACCESS_TOKEN_COOKIE}=${accessToken}; ${accessCookieAttributes(ACCESS_COOKIE_MAX_AGE_SEC)}`;
+}
+
+/** Set access-token cookie on the web origin via API route (reliable for edge middleware). */
+async function persistSessionCookie(accessToken: string): Promise<void> {
+  syncAccessTokenCookie(accessToken);
+  try {
+    await fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken }),
+      credentials: 'same-origin',
+    });
+  } catch (error) {
+    console.warn('Failed to persist session cookie via API route.', error);
+  }
+}
+
+async function clearSessionCookie(): Promise<void> {
+  clearAccessTokenCookie();
+  try {
+    await fetch('/api/auth/session', { method: 'DELETE', credentials: 'same-origin' });
+  } catch {
+    /* ignore */
+  }
 }
 
 function clearAccessTokenCookie(): void {
@@ -40,24 +64,23 @@ function clearAccessTokenCookie(): void {
 }
 
 export const tokenManager = {
-  setTokens: (accessToken: string, refreshToken: string) => {
+  setTokens: async (accessToken: string, refreshToken: string): Promise<void> => {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
         localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-        syncAccessTokenCookie(accessToken);
       } catch (error) {
         if (isStorageUnavailableError(error)) {
           console.warn('Storage unavailable: could not persist auth tokens.');
-          syncAccessTokenCookie(accessToken);
-          return;
+        } else {
+          throw error;
         }
-        throw error;
       }
+      await persistSessionCookie(accessToken);
     }
   },
 
-  setAccessToken: (accessToken: string) => {
+  setAccessToken: async (accessToken: string): Promise<void> => {
     if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
@@ -66,7 +89,7 @@ export const tokenManager = {
         throw error;
       }
     }
-    syncAccessTokenCookie(accessToken);
+    await persistSessionCookie(accessToken);
   },
 
   getAccessToken: (): string | null => {
@@ -93,9 +116,9 @@ export const tokenManager = {
     }
   },
 
-  clearTokens: () => {
+  clearTokens: async (): Promise<void> => {
     if (typeof window !== 'undefined') {
-      clearAccessTokenCookie();
+      await clearSessionCookie();
       try {
         localStorage.removeItem(ACCESS_TOKEN_KEY);
         localStorage.removeItem(REFRESH_TOKEN_KEY);

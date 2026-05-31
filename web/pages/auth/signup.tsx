@@ -109,7 +109,7 @@ export default function Signup() {
         ...(referralCode && { referralCode }),
       });
 
-      tokenManager.setTokens(response.accessToken, response.refreshToken);
+      await tokenManager.setTokens(response.accessToken, response.refreshToken);
       setUser(response.user);
       if (typeof window !== 'undefined') {
         localStorage.setItem('user', JSON.stringify(response.user));

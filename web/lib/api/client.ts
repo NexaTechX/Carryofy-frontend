@@ -25,27 +25,29 @@ const apiClient: AxiosInstance = axios.create({
 // Single in-flight refresh promise so multiple 401s don't trigger concurrent refresh (which can invalidate refresh token)
 let refreshPromise: Promise<string | null> | null = null;
 
-function doRefresh(): Promise<string | null> {
-  if (typeof window === 'undefined') return Promise.resolve(null);
+async function doRefresh(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
   const refreshToken = tokenManager.getRefreshToken();
   const body = refreshToken ? { refreshToken } : {};
-  return axios
-    .post(`${API_BASE_URL}/auth/refresh-token`, body, { withCredentials: true })
-    .then((response) => {
-      const responseData = unwrapAxiosBody<{ accessToken?: string }>(response.data);
-      const accessToken = responseData?.accessToken;
-      if (accessToken) {
-        const rt = refreshToken ?? tokenManager.getRefreshToken();
-        if (rt) {
-          tokenManager.setTokens(accessToken, rt);
-        } else {
-          tokenManager.setAccessToken(accessToken);
-        }
-        return accessToken;
+  try {
+    const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, body, {
+      withCredentials: true,
+    });
+    const responseData = unwrapAxiosBody<{ accessToken?: string }>(response.data);
+    const accessToken = responseData?.accessToken;
+    if (accessToken) {
+      const rt = refreshToken ?? tokenManager.getRefreshToken();
+      if (rt) {
+        await tokenManager.setTokens(accessToken, rt);
+      } else {
+        await tokenManager.setAccessToken(accessToken);
       }
-      return null;
-    })
-    .catch(() => null);
+      return accessToken;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /** Refresh access token and return the new token (or null if refresh failed). Used by non-axios calls (e.g. fetch) on 401. */
@@ -180,7 +182,7 @@ apiClient.interceptors.response.use(
       }
 
       // Refresh failed
-      tokenManager.clearTokens();
+      void tokenManager.clearTokens();
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
         setTimeout(() => {
           window.location.href = '/auth/login?expired=true';

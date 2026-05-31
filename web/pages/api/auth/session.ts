@@ -6,7 +6,7 @@ const ACCESS_COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 7;
 function buildSetCookie(name: string, value: string, maxAgeSeconds: number): string {
   const isProd = process.env.NODE_ENV === 'production';
   const parts = [
-    `${name}=${value}`,
+    `${name}=${encodeURIComponent(value)}`,
     'Path=/',
     `Max-Age=${maxAgeSeconds}`,
     'SameSite=Lax',

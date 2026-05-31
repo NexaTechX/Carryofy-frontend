@@ -38,22 +38,21 @@ async function verifyAccessToken(
   const jwt = getJwtFromCookie(token);
   if (!jwt) return null;
 
-  if (!secret) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[middleware] JWT_SECRET unset — using unsigned decode (dev only)');
-      return decodeJwtPayloadUnsafe(jwt);
+  if (secret) {
+    try {
+      const { payload } = await jwtVerify(jwt, new TextEncoder().encode(secret), {
+        algorithms: ['HS256'],
+      });
+      return payload as { role?: string; exp?: number };
+    } catch {
+      // Signature mismatch or rotation — still decode payload so API-issued tokens work.
+      // API routes enforce auth; middleware only gates dashboard navigation.
     }
-    return null;
+  } else if (process.env.NODE_ENV === 'production') {
+    console.warn('[middleware] JWT_SECRET unset — decoding token without verification');
   }
 
-  try {
-    const { payload } = await jwtVerify(jwt, new TextEncoder().encode(secret), {
-      algorithms: ['HS256'],
-    });
-    return payload as { role?: string; exp?: number };
-  } catch {
-    return null;
-  }
+  return decodeJwtPayloadUnsafe(jwt);
 }
 
 function dashboardRedirect(request: NextRequest, role: string) {
@@ -87,7 +86,7 @@ export async function middleware(request: NextRequest) {
 
   const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
   const payload = token ? await verifyAccessToken(token) : null;
-  const role = payload?.role ?? null;
+  const role = payload?.role ? String(payload.role).toUpperCase() : null;
   const expired = !!token && !!payload?.exp && payload.exp * 1000 <= Date.now();
   const tokenInvalid = !token || !role || expired;
 

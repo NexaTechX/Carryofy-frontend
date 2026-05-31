@@ -36,16 +36,24 @@ function syncAccessTokenCookie(accessToken: string): void {
 
 /** Set access-token cookie on the web origin via API route (reliable for edge middleware). */
 async function persistSessionCookie(accessToken: string): Promise<void> {
+  if (!accessToken.includes('.')) {
+    throw new Error('Invalid access token');
+  }
+
   syncAccessTokenCookie(accessToken);
-  try {
-    await fetch('/api/auth/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessToken }),
-      credentials: 'same-origin',
-    });
-  } catch (error) {
-    console.warn('Failed to persist session cookie via API route.', error);
+
+  const response = await fetch('/api/auth/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accessToken }),
+    credentials: 'same-origin',
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(
+      detail ? `Failed to persist session cookie: ${detail}` : 'Failed to persist session cookie',
+    );
   }
 }
 

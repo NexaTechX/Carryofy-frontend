@@ -83,7 +83,7 @@ export default function Login() {
         password: data.password,
       });
 
-      if (!response || !response.user) {
+      if (!response?.user || !response.accessToken || !response.refreshToken) {
         console.error('Invalid login response:', response);
         throw new Error('Invalid response from server. Please try again.');
       }

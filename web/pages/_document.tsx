@@ -70,14 +70,21 @@ export default function Document() {
                 height: 512,
               },
               description:
-                'The B2B wholesale marketplace for Lagos retailers. Connect with verified suppliers, streamline procurement, and grow with confidence — authentic wholesale supply, transparent pricing, and logistics built for Lagos.',
+                'Carryofy is the best B2B wholesaler e-commerce platform in Nigeria and Africa. Connect Lagos retailers with verified wholesale suppliers — transparent pricing and coordinated delivery built for modern African commerce.',
+              slogan: 'The Best B2B Wholesaler E-Commerce in Nigeria & Africa',
               email: 'support@carryofy.com',
               foundingDate: '2024',
+              telephone: '+234 916 678 3040',
               address: {
                 '@type': 'PostalAddress',
                 addressLocality: 'Lagos',
                 addressRegion: 'Lagos State',
                 addressCountry: 'NG',
+              },
+              geo: {
+                '@type': 'GeoCoordinates',
+                latitude: 6.5244,
+                longitude: 3.3792,
               },
               sameAs: [
                 'https://twitter.com/carryofy',
@@ -90,6 +97,11 @@ export default function Document() {
                 { '@type': 'City', name: 'Lagos' },
                 { '@type': 'State', name: 'Lagos State' },
                 { '@type': 'Country', name: 'Nigeria' },
+                { '@type': 'Continent', name: 'Africa' },
+                { '@type': 'Place', name: 'Yaba, Lagos' },
+                { '@type': 'Place', name: 'Surulere, Lagos' },
+                { '@type': 'Place', name: 'Lekki, Lagos' },
+                { '@type': 'Place', name: 'Ajah, Lagos' },
               ],
               serviceType: [
                 'B2B marketplace',
@@ -113,7 +125,7 @@ export default function Document() {
               name: 'Carryofy',
               alternateName: 'Carryofy.com',
               description:
-                'The B2B marketplace for Lagos retailers. Source from verified vendors — delivery coordinated for your store.',
+                'The best B2B wholesaler e-commerce in Nigeria and Africa. Source wholesale stock from verified vendors — delivery coordinated for your store.',
               publisher: {
                 '@id': 'https://carryofy.com/#organization',
               },

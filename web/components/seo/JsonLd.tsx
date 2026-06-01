@@ -1,12 +1,20 @@
 import Head from 'next/head';
+import {
+  areaServedSchemaEntities,
+  BRAND_POSITIONING_SHORT,
+  CARRYOFY_GEO,
+  DEFAULT_CONTACT_PHONE,
+  GEO_ABSTRACT,
+  GEO_KNOWS_ABOUT,
+  SITE_NAME,
+  SITE_URL,
+} from './geo';
 
 /** Prevent `</script>` breaking out of JSON-LD when embedding user-controlled strings. */
 function jsonLdStringify(value: unknown): string {
   return JSON.stringify(value).replace(/</g, '\\u003c');
 }
 
-const SITE_URL = 'https://carryofy.com';
-const SITE_NAME = 'Carryofy';
 const LOGO_URL = `${SITE_URL}/logo.png`;
 
 // Organization Schema - Global brand information
@@ -31,14 +39,14 @@ export function OrganizationSchema({
   name = SITE_NAME,
   url = SITE_URL,
   logo = LOGO_URL,
-  description = 'Carryofy enables same-day delivery for trusted local sellers in Lagos. Shop from verified sellers and get fast, reliable delivery with real-time tracking.',
+  description = GEO_ABSTRACT,
   email = 'support@carryofy.com',
   // SECTION 3.4 — resolved: real business phone for structured data
-  telephone = process.env.NEXT_PUBLIC_CONTACT_PHONE || '+234 916 678 3040',
+  telephone = DEFAULT_CONTACT_PHONE,
   address = {
-    addressLocality: 'Lagos',
-    addressRegion: 'Lagos State',
-    addressCountry: 'NG',
+    addressLocality: CARRYOFY_GEO.city,
+    addressRegion: CARRYOFY_GEO.region,
+    addressCountry: CARRYOFY_GEO.countryCode,
   },
   sameAs = [
     'https://twitter.com/carryofy',
@@ -74,16 +82,13 @@ export function OrganizationSchema({
         name: 'Carryofy Founder',
       },
     ],
-    areaServed: [
-      { '@type': 'City', name: 'Lagos' },
-      { '@type': 'State', name: 'Lagos State' },
-      { '@type': 'Country', name: 'Nigeria' },
-    ],
+    areaServed: areaServedSchemaEntities(),
+    knowsAbout: [...GEO_KNOWS_ABOUT],
     serviceType: [
-      'E-commerce Platform',
-      'Logistics Services',
-      'Warehouse Storage',
-      'Same-Day Delivery',
+      'B2B Wholesale Marketplace',
+      'Coordinated B2B Delivery',
+      'Vendor Verification',
+      'Retail Sourcing',
       'Order Fulfillment',
     ],
   };
@@ -109,7 +114,7 @@ export interface WebsiteSchemaProps {
 export function WebsiteSchema({
   url = SITE_URL,
   name = SITE_NAME,
-  description = 'Same-day delivery platform for trusted local sellers in Lagos',
+  description = `Carryofy — ${BRAND_POSITIONING_SHORT}`,
   searchUrlTemplate = `${SITE_URL}/buyer/products?search={search_term_string}`,
 }: WebsiteSchemaProps) {
   const schema = {
@@ -170,8 +175,8 @@ export interface LocalBusinessSchemaProps {
 
 export function LocalBusinessSchema({
   name = 'Carryofy',
-  description = 'Same-day delivery platform for trusted local sellers in Lagos, Nigeria.',
-  telephone = '+234-XXX-XXX-XXXX',
+  description = GEO_ABSTRACT,
+  telephone = DEFAULT_CONTACT_PHONE,
   email = 'support@carryofy.com',
   address = {
     addressLocality: 'Lagos',
@@ -179,8 +184,8 @@ export function LocalBusinessSchema({
     addressCountry: 'NG',
   },
   geo = {
-    latitude: 6.5244,
-    longitude: 3.3792,
+    latitude: CARRYOFY_GEO.latitude,
+    longitude: CARRYOFY_GEO.longitude,
   },
   openingHours = ['Mo-Fr 08:00-18:00', 'Sa 09:00-15:00'],
   priceRange = '₦₦',
@@ -221,10 +226,7 @@ export function LocalBusinessSchema({
       };
     }),
     priceRange,
-    areaServed: [
-      { '@type': 'City', name: 'Lagos' },
-      { '@type': 'State', name: 'Lagos State' },
-    ],
+    areaServed: areaServedSchemaEntities(),
     hasOfferCatalog: {
       '@type': 'OfferCatalog',
       name: 'Carryofy Services',
@@ -565,6 +567,134 @@ export function ArticleSchema({
   );
 }
 
+// OnlineStore — marketplace entity for product-rich SERP / AI citations
+export function OnlineStoreSchema() {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'OnlineStore',
+    '@id': `${SITE_URL}/#onlinestore`,
+    name: SITE_NAME,
+    url: SITE_URL,
+    description: GEO_ABSTRACT,
+    image: LOGO_URL,
+    telephone: DEFAULT_CONTACT_PHONE,
+    email: 'support@carryofy.com',
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: CARRYOFY_GEO.city,
+      addressRegion: CARRYOFY_GEO.region,
+      addressCountry: CARRYOFY_GEO.countryCode,
+    },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: CARRYOFY_GEO.latitude,
+      longitude: CARRYOFY_GEO.longitude,
+    },
+    areaServed: areaServedSchemaEntities(),
+    currenciesAccepted: CARRYOFY_GEO.currency,
+    paymentAccepted: 'Bank Transfer, Debit Card, Credit Card, Mobile Money',
+  };
+
+  return (
+    <Head>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdStringify(schema) }}
+      />
+    </Head>
+  );
+}
+
+// Service schema — clarifies what Carryofy offers (GEO + local SEO)
+export interface ServiceSchemaProps {
+  name?: string;
+  description?: string;
+}
+
+export function ServiceSchema({
+  name = 'B2B Wholesale Sourcing & Delivery',
+  description = `Connect retailers across Nigeria and Africa to verified wholesale vendors — ${BRAND_POSITIONING_SHORT}.`,
+}: ServiceSchemaProps) {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    '@id': `${SITE_URL}/#service`,
+    name,
+    description,
+    provider: {
+      '@type': 'Organization',
+      '@id': `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+    areaServed: areaServedSchemaEntities(),
+    serviceType: 'B2B Marketplace',
+    availableChannel: {
+      '@type': 'ServiceChannel',
+      serviceUrl: SITE_URL,
+      serviceType: 'Online ordering',
+    },
+  };
+
+  return (
+    <Head>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdStringify(schema) }}
+      />
+    </Head>
+  );
+}
+
+// WebPage — ties page content to site graph; supports AI/voice citation (GEO)
+export interface WebPageSchemaProps {
+  name: string;
+  description: string;
+  url: string;
+  speakableSummary?: string;
+}
+
+export function WebPageSchema({
+  name,
+  description,
+  url,
+  speakableSummary,
+}: WebPageSchemaProps) {
+  const pageUrl = url.startsWith('http') ? url : `${SITE_URL}${url}`;
+  const schema: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    '@id': `${pageUrl}#webpage`,
+    url: pageUrl,
+    name,
+    description,
+    inLanguage: CARRYOFY_GEO.contentLanguage,
+    isPartOf: { '@id': `${SITE_URL}/#website` },
+    about: { '@id': `${SITE_URL}/#organization` },
+    primaryImageOfPage: {
+      '@type': 'ImageObject',
+      url: `${SITE_URL}/og/home.png`,
+    },
+  };
+
+  if (speakableSummary) {
+    schema.abstract = speakableSummary;
+    schema.speakable = {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['.geo-speakable'],
+    };
+  }
+
+  return (
+    <Head>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdStringify(schema) }}
+      />
+    </Head>
+  );
+}
+
 // SoftwareApplication Schema for the platform
 export function SoftwareApplicationSchema() {
   const schema = {
@@ -573,27 +703,19 @@ export function SoftwareApplicationSchema() {
     name: 'Carryofy',
     operatingSystem: 'Web',
     applicationCategory: 'BusinessApplication',
-    description: 'Same-day delivery platform for trusted local sellers in Lagos',
+    description: GEO_ABSTRACT,
     offers: {
       '@type': 'Offer',
       price: '0',
-      priceCurrency: 'NGN',
-    },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.8',
-      ratingCount: '12450',
-      bestRating: '5',
-      worstRating: '1',
+      priceCurrency: CARRYOFY_GEO.currency,
     },
     featureList: [
-      'Online Marketplace',
-      'Same-Day Delivery',
-      'Real-Time Tracking',
+      'B2B Wholesale Marketplace',
+      'Verified Vendors',
+      'Coordinated Delivery',
+      'Real-Time Order Updates',
       'Secure Payments',
-      'Buyer Protection',
-      'Verified Sellers',
-      'Lagos Coverage',
+      'Lagos Corridor Coverage',
     ],
   };
 
@@ -613,6 +735,9 @@ export interface CombinedSchemaProps {
   includeWebsite?: boolean;
   includeLocalBusiness?: boolean;
   includeSoftwareApp?: boolean;
+  includeOnlineStore?: boolean;
+  includeService?: boolean;
+  webPage?: WebPageSchemaProps;
   breadcrumbs?: BreadcrumbItem[];
   faqs?: FAQItem[];
   product?: ProductSchemaProps;
@@ -625,6 +750,9 @@ export function CombinedSchema({
   includeWebsite = false,
   includeLocalBusiness = false,
   includeSoftwareApp = false,
+  includeOnlineStore = false,
+  includeService = false,
+  webPage,
   breadcrumbs,
   faqs,
   product,
@@ -636,7 +764,10 @@ export function CombinedSchema({
       {includeOrganization && <OrganizationSchema />}
       {includeWebsite && <WebsiteSchema />}
       {includeLocalBusiness && <LocalBusinessSchema />}
+      {includeOnlineStore && <OnlineStoreSchema />}
+      {includeService && <ServiceSchema />}
       {includeSoftwareApp && <SoftwareApplicationSchema />}
+      {webPage && <WebPageSchema {...webPage} />}
       {breadcrumbs && breadcrumbs.length > 0 && <BreadcrumbSchema items={breadcrumbs} />}
       {faqs && faqs.length > 0 && <FAQSchema faqs={faqs} />}
       {product && <ProductSchema {...product} />}

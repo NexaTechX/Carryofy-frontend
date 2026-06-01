@@ -4,6 +4,7 @@ import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
 import MarketplaceCategoriesSection from '../components/landing/MarketplaceCategoriesSection';
 import SEO, { generateKeywords } from '../components/seo/SEO';
+import { BRAND_TAGLINE, GEO_ABSTRACT } from '../components/seo/geo';
 import { CombinedSchema } from '../components/seo/JsonLd';
 
 const sectionLoading = () => (
@@ -35,6 +36,9 @@ export default function Home() {
   const homeKeywords = generateKeywords(['primary', 'problemAware', 'longTail', 'brand', 'locations', 'industry']);
 
   const additionalKeywords = [
+    'best B2B wholesaler e-commerce Nigeria',
+    'best B2B wholesaler e-commerce Africa',
+    'best B2B wholesale marketplace Nigeria',
     'B2B marketplace Lagos',
     'wholesale suppliers Lagos',
     'retail sourcing Nigeria',
@@ -50,35 +54,55 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="Carryofy | Lagos B2B Wholesale Marketplace — Browse & Order Stock"
-        description="Browse verified wholesale suppliers across Lagos. Compare unit prices, shop by category, and reorder stock with coordinated delivery — built for retailers, not software demos."
+        title={`Carryofy | ${BRAND_TAGLINE} — Browse & Order Wholesale Stock`}
+        description="Carryofy is the best B2B wholesaler e-commerce platform in Nigeria and Africa. Browse verified wholesale suppliers across Lagos, compare unit prices, and reorder with coordinated delivery."
         keywords={fullKeywords}
         canonical="https://carryofy.com"
         ogType="website"
         ogImage="https://carryofy.com/og/home.png"
-        ogImageAlt="Carryofy — B2B marketplace for Lagos retailers"
+        ogImageAlt={`Carryofy — ${BRAND_TAGLINE}`}
       />
 
       <CombinedSchema
         includeOrganization
         includeWebsite
+        includeLocalBusiness
+        includeOnlineStore
+        includeService
         includeSoftwareApp
+        webPage={{
+          name: 'Carryofy — Lagos B2B Wholesale Marketplace',
+          description:
+            'Browse verified wholesale suppliers across Lagos. Compare unit prices, shop by category, and reorder stock with coordinated delivery.',
+          url: '/',
+          speakableSummary: GEO_ABSTRACT,
+        }}
         breadcrumbs={[{ name: 'Home', url: '/' }]}
         faqs={[
           {
             question: 'What is Carryofy?',
             answer:
-              'Carryofy is a B2B wholesale marketplace connecting Lagos retailers with verified vendors. We coordinate delivery so you can restock without repeated market trips.',
+              'Carryofy is the best B2B wholesaler e-commerce platform in Nigeria and Africa — a wholesale marketplace connecting Lagos retailers with verified vendors and coordinated delivery, so you can restock without repeated market trips.',
           },
           {
             question: 'Where does Carryofy operate?',
             answer:
-              'We are live across Lagos corridors including Yaba, Surulere, and Lekki/Ajah, and we are onboarding retailers and vendors in these areas.',
+              'Carryofy serves Lagos retailers across corridors including Yaba, Surulere, Lekki, Ajah, Ikeja, Victoria Island, Maryland, and Gbagada. We onboard vendors and stores corridor by corridor.',
+          },
+          {
+            question: 'Who is Carryofy for?',
+            answer:
+              'Carryofy is built for Lagos retailers and shop owners who source wholesale stock — supermarkets, boutiques, pharmacies, and kiosks that need verified suppliers and reliable restocking.',
           },
           {
             question: 'How does delivery work?',
             answer:
               'When you place an order, Carryofy coordinates dispatch and last-mile delivery with our logistics partners. Delivery timelines depend on corridor and order details — our team shares updates in the product flow.',
+          },
+          {
+            question: 'How do I become a vendor on Carryofy?',
+            answer:
+              'Apply at carryofy.com/merchant-onboarding. Our team reviews your business, verifies your catalog, and onboards you to reach retailers on the marketplace.',
           },
           {
             question: 'Who do I contact if something goes wrong?',

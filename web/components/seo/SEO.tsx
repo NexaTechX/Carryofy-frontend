@@ -1,4 +1,10 @@
 import Head from 'next/head';
+import {
+  CARRYOFY_GEO,
+  GEO_ABSTRACT,
+  HREFLANG_ALTERNATES,
+  SITE_URL,
+} from './geo';
 
 interface SEOProps {
   title: string;
@@ -21,9 +27,11 @@ interface SEOProps {
   productCurrency?: string;
   productAvailability?: 'in stock' | 'out of stock' | 'preorder' | 'discontinued';
   productCondition?: 'new' | 'used' | 'refurbished';
+  /** Override default Lagos geo tags for rare non-local pages */
+  geoPlacename?: string;
+  geoPosition?: string;
 }
 
-const SITE_URL = 'https://carryofy.com';
 const DEFAULT_OG_IMAGE = `${SITE_URL}/og/home.png`;
 const SITE_NAME = 'Carryofy';
 const TWITTER_HANDLE = '@carryofy';
@@ -91,10 +99,17 @@ export const SEO_KEYWORDS = {
     'Lagos State',
     'Nigeria',
     'West Africa',
+    'Yaba wholesale Lagos',
+    'Surulere B2B suppliers',
+    'Lekki retailer sourcing',
+    'Ajah wholesale delivery',
+    'Ikeja B2B marketplace',
   ],
 
   // Industry-specific keywords
   industry: [
+    'best B2B wholesaler Nigeria',
+    'best wholesale e-commerce Africa',
     'African e-commerce',
     'Nigerian logistics',
     'online shopping Lagos',
@@ -118,6 +133,11 @@ export const SEO_KEYWORDS = {
     'Carryofy delivery',
     'Carryofy Lagos',
     'Carryofy Nigeria',
+    'Carryofy Africa',
+    'best B2B wholesaler e-commerce Nigeria',
+    'best B2B wholesaler e-commerce Africa',
+    'best B2B wholesale marketplace Nigeria',
+    'best B2B e-commerce Africa',
     'Carryofy seller',
     'Carryofy buyer',
     'Carryofy app',
@@ -144,7 +164,7 @@ export default function SEO({
   canonical,
   ogType = 'website',
   ogImage = DEFAULT_OG_IMAGE,
-  ogImageAlt = 'Carryofy - The Trusted Marketplace for Modern African Commerce',
+  ogImageAlt = 'Carryofy — The Best B2B Wholesaler E-Commerce in Nigeria & Africa',
   twitterCard = 'summary_large_image',
   noindex = false,
   nofollow = false,
@@ -157,6 +177,8 @@ export default function SEO({
   productCurrency = 'NGN',
   productAvailability,
   productCondition = 'new',
+  geoPlacename = CARRYOFY_GEO.placename,
+  geoPosition = CARRYOFY_GEO.positionSemicolon,
 }: SEOProps) {
   // Ensure "Carryofy" is at the start of the title for brand recognition
   const fullTitle = title.startsWith('Carryofy') ? title : `Carryofy | ${title}`;
@@ -184,15 +206,27 @@ export default function SEO({
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       <meta name="apple-mobile-web-app-title" content="Carryofy" />
 
-      {/* Geo Meta Tags for Local SEO - Essential for Lagos ranking */}
-      <meta name="geo.region" content="NG" />
-      <meta name="geo.placename" content="Lagos, Nigeria" />
-      <meta name="geo.position" content="6.5244;3.3792" />
-      <meta name="ICBM" content="6.5244, 3.3792" />
+      {/* Geo Meta Tags — local SEO (Lagos) */}
+      <meta name="geo.region" content={CARRYOFY_GEO.geoRegion} />
+      <meta name="geo.country" content={CARRYOFY_GEO.countryCode} />
+      <meta name="geo.placename" content={geoPlacename} />
+      <meta name="geo.position" content={geoPosition} />
+      <meta name="ICBM" content={CARRYOFY_GEO.positionComma} />
+      <meta name="DC.coverage" content={`${CARRYOFY_GEO.city}, ${CARRYOFY_GEO.country}`} />
+      <meta name="distribution" content="local" />
+      <meta name="target" content={`${CARRYOFY_GEO.city} retailers, ${CARRYOFY_GEO.country} wholesalers`} />
+
+      {/* Generative-engine (GEO) — concise machine-readable summary */}
+      <meta name="abstract" content={GEO_ABSTRACT} />
+      <meta name="summary" content={description} />
 
       {/* Language and Locale */}
-      <meta httpEquiv="content-language" content="en-NG" />
+      <meta httpEquiv="content-language" content={CARRYOFY_GEO.contentLanguage} />
       <meta name="language" content="English" />
+      <link rel="alternate" hrefLang="x-default" href={canonicalUrl} />
+      {HREFLANG_ALTERNATES.map(({ hreflang }) => (
+        <link key={hreflang} rel="alternate" hrefLang={hreflang} href={canonicalUrl} />
+      ))}
 
       {/* Open Graph / Facebook */}
       <meta property="og:type" content={ogType} />
@@ -205,6 +239,7 @@ export default function SEO({
       <meta property="og:image:height" content="630" />
       <meta property="og:site_name" content={SITE_NAME} />
       <meta property="og:locale" content={locale} />
+      <meta property="og:country-name" content={CARRYOFY_GEO.country} />
       {alternateLocales.map(loc => (
         <meta key={loc} property="og:locale:alternate" content={loc} />
       ))}
@@ -255,6 +290,10 @@ export default function SEO({
       <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       <link rel="manifest" href="/site.webmanifest" />
 
+      {/* AI / LLM discovery (GEO) */}
+      <link rel="help" type="text/plain" href={`${SITE_URL}/llms.txt`} title="LLM site information" />
+      <link rel="alternate" type="application/json" href={`${SITE_URL}/ai-summary.json`} title="Machine-readable site summary" />
+
       {/* DNS Prefetch for external resources */}
       <link rel="dns-prefetch" href="https://www.google-analytics.com" />
       <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
@@ -265,8 +304,9 @@ export default function SEO({
 // Page-specific SEO configurations
 export const PAGE_SEO = {
   home: {
-    title: 'Carryofy | Verified Marketplace & Same-Day Delivery in Lagos',
-    description: 'Carryofy is the leading same-day delivery platform for trusted local sellers in Lagos. Shop safely from verified merchants with real-time tracking, secure payments, and buyer protection.',
+    title: 'Carryofy | Best B2B Wholesaler E-Commerce in Nigeria & Africa',
+    description:
+      'Carryofy is the best B2B wholesaler e-commerce platform in Nigeria and Africa. Source wholesale stock from verified Lagos vendors with transparent pricing and coordinated delivery.',
     keywords: generateKeywords(['brand', 'primary', 'problemAware', 'longTail', 'locations']),
     ogImage: `${SITE_URL}/og/home.png`,
   },

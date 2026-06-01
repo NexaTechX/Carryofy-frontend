@@ -103,16 +103,16 @@ export default function HeroSection() {
               className="landing-eyebrow mb-4 inline-flex items-center gap-2"
             >
               <Store className="h-4 w-4 shrink-0" aria-hidden />
-              B2B wholesale marketplace
+              Best B2B wholesaler e-commerce · Nigeria &amp; Africa
             </motion.div>
 
             <h1 className="landing-title text-[2rem] leading-[1.15] sm:text-4xl lg:text-[2.75rem]">
-              Source wholesale stock from verified Lagos suppliers.
+              The best B2B wholesaler e-commerce for sourcing stock in Nigeria &amp; Africa.
             </h1>
 
-            <p className="landing-lead mt-5 text-base sm:text-lg">
-              Browse categories, compare unit prices, and reorder fast — without running between
-              markets. Built for retailers stocking shops across Yaba, Surulere, Lekki &amp; beyond.
+            <p className="geo-speakable landing-lead mt-5 text-base sm:text-lg">
+              Browse verified Lagos suppliers, compare unit prices, and reorder fast — without
+              running between markets. Built for retailers across Yaba, Surulere, Lekki &amp; beyond.
             </p>
 
             <form

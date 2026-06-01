@@ -1,6 +1,7 @@
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import SEO from '../components/seo/SEO';
+import { BRAND_TAGLINE } from '../components/seo/geo';
 import { CombinedSchema } from '../components/seo/JsonLd';
 import Link from 'next/link';
 
@@ -18,8 +19,8 @@ export default function About() {
   return (
     <>
       <SEO
-        title="About Carryofy — B2B Sourcing for Lagos Retailers"
-        description="Carryofy connects Lagos retailers with verified vendors. We coordinate delivery across Yaba, Surulere, and Lekki/Ajah. Learn our mission and story."
+        title={`About Carryofy — ${BRAND_TAGLINE}`}
+        description="Carryofy is the best B2B wholesaler e-commerce platform in Nigeria and Africa. We connect Lagos retailers with verified vendors and coordinate delivery across key corridors."
         keywords={aboutKeywords}
         canonical="https://carryofy.com/about"
         ogType="website"
@@ -29,6 +30,13 @@ export default function About() {
 
       <CombinedSchema
         includeOrganization
+        includeService
+        webPage={{
+          name: 'About Carryofy',
+          description:
+            'Carryofy connects Lagos retailers with verified vendors and coordinates delivery across Lagos corridors.',
+          url: '/about',
+        }}
         breadcrumbs={[
           { name: 'Home', url: '/' },
           { name: 'About Us', url: '/about' },
@@ -44,7 +52,7 @@ export default function About() {
                 About Carryofy
               </h1>
               <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
-                The B2B marketplace for Lagos retailers — source from verified vendors, delivery coordinated for your store.
+                The best B2B wholesaler e-commerce in Nigeria and Africa — source from verified vendors, delivery coordinated for your store.
               </p>
             </div>
           </section>

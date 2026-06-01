@@ -1,4 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import {
+  BRAND_TAGLINE,
+  CARRYOFY_GEO,
+  DEFAULT_CONTACT_PHONE,
+  GEO_ABSTRACT,
+  LAGOS_SERVICE_CORRIDORS,
+} from '../../components/seo/geo';
 
 const SITE_URL = 'https://carryofy.com';
 const API_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://api.carryofy.com/api/v1';
@@ -26,19 +33,27 @@ interface Category {
 
 interface SiteSummary {
   name: string;
+  tagline: string;
   description: string;
   url: string;
   type: string;
   location: {
     country: string;
+    countryCode: string;
     city: string;
     region: string;
+    coordinates: { latitude: number; longitude: number };
+    timezone: string;
+    serviceCorridors: string[];
   };
   contact: {
     email: string;
+    phone: string;
     supportUrl: string;
     helpUrl: string;
   };
+  abstract: string;
+  llmsTxtUrl: string;
   services: string[];
   features: string[];
   statistics: {
@@ -121,36 +136,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const summary: SiteSummary = {
       name: 'Carryofy',
-      description: "Carryofy is Nigeria's leading AI-powered e-commerce platform that unifies marketplace, logistics, warehousing, and same-day delivery. Connect with verified sellers, shop quality products, and enjoy fast delivery across Nigeria.",
+      tagline: BRAND_TAGLINE,
+      description: GEO_ABSTRACT,
+      abstract: GEO_ABSTRACT,
       url: SITE_URL,
-      type: 'E-commerce Marketplace',
+      llmsTxtUrl: `${SITE_URL}/llms.txt`,
+      type: 'Best B2B Wholesaler E-Commerce — Nigeria & Africa',
       location: {
-        country: 'Nigeria',
-        city: 'Lagos',
-        region: 'West Africa',
+        country: CARRYOFY_GEO.country,
+        countryCode: CARRYOFY_GEO.countryCode,
+        city: CARRYOFY_GEO.city,
+        region: CARRYOFY_GEO.region,
+        coordinates: {
+          latitude: CARRYOFY_GEO.latitude,
+          longitude: CARRYOFY_GEO.longitude,
+        },
+        timezone: CARRYOFY_GEO.timezone,
+        serviceCorridors: [...LAGOS_SERVICE_CORRIDORS],
       },
       contact: {
         email: 'support@carryofy.com',
+        phone: DEFAULT_CONTACT_PHONE,
         supportUrl: `${SITE_URL}/contact`,
         helpUrl: `${SITE_URL}/help`,
       },
       services: [
-        'Online Marketplace',
-        'Same-Day Delivery in Lagos',
-        'Express Shipping Nationwide',
-        'Warehouse & Fulfillment',
-        'Merchant Services',
-        'Buyer Protection',
-        'Secure Payments',
+        'B2B Wholesale Marketplace',
+        'Verified Vendor Network',
+        'Coordinated Lagos Delivery',
+        'Retail Sourcing',
+        'Vendor Onboarding',
+        'Order Support',
       ],
       features: [
-        'AI-Powered Recommendations',
-        'Verified Sellers',
-        'Quality-Checked Products',
-        'Real-Time Order Tracking',
-        'Multiple Payment Options',
-        '7-Day Return Policy',
-        '24/7 Customer Support',
+        'Verified wholesale vendors',
+        'Unit price comparison',
+        'Category browse',
+        'Coordinated corridor delivery',
+        'Secure payments',
+        'Order status updates',
       ],
       statistics: {
         totalProducts,
@@ -178,22 +202,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         {
           title: 'Home',
           url: SITE_URL,
-          description: 'AI-powered e-commerce platform for Nigeria with same-day delivery in Lagos',
+          description: GEO_ABSTRACT,
         },
         {
-          title: 'All Products',
+          title: 'Wholesale Products',
           url: `${SITE_URL}/buyer/products`,
-          description: 'Browse thousands of products from verified Nigerian sellers with fast delivery',
+          description: 'Browse verified wholesale suppliers and compare unit prices for Lagos retailers',
         },
         {
           title: 'About Us',
           url: `${SITE_URL}/about`,
-          description: 'Learn about Carryofy, Nigeria\'s trusted e-commerce and logistics platform',
+          description: 'Mission and story — B2B sourcing network for Lagos retailers',
         },
         {
-          title: 'Become a Seller',
+          title: 'Become a Vendor',
           url: `${SITE_URL}/merchant-onboarding`,
-          description: 'Join thousands of merchants selling on Carryofy with zero upfront costs',
+          description: 'Apply to sell wholesale on Carryofy and reach Lagos retailers',
         },
         {
           title: 'Help Center',

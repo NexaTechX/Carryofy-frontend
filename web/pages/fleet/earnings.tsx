@@ -36,53 +36,53 @@ export default function FleetEarningsPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-white">Earnings</h1>
-            <p className="mt-1 text-sm text-zinc-500">
+            <h1 className="text-2xl font-semibold text-foreground">Earnings</h1>
+            <p className="mt-1 text-sm text-foreground/45">
               Pooled logistics earnings by rider.
             </p>
           </div>
           <Link
             href="/fleet/payouts"
-            className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-black hover:bg-orange-400"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-black hover:bg-primary-dark"
           >
             Request payout
           </Link>
         </div>
 
         {loadingData ? (
-          <p className="text-zinc-500">Loading…</p>
+          <p className="text-foreground/45">Loading…</p>
         ) : error ? (
-          <div className="rounded-xl border border-red-900/50 bg-red-950/20 p-4 text-sm text-red-400">
+          <div className="rounded-xl border border-red-900/50 bg-red-950/20 p-4 text-sm text-danger">
             Could not load earnings. Please try again.
           </div>
         ) : (
           <>
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-xl border border-zinc-800 bg-[#0f1218] p-4">
-                <p className="text-xs uppercase tracking-wide text-zinc-500">
+              <div className="rounded-xl border border-border-custom bg-card p-4">
+                <p className="text-xs uppercase tracking-wide text-foreground/45">
                   Total earned (all time)
                 </p>
-                <p className="mt-2 text-xl font-semibold text-white">
+                <p className="mt-2 text-xl font-semibold text-foreground">
                   {formatNgnFromKobo(summary?.totalEarnedKobo ?? 0)}
                 </p>
               </div>
-              <div className="rounded-xl border border-zinc-800 bg-[#0f1218] p-4">
-                <p className="text-xs uppercase tracking-wide text-zinc-500">Pending pool</p>
-                <p className="mt-2 text-xl font-semibold text-orange-400">
+              <div className="rounded-xl border border-border-custom bg-card p-4">
+                <p className="text-xs uppercase tracking-wide text-foreground/45">Pending pool</p>
+                <p className="mt-2 text-xl font-semibold text-primary">
                   {formatNgnFromKobo(summary?.pendingPoolKobo ?? 0)}
                 </p>
               </div>
-              <div className="rounded-xl border border-zinc-800 bg-[#0f1218] p-4">
-                <p className="text-xs uppercase tracking-wide text-zinc-500">Paid out</p>
-                <p className="mt-2 text-xl font-semibold text-white">
+              <div className="rounded-xl border border-border-custom bg-card p-4">
+                <p className="text-xs uppercase tracking-wide text-foreground/45">Paid out</p>
+                <p className="mt-2 text-xl font-semibold text-foreground">
                   {formatNgnFromKobo(summary?.paidOutKobo ?? 0)}
                 </p>
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-zinc-800">
+            <div className="overflow-x-auto rounded-xl border border-border-custom">
               <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-zinc-800 bg-zinc-900/50 text-xs uppercase text-zinc-500">
+                <thead className="border-b border-border-custom bg-[var(--color-surface-2)] text-xs uppercase text-foreground/45">
                   <tr>
                     <th className="px-4 py-3">Rider</th>
                     <th className="px-4 py-3">Deliveries</th>
@@ -91,16 +91,16 @@ export default function FleetEarningsPage() {
                     <th className="px-4 py-3">Total</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800">
+                <tbody className="divide-y divide-border-custom">
                   {riders.map((row) => (
-                    <tr key={row.riderId} className="text-zinc-300">
-                      <td className="px-4 py-3 font-medium text-white">{row.riderName}</td>
+                    <tr key={row.riderId} className="text-foreground/70">
+                      <td className="px-4 py-3 font-medium text-foreground">{row.riderName}</td>
                       <td className="px-4 py-3">{row.deliveryCount}</td>
-                      <td className="px-4 py-3 text-orange-400">
+                      <td className="px-4 py-3 text-primary">
                         {formatNgnFromKobo(row.pendingAmountKobo)}
                       </td>
                       <td className="px-4 py-3">{formatNgnFromKobo(row.paidAmountKobo)}</td>
-                      <td className="px-4 py-3 font-medium text-white">
+                      <td className="px-4 py-3 font-medium text-foreground">
                         {formatNgnFromKobo(row.totalAmountKobo)}
                       </td>
                     </tr>
@@ -108,7 +108,7 @@ export default function FleetEarningsPage() {
                 </tbody>
               </table>
               {riders.length === 0 && (
-                <p className="p-6 text-center text-zinc-500">No delivery earnings yet</p>
+                <p className="p-6 text-center text-foreground/45">No delivery earnings yet</p>
               )}
             </div>
           </>

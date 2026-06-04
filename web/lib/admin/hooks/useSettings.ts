@@ -9,6 +9,15 @@ import {
   createTeamMember,
   updateTeamMember,
   deleteTeamMember,
+  fetchCommissionRates,
+  fetchCommissionHistory,
+  setCommissionRate,
+} from '../api';
+import type {
+  CommissionRates,
+  CommissionConfigRow,
+  CommissionPartyType,
+  SetCommissionRatePayload,
 } from '../api';
 import type {
   PlatformSettings,
@@ -142,11 +151,41 @@ export function useUpdateTeamMember() {
 
 export function useDeleteTeamMember() {
   const queryClient = useQueryClient();
-  
+
   return useMutation<void, Error, string>({
     mutationFn: deleteTeamMember,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'settings', 'team'] });
+    },
+  });
+}
+
+// ---- Delivery commission split ----
+
+export function useCommissionRates() {
+  return useQuery<CommissionRates>({
+    queryKey: ['admin', 'commission', 'rates'],
+    queryFn: fetchCommissionRates,
+    retry: (failureCount, error: any) =>
+      error?.response?.status === 404 ? false : failureCount < 2,
+  });
+}
+
+export function useCommissionHistory(partyType: CommissionPartyType) {
+  return useQuery<CommissionConfigRow[]>({
+    queryKey: ['admin', 'commission', 'history', partyType],
+    queryFn: () => fetchCommissionHistory(partyType),
+    retry: (failureCount, error: any) =>
+      error?.response?.status === 404 ? false : failureCount < 2,
+  });
+}
+
+export function useSetCommissionRate() {
+  const queryClient = useQueryClient();
+  return useMutation<CommissionConfigRow, Error, SetCommissionRatePayload>({
+    mutationFn: setCommissionRate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'commission'] });
     },
   });
 }

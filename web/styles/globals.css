@@ -9,16 +9,34 @@
   --color-accent-dark: #0891B2;
   --color-accent-light: #22D3EE;
 
+  /* Semantic state colors (solid + soft fill) — unify status badges/alerts platform-wide */
+  --color-success: #2dd4a7;
+  --color-success-soft: rgba(45, 212, 167, 0.14);
+  --color-warning: #f5b53d;
+  --color-warning-soft: rgba(245, 181, 61, 0.14);
+  --color-danger: #f4604f;
+  --color-danger-soft: rgba(244, 96, 79, 0.14);
+  --color-info: #4cc2f6;
+  --color-info-soft: rgba(76, 194, 246, 0.14);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-surface-2: var(--surface-2);
   --color-border-custom: var(--border-custom);
+  --color-border-strong: var(--border-strong);
   --color-muted-custom: var(--muted-custom);
   --color-sidebar-bg: var(--sidebar-bg);
   --color-sidebar-border: var(--sidebar-border);
   --color-input-bg: var(--input-bg);
   --color-input-border: var(--input-border);
+  --color-ring: var(--ring);
+
+  /* Elevation — soft, tinted shadows that read on dark surfaces */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(0, 0, 0, 0.2);
+  --shadow-elevated: 0 12px 32px -12px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-primary-glow: 0 10px 30px -10px rgba(255, 107, 0, 0.45);
 
   --color-gray-50: #F9FAFB;
   --color-gray-100: #F3F4F6;
@@ -33,7 +51,8 @@
 
   --font-sans: var(--font-sans-next), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
     Arial, sans-serif;
-  --font-heading: var(--font-sans);
+  --font-display: var(--font-display-next), var(--font-sans-next), 'Segoe UI', sans-serif;
+  --font-heading: var(--font-display);
   --font-inter: var(--font-sans);
   --font-mono: var(--font-mono-next), ui-monospace, 'Cascadia Mono', 'Consolas', monospace;
 
@@ -49,16 +68,19 @@
 @layer base {
   :root {
     /* Admin + marketing dark: deep navy / charcoal (not pure black) */
-    --background: #131922;
+    --background: #10151d;
     --foreground: #f1f4f8;
     --card: #1c2432;
     --card-foreground: #f1f4f8;
+    --surface-2: #232e41;
     --border-custom: #2d3849;
+    --border-strong: #3a475c;
     --muted-custom: #ffcc99;
-    --sidebar-bg: #171e2c;
+    --sidebar-bg: #141b27;
     --sidebar-border: #273143;
     --input-bg: #1c2432;
     --input-border: #2d3849;
+    --ring: #FF6B00;
   }
 
   .light {
@@ -66,12 +88,15 @@
     --foreground: #111827;
     --card: #ffffff;
     --card-foreground: #111827;
+    --surface-2: #f4f6f9;
     --border-custom: #e5e7eb;
+    --border-strong: #d1d5db;
     --muted-custom: #6b7280;
     --sidebar-bg: #f9fafb;
     --sidebar-border: #e5e7eb;
     --input-bg: #ffffff;
     --input-border: #d1d5db;
+    --ring: #FF6B00;
   }
 
   body {
@@ -80,7 +105,34 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Distinctive display voice for headings (Bricolage Grotesque), with tight
+     optical tracking. Applies app-wide; per-element font-size is untouched. */
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.018em;
+  }
+
+  /* Numeric data (prices, metrics, IDs) reads cleaner with tabular figures. */
+  .font-dm-mono,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Branded text selection */
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-primary) 32%, transparent);
+    color: #fff;
+  }
+
+  /* Visible, consistent keyboard focus across the platform (was largely missing) */
+  :where(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 8px;
   }
 
   /* Marketing / landing — restrained trade-catalog typography (no mono labels) */
@@ -402,4 +454,67 @@ body {
 
 .animate-pulse-border {
   animation: pulse-border 1.5s ease-in-out infinite;
+}
+
+/* ——— Design system: surfaces, elevation & orchestrated reveals ——— */
+@layer components {
+  /* One cohesive card surface using the design tokens. A hairline top highlight
+     gives subtle depth on the dark theme. Opt in with class="surface-card". */
+  .surface-card {
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border-custom);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-card);
+    position: relative;
+  }
+
+  .surface-card-2 {
+    background-color: var(--color-surface-2);
+    border: 1px solid var(--color-border-custom);
+    border-radius: 1rem;
+  }
+}
+
+@layer utilities {
+  /* Staggered page-load reveal — apply .reveal-up to a container's children and
+     .reveal-stagger on the parent for an orchestrated entrance. */
+  @keyframes reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .reveal-up {
+    animation: reveal-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .reveal-stagger > * {
+    animation: reveal-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .reveal-stagger > *:nth-child(1) { animation-delay: 0.04s; }
+  .reveal-stagger > *:nth-child(2) { animation-delay: 0.10s; }
+  .reveal-stagger > *:nth-child(3) { animation-delay: 0.16s; }
+  .reveal-stagger > *:nth-child(4) { animation-delay: 0.22s; }
+  .reveal-stagger > *:nth-child(5) { animation-delay: 0.28s; }
+  .reveal-stagger > *:nth-child(6) { animation-delay: 0.34s; }
+}
+
+/* Respect reduced-motion: disable decorative animation for users who opt out. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal-up,
+  .reveal-stagger > *,
+  .animate-float,
+  .animate-float-delayed,
+  .animate-pulse-slow,
+  .animate-glow-pulse {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

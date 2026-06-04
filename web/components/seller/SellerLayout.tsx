@@ -346,11 +346,11 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
               .map((w) => w[0]?.toUpperCase())
               .join('')
           : 'U';
-    return <span className="text-xs font-bold text-orange-500">{initials.slice(0, 2)}</span>;
+    return <span className="text-xs font-bold text-primary">{initials.slice(0, 2)}</span>;
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background max-lg:h-svh max-lg:min-h-0 max-lg:overflow-hidden max-lg:bg-[#0f1117]">
+    <div className="flex min-h-screen flex-col bg-background max-lg:h-svh max-lg:min-h-0 max-lg:overflow-hidden max-lg:bg-background">
       {/* Seller onboarding is separate at /seller/onboard; no buyer AI onboarding banner here */}
       {/* Desktop header */}
       <header className="hidden lg:flex bg-background border-b border-border-custom sticky top-0 z-50 safe-top h-14 sm:h-16 shrink-0 items-center">
@@ -497,7 +497,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
       {/* Mobile topbar — Carryofy mobile nav reference */}
       {showSellerMobileChrome && (
-        <header className="sticky top-0 z-50 shrink-0 border-b border-white/[0.06] bg-[#0f1117] safe-top lg:hidden">
+        <header className="sticky top-0 z-50 shrink-0 border-b border-border-custom bg-background safe-top lg:hidden">
           <div className="flex items-center justify-between px-3 py-2.5 sm:px-4">
             <Link href="/seller" className="flex min-w-0 items-center gap-2.5">
               <div className="relative h-9 w-9 shrink-0">
@@ -511,29 +511,29 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                 />
               </div>
               {router.pathname !== '/seller' && (
-                <span className="truncate text-base font-extrabold text-white">{sellerMobileTopTitle()}</span>
+                <span className="truncate font-display text-base font-bold text-foreground">{sellerMobileTopTitle()}</span>
               )}
             </Link>
             <div className="flex shrink-0 items-center gap-2">
               {productsListMobilePlus && (
                 <Link
                   href="/seller/products/new"
-                  className="btn-mobile flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-orange-500 bg-orange-500"
+                  className="btn-mobile flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-primary bg-primary"
                   aria-label="Add product"
                 >
-                  <Plus className="h-5 w-5 text-white" />
+                  <Plus className="h-5 w-5 text-black" />
                 </Link>
               )}
               <div className="relative" ref={notificationDropdownRefMobile}>
                 <button
                   type="button"
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
-                  className="btn-mobile relative flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/[0.07] bg-[#1a1d27]"
+                  className="btn-mobile relative flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border-custom bg-card"
                   aria-label="Notifications"
                 >
-                  <Bell className="h-5 w-5 text-gray-300" />
+                  <Bell className="h-5 w-5 text-foreground/70" />
                   {unreadCount > 0 && (
-                    <span className="absolute right-[5px] top-[5px] h-[7px] w-[7px] rounded-full border-[1.5px] border-[#0f1117] bg-orange-500" />
+                    <span className="absolute right-[5px] top-[5px] h-[7px] w-[7px] rounded-full border-[1.5px] border-background bg-primary" />
                   )}
                 </button>
                 {notificationsOpen && (
@@ -597,7 +597,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
               </div>
               <Link
                 href="/seller/more"
-                className="btn-mobile relative flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center overflow-hidden rounded-full border border-orange-500/50 bg-orange-500/20"
+                className="btn-mobile relative flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center overflow-hidden rounded-full border border-primary/50 bg-primary/15"
                 aria-label="Account and more"
               >
                 {sellerAvatarInner()}
@@ -622,7 +622,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                   className="w-full h-full object-contain"
                 />
               </div>
-              <span className="text-lg sm:text-xl font-bold text-foreground">Carryofy</span>
+              <span className="font-display text-lg sm:text-xl font-bold text-foreground">Carryofy</span>
             </div>
 
             {/* Navigation */}
@@ -635,7 +635,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                     key={item.name}
                     href={item.href}
                     className={`flex items-center space-x-3 px-3 py-3 sm:py-2 rounded-xl transition touch-target btn-mobile ${active
-                      ? 'bg-primary/20 text-foreground'
+                      ? 'bg-primary/15 text-primary font-semibold'
                       : 'text-foreground/70 hover:bg-card hover:text-foreground'
                       }`}
                   >
@@ -661,7 +661,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
               <Link
                 href="/seller/help"
                 className={`flex items-center space-x-3 px-3 py-3 sm:py-2 rounded-xl transition touch-target btn-mobile ${isActive('/seller/help')
-                  ? 'bg-primary/20 text-foreground'
+                  ? 'bg-primary/15 text-primary font-semibold'
                   : 'text-foreground/70 hover:bg-card hover:text-foreground'
                   }`}
               >
@@ -671,7 +671,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
               <Link
                 href="/seller/feedback"
                 className={`flex items-center space-x-3 px-3 py-3 sm:py-2 rounded-xl transition touch-target btn-mobile ${isActive('/seller/feedback')
-                  ? 'bg-primary/20 text-foreground'
+                  ? 'bg-primary/15 text-primary font-semibold'
                   : 'text-foreground/70 hover:bg-card hover:text-foreground'
                   }`}
               >
@@ -685,7 +685,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
         {/* Main content wrapper: reserved space for fixed sidebar on desktop, scrollable */}
         <div className="flex-1 flex flex-col min-h-0 min-w-0 w-full lg:ml-64">
           <main
-            className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-smooth bg-background [-webkit-overflow-scrolling:touch] max-lg:bg-[#0f1117] ${showSellerMobileChrome ? 'max-lg:pb-[calc(7rem+env(safe-area-inset-bottom))]' : ''}`}
+            className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-smooth bg-background [-webkit-overflow-scrolling:touch] max-lg:bg-background ${showSellerMobileChrome ? 'max-lg:pb-[calc(7rem+env(safe-area-inset-bottom))]' : ''}`}
           >
             {/* KYC Reminder Banner - shown when KYC not submitted or rejected */}
             {kycStatus && !kycBannerDismissed && (kycStatus === 'NOT_SUBMITTED' || kycStatus === 'REJECTED') && (
@@ -732,7 +732,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
       {showSellerMobileChrome && (
         <nav
-          className="fixed bottom-0 left-0 right-0 z-[55] flex shrink-0 border-t border-white/10 bg-[#13161f] px-1 pt-2 lg:hidden"
+          className="fixed bottom-0 left-0 right-0 z-[55] flex shrink-0 border-t border-border-custom bg-card px-1 pt-2 lg:hidden"
           style={{ paddingBottom: 'max(10px, env(safe-area-inset-bottom))' }}
           aria-label="Seller primary navigation"
         >
@@ -742,10 +742,10 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
               <Link
                 key={id}
                 href={href}
-                className={`btn-mobile flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-lg py-1 transition-colors active:opacity-80 ${on ? 'text-orange-500' : 'text-gray-500'}`}
+                className={`btn-mobile flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-lg py-1 transition-colors active:opacity-80 ${on ? 'text-primary' : 'text-foreground/45'}`}
               >
                 <span
-                  className={`h-1 w-1 shrink-0 rounded-full bg-orange-500 transition-opacity ${on ? 'opacity-100' : 'opacity-0'}`}
+                  className={`h-1 w-1 shrink-0 rounded-full bg-primary transition-opacity ${on ? 'opacity-100' : 'opacity-0'}`}
                   aria-hidden
                 />
                 <Icon className="h-7 w-7 shrink-0" strokeWidth={on ? 2.35 : 2} />

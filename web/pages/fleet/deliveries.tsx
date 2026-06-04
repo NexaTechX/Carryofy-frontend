@@ -38,13 +38,13 @@ export default function FleetDeliveriesPage() {
         <title>Fleet deliveries · Carryofy</title>
       </Head>
       <div className="space-y-6">
-        <h1 className="text-2xl font-semibold text-white">Deliveries</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Deliveries</h1>
 
         <div className="flex flex-wrap gap-2">
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+            className="rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 text-sm text-foreground"
           >
             <option value="">All statuses</option>
             <option value="AWAITING_ASSIGNMENT">Awaiting assignment</option>
@@ -55,9 +55,9 @@ export default function FleetDeliveriesPage() {
           </select>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-zinc-800">
+        <div className="overflow-x-auto rounded-xl border border-border-custom">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-zinc-800 bg-zinc-900/50 text-xs uppercase text-zinc-500">
+            <thead className="border-b border-border-custom bg-[var(--color-surface-2)] text-xs uppercase text-foreground/45">
               <tr>
                 <th className="px-4 py-3">Order</th>
                 <th className="px-4 py-3">Pickup</th>
@@ -67,13 +67,13 @@ export default function FleetDeliveriesPage() {
                 <th className="px-4 py-3">Delivery fee (est.)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800">
+            <tbody className="divide-y divide-border-custom">
               {(deliveries as Record<string, unknown>[]).map((d) => {
                 const ord = d.order as Record<string, unknown> | undefined;
                 const rider = d.rider as Record<string, unknown> | undefined;
                 const riderCost = ord?.riderCostKobo as number | undefined;
                 return (
-                  <tr key={String(d.id)} className="text-zinc-300">
+                  <tr key={String(d.id)} className="text-foreground/70">
                     <td className="px-4 py-3 font-mono text-xs">
                       #{String(d.orderId ?? '').slice(0, 8)}…
                     </td>
@@ -94,7 +94,7 @@ export default function FleetDeliveriesPage() {
             </tbody>
           </table>
           {deliveries.length === 0 && (
-            <p className="p-6 text-center text-zinc-500">No deliveries for your fleet yet.</p>
+            <p className="p-6 text-center text-foreground/45">No deliveries for your fleet yet.</p>
           )}
         </div>
       </div>

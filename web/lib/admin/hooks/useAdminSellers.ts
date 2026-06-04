@@ -4,6 +4,8 @@ import {
   approveSellerRequest,
   fetchAdminSellers,
   rejectSellerRequest,
+  suspendSellerRequest,
+  unsuspendSellerRequest,
 } from '../../admin/api';
 import { AdminSeller } from '../../admin/types';
 
@@ -47,6 +49,39 @@ export function useRejectSellerMutation() {
     onError: (error: unknown) => {
       console.error(error);
       toast.error('Failed to reject seller.');
+    },
+  });
+}
+
+export function useSuspendSellerMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ sellerId, reason }: { sellerId: string; reason?: string }) =>
+      suspendSellerRequest(sellerId, reason),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: sellersKeys.all });
+      toast.success('Seller suspended. Their products are now hidden.');
+    },
+    onError: (error: unknown) => {
+      console.error(error);
+      toast.error('Failed to suspend seller.');
+    },
+  });
+}
+
+export function useUnsuspendSellerMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: unsuspendSellerRequest,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: sellersKeys.all });
+      toast.success('Seller reinstated. Their products are visible again.');
+    },
+    onError: (error: unknown) => {
+      console.error(error);
+      toast.error('Failed to reinstate seller.');
     },
   });
 }

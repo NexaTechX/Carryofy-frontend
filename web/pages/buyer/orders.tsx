@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   FileText,
+  CreditCard,
 } from 'lucide-react';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
 import { formatDate, formatNgnFromKobo } from '../../lib/api/utils';
@@ -120,7 +121,29 @@ export default function OrdersPage() {
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
   const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
   const confirmation = useConfirmation();
+
+  // Orders awaiting payment can be paid/retried straight from the list.
+  const canPayOrder = (status: string) =>
+    ['PENDING_PAYMENT', 'FAILED_PAYMENT'].includes(status);
+
+  const handlePayNow = async (orderId: string) => {
+    setPayingId(orderId);
+    try {
+      const response = await apiClient.post('/payments/initialize', { orderId });
+      const data = unwrapAxiosBody<{ authorization_url?: string }>(response.data);
+      if (data?.authorization_url) {
+        window.location.href = data.authorization_url;
+        return;
+      }
+      showErrorToast('Could not start payment. Please try again.');
+    } catch {
+      showErrorToast('Could not start payment. Please try again.');
+    } finally {
+      setPayingId(null);
+    }
+  };
 
   const handleCancelOrder = async (orderId: string) => {
     const confirmed = await confirmation.confirm({
@@ -478,6 +501,21 @@ export default function OrdersPage() {
                                 <Eye className="w-4 h-4" />
                                 View Details
                               </Link>
+                              {canPayOrder(order.status) && (
+                                <button
+                                  type="button"
+                                  disabled={payingId === order.id}
+                                  onClick={() => handlePayNow(order.id)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#FF6B00] text-black text-sm font-semibold rounded-lg hover:bg-[#ff8533] transition disabled:opacity-50"
+                                >
+                                  {payingId === order.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <CreditCard className="w-4 h-4" />
+                                  )}
+                                  Pay now
+                                </button>
+                              )}
                               {order.status === 'OUT_FOR_DELIVERY' && (
                                 <Link
                                   href={`/buyer/track?orderId=${order.id}`}

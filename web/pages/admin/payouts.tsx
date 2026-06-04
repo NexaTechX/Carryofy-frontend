@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/router';
 import AdminLayout from '../../components/admin/AdminLayout';
+import RiderPayoutsTab from '../../components/admin/RiderPayoutsTab';
 import {
   AdminCard,
   AdminDrawer,
@@ -193,6 +195,8 @@ function getEmptyStateForFilter(
 }
 
 export default function AdminPayouts() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'seller' | 'rider'>('seller');
   const [filter, setFilter] = useState<'ALL' | PayoutStatus>('REQUESTED');
   const [selectedPayout, setSelectedPayout] = useState<AdminPayout | null>(null);
   const [processForm, setProcessForm] = useState<ProcessPayoutPayload>({
@@ -213,6 +217,26 @@ export default function AdminPayouts() {
   const approvePayout = useApprovePayoutMutation();
   const rejectPayout = useRejectPayoutMutation();
   const processPayout = useProcessPayoutMutation();
+
+  // Deep-link: /admin/payouts?tab=rider opens the Riders tab on load (admin notifications link here).
+  useEffect(() => {
+    if (!router.isReady) return;
+    const tab = router.query.tab;
+    if (tab === 'rider') {
+      setActiveTab('rider');
+    } else if (tab === 'seller') {
+      setActiveTab('seller');
+    }
+  }, [router.isReady, router.query.tab]);
+
+  const handleSwitchTab = (tab: 'seller' | 'rider') => {
+    setActiveTab(tab);
+    router.replace(
+      { pathname: '/admin/payouts', query: tab === 'rider' ? { tab: 'rider' } : {} },
+      undefined,
+      { shallow: true },
+    );
+  };
 
   const metrics = dashboardData?.metrics;
   const salesTrend = dashboardData?.salesTrend?.trend ?? [];
@@ -498,11 +522,36 @@ export default function AdminPayouts() {
     <AdminLayout>
       <div className="admin-page-shell max-w-7xl">
           <AdminPageHeader
-            title="Payouts & Seller Settlements"
+            title="Payouts & Settlements"
             tag="Marketplace Payments"
-            subtitle="Track seller payouts, approve withdrawals, and manage payment processing."
+            subtitle="Track seller and rider payouts, approve withdrawals, and manage payment processing."
           />
 
+          <div className="mb-6 inline-flex rounded-full border border-[#1f1f1f] bg-[#111111] p-1">
+            <button
+              type="button"
+              onClick={() => handleSwitchTab('seller')}
+              className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                activeTab === 'seller' ? 'bg-primary text-black' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Sellers
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSwitchTab('rider')}
+              className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                activeTab === 'rider' ? 'bg-primary text-black' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Riders
+            </button>
+          </div>
+
+          {activeTab === 'rider' ? (
+            <RiderPayoutsTab />
+          ) : (
+          <>
           {metricsLoading ? (
             <LoadingState fullscreen />
           ) : metrics ? (
@@ -807,6 +856,8 @@ export default function AdminPayouts() {
               </DataTableContainer>
             )}
           </section>
+          </>
+          )}
         </div>
 
       {/* Bulk: step 1 — confirm count */}

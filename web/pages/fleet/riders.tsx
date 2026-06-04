@@ -105,33 +105,33 @@ export default function FleetRidersPage() {
       </Head>
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold text-white">Riders</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Riders</h1>
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-black hover:bg-orange-400"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-black hover:bg-primary-dark"
           >
             <Plus className="h-4 w-4" />
             Add Rider
           </button>
         </div>
 
-        <div className="rounded-xl border border-zinc-800 bg-[#0f1218] p-4">
-          <p className="text-sm text-zinc-400">
-            Enter a delivery UUID, then click <strong className="text-zinc-200">Assign</strong> next to a rider.
+        <div className="rounded-xl border border-border-custom bg-card p-4">
+          <p className="text-sm text-foreground/60">
+            Enter a delivery UUID, then click <strong className="text-foreground/80">Assign</strong> next to a rider.
           </p>
           <input
             type="text"
             value={deliveryId}
             onChange={(e) => setDeliveryId(e.target.value)}
             placeholder="Delivery ID (UUID)"
-            className="mt-3 w-full max-w-xl rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white placeholder:text-zinc-600"
+            className="mt-3 w-full max-w-xl rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 text-sm text-foreground placeholder:text-foreground/35"
           />
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-zinc-800">
+        <div className="overflow-x-auto rounded-xl border border-border-custom">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-zinc-800 bg-zinc-900/50 text-xs uppercase text-zinc-500">
+            <thead className="border-b border-border-custom bg-[var(--color-surface-2)] text-xs uppercase text-foreground/45">
               <tr>
                 <th className="px-4 py-3">Rider</th>
                 <th className="px-4 py-3">Vehicle</th>
@@ -141,12 +141,12 @@ export default function FleetRidersPage() {
                 <th className="px-4 py-3 text-right">Assign</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800">
+            <tbody className="divide-y divide-border-custom">
               {riders.map((r) => (
-                <tr key={r.userId} className="text-zinc-300">
+                <tr key={r.userId} className="text-foreground/70">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-white">{r.name}</div>
-                    <div className="text-xs text-zinc-500">{r.email}</div>
+                    <div className="font-medium text-foreground">{r.name}</div>
+                    <div className="text-xs text-foreground/45">{r.email}</div>
                   </td>
                   <td className="px-4 py-3">{r.vehicleType ?? '—'}</td>
                   <td className="px-4 py-3">{r.isAvailable ? 'Yes' : 'No'}</td>
@@ -161,7 +161,7 @@ export default function FleetRidersPage() {
                       type="button"
                       disabled={assigningUserId === r.userId}
                       onClick={() => handleAssign(r.userId)}
-                      className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-black disabled:opacity-50"
+                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-black disabled:opacity-50"
                     >
                       {assigningUserId === r.userId ? '…' : 'Assign'}
                     </button>
@@ -171,52 +171,52 @@ export default function FleetRidersPage() {
             </tbody>
           </table>
           {riders.length === 0 && (
-            <p className="p-6 text-center text-zinc-500">No riders assigned to this fleet yet.</p>
+            <p className="p-6 text-center text-foreground/45">No riders assigned to this fleet yet.</p>
           )}
         </div>
       </div>
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-zinc-800 bg-[#0f1218] p-6">
-            <h2 className="text-lg font-semibold text-white">Add rider</h2>
-            <p className="mt-1 text-sm text-zinc-500">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border-custom bg-card p-6">
+            <h2 className="text-lg font-semibold text-foreground">Add rider</h2>
+            <p className="mt-1 text-sm text-foreground/45">
               Create a fleet rider account they can use to log in to the rider app.
             </p>
             <form onSubmit={handleCreateRider} className="mt-4 space-y-3">
               <label className="block text-sm">
-                <span className="text-zinc-400">Full name</span>
+                <span className="text-foreground/60">Full name</span>
                 <input
                   required
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+                  className="mt-1 w-full rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 text-foreground"
                 />
               </label>
               <label className="block text-sm">
-                <span className="text-zinc-400">Email</span>
+                <span className="text-foreground/60">Email</span>
                 <input
                   required
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+                  className="mt-1 w-full rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 text-foreground"
                 />
               </label>
               <label className="block text-sm">
-                <span className="text-zinc-400">Phone</span>
+                <span className="text-foreground/60">Phone</span>
                 <input
                   required
                   type="tel"
                   value={form.phone}
                   onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                   placeholder="+2348012345678"
-                  className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white placeholder:text-zinc-600"
+                  className="mt-1 w-full rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 text-foreground placeholder:text-foreground/35"
                 />
               </label>
               <label className="block text-sm">
-                <span className="text-zinc-400">Password</span>
+                <span className="text-foreground/60">Password</span>
                 <div className="relative mt-1">
                   <input
                     required
@@ -224,29 +224,29 @@ export default function FleetRidersPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={form.password}
                     onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 pr-10 text-white"
+                    className="w-full rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 pr-10 text-foreground"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-200"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-foreground/60 hover:text-foreground/80"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <p className="mt-1.5 text-xs text-zinc-400">
+                <p className="mt-1.5 text-xs text-foreground/60">
                   The rider will use this email and password to log in. They can reset their password
                   independently via the forgot password flow in the rider app.
                 </p>
               </label>
               <label className="block text-sm">
-                <span className="text-zinc-400">Vehicle type</span>
+                <span className="text-foreground/60">Vehicle type</span>
                 <select
                   required
                   value={form.vehicleType}
                   onChange={(e) => setForm((f) => ({ ...f, vehicleType: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+                  className="mt-1 w-full rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 text-foreground"
                 >
                   <option value="bike">Bike</option>
                   <option value="car">Car</option>
@@ -254,27 +254,27 @@ export default function FleetRidersPage() {
                 </select>
               </label>
               <label className="block text-sm">
-                <span className="text-zinc-400">Vehicle number</span>
+                <span className="text-foreground/60">Vehicle number</span>
                 <input
                   required
                   type="text"
                   value={form.vehicleNumber}
                   onChange={(e) => setForm((f) => ({ ...f, vehicleNumber: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+                  className="mt-1 w-full rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 text-foreground"
                 />
               </label>
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="rounded-lg border border-zinc-600 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                  className="rounded-lg border border-border-custom px-4 py-2 text-sm text-foreground/70 hover:bg-card"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
                 >
                   {submitting ? 'Creating…' : 'Add rider'}
                 </button>

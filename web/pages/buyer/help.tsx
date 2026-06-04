@@ -44,12 +44,6 @@ const faqsData = [
   { category: 'Delivery' as const, icon: Truck, question: 'Can I change my delivery address after ordering?', answer: 'If your order has not yet shipped, contact support immediately. Once shipped, address changes may not be possible. Check your order status in My Orders.' },
 ];
 
-// Placeholder tickets for demo when API returns empty
-const placeholderTickets: SupportTicket[] = [
-  { id: 'tkt-demo-001', subject: 'Delivery delay - Order #12345', message: 'Order has not arrived after 10 days.', category: 'delivery', priority: 'MEDIUM', status: 'IN_PROGRESS', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'tkt-demo-002', subject: 'Invoice request for bulk order', message: 'Need formal invoice for business records.', category: 'bulk_order', priority: 'LOW', status: 'RESOLVED', adminNotes: 'Invoice sent via email.', createdAt: new Date(Date.now() - 86400000 * 3).toISOString(), updatedAt: new Date().toISOString() },
-];
-
 export default function BuyerHelpPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -105,7 +99,8 @@ export default function BuyerHelpPage() {
       const ticketsData = response.data?.data ?? response.data;
       setTickets(Array.isArray(ticketsData) ? ticketsData : []);
     } catch {
-      setTickets(placeholderTickets);
+      // Don't fabricate demo tickets on error — show an empty list.
+      setTickets([]);
     } finally {
       setLoadingTickets(false);
     }

@@ -7,6 +7,27 @@ import { useAuth } from '../../lib/auth';
 import { fetchFleetPayoutHistory, requestFleetPayout } from '../../lib/api/fleet';
 import { formatNgnFromKobo } from '../../lib/api/utils';
 import { toast } from 'react-hot-toast';
+import StatusBadge from '../../components/ui/StatusBadge';
+
+type BadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'primary';
+
+/** Payout-context tone: PAID/APPROVED = funds sent (success). */
+function payoutTone(status: string): BadgeTone {
+  switch (status?.toUpperCase()) {
+    case 'PAID':
+    case 'APPROVED':
+      return 'success';
+    case 'REQUESTED':
+    case 'PROCESSING':
+      return 'warning';
+    case 'REJECTED':
+      return 'danger';
+    case 'CANCELLED':
+      return 'neutral';
+    default:
+      return 'neutral';
+  }
+}
 
 export default function FleetPayoutsPage() {
   const router = useRouter();
@@ -68,79 +89,81 @@ export default function FleetPayoutsPage() {
         <title>Fleet payouts · Carryofy</title>
       </Head>
       <div className="space-y-8">
-        <h1 className="text-2xl font-semibold text-white">Payouts</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Payouts</h1>
 
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-xl border border-zinc-800 bg-[#0f1218] p-6"
+          className="space-y-4 rounded-xl border border-border-custom bg-card p-6"
         >
-          <h2 className="text-lg font-medium text-white">Request payout</h2>
+          <h2 className="text-lg font-medium text-foreground">Request payout</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm">
-              <span className="text-zinc-400">Amount (NGN)</span>
+              <span className="text-foreground/60">Amount (NGN)</span>
               <input
                 type="number"
                 step="0.01"
                 min={0}
                 value={amountNgn}
                 onChange={(e) => setAmountNgn(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+                className="mt-1 w-full rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 text-foreground"
               />
             </label>
             <label className="block text-sm">
-              <span className="text-zinc-400">Bank code (Paystack)</span>
+              <span className="text-foreground/60">Bank code (Paystack)</span>
               <input
                 value={bankCode}
                 onChange={(e) => setBankCode(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+                className="mt-1 w-full rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 text-foreground"
                 placeholder="058"
               />
             </label>
             <label className="block text-sm sm:col-span-2">
-              <span className="text-zinc-400">Account name</span>
+              <span className="text-foreground/60">Account name</span>
               <input
                 value={bankAccountName}
                 onChange={(e) => setBankAccountName(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+                className="mt-1 w-full rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 text-foreground"
               />
             </label>
             <label className="block text-sm sm:col-span-2">
-              <span className="text-zinc-400">Account number</span>
+              <span className="text-foreground/60">Account number</span>
               <input
                 value={bankAccountNumber}
                 onChange={(e) => setBankAccountNumber(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+                className="mt-1 w-full rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 text-foreground"
               />
             </label>
           </div>
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
           >
             {submitting ? 'Submitting…' : 'Submit request'}
           </button>
         </form>
 
         <div>
-          <h2 className="mb-3 text-lg font-medium text-white">History</h2>
-          <div className="overflow-x-auto rounded-xl border border-zinc-800">
+          <h2 className="mb-3 text-lg font-medium text-foreground">History</h2>
+          <div className="overflow-x-auto rounded-xl border border-border-custom">
             <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-zinc-800 bg-zinc-900/50 text-xs uppercase text-zinc-500">
+              <thead className="border-b border-border-custom bg-[var(--color-surface-2)] text-xs uppercase text-foreground/45">
                 <tr>
                   <th className="px-4 py-3">Amount</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Created</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800">
+              <tbody className="divide-y divide-border-custom">
                 {(payouts as Record<string, unknown>[]).map((p) => (
                   <tr key={String(p.id)}>
-                    <td className="px-4 py-3 text-white">
+                    <td className="px-4 py-3 font-semibold text-foreground tabular-nums">
                       {formatNgnFromKobo(Number(p.totalAmountKobo ?? 0))}
                     </td>
-                    <td className="px-4 py-3">{String(p.status)}</td>
-                    <td className="px-4 py-3 text-zinc-400">
+                    <td className="px-4 py-3">
+                      <StatusBadge status={String(p.status)} tone={payoutTone(String(p.status))} />
+                    </td>
+                    <td className="px-4 py-3 text-foreground/60">
                       {p.createdAt ? new Date(String(p.createdAt)).toLocaleString() : '—'}
                     </td>
                   </tr>
@@ -148,7 +171,7 @@ export default function FleetPayoutsPage() {
               </tbody>
             </table>
             {payouts.length === 0 && (
-              <p className="p-6 text-center text-zinc-500">No payout requests yet.</p>
+              <p className="p-6 text-center text-foreground/45">No payout requests yet.</p>
             )}
           </div>
         </div>

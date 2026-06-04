@@ -87,8 +87,6 @@ interface Product {
   tags?: string[];
 }
 
-// Placeholder perfect-for tags
-const PLACEHOLDER_PERFECT_FOR = ['Home Use', 'Offices', 'Hotels', 'Spas'];
 
 function buildProductDetailRows(product: Product): { label: string; value: string }[] {
   const raw = product.detailSpecifications;
@@ -859,19 +857,21 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                       </ul>
                     </div>
                   )}
-                  <div className="mb-4">
-                    <p className="text-white font-medium text-sm mb-2">Perfect For</p>
-                    <div className="flex flex-wrap gap-2">
-                      {(product.tags?.length ? product.tags : PLACEHOLDER_PERFECT_FOR).slice(0, 4).map((tag, i) => {
-                        const label = typeof tag === 'string' ? tag : (tag as { name?: string })?.name ?? String(tag);
-                        return (
-                          <span key={i} className="px-3 py-1.5 border border-white/20 text-[#ffcc99]/90 rounded-full text-xs">
-                            {label}
-                          </span>
-                        );
-                      })}
+                  {product.tags?.length ? (
+                    <div className="mb-4">
+                      <p className="text-white font-medium text-sm mb-2">Perfect For</p>
+                      <div className="flex flex-wrap gap-2">
+                        {product.tags.slice(0, 4).map((tag, i) => {
+                          const label = typeof tag === 'string' ? tag : (tag as { name?: string })?.name ?? String(tag);
+                          return (
+                            <span key={i} className="px-3 py-1.5 border border-white/20 text-[#ffcc99]/90 rounded-full text-xs">
+                              {label}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  ) : null}
                   {product.description && product.description.length > 200 && (
                     <div>
                       <button

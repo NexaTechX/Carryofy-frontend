@@ -295,9 +295,12 @@ export default function SellerOnboardingPage() {
       });
 
       if (response.ok) {
-        toast.success('Successfully onboarded! Redirecting to your seller dashboard...');
+        toast.success('Store profile saved! Next: verify your identity to start selling.');
         refreshAccessTokenBeforeRedirect().finally(() => {
-          setTimeout(() => router.push('/seller'), 2000);
+          setTimeout(
+            () => router.push('/seller/settings?tab=kyc&welcome=1'),
+            1500,
+          );
         });
       } else {
         const error = await response.json().catch(() => ({}));
@@ -543,15 +546,18 @@ export default function SellerOnboardingPage() {
                   <ul className="text-[#ffcc99] text-sm space-y-2">
                     <li className="flex items-start gap-2">
                       <span className="text-[#ff6600] mt-0.5">•</span>
-                      <span>Your application will be reviewed by our team</span>
+                      <span>We&apos;ll save your store profile.</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#ff6600] mt-0.5">•</span>
-                      <span>You&apos;ll be able to add products once approved</span>
+                      <span>
+                        <span className="text-white font-medium">Next, verify your identity (KYC)</span> — this is required
+                        before you can list products or receive payouts.
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#ff6600] mt-0.5">•</span>
-                      <span>We&apos;ll notify you via email about your KYC status</span>
+                      <span>Our team reviews your KYC and emails you once you&apos;re approved.</span>
                     </li>
                   </ul>
                 </div>

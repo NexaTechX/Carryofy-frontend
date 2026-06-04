@@ -22,6 +22,8 @@ import {
   CreateOutboundPayload,
   AdjustStockPayload,
   AdminPayout,
+  AdminRiderPayout,
+  PayoutStatus,
   ProcessPayoutPayload,
   SalesReportDto,
   EarningsReportDto,
@@ -288,6 +290,16 @@ export async function rejectSellerRequest(sellerId: string, rejectionReason?: st
   await apiClient.put(`/sellers/${sellerId}/reject`, {
     rejectionReason: rejectionReason || undefined,
   });
+}
+
+export async function suspendSellerRequest(sellerId: string, reason?: string): Promise<void> {
+  await apiClient.put(`/sellers/${sellerId}/suspend`, {
+    reason: reason || undefined,
+  });
+}
+
+export async function unsuspendSellerRequest(sellerId: string): Promise<void> {
+  await apiClient.put(`/sellers/${sellerId}/unsuspend`);
 }
 
 export async function bulkApproveSellersRequest(sellerIds: string[]): Promise<{ approved: number; failed: number }> {
@@ -607,6 +619,29 @@ export async function processPayoutRequest(
   payload: ProcessPayoutPayload
 ): Promise<void> {
   await apiClient.post(`/payouts/requests/${payoutId}/process`, payload);
+}
+
+// --- Independent (non-fleet) rider payout requests ---
+
+export async function fetchRiderPayoutRequests(status?: PayoutStatus): Promise<AdminRiderPayout[]> {
+  const { data } = await apiClient.get('/payouts/rider/requests', {
+    params: status ? { status } : undefined,
+  });
+  return normalizeListResponse<AdminRiderPayout>(data, ['requests', 'payouts', 'items', 'data', 'results']);
+}
+
+export async function approveRiderPayout(id: string): Promise<void> {
+  await apiClient.put(`/payouts/rider/requests/${id}/approve`);
+}
+
+export async function rejectRiderPayout(id: string, reason?: string): Promise<void> {
+  await apiClient.put(`/payouts/rider/requests/${id}/reject`, {
+    rejectionReason: reason || undefined,
+  });
+}
+
+export async function processRiderPayout(id: string): Promise<void> {
+  await apiClient.post(`/payouts/rider/requests/${id}/process`);
 }
 
 export async function fetchSalesReport(
@@ -1262,6 +1297,53 @@ export async function fetchPlatformSettings(): Promise<PlatformSettings> {
 export async function updatePlatformSettings(settings: Partial<PlatformSettings>): Promise<PlatformSettings> {
   const { data } = await apiClient.put('/settings/platform', settings);
   return normalizeResponse<PlatformSettings>(data);
+}
+
+// ---- Delivery commission split (PARTNER_FLEET / OWNED_RIDER) ----
+
+export type CommissionPartyType = 'PARTNER_FLEET' | 'OWNED_RIDER';
+
+export interface CommissionRates {
+  PARTNER_FLEET: number; // basis points
+  OWNED_RIDER: number; // basis points
+}
+
+export interface CommissionConfigRow {
+  id: string;
+  partyType: CommissionPartyType;
+  rateBps: number;
+  effectiveFrom: string;
+  note: string | null;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+export interface SetCommissionRatePayload {
+  partyType: CommissionPartyType;
+  rateBps: number;
+  effectiveFrom?: string;
+  note?: string;
+}
+
+export async function fetchCommissionRates(): Promise<CommissionRates> {
+  const { data } = await apiClient.get('/admin/pricing/commission/rates');
+  return normalizeResponse<CommissionRates>(data);
+}
+
+export async function fetchCommissionHistory(
+  partyType: CommissionPartyType,
+): Promise<CommissionConfigRow[]> {
+  const { data } = await apiClient.get('/admin/pricing/commission/history', {
+    params: { partyType },
+  });
+  return normalizeResponse<CommissionConfigRow[]>(data);
+}
+
+export async function setCommissionRate(
+  payload: SetCommissionRatePayload,
+): Promise<CommissionConfigRow> {
+  const { data } = await apiClient.post('/admin/pricing/commission/rates', payload);
+  return normalizeResponse<CommissionConfigRow>(data);
 }
 
 export async function fetchPaymentGatewaySettings(): Promise<PaymentGatewaySettings> {

@@ -15,6 +15,9 @@ import { User, Building2, Shield, Bell, Save, Eye, EyeOff, CheckCircle2, XCircle
 
 import { geocodeString, getCurrentPosition, reverseGeocode } from '../../../lib/api/geocode';
 
+/** Max KYC submission attempts a seller is allowed (must match the backend cap). */
+const MAX_KYC_ATTEMPTS = 5;
+
 interface UserProfile {
   id: string;
   name: string;
@@ -104,18 +107,22 @@ export default function SettingsPage() {
     new: false,
     confirm: false,
   });
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
   // KYC state
   const [kycStatus, setKycStatus] = useState<string>('NOT_SUBMITTED');
   const [kycFetching, setKycFetching] = useState(false);
   const [kycSubmitting, setKycSubmitting] = useState(false);
+  // Synchronous guard against rapid double-submits (state updates are async, so a
+  // double click can fire the handler twice before the button disables).
+  const kycSubmitLockRef = useRef(false);
   const [kycForm, setKycForm] = useState({
     businessType: 'Individual',
     idType: 'NIN',
     idNumber: '',
     idImage: '',
+    idImageBack: '',
     addressProofImage: '',
+    cacDocumentUrl: '',
     registrationNumber: '',
     taxId: '',
     bvn: '',
@@ -123,7 +130,9 @@ export default function SettingsPage() {
   });
   const [kycUploading, setKycUploading] = useState({
     idImage: false,
+    idImageBack: false,
     addressProofImage: false,
+    cacDocument: false,
   });
 
   // Notification preferences state (new structure per spec)
@@ -238,6 +247,10 @@ export default function SettingsPage() {
       }
 
       // Handle Seller Profile
+      // CAC / RC number from the seller profile. The KYC "Registration Number"
+      // field is the same real-world value, so this seeds it (below) to keep the
+      // Business tab and KYC tab from holding divergent numbers.
+      let sellerRegistrationNumber = '';
       if (sellerRes.status === 'fulfilled') {
         const sellerData =
           unwrapSellerMePayload(sellerRes.value.data) ??
@@ -246,14 +259,15 @@ export default function SettingsPage() {
         setSellerNotOnboarded(
           sellerNeedsProfileOnboardingFromProfile(sellerData),
         );
+        sellerRegistrationNumber =
+          sellerData.registrationNumber ||
+          sellerData.cacNumber ||
+          sellerData.kyc?.registrationNumber ||
+          '';
         setBusinessForm({
           businessName: sellerData.businessName || '',
           businessType: sellerData.businessType || 'Individual',
-          cacNumber:
-            sellerData.registrationNumber ||
-            sellerData.cacNumber ||
-            sellerData.kyc?.registrationNumber ||
-            '',
+          cacNumber: sellerRegistrationNumber,
           businessAddress: sellerData.businessAddress || '',
           businessDescription: sellerData.businessDescription || '',
           logo: sellerData.logo || '',
@@ -280,15 +294,25 @@ export default function SettingsPage() {
         if (responseData.kyc) {
           setKycForm({
             businessType: responseData.kyc.businessType || 'Individual',
-            registrationNumber: responseData.kyc.registrationNumber || '',
+            registrationNumber:
+              responseData.kyc.registrationNumber || sellerRegistrationNumber || '',
             taxId: responseData.kyc.taxId || '',
             idType: responseData.kyc.idType || 'National ID',
             idNumber: responseData.kyc.idNumber || '',
             idImage: responseData.kyc.idImage || '',
+            idImageBack: responseData.kyc.idImageBack || '',
             addressProofImage: responseData.kyc.addressProofImage || '',
+            cacDocumentUrl: responseData.kyc.cacDocumentUrl || '',
             bvn: responseData.kyc.bvn || '',
             kyc: responseData.kyc
           });
+        } else if (sellerRegistrationNumber) {
+          // No KYC submitted yet — prefill the registration number from the
+          // Business profile so the seller doesn't re-key (and can't diverge) it.
+          setKycForm((prev) => ({
+            ...prev,
+            registrationNumber: prev.registrationNumber || sellerRegistrationNumber,
+          }));
         }
       } else {
         setKycStatus('NOT_SUBMITTED');
@@ -607,7 +631,24 @@ export default function SettingsPage() {
     }
   };
 
-  const handleKycImageUpload = async (field: 'idImage' | 'addressProofImage', file: File | null) => {
+  const KYC_DOC_TYPE: Record<string, string> = {
+    idImage: 'id',
+    idImageBack: 'id_back',
+    addressProofImage: 'address_proof',
+    cacDocument: 'cac',
+  };
+  // The cacDocument uploader writes to the kycForm.cacDocumentUrl field; others match by name.
+  const KYC_FORM_FIELD: Record<string, string> = {
+    idImage: 'idImage',
+    idImageBack: 'idImageBack',
+    addressProofImage: 'addressProofImage',
+    cacDocument: 'cacDocumentUrl',
+  };
+
+  const handleKycImageUpload = async (
+    field: 'idImage' | 'idImageBack' | 'addressProofImage' | 'cacDocument',
+    file: File | null,
+  ) => {
     if (!file) return;
 
     const maxSize = 5 * 1024 * 1024; // 5MB
@@ -634,7 +675,7 @@ export default function SettingsPage() {
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('file', file);
-      formDataToSend.append('documentType', field === 'idImage' ? 'id' : 'address_proof');
+      formDataToSend.append('documentType', KYC_DOC_TYPE[field] ?? 'id');
 
       const response = await apiClient.post('/sellers/kyc/upload', formDataToSend, {
         timeout: 300000, // 5 min timeout for large file uploads (identity docs can be large)
@@ -652,7 +693,7 @@ export default function SettingsPage() {
       const url = data.data?.url || data.url;
 
       if (url) {
-        setKycForm(prev => ({ ...prev, [field]: url }));
+        setKycForm(prev => ({ ...prev, [KYC_FORM_FIELD[field] ?? field]: url }));
         toast.success('Document uploaded successfully');
       } else {
         console.error('Upload response missing URL:', data);
@@ -750,57 +791,68 @@ export default function SettingsPage() {
 
   const handleKycSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Synchronous re-entrancy guard: blocks a second submit fired before React
+    // re-renders the disabled button (prevents duplicate KYC submissions).
+    if (kycSubmitLockRef.current) {
+      return;
+    }
+    kycSubmitLockRef.current = true;
     setKycSubmitting(true);
 
-    if (!sellerProfile || sellerNotOnboarded) {
-      if (sellerNotOnboarded || !sellerProfile) {
-        toast.error('Complete your business profile and pickup location first.');
-        setKycSubmitting(false);
-        setTimeout(() => router.push('/seller/onboard'), 1500);
-      } else {
-        toast.error('Seller profile could not be loaded. Please refresh and try again.');
-        setKycSubmitting(false);
-      }
-      return;
-    }
-
-    if (kycForm.bvn && kycForm.bvn.length !== 11) {
-      toast.error('BVN must be exactly 11 digits');
-      setKycSubmitting(false);
-      return;
-    }
-
-    if ((kycForm.businessType === 'Business Name' || kycForm.businessType === 'Company') && !kycForm.registrationNumber?.trim()) {
-      toast.error('Registration number is required for ' + kycForm.businessType);
-      setKycSubmitting(false);
-      return;
-    }
-
-    if (kycForm.businessType === 'Company' && !kycForm.taxId?.trim()) {
-      toast.error('Tax ID is required for Company');
-      setKycSubmitting(false);
-      return;
-    }
-
-    if (!kycForm.idImage) {
-      toast.error('Please upload your ID document before submitting.');
-      setKycSubmitting(false);
-      return;
-    }
-
-    if (!kycForm.idNumber?.trim()) {
-      toast.error('Please enter your ID number.');
-      setKycSubmitting(false);
-      return;
-    }
-
     try {
+      if (!sellerProfile || sellerNotOnboarded) {
+        if (sellerNotOnboarded || !sellerProfile) {
+          toast.error('Complete your business profile and pickup location first.');
+          setTimeout(() => router.push('/seller/onboard'), 1500);
+        } else {
+          toast.error('Seller profile could not be loaded. Please refresh and try again.');
+        }
+        return;
+      }
+
+      // Out of attempts: the backend rejects a 6th submission, so block it here
+      // with a clear message rather than surfacing a generic API error.
+      if ((kycForm.kyc?.submissionCount ?? 0) >= MAX_KYC_ATTEMPTS) {
+        toast.error(
+          `You have used all ${MAX_KYC_ATTEMPTS} KYC submission attempts. Please contact support to continue.`,
+        );
+        return;
+      }
+
+      if (kycForm.bvn && kycForm.bvn.length !== 11) {
+        toast.error('BVN must be exactly 11 digits');
+        return;
+      }
+
+      if ((kycForm.businessType === 'Business Name' || kycForm.businessType === 'Company') && !kycForm.registrationNumber?.trim()) {
+        toast.error('Registration number is required for ' + kycForm.businessType);
+        return;
+      }
+
+      if (kycForm.businessType === 'Company' && !kycForm.taxId?.trim()) {
+        toast.error('Tax ID is required for Company');
+        return;
+      }
+
+      if (!kycForm.idImage) {
+        toast.error('Please upload your ID document before submitting.');
+        return;
+      }
+
+      if (!kycForm.idNumber?.trim()) {
+        toast.error('Please enter your ID number.');
+        return;
+      }
+
       const submissionData: any = {
         businessType: kycForm.businessType,
         idType: kycForm.idType,
         idNumber: kycForm.idNumber.trim(),
         idImage: kycForm.idImage,
+        idImageBack: kycForm.idImageBack || undefined,
         addressProofImage: kycForm.addressProofImage || undefined,
+        cacDocumentUrl: kycForm.cacDocumentUrl || undefined,
       };
 
       if (kycForm.registrationNumber?.trim()) {
@@ -879,6 +931,7 @@ export default function SettingsPage() {
       // Error already logged and surfaced via toast in the retry loop
     } finally {
       setKycSubmitting(false);
+      kycSubmitLockRef.current = false;
     }
   };
 
@@ -1332,7 +1385,9 @@ export default function SettingsPage() {
                               <p className="text-white text-sm font-medium">Theme Preference</p>
                               <p className="text-[#A0A0A0] text-xs">Switch between light and dark mode</p>
                             </div>
-
+                            <span className="shrink-0 rounded-full border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-1 text-xs font-medium text-[#A0A0A0]">
+                              Coming soon
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1344,12 +1399,14 @@ export default function SettingsPage() {
                         className="rounded-xl p-4 sm:p-6"
                         style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
                       >
-                        <h2
-                          className="text-white font-bold mb-5 pb-4 border-b"
-                          style={{ fontSize: '14px', borderColor: '#2A2A2A' }}
-                        >
-                          Business Information
-                        </h2>
+                        <div className="mb-5 pb-4 border-b" style={{ borderColor: '#2A2A2A' }}>
+                          <h2 className="text-white font-bold" style={{ fontSize: '16px' }}>
+                            Business Information
+                          </h2>
+                          <p className="text-[#A0A0A0] text-xs mt-1">
+                            This appears on your storefront and is used for order pickup.
+                          </p>
+                        </div>
 
                         {sellerProfile && (
                           <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: '#111111', border: '1px solid #2A2A2A' }}>
@@ -1389,93 +1446,142 @@ export default function SettingsPage() {
                           </div>
                         )}
 
-                        <form onSubmit={handleBusinessUpdate} className="space-y-6">
-                          <div>
-                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Business Name</label>
-                            <input
-                              type="text"
-                              value={businessForm.businessName}
-                              onChange={(e) => setBusinessForm({ ...businessForm, businessName: e.target.value })}
-                              className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
-                              placeholder="Enter your business name"
-                              required
-                            />
-                          </div>
+                        <form onSubmit={handleBusinessUpdate} className="space-y-8">
+                          {/* — Business details — */}
+                          <section className="space-y-5">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-4 h-4 text-[#FF6B00]" />
+                              <h3 className="text-white text-sm font-semibold">Business details</h3>
+                            </div>
+
+                            <div>
+                              <label className="block text-[#A0A0A0] text-sm font-medium mb-2">
+                                Business Name <span className="text-red-400">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={businessForm.businessName}
+                                onChange={(e) => setBusinessForm({ ...businessForm, businessName: e.target.value })}
+                                className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                                placeholder="Enter your business name"
+                                required
+                              />
+                              <p className="text-xs text-[#A0A0A0] mt-1.5">The name buyers see on your store and orders.</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                              <div>
+                                <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Business Type</label>
+                                <select
+                                  value={businessForm.businessType}
+                                  onChange={(e) => setBusinessForm({ ...businessForm, businessType: e.target.value })}
+                                  className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                                >
+                                  <option value="Individual">Individual</option>
+                                  <option value="Sole Proprietorship">Sole Proprietorship</option>
+                                  <option value="Partnership">Partnership</option>
+                                  <option value="LLC">LLC</option>
+                                  <option value="Registered Business">Registered Business</option>
+                                </select>
+                                <p className="text-xs text-[#A0A0A0] mt-1.5">How your business is structured.</p>
+                              </div>
+
+                              <div>
+                                <label className="flex items-center justify-between text-[#A0A0A0] text-sm font-medium mb-2">
+                                  <span>CAC Number</span>
+                                  <span className="text-[11px] font-normal text-[#A0A0A0]/70">Optional</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  value={businessForm.cacNumber}
+                                  onChange={(e) => setBusinessForm({ ...businessForm, cacNumber: e.target.value })}
+                                  className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                                  placeholder="RC / BN number"
+                                />
+                                <p className="text-xs text-[#A0A0A0] mt-1.5">Your CAC registration number, if registered.</p>
+                              </div>
+                            </div>
+                          </section>
+
+                          <div className="border-t border-[#2A2A2A]" />
+
+                          {/* — Pickup location — */}
+                          <section className="space-y-5">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-[#FF6B00]" />
+                              <h3 className="text-white text-sm font-semibold">Pickup location</h3>
+                            </div>
+
+                            <div>
+                              <label className="block text-[#A0A0A0] text-sm font-medium mb-2">
+                                Business address <span className="text-red-400">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={businessForm.businessAddress}
+                                onChange={(e) => setBusinessForm({ ...businessForm, businessAddress: e.target.value })}
+                                className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                                placeholder="e.g. 14 Bode Thomas Street, Surulere, Lagos"
+                                required
+                              />
+                              <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-xs text-[#A0A0A0]">
+                                  Riders pick up your orders here — this address is also used for pickup.
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={handleUseBusinessLocation}
+                                  disabled={gettingBusinessLocation || saving}
+                                  className="inline-flex items-center gap-2 text-sm text-[#FF6B00] hover:text-[#ff8533] disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6B00] rounded-md"
+                                  title="Use device location to fill and save this address"
+                                >
+                                  {gettingBusinessLocation || saving ? (
+                                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                                  ) : (
+                                    <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+                                  )}
+                                  <span>{gettingBusinessLocation ? 'Getting location…' : saving ? 'Saving…' : 'Use my location'}</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="flex items-center justify-between text-[#A0A0A0] text-sm font-medium mb-2">
+                                <span>Pickup Instructions</span>
+                                <span className="text-[11px] font-normal text-[#A0A0A0]/70">Optional</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={businessForm.pickupInstructions}
+                                onChange={(e) => setBusinessForm({ ...businessForm, pickupInstructions: e.target.value })}
+                                className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
+                                placeholder="e.g. Call on arrival, gate code is 1234"
+                              />
+                              <p className="text-xs text-[#A0A0A0] mt-1.5">Help riders find you — a landmark, gate code, or who to call.</p>
+                            </div>
+                          </section>
+
+                          <div className="border-t border-[#2A2A2A]" />
+
+                          {/* — Branding & description — */}
+                          <section className="space-y-5">
+                            <div className="flex items-center gap-2">
+                              <Upload className="w-4 h-4 text-[#FF6B00]" />
+                              <h3 className="text-white text-sm font-semibold">Branding</h3>
+                            </div>
 
                           <div>
-                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Business Type</label>
-                            <select
-                              value={businessForm.businessType}
-                              onChange={(e) => setBusinessForm({ ...businessForm, businessType: e.target.value })}
-                              className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
-                            >
-                              <option value="Individual">Individual</option>
-                              <option value="Sole Proprietorship">Sole Proprietorship</option>
-                              <option value="Partnership">Partnership</option>
-                              <option value="LLC">LLC</option>
-                              <option value="Registered Business">Registered Business</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">CAC Number</label>
-                            <input
-                              type="text"
-                              value={businessForm.cacNumber}
-                              onChange={(e) => setBusinessForm({ ...businessForm, cacNumber: e.target.value })}
-                              className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
-                              placeholder="Enter CAC registration number (if applicable)"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Business address (also used for pickup) *</label>
-                            <input
-                              type="text"
-                              value={businessForm.businessAddress}
-                              onChange={(e) => setBusinessForm({ ...businessForm, businessAddress: e.target.value })}
-                              className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
-                              placeholder="e.g. 14 Bode Thomas Street, Surulere, Lagos"
-                              required
-                            />
-                            <button
-                              type="button"
-                              onClick={handleUseBusinessLocation}
-                              disabled={gettingBusinessLocation || saving}
-                              className="mt-2 inline-flex items-center gap-2 text-sm text-[#FF6B00] hover:text-[#ff8533] disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6B00] rounded-md"
-                              title="Use device location to fill and save this address"
-                            >
-                              {gettingBusinessLocation || saving ? (
-                                <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
-                              ) : (
-                                <MapPin className="h-4 w-4 shrink-0" aria-hidden />
-                              )}
-                              <span>{gettingBusinessLocation ? 'Getting location…' : saving ? 'Saving…' : 'Use my location'}</span>
-                            </button>
-                            <p className="text-xs text-[#A0A0A0] mt-1">
-                              This is the location where riders will pick up your orders.
-                            </p>
-                          </div>
-
-                          <div>
-                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Pickup Instructions</label>
-                            <input
-                              type="text"
-                              value={businessForm.pickupInstructions}
-                              onChange={(e) => setBusinessForm({ ...businessForm, pickupInstructions: e.target.value })}
-                              className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
-                              placeholder="e.g. Call on arrival, gate code is 1234"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[#A0A0A0] text-sm font-medium mb-2">Business Description</label>
+                            <label className="flex items-center justify-between text-[#A0A0A0] text-sm font-medium mb-2">
+                              <span>Business Description</span>
+                              <span className="text-[11px] font-normal text-[#A0A0A0]/70">{businessForm.businessDescription.length}/500</span>
+                            </label>
                             <textarea
                               value={businessForm.businessDescription}
                               onChange={(e) => setBusinessForm({ ...businessForm, businessDescription: e.target.value })}
                               rows={4}
+                              maxLength={500}
                               className="w-full px-4 py-3 rounded-lg bg-black border border-[#2A2A2A] text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent resize-none"
-                              placeholder="Describe your business..."
+                              placeholder="Tell buyers what you sell and what makes your store stand out…"
                             />
                           </div>
 
@@ -1527,10 +1633,13 @@ export default function SettingsPage() {
                                   <Upload className="w-4 h-4" />
                                   {logoUploading ? 'Uploading...' : businessForm.logo ? 'Change Logo' : 'Upload Logo'}
                                 </label>
-                                <p className="text-[#A0A0A0] text-xs mt-2">200×200px crop • JPG, PNG, WebP • Max 2MB</p>
+                                <p className="text-[#A0A0A0] text-xs mt-2">Square image works best · JPG, PNG, WebP · Max 2MB</p>
                               </div>
                             </div>
                           </div>
+                          </section>
+
+                          <div className="border-t border-[#2A2A2A]" />
 
                           <button
                             type="submit"
@@ -1627,15 +1736,25 @@ export default function SettingsPage() {
                                   </p>
                                   {/* Only show submission count if KYC is not approved */}
                                   {kycStatus !== 'APPROVED' && kycForm.kyc && kycForm.kyc.submissionCount !== undefined && (
-                                    <div className="mt-3 p-3 bg-gray-900/20 border border-gray-500/30 rounded-lg">
-                                      <p className="text-sm font-semibold text-gray-300 mb-1">Submission Count:</p>
-                                      <p className="text-sm text-gray-200">
-                                        You have submitted {kycForm.kyc.submissionCount} of 5 allowed attempts.
-                                        {kycForm.kyc.submissionCount >= 4 && (
-                                          <span className="text-yellow-400 ml-2">⚠️ One attempt remaining</span>
-                                        )}
-                                      </p>
-                                    </div>
+                                    kycForm.kyc.submissionCount >= MAX_KYC_ATTEMPTS ? (
+                                      <div className="mt-3 p-3 bg-red-900/30 border border-red-500/30 rounded-lg">
+                                        <p className="text-sm font-semibold text-red-300 mb-1">No attempts remaining</p>
+                                        <p className="text-sm text-red-200">
+                                          You have used all {MAX_KYC_ATTEMPTS} of {MAX_KYC_ATTEMPTS} submission attempts.
+                                          Please contact support to have your KYC reviewed or your attempts reset.
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <div className="mt-3 p-3 bg-gray-900/20 border border-gray-500/30 rounded-lg">
+                                        <p className="text-sm font-semibold text-gray-300 mb-1">Submission Count:</p>
+                                        <p className="text-sm text-gray-200">
+                                          You have submitted {kycForm.kyc.submissionCount} of {MAX_KYC_ATTEMPTS} allowed attempts.
+                                          {kycForm.kyc.submissionCount === MAX_KYC_ATTEMPTS - 1 && (
+                                            <span className="text-yellow-400 ml-2">⚠️ One attempt remaining</span>
+                                          )}
+                                        </p>
+                                      </div>
+                                    )
                                   )}
                                   {kycStatus === 'REJECTED' && kycForm.kyc?.rejectionReason && (
                                     <div className="mt-3 p-3 bg-red-900/30 border border-red-500/30 rounded-lg">
@@ -1678,6 +1797,9 @@ export default function SettingsPage() {
                                       required
                                       className="w-full px-4 py-3 rounded-xl bg-black border border-[#ff6600]/30 text-white placeholder:text-[#ffcc99] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
                                     />
+                                    <p className="mt-1.5 text-xs text-[#ffcc99]/70">
+                                      Same as the CAC Number on your Business profile — prefilled from there. Keep them identical.
+                                    </p>
                                   </div>
                                 )}
 
@@ -1792,6 +1914,101 @@ export default function SettingsPage() {
                                   </div>
                                 </div>
 
+                                {/* Back of ID */}
+                                <div className="pt-4 border-t border-[#ff6600]/20">
+                                  <label className="block text-[#ffcc99] text-sm font-medium mb-2">
+                                    Upload ID Image — Back <span className="text-[#ffcc99]/70 font-normal">(Optional)</span>
+                                  </label>
+                                  <input
+                                    type="file"
+                                    id="idImageBack"
+                                    accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) handleKycImageUpload('idImageBack', file);
+                                    }}
+                                    className="hidden"
+                                    disabled={kycUploading.idImageBack}
+                                  />
+                                  <label
+                                    htmlFor="idImageBack"
+                                    className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 transition sm:p-6 ${kycUploading.idImageBack
+                                      ? 'border-[#ff6600] bg-[#ff6600]/10 cursor-wait'
+                                      : kycForm.idImageBack
+                                        ? 'border-green-500 bg-green-900/20'
+                                        : 'border-[#ff6600]/30 hover:bg-[#ff6600]/5'
+                                      }`}
+                                  >
+                                    {kycUploading.idImageBack ? (
+                                      <>
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff6600] mb-2"></div>
+                                        <p className="text-sm text-[#ff6600]">Uploading...</p>
+                                      </>
+                                    ) : kycForm.idImageBack ? (
+                                      <div className="text-center">
+                                        <CheckCircle2 className="w-8 h-8 text-green-400 mb-2" />
+                                        <p className="text-green-400 font-medium mb-1">Image Uploaded</p>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <Upload className="w-8 h-8 text-[#ffcc99] mb-2" />
+                                        <p className="text-sm text-[#ffcc99]">Back of your ID (if it has one)</p>
+                                        <p className="text-xs text-[#ffcc99]/70 mt-1">JPG, PNG or PDF (Max 5MB)</p>
+                                      </>
+                                    )}
+                                  </label>
+                                </div>
+
+                                {/* CAC / business registration document — registered businesses */}
+                                {(kycForm.businessType === 'Business Name' || kycForm.businessType === 'Company') && (
+                                  <div className="pt-4 border-t border-[#ff6600]/20">
+                                    <label className="block text-[#ffcc99] text-sm font-medium mb-2">
+                                      CAC Certificate / Business Registration Document
+                                    </label>
+                                    <p className="text-xs text-[#ffcc99]/70 mb-2">
+                                      Recommended for {kycForm.businessType} — speeds up verification of your registered business.
+                                    </p>
+                                    <input
+                                      type="file"
+                                      id="cacDocument"
+                                      accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleKycImageUpload('cacDocument', file);
+                                      }}
+                                      className="hidden"
+                                      disabled={kycUploading.cacDocument}
+                                    />
+                                    <label
+                                      htmlFor="cacDocument"
+                                      className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 transition sm:p-6 ${kycUploading.cacDocument
+                                        ? 'border-[#ff6600] bg-[#ff6600]/10 cursor-wait'
+                                        : kycForm.cacDocumentUrl
+                                          ? 'border-green-500 bg-green-900/20'
+                                          : 'border-[#ff6600]/30 hover:bg-[#ff6600]/5'
+                                        }`}
+                                    >
+                                      {kycUploading.cacDocument ? (
+                                        <>
+                                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff6600] mb-2"></div>
+                                          <p className="text-sm text-[#ff6600]">Uploading...</p>
+                                        </>
+                                      ) : kycForm.cacDocumentUrl ? (
+                                        <div className="text-center">
+                                          <CheckCircle2 className="w-8 h-8 text-green-400 mb-2" />
+                                          <p className="text-green-400 font-medium mb-1">Document Uploaded</p>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <Upload className="w-8 h-8 text-[#ffcc99] mb-2" />
+                                          <p className="text-sm text-[#ffcc99]">Click to upload CAC document</p>
+                                          <p className="text-xs text-[#ffcc99]/70 mt-1">JPG, PNG or PDF (Max 5MB)</p>
+                                        </>
+                                      )}
+                                    </label>
+                                  </div>
+                                )}
+
                                 {/* Address Proof */}
                                 <div className="pt-4 border-t border-[#ff6600]/20">
                                   <h3 className="text-lg font-semibold text-white mb-4">
@@ -1843,11 +2060,15 @@ export default function SettingsPage() {
                                 <div className="pt-6">
                                   <button
                                     type="submit"
-                                    disabled={kycSubmitting || !kycForm.idNumber || !kycForm.idImage || !sellerProfile}
+                                    disabled={kycSubmitting || !kycForm.idNumber || !kycForm.idImage || !sellerProfile || (kycForm.kyc?.submissionCount ?? 0) >= MAX_KYC_ATTEMPTS}
                                     className="btn-mobile flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#ff6600] px-6 py-3 text-sm font-bold text-black transition-colors hover:bg-[#cc5200] disabled:cursor-not-allowed disabled:opacity-50"
                                   >
                                     <Save className="w-4 h-4" />
-                                    {kycSubmitting ? 'Submitting...' : 'Submit Verification'}
+                                    {kycSubmitting
+                                      ? 'Submitting...'
+                                      : (kycForm.kyc?.submissionCount ?? 0) >= MAX_KYC_ATTEMPTS
+                                        ? 'No attempts remaining'
+                                        : 'Submit Verification'}
                                   </button>
                                 </div>
                               </form>
@@ -2184,19 +2405,9 @@ export default function SettingsPage() {
                                 Get a code sent to your phone for each login
                               </p>
                             </div>
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={twoFactorEnabled}
-                              onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
-                              className={`btn-mobile relative h-9 w-14 shrink-0 self-start rounded-full transition-colors sm:self-auto ${twoFactorEnabled ? 'bg-[#FF6B00]' : 'bg-[#2A2A2A]'
-                                }`}
-                            >
-                              <span
-                                className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-0'
-                                  }`}
-                              />
-                            </button>
+                            <span className="shrink-0 self-start rounded-full border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-1 text-xs font-medium text-[#A0A0A0] sm:self-auto">
+                              Coming soon
+                            </span>
                           </div>
                         </div>
                       </div>

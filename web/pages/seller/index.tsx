@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import SellerLayout from '../../components/seller/SellerLayout';
 import DashboardStats from '../../components/seller/DashboardStats';
+import SellerKycBanner from '../../components/seller/SellerKycBanner';
 import SalesTrend from '../../components/seller/SalesTrend';
 import OrderDistribution from '../../components/seller/OrderDistribution';
 import { Plus, Share2, Eye, Rocket } from 'lucide-react';
@@ -148,10 +149,10 @@ export default function SellerDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[#ff6600]/30 border-t-[#ff6600]"></div>
-          <p className="text-[#ffcc99]">Loading...</p>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary/30 border-t-primary"></div>
+          <p className="text-foreground/60">Loading…</p>
         </div>
       </div>
     );
@@ -174,126 +175,132 @@ export default function SellerDashboard() {
       </Head>
       <SellerLayout>
         <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-2.5 lg:gap-6 lg:px-8">
-          <div className="flex flex-col gap-2.5 lg:hidden">
+          <SellerKycBanner status={kycStatus} />
+          <div className="flex flex-col gap-3 lg:hidden">
             <div>
-              <p className="text-[10px] text-gray-500">Good morning 👋</p>
-              <p className="mt-0.5 text-[15px] font-extrabold leading-tight text-white">{storeHeading}</p>
+              <p className="text-xs font-medium text-foreground/50">Good to see you 👋</p>
+              <p className="mt-0.5 font-display text-xl font-bold leading-tight text-foreground">{storeHeading}</p>
             </div>
 
-            <div className="flex flex-col gap-2 rounded-xl border border-orange-500/30 bg-[#1a1d27] p-3">
+            <div className="surface-card flex flex-col gap-2.5 border-l-2 border-l-primary p-4">
               <div className="flex w-full items-start justify-between gap-2">
                 <div>
-                  <p className="text-[13px] font-extrabold leading-snug text-white">
-                    Complete your
-                    <br />
-                    store setup
-                  </p>
-                  <p className="mt-0.5 text-[9px] text-gray-500">Add 5 products to go live</p>
+                  <p className="text-sm font-bold leading-snug text-foreground">Complete your store setup</p>
+                  <p className="mt-1 text-xs text-foreground/50">Add 5 products to go live</p>
                 </div>
-                <Rocket className="h-8 w-8 shrink-0 text-orange-500/40" aria-hidden />
+                <Rocket className="h-9 w-9 shrink-0 text-primary/40" aria-hidden />
               </div>
               <Link
                 href="/seller/products/new"
-                className="mt-1 inline-flex w-fit items-center gap-1 rounded-md bg-orange-500 px-2.5 py-1.5"
+                className="mt-0.5 inline-flex w-fit items-center gap-1.5 rounded-lg bg-primary px-3 py-2"
               >
-                <Plus className="h-3 w-3 text-white" />
-                <span className="text-[9px] font-bold text-white">Add product</span>
+                <Plus className="h-3.5 w-3.5 text-black" />
+                <span className="text-xs font-bold text-black">Add product</span>
               </Link>
             </div>
           </div>
 
-          <p className="hidden text-[32px] font-bold leading-tight tracking-light text-white lg:block">Dashboard</p>
+          <div className="hidden reveal-up lg:block">
+            <p className="text-sm font-medium text-foreground/50">
+              Good to see you, {user?.name?.split(/\s+/)[0] ?? 'there'} 👋
+            </p>
+            <h1 className="mt-1 font-display text-[34px] font-bold leading-tight tracking-tight text-foreground">
+              {storeHeading}
+            </h1>
+          </div>
 
           <DashboardStats />
 
-          <div className="flex flex-col gap-2.5 lg:hidden">
-          <div className="mb-2.5 flex gap-1">
+          <div className="flex flex-col gap-3 lg:hidden">
+          <div className="flex gap-2">
             <Link
               href="/seller/products/new"
-              className="flex flex-1 items-center justify-center rounded-lg border border-orange-500/30 bg-orange-500 py-2"
+              className="flex flex-1 items-center justify-center rounded-lg bg-primary py-2.5"
             >
-              <span className="text-[9px] font-semibold text-white">+ Add Product</span>
+              <span className="text-xs font-bold text-black">+ Add Product</span>
             </Link>
             <button
               type="button"
               onClick={handleShareStore}
               disabled={!sellerId}
-              className="flex flex-1 items-center justify-center rounded-lg border border-orange-500/30 bg-[#1a1d27] py-2 disabled:opacity-40"
+              className="flex flex-1 items-center justify-center rounded-lg border border-primary/40 bg-card py-2.5 disabled:opacity-40"
             >
-              <span className="text-[9px] font-semibold text-orange-500">Share Store</span>
+              <span className="text-xs font-semibold text-primary">Share Store</span>
             </button>
             <Link
               href={sellerId ? `/buyer/products?seller=${sellerId}` : '#'}
-              className={`flex flex-1 items-center justify-center rounded-lg border border-orange-500/30 bg-[#1a1d27] py-2 ${sellerId ? '' : 'pointer-events-none opacity-40'}`}
+              className={`flex flex-1 items-center justify-center rounded-lg border border-primary/40 bg-card py-2.5 ${sellerId ? '' : 'pointer-events-none opacity-40'}`}
             >
-              <span className="text-[9px] font-semibold text-orange-500">View Store</span>
+              <span className="text-xs font-semibold text-primary">View Store</span>
             </Link>
           </div>
 
-          <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-white">Recent orders</span>
-            <Link href="/seller/orders" className="text-[9px] font-medium text-orange-500">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold text-foreground">Recent orders</span>
+            <Link href="/seller/orders" className="text-xs font-semibold text-primary">
               See all
             </Link>
           </div>
 
           {recentLoading ? (
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {[1, 2].map((i) => (
-                <div key={i} className="h-14 animate-pulse rounded-lg bg-white/5" />
+                <div key={i} className="h-16 animate-pulse rounded-xl bg-white/5" />
               ))}
             </div>
           ) : recentOrders.length === 0 ? (
-            <p className="text-[10px] text-gray-500">No orders yet.</p>
+            <p className="text-xs text-foreground/50">No orders yet.</p>
           ) : (
-            recentOrders.map((o) => (
+            <div className="flex flex-col gap-2">
+            {recentOrders.map((o) => (
               <Link
                 key={o.id}
                 href={`/seller/orders/${o.id}`}
-                className="mb-1.5 flex items-start justify-between rounded-[10px] border border-white/[0.06] bg-[#1a1d27] px-2.5 py-2"
+                className="surface-card flex items-start justify-between px-3 py-2.5 transition active:scale-[0.99]"
               >
                 <div className="min-w-0 pr-2">
-                  <p className="text-[10px] font-semibold text-white">{o.title}</p>
-                  <p className="mt-0.5 text-[8px] text-gray-500">
+                  <p className="truncate text-xs font-semibold text-foreground">{o.title}</p>
+                  <p className="mt-0.5 text-[10px] text-foreground/50">
                     {o.buyer} · {o.timeLabel}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-[10px] font-bold text-white">{o.amountLabel}</p>
-                  <span className={`mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[7px] font-bold ${o.badgeClass}`}>
+                  <p className="text-xs font-bold text-foreground tabular-nums">{o.amountLabel}</p>
+                  <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[9px] font-bold ${o.badgeClass}`}>
                     {o.badgeLabel}
                   </span>
                 </div>
               </Link>
-            ))
+            ))}
+            </div>
           )}
           </div>
 
           <div className="hidden flex-col gap-6 lg:flex">
-          <div className="flex h-10 items-center gap-3 rounded-[12px] border border-[#2A2A2A] bg-[#1A1A1A] px-4">
+          <div className="surface-card flex items-center gap-1 px-2 py-1.5">
             <Link
               href="/seller/products/new"
-              className="flex items-center gap-2 text-[#FF6B00] transition hover:text-[#FF6B00]/80"
+              className="group flex items-center gap-2 rounded-lg px-3 py-2 transition hover:bg-primary/10"
             >
-              <Plus className="h-4 w-4 shrink-0" />
-              <span className="text-[13px] font-medium text-white">Add Product</span>
+              <Plus className="h-4 w-4 shrink-0 text-primary" />
+              <span className="text-[13px] font-semibold text-foreground">Add Product</span>
             </Link>
-            <span className="h-5 w-px bg-[#2A2A2A]" />
+            <span className="h-5 w-px bg-border-custom" />
             <button
               onClick={handleShareStore}
               disabled={!sellerId}
-              className="flex items-center gap-2 text-[#FF6B00] transition hover:text-[#FF6B00]/80 disabled:cursor-not-allowed disabled:opacity-50"
+              className="group flex items-center gap-2 rounded-lg px-3 py-2 transition hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
             >
-              <Share2 className="h-4 w-4 shrink-0" />
-              <span className="text-[13px] font-medium text-white">Share Store Link</span>
+              <Share2 className="h-4 w-4 shrink-0 text-primary" />
+              <span className="text-[13px] font-semibold text-foreground">Share Store Link</span>
             </button>
-            <span className="h-5 w-px bg-[#2A2A2A]" />
+            <span className="h-5 w-px bg-border-custom" />
             <Link
               href={sellerId ? `/buyer/products?seller=${sellerId}` : '#'}
-              className={`flex items-center gap-2 transition ${sellerId ? 'text-[#FF6B00] hover:text-[#FF6B00]/80' : 'pointer-events-none cursor-not-allowed text-[#A0A0A0]'}`}
+              className={`group flex items-center gap-2 rounded-lg px-3 py-2 transition ${sellerId ? 'hover:bg-primary/10' : 'pointer-events-none cursor-not-allowed opacity-50'}`}
             >
-              <Eye className="h-4 w-4 shrink-0" />
-              <span className="text-[13px] font-medium text-white">View Store</span>
+              <Eye className="h-4 w-4 shrink-0 text-primary" />
+              <span className="text-[13px] font-semibold text-foreground">View Store</span>
             </Link>
           </div>
 
@@ -307,7 +314,7 @@ export default function SellerDashboard() {
         {kycStatus === 'APPROVED' ? (
           <Link
             href="/seller/products/new"
-            className="fixed bottom-6 right-6 z-50 hidden transform items-center space-x-2 rounded-xl bg-[#ff6600] px-6 py-3 font-bold text-black shadow-lg transition hover:scale-105 hover:bg-[#cc5200] lg:flex"
+            className="fixed bottom-6 right-6 z-50 hidden transform items-center gap-2 rounded-xl bg-primary px-6 py-3 font-bold text-black shadow-[var(--shadow-primary-glow)] transition hover:-translate-y-0.5 hover:bg-primary-dark lg:flex"
           >
             <Plus className="h-5 w-5" />
             <span>Add Product</span>
@@ -316,7 +323,7 @@ export default function SellerDashboard() {
           <button
             disabled
             title="Complete KYC verification to add products"
-            className="fixed bottom-6 right-6 z-50 hidden cursor-not-allowed items-center space-x-2 rounded-xl border border-[#ff6600]/10 bg-[#333]/70 px-6 py-3 font-bold text-[#ffcc99]/30 shadow-lg lg:flex"
+            className="fixed bottom-6 right-6 z-50 hidden cursor-not-allowed items-center gap-2 rounded-xl border border-border-custom bg-[var(--color-surface-2)] px-6 py-3 font-bold text-foreground/30 shadow-lg lg:flex"
           >
             <Plus className="h-5 w-5" />
             <span>Add Product</span>

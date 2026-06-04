@@ -104,7 +104,7 @@ const SPEC_LABEL_SUGGESTIONS = [
 interface ProductDraftV1 {
   v: 1;
   savedAt: string;
-  mode: 'retail' | 'wholesale';
+  mode: 'retail' | 'wholesale' | 'both';
   wizardStep: 1 | 2 | 3 | 4;
   formData: FormData;
   productImages: string[];
@@ -214,7 +214,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [draftKeyFeature, setDraftKeyFeature] = useState('');
   const [detailSpecDraft, setDetailSpecDraft] = useState({ label: '', value: '' });
-  const [mode, setMode] = useState<'retail' | 'wholesale'>('retail');
+  const [mode, setMode] = useState<'retail' | 'wholesale' | 'both'>('retail');
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
   const [priceTiers, setPriceTiers] = useState<WholesalePriceTierForm[]>([]);
   const [draftSavedVisible, setDraftSavedVisible] = useState(false);
@@ -237,7 +237,9 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
   useEffect(() => {
     if (variant !== 'edit' || !initialProduct) return;
     const sm = initialProduct.sellingMode;
-    setMode(sm === 'B2B_ONLY' ? 'wholesale' : 'retail');
+    setMode(
+      sm === 'B2B_ONLY' ? 'wholesale' : sm === 'B2C_AND_B2B' ? 'both' : 'retail',
+    );
     setProductImages(initialProduct.images?.length ? [...initialProduct.images] : []);
     setFormData({
       title: initialProduct.title,
@@ -266,7 +268,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
     setPendingImages([]);
   }, [variant, initialProduct]);
 
-  const handleModeChange = (newMode: 'retail' | 'wholesale') => {
+  const handleModeChange = (newMode: 'retail' | 'wholesale' | 'both') => {
     if (newMode === mode) return;
     setMode(newMode);
     setFormData(prev => ({
@@ -368,7 +370,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
         if (!formData.material?.trim() || !formData.careInfo?.trim()) return false;
       }
     }
-    if (mode === 'retail' && formData.keyFeatures?.length) {
+    if (mode !== 'wholesale' && formData.keyFeatures?.length) {
       const err = validateKeyFeatures(formData.keyFeatures);
       if (err) return false;
     }
@@ -378,8 +380,9 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
   function stepPricingOk() {
     if (!formData.price || parseFloat(formData.price) <= 0) return false;
     if (formData.quantity === '' || parseInt(formData.quantity, 10) < 0) return false;
-    if (mode === 'wholesale') {
+    if (mode !== 'retail') {
       if (!formData.moq || parseInt(formData.moq, 10) < 1) return false;
+      let validTierCount = 0;
       for (const t of priceTiers) {
         const hasAny = !!(t.minQuantity || t.maxQuantity || t.unitPrice);
         if (!hasAny) continue;
@@ -399,7 +402,11 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
         ) {
           return false;
         }
+        validTierCount++;
       }
+      // "Both" lists a retail price AND wholesale tiers; the retail price is NOT a
+      // wholesale base, so at least one explicit wholesale tier is required.
+      if (mode === 'both' && validTierCount === 0) return false;
     }
     return true;
   }
@@ -812,8 +819,8 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
       }
     }
 
-    // Wholesale: MOQ required and >= 1
-    if (mode === 'wholesale') {
+    // Wholesale (and Both): MOQ required and >= 1
+    if (mode !== 'retail') {
       if (!formData.moq || formData.moq.trim() === '') {
         newErrors.moq = 'Minimum order quantity is required';
       } else if (parseInt(formData.moq, 10) < 1) {
@@ -831,7 +838,12 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
     setLoading(true);
     try {
       const priceInKobo = Math.round(parseFloat(formData.price) * 100);
-      const sellingMode = mode === 'wholesale' ? 'B2B_ONLY' : 'B2C_ONLY';
+      const sellingMode =
+        mode === 'wholesale'
+          ? 'B2B_ONLY'
+          : mode === 'both'
+            ? 'B2C_AND_B2B'
+            : 'B2C_ONLY';
 
       const specRows = (formData.detailSpecifications || [])
         .map((r) => ({
@@ -863,29 +875,36 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
       }
 
       const moqNum =
-        mode === 'wholesale' && formData.moq ? parseInt(formData.moq, 10) : 0;
-      if (mode === 'wholesale' && moqNum >= 1) {
+        mode !== 'retail' && formData.moq ? parseInt(formData.moq, 10) : 0;
+      if (mode !== 'retail' && moqNum >= 1) {
         productData.moq = moqNum;
       }
 
+      // In pure wholesale, formData.price IS the wholesale base, so a default tier can
+      // derive from it. In "both", formData.price is the RETAIL (B2C) price — the
+      // wholesale tiers must be explicit and separate, so pass 0 as the base.
+      const wholesaleBaseNaira =
+        mode === 'wholesale' ? parseFloat(formData.price) : 0;
       const tiersPayload =
-        mode === 'wholesale'
+        mode !== 'retail'
           ? buildWholesalePriceTiersPayload(
               priceTiers,
-              parseFloat(formData.price),
+              wholesaleBaseNaira,
               moqNum,
             )
           : [];
 
-      if (mode === 'wholesale' && tiersPayload.length === 0) {
+      if (mode !== 'retail' && tiersPayload.length === 0) {
         toast.error(
-          'Wholesale listings need a valid unit price and MOQ, or at least one bulk price tier.',
+          mode === 'both'
+            ? 'Add at least one wholesale price tier (separate from the retail price) with an MOQ.'
+            : 'Wholesale listings need a valid unit price and MOQ, or at least one bulk price tier.',
         );
         setLoading(false);
         return;
       }
 
-      if (mode === 'wholesale') {
+      if (mode !== 'retail') {
         productData.priceTiers = tiersPayload;
       }
 
@@ -1266,7 +1285,23 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                     <Building2 className="w-4 h-4" />
                     Wholesale (B2B)
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange('both')}
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${mode === 'both'
+                      ? 'bg-[#F97316] text-white'
+                      : 'text-[#A0A0A0] hover:text-white'
+                    }`}
+                  >
+                    <Layers className="w-4 h-4" />
+                    Both
+                  </button>
                 </div>
+                {mode === 'both' && (
+                  <p className="mt-2 text-xs text-[#A0A0A0]">
+                    Sells to shoppers at your retail price and to businesses at wholesale tier prices (set both below).
+                  </p>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-3 justify-between">
                 <div className="flex items-center gap-3">
@@ -1542,8 +1577,8 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                         </button>
                       </div>
 
-                      {/* Key Features - Retail only */}
-                      {mode === 'retail' && (
+                      {/* Key Features - retail-facing (retail & both) */}
+                      {mode !== 'wholesale' && (
                         <div>
                           <label className="block text-[#ffcc99] text-sm font-medium mb-2">
                             Key Features
@@ -1959,7 +1994,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                             )}
                             {getEffectiveCommissionPercent() != null && formData.categoryIds.length > 0 && getSelectedCategory() && (
                               <p className="mt-3 text-sm text-[#ffcc99] leading-relaxed">
-                                {mode === 'retail' ? (
+                                {mode !== 'wholesale' ? (
                                   <>
                                     Your commission for{' '}
                                     <span className="text-white font-medium">{getSelectedCategory()!.name}</span>:{' '}
@@ -2009,11 +2044,16 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                       <h2 className="text-white font-semibold">Pricing & Inventory</h2>
                     </div>
 
-                    <div className={`grid gap-4 ${mode === 'wholesale' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
-                      {/* Price / Wholesale Price */}
+                    <div className={`grid gap-4 ${mode !== 'retail' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
+                      {/* Price / Wholesale Price / Retail Price */}
                       <div>
                         <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                          {mode === 'wholesale' ? 'Wholesale Price (₦ per unit)' : 'Price (₦)'} <span className="text-red-400">*</span>
+                          {mode === 'wholesale'
+                            ? 'Wholesale Price (₦ per unit)'
+                            : mode === 'both'
+                              ? 'Retail Price (₦ per unit)'
+                              : 'Price (₦)'}{' '}
+                          <span className="text-red-400">*</span>
                         </label>
                         <div className="relative">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ffcc99] font-medium">₦</span>
@@ -2029,7 +2069,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                               }`}
                           />
                         </div>
-                        {mode === 'retail' && getSelectedCategory() && getEffectiveCommissionPercent() != null && (
+                        {mode !== 'wholesale' && getSelectedCategory() && getEffectiveCommissionPercent() != null && (
                           <p className="mt-2 text-xs text-[#ffcc99] leading-relaxed">
                             Your commission for{' '}
                             <span className="text-white font-medium">{getSelectedCategory()!.name}</span>:{' '}
@@ -2053,11 +2093,17 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                           </p>
                         )}
 
-                        {mode === 'wholesale' && (
+                        {mode !== 'retail' && (
                           <div className="mt-4 pt-4 border-t border-[#2A2A2A] space-y-3">
-                            <p className="text-[#ffcc99] text-sm font-medium">Bulk pricing tiers (optional)</p>
+                            <p className="text-[#ffcc99] text-sm font-medium">
+                              {mode === 'both'
+                                ? 'Wholesale price tiers (required)'
+                                : 'Bulk pricing tiers (optional)'}
+                            </p>
                             <p className="text-[#ffcc99]/60 text-xs">
-                              If you skip tiers, your wholesale price applies from MOQ upward. Add tiers for volume discounts (e.g. 10–50 vs 51+ units). Use a high max (e.g. 999999) for &quot;and above&quot;.
+                              {mode === 'both'
+                                ? 'Business buyers pay these tier prices (separate from your retail price above). Add at least one tier, e.g. 10–50 units at a lower unit price. Use a high max (e.g. 999999) for "and above".'
+                                : 'If you skip tiers, your wholesale price applies from MOQ upward. Add tiers for volume discounts (e.g. 10–50 vs 51+ units). Use a high max (e.g. 999999) for "and above".'}
                             </p>
                             {priceTiers.map((tier, idx) => (
                               <div key={idx} className="flex flex-wrap items-center gap-2">
@@ -2127,11 +2173,11 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                         )}
                       </div>
 
-                      {/* MOQ - Wholesale only */}
-                      {mode === 'wholesale' && (
+                      {/* MOQ - wholesale & both */}
+                      {mode !== 'retail' && (
                         <div>
                           <label className="block text-[#ffcc99] text-sm font-medium mb-2">
-                            Minimum Order Quantity (MOQ) <span className="text-red-400">*</span>
+                            {mode === 'both' ? 'Wholesale MOQ' : 'Minimum Order Quantity (MOQ)'} <span className="text-red-400">*</span>
                           </label>
                           <div className="relative">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2">
@@ -2188,7 +2234,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                             {errors.quantity}
                           </p>
                         )}
-                        {mode === 'retail' && formData.quantity && parseInt(formData.quantity) > 0 && parseInt(formData.quantity) <= 5 && (
+                        {mode !== 'wholesale' && formData.quantity && parseInt(formData.quantity) > 0 && parseInt(formData.quantity) <= 5 && (
                           <p className="mt-1 text-yellow-400 text-xs flex items-center gap-1">
                             <AlertCircle className="w-3 h-3" />
                             Low stock warning will be shown to buyers
@@ -2200,7 +2246,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                     {getEffectiveCommissionPercent() != null && formData.categoryIds.length > 0 && getSelectedCategory() && (
                       <div className="mt-4 p-3 rounded-xl border border-[#F97316]/25 bg-[#F97316]/5">
                         <p className="text-sm text-[#ffcc99] leading-relaxed">
-                          {mode === 'retail' ? (
+                          {mode !== 'wholesale' ? (
                             <>
                               Your commission for{' '}
                               <span className="text-white font-medium">{getSelectedCategory()!.name}</span>:{' '}
@@ -2243,7 +2289,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                       <p className="text-[#ffcc99]/80 text-sm">
                         {variant === 'edit'
                           ? 'Confirm your changes before saving.'
-                          : `Confirm your listing details before it goes live on Carryofy${mode === 'wholesale' ? ' for wholesale buyers' : ''}.`}
+                          : `Confirm your listing details before it goes live on Carryofy${mode === 'wholesale' ? ' for wholesale buyers' : mode === 'both' ? ' for retail and wholesale buyers' : ''}.`}
                       </p>
                       <ul className="space-y-2 text-sm text-[#ffcc99]">
                         <li>
@@ -2263,7 +2309,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                           <span className="text-white tabular-nums">
                             ₦{formData.price ? parseFloat(formData.price).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                           </span>
-                          {mode === 'wholesale' && formData.moq && (
+                          {mode !== 'retail' && formData.moq && (
                             <span className="text-[#A0A0A0]"> · MOQ {formData.moq}</span>
                           )}
                         </li>
@@ -2271,9 +2317,9 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                           <span className="text-[#A0A0A0]">Stock:</span>{' '}
                           <span className="text-white">{formData.quantity || '—'}</span>
                         </li>
-                        {mode === 'wholesale' && priceTiers.filter((t) => t.minQuantity && t.maxQuantity && t.unitPrice).length > 0 && (
+                        {mode !== 'retail' && priceTiers.filter((t) => t.minQuantity && t.maxQuantity && t.unitPrice).length > 0 && (
                           <li>
-                            <span className="text-[#A0A0A0]">Price tiers:</span>{' '}
+                            <span className="text-[#A0A0A0]">{mode === 'both' ? 'Wholesale tiers:' : 'Price tiers:'}</span>{' '}
                             <span className="text-white">
                               {priceTiers.filter((t) => t.minQuantity && t.maxQuantity && t.unitPrice).length} configured
                             </span>

@@ -12,6 +12,7 @@ import {
 } from '../../lib/admin/hooks/useSettings';
 import { TeamMember } from '../../lib/admin/types';
 import { LoadingState } from '../../components/admin/ui';
+import CommissionSplitSettings from '../../components/admin/CommissionSplitSettings';
 import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 
@@ -694,6 +695,10 @@ export default function AdminSettings() {
               </div>
             )}
           </section>
+
+
+          {/* ——— Delivery Commission Split ——— */}
+          <CommissionSplitSettings />
 
 
           {/* ——— Team & Permissions ——— */}

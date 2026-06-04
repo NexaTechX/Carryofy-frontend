@@ -152,6 +152,7 @@ export interface AdminSeller {
   businessName: string;
   kycStatus: SellerKycStatus;
   kycExpiresAt?: string | null;
+  isSuspended?: boolean;
   createdAt: string;
   updatedAt: string;
   /** Total revenue in minor units (e.g. kobo). Optional; backend may provide. */
@@ -420,6 +421,35 @@ export interface ProcessPayoutPayload {
   bankAccount: string;
   bankCode: string;
   accountName: string;
+}
+
+/** Bank account on file for an independent (non-fleet) rider. */
+export interface RiderBankAccount {
+  accountName: string;
+  accountNumber: string;
+  bankName: string;
+  bankCode: string;
+}
+
+/** Rider payout request returned to admins from GET /payouts/rider/requests. */
+export interface AdminRiderPayout {
+  id: string;
+  riderId: string;
+  amount: number; // in kobo
+  status: PayoutStatus;
+  requestedAt: string;
+  approvedAt?: string | null;
+  processedAt?: string | null;
+  paidAt?: string | null;
+  rejectionReason?: string | null;
+  rider: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string | null;
+    riderBankAccount: RiderBankAccount | null;
+  };
+  _count: { earnings: number };
 }
 
 export interface ReportsQueryParams {

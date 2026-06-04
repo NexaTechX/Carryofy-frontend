@@ -38,34 +38,34 @@ export default function FleetBreakRequestsPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="flex items-center gap-2 text-2xl font-semibold text-white">
-              <Coffee className="h-7 w-7 text-orange-400" />
+            <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+              <Coffee className="h-7 w-7 text-primary" />
               Rider break requests
             </h1>
-            <p className="mt-1 max-w-2xl text-sm text-zinc-400">
+            <p className="mt-1 max-w-2xl text-sm text-foreground/60">
               Breaks submitted by riders assigned to your fleet (same flow as in the rider app: Profile → Request a break).
             </p>
           </div>
           <button
             type="button"
             onClick={() => mutate()}
-            className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
+            className="inline-flex items-center gap-2 rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 text-sm text-foreground/80 hover:bg-card"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
           </button>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-zinc-800">
+        <div className="overflow-x-auto rounded-xl border border-border-custom">
           {loadingRows ? (
-            <p className="p-8 text-center text-zinc-500">Loading…</p>
+            <p className="p-8 text-center text-foreground/45">Loading…</p>
           ) : rows.length === 0 ? (
-            <p className="p-8 text-center text-zinc-500">
+            <p className="p-8 text-center text-foreground/45">
               No break requests from your riders yet.
             </p>
           ) : (
             <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-zinc-800 bg-zinc-900/50 text-xs uppercase text-zinc-500">
+              <thead className="border-b border-border-custom bg-[var(--color-surface-2)] text-xs uppercase text-foreground/45">
                 <tr>
                   <th className="px-4 py-3">Requested</th>
                   <th className="px-4 py-3">Rider</th>
@@ -73,23 +73,23 @@ export default function FleetBreakRequestsPage() {
                   <th className="px-4 py-3">Reason</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800">
+              <tbody className="divide-y divide-border-custom">
                 {rows.map((r) => (
-                  <tr key={r.id} className="text-zinc-300">
+                  <tr key={r.id} className="text-foreground/70">
                     <td className="whitespace-nowrap px-4 py-3">{formatDateTime(r.createdAt)}</td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-white">{r.riderName}</div>
-                      <div className="text-xs text-zinc-500">{r.riderEmail}</div>
+                      <div className="font-medium text-foreground">{r.riderName}</div>
+                      <div className="text-xs text-foreground/45">{r.riderEmail}</div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="whitespace-nowrap">{formatDateTime(r.startTime)}</div>
-                      <div className="whitespace-nowrap text-zinc-500">→ {formatDateTime(r.endTime)}</div>
+                      <div className="whitespace-nowrap text-foreground/45">→ {formatDateTime(r.endTime)}</div>
                     </td>
-                    <td className="max-w-md px-4 py-3 text-zinc-400">
+                    <td className="max-w-md px-4 py-3 text-foreground/60">
                       {r.reason?.trim() ? (
                         <span className="whitespace-pre-wrap">{r.reason}</span>
                       ) : (
-                        <span className="text-zinc-600">—</span>
+                        <span className="text-foreground/35">—</span>
                       )}
                     </td>
                   </tr>

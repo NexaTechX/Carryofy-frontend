@@ -11,6 +11,7 @@ import {
   Clock,
   FileText,
   Building2,
+  ArrowUpRight,
   LucideIcon,
 } from 'lucide-react';
 
@@ -26,28 +27,34 @@ interface StatCardProps {
 
 function StatCard({ title, value, description, loading, icon: Icon, isRevenue, href }: StatCardProps) {
   const cardClass =
-    'flex flex-col gap-2 rounded-[12px] p-[20px] bg-[#1A1A1A] border border-[#2A2A2A] relative overflow-hidden' +
-    (isRevenue ? ' border-l-4 border-l-[#FF6B00]' : '');
+    'surface-card group flex flex-col gap-3.5 p-5 transition-all duration-200' +
+    (isRevenue ? ' border-l-2 border-l-primary' : '') +
+    (href ? ' hover:-translate-y-0.5 hover:border-border-strong hover:shadow-elevated' : '');
   const content = (
     <>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FF6B01]/15">
-          <Icon className="h-4 w-4 text-[#FF6B00]" strokeWidth={2} />
+      <div className="flex items-center justify-between">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary ring-1 ring-primary/20">
+          <Icon className="h-5 w-5" strokeWidth={2} />
         </div>
+        {href ? (
+          <ArrowUpRight className="h-4 w-4 -translate-x-1 text-foreground/30 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100" aria-hidden />
+        ) : null}
       </div>
       {loading ? (
-        <div className="h-7 w-20 bg-[#2A2A2A] animate-pulse rounded" />
+        <div className="h-8 w-24 animate-pulse rounded-md bg-[var(--color-surface-2)]" />
       ) : (
-        <p className="font-dm-mono text-[28px] font-bold leading-tight text-white">{value}</p>
+        <p className="font-display text-3xl font-bold leading-none tracking-tight text-foreground tabular-nums">{value}</p>
       )}
-      <p className="text-[11px] font-medium uppercase tracking-wider text-[#A0A0A0]">{title}</p>
-      {description ? <p className="text-xs text-[#A0A0A0] leading-snug">{description}</p> : null}
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground/55">{title}</p>
+        {description ? <p className="mt-1 text-xs leading-snug text-foreground/45">{description}</p> : null}
+      </div>
     </>
   );
 
   if (href) {
     return (
-      <Link href={href} className={`${cardClass} hover:border-[#2A2A2A]/80 transition`}>
+      <Link href={href} className={cardClass}>
         {content}
       </Link>
     );
@@ -103,8 +110,17 @@ export default function DashboardStats() {
         console.warn('[DashboardStats] Dashboard KPIs request failed');
       }
 
-      const pendingQuoteRequestsCount =
-        Number(sellerStatsData?.pendingQuoteRequestsCount) ?? 0;
+      // Number(undefined) is NaN (not null), so `?? 0` never fires — guard with isFinite.
+      const finite = (...vals: unknown[]): number => {
+        for (const v of vals) {
+          const n = Number(v);
+          if (Number.isFinite(n)) return n;
+        }
+        return 0;
+      };
+      const pendingQuoteRequestsCount = finite(
+        sellerStatsData?.pendingQuoteRequestsCount,
+      );
       const b2bOrders = parseSellerOrdersList(ordersB2BData);
       const b2bOrdersCount = b2bOrders.length;
 
@@ -128,13 +144,19 @@ export default function DashboardStats() {
         0,
       );
 
-      const totalProducts =
-        Number(productCountData?.count) ?? Number(dashboardData?.totalProducts) ?? 0;
+      const totalProducts = finite(
+        productCountData?.count,
+        dashboardData?.totalProducts,
+      );
 
-      const totalOrders =
-        Number(orderDistributionData?.total) ?? Number(dashboardData?.totalOrders) ?? 0;
-      const totalRevenue =
-        Number(dashboardData?.totalRevenue) ?? Number(salesTrendData?.totalSales) ?? 0;
+      const totalOrders = finite(
+        orderDistributionData?.total,
+        dashboardData?.totalOrders,
+      );
+      const totalRevenue = finite(
+        dashboardData?.totalRevenue,
+        salesTrendData?.totalSales,
+      );
 
       setStats({
         totalProducts,
@@ -158,65 +180,47 @@ export default function DashboardStats() {
   };
 
   const compactVal = (v: string) =>
-    loading ? <div className="h-[17px] w-16 animate-pulse rounded bg-white/10" /> : <span className="text-[17px] font-bold leading-tight text-white">{v}</span>;
+    loading ? (
+      <div className="h-5 w-16 animate-pulse rounded bg-white/10" />
+    ) : (
+      <span className="font-display text-lg font-bold leading-none text-foreground tabular-nums">{v}</span>
+    );
+
+  const MobileStat = ({
+    icon: Icon,
+    value,
+    label,
+    span,
+  }: {
+    icon: LucideIcon;
+    value: string;
+    label: string;
+    span?: boolean;
+  }) => (
+    <div className={`surface-card p-3 ${span ? 'col-span-2' : ''}`}>
+      <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-primary/12 text-primary">
+        <Icon className="h-4 w-4" />
+      </div>
+      {compactVal(value)}
+      <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-foreground/50">{label}</p>
+    </div>
+  );
 
   return (
     <>
-    {/* Mobile stat grid — Carryofy mobile nav reference */}
-    <div className="grid grid-cols-2 gap-[7px] lg:hidden">
-      <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
-        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
-          <Package className="h-3.5 w-3.5 text-orange-500" />
-        </div>
-        {compactVal(stats ? stats.totalProducts.toString() : '0')}
-        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Total products</p>
-      </div>
-      <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
-        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
-          <ShoppingCart className="h-3.5 w-3.5 text-orange-500" />
-        </div>
-        {compactVal(stats ? stats.totalOrders.toString() : '0')}
-        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Total orders</p>
-      </div>
-      <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
-        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
-          <DollarSign className="h-3.5 w-3.5 text-orange-500" />
-        </div>
-        {compactVal(stats ? formatPrice(stats.totalRevenue) : '₦0.00')}
-        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Total revenue</p>
-      </div>
-      <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
-        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
-          <Wallet className="h-3.5 w-3.5 text-orange-500" />
-        </div>
-        {compactVal(stats ? formatPrice(stats.availableBalance) : '₦0.00')}
-        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Available balance</p>
-      </div>
-      <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
-        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
-          <Clock className="h-3.5 w-3.5 text-orange-500" />
-        </div>
-        {compactVal(stats ? stats.pendingPayoutRequestsCount.toString() : '0')}
-        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Pending payouts</p>
-      </div>
-      <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
-        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
-          <FileText className="h-3.5 w-3.5 text-orange-500" />
-        </div>
-        {compactVal(stats ? stats.pendingQuoteRequestsCount.toString() : '0')}
-        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">Quote requests</p>
-      </div>
-      <div className="col-span-2 rounded-xl border border-white/[0.06] bg-[#1a1d27] p-2.5">
-        <div className="mb-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
-          <Building2 className="h-3.5 w-3.5 text-orange-500" />
-        </div>
-        {compactVal(stats ? stats.b2bOrdersCount.toString() : '0')}
-        <p className="mt-0.5 text-[8px] font-medium uppercase tracking-wide text-gray-500">B2B orders</p>
-      </div>
+    {/* Mobile stat grid */}
+    <div className="grid grid-cols-2 gap-2.5 reveal-stagger lg:hidden">
+      <MobileStat icon={Package} value={stats ? stats.totalProducts.toString() : '0'} label="Total products" />
+      <MobileStat icon={ShoppingCart} value={stats ? stats.totalOrders.toString() : '0'} label="Total orders" />
+      <MobileStat icon={DollarSign} value={stats ? formatPrice(stats.totalRevenue) : '₦0.00'} label="Total revenue" />
+      <MobileStat icon={Wallet} value={stats ? formatPrice(stats.availableBalance) : '₦0.00'} label="Available balance" />
+      <MobileStat icon={Clock} value={stats ? stats.pendingPayoutRequestsCount.toString() : '0'} label="Pending payouts" />
+      <MobileStat icon={FileText} value={stats ? stats.pendingQuoteRequestsCount.toString() : '0'} label="Quote requests" />
+      <MobileStat icon={Building2} value={stats ? stats.b2bOrdersCount.toString() : '0'} label="B2B orders" span />
     </div>
 
     {/* Desktop stat cards */}
-    <div className="hidden lg:grid lg:grid-cols-4 lg:gap-4">
+    <div className="hidden gap-4 reveal-stagger lg:grid lg:grid-cols-4">
       <StatCard
         title="Total Products"
         value={stats ? stats.totalProducts.toString() : '0'}

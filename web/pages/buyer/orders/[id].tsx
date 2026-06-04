@@ -155,6 +155,11 @@ export default function BuyerOrderDetailPage() {
   const [refundInfo, setRefundInfo] = useState<{ id: string; status: string; createdAt: string; updatedAt: string } | null>(null);
   const [paymentVerifying, setPaymentVerifying] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [proof, setProof] = useState<{
+    proofPhotoUrl?: string;
+    signatureUrl?: string;
+    proofUploadedAt?: string;
+  } | null>(null);
   const confirmation = useConfirmation();
 
   // Fetch order details
@@ -184,6 +189,30 @@ export default function BuyerOrderDetailPage() {
     fetchOrder(id);
     checkRefundStatus(id);
   }, [router.isReady, id]);
+
+  // Proof of delivery becomes available once delivered (rider uploads photo/signature).
+  useEffect(() => {
+    if (typeof id !== 'string' || order?.status !== 'DELIVERED') return;
+    let cancelled = false;
+    apiClient
+      .get(`/delivery/order/${id}/proof`)
+      .then((res) => {
+        if (cancelled) return;
+        setProof(
+          unwrapAxiosBody<{
+            proofPhotoUrl?: string;
+            signatureUrl?: string;
+            proofUploadedAt?: string;
+          }>(res.data),
+        );
+      })
+      .catch(() => {
+        // Proof may not have been uploaded; leave it hidden.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, order?.status]);
 
   // Handle payment redirect status
   useEffect(() => {
@@ -755,6 +784,48 @@ export default function BuyerOrderDetailPage() {
                         </>
                       ) : (
                         <p>No live delivery updates yet. We will update you once your package is on the move.</p>
+                      )}
+                      {(proof?.proofPhotoUrl || proof?.signatureUrl) && (
+                        <div className="pt-3 border-t border-[#ff6600]/20">
+                          <p className="text-white font-medium mb-2">Proof of delivery</p>
+                          {proof.proofUploadedAt && (
+                            <p className="text-[#ffcc99]/70 text-xs mb-3">
+                              Uploaded {formatDateTime(proof.proofUploadedAt)}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap gap-3">
+                            {proof.proofPhotoUrl && (
+                              <a
+                                href={proof.proofPhotoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={proof.proofPhotoUrl}
+                                  alt="Delivery photo"
+                                  className="h-28 w-28 object-cover rounded-lg border border-[#ff6600]/30"
+                                />
+                              </a>
+                            )}
+                            {proof.signatureUrl && (
+                              <a
+                                href={proof.signatureUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={proof.signatureUrl}
+                                  alt="Recipient signature"
+                                  className="h-28 w-28 object-contain rounded-lg border border-[#ff6600]/30 bg-white"
+                                />
+                              </a>
+                            )}
+                          </div>
+                        </div>
                       )}
                       <div className="pt-3 border-t border-[#ff6600]/20">
                         <p>Delivery address is managed under your saved addresses. Ensure your preferred location is up to date before placing your next order.</p>

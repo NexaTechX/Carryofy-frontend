@@ -4,6 +4,7 @@
  */
 
 import apiClient from './client';
+import { isApiConnectionError } from './utils';
 import {
     Product,
     ProductQuery,
@@ -126,6 +127,26 @@ function normalizeCatalogProduct(raw: Record<string, unknown>): Product {
     };
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * GET that retries only on connection/network errors (e.g. API cold start or watch-mode
+ * recompile dropping the port). Real HTTP errors (4xx/5xx) are thrown immediately.
+ */
+async function getWithNetworkRetry(url: string, retries = 2, backoffMs = 600) {
+    let attempt = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        try {
+            return await apiClient.get(url);
+        } catch (error) {
+            if (attempt >= retries || !isApiConnectionError(error)) throw error;
+            await sleep(backoffMs * (attempt + 1));
+            attempt += 1;
+        }
+    }
+}
+
 /**
  * Featured / landing catalogue — all selling modes (B2C, B2B, both), public GET.
  */
@@ -138,7 +159,7 @@ export async function getFeaturedProducts(limit: number = 8): Promise<Product[]>
             inStockOnly: 'false',
         });
 
-        const response = await apiClient.get(`/products?${params.toString()}`);
+        const response = await getWithNetworkRetry(`/products?${params.toString()}`);
         const rows = unwrapProductListPayload(response.data);
 
         if (rows.length > 0) {

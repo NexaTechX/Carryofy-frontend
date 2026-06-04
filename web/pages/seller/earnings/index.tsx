@@ -9,6 +9,30 @@ import { formatDate, formatNgnFromKobo, getApiUrl } from '../../../lib/api/utils
 import { DollarSign, TrendingUp, TrendingDown, Wallet, Download, X, Info } from 'lucide-react';
 import { useConfirmation } from '../../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
+import StatusBadge from '../../../components/ui/StatusBadge';
+
+type BadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'primary';
+
+/** Payout-context tone: here PAID/APPROVED means the money was sent (success). */
+function payoutTone(status: string): BadgeTone {
+  switch (status) {
+    case 'PAID':
+    case 'APPROVED':
+      return 'success';
+    case 'PENDING':
+    case 'REQUESTED':
+    case 'PROCESSING':
+      return 'warning';
+    case 'REFUNDED':
+      return 'warning';
+    case 'REJECTED':
+      return 'danger';
+    case 'CANCELLED':
+      return 'neutral';
+    default:
+      return 'neutral';
+  }
+}
 
 interface EarningsReport {
   totalGross: number;
@@ -176,24 +200,30 @@ export default function EarningsPage() {
   const fetchPayouts = async () => {
     try {
       const token = tokenManager.getAccessToken();
-      const response = await fetch(getApiUrl('/payouts'), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const [listRes, balanceRes] = await Promise.all([
+        fetch(getApiUrl('/payouts'), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(getApiUrl('/payouts/available-balance'), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
-      if (response.ok) {
-        const result = await response.json();
+      if (listRes.ok) {
+        const result = await listRes.json();
         const payoutsData = result.data || result;
         const payoutsList = Array.isArray(payoutsData) ? payoutsData : [];
-
         setPayouts(payoutsList);
+      }
 
-        // Calculate available for withdrawal (pending payouts)
-        const pendingTotal = payoutsList
-          .filter((p: Payout) => p.status === 'PENDING')
-          .reduce((sum: number, p: Payout) => sum + p.net, 0);
-        setAvailableForWithdrawal(pendingTotal);
+      if (balanceRes.ok) {
+        const result = await balanceRes.json();
+        const payload = result.data || result;
+        // Withdrawable balance is computed server-side: only delivered + credited +
+        // unreversed earnings. This matches the dashboard KPI and what a payout
+        // request will actually allow — do NOT sum all PENDING earnings client-side,
+        // which over-counts not-yet-delivered orders.
+        setAvailableForWithdrawal(Number(payload?.availableBalanceKobo) || 0);
       }
     } catch (error) {
       console.error('Error fetching payouts:', error);
@@ -261,26 +291,6 @@ export default function EarningsPage() {
   };
 
   const formatPrice = (priceInKobo: number) => formatNgnFromKobo(priceInKobo);
-
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-      case 'REQUESTED':
-      case 'PROCESSING':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'PAID':
-      case 'APPROVED':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'REFUNDED':
-        return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
-      case 'CANCELLED':
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-      case 'REJECTED':
-        return 'bg-red-500/20 text-red-400 border-red-500/30';
-      default:
-        return 'bg-[#1a1a1a] text-white border-[#ff6600]/30';
-    }
-  };
 
   const handleRequestPayout = () => {
     if (availableForWithdrawal === 0) {
@@ -352,10 +362,10 @@ export default function EarningsPage() {
   // Show loading state while auth is initializing
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#ffcc99]">Loading...</p>
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-foreground/60">Loading…</p>
         </div>
       </div>
     );
@@ -381,27 +391,24 @@ export default function EarningsPage() {
         <div>
           {/* Title Section + Time Filter */}
           <div className="flex flex-wrap justify-between items-start gap-3 p-4">
-            <div>
-              <p className="text-white tracking-light text-[32px] font-bold leading-tight min-w-72">
+            <div className="reveal-up">
+              <h1 className="font-display tracking-tight text-[32px] font-bold leading-tight text-foreground">
                 Earnings
-              </p>
-              <p className="text-[#ffcc99] text-sm font-normal leading-normal mt-1">
-                Track your sales revenue and payouts
-              </p>
-              <p className="text-[#ffcc99]/90 text-sm mt-1">
-                Earnings released after successful delivery.
+              </h1>
+              <p className="text-foreground/60 text-sm mt-1">
+                Track your sales revenue and payouts · released after successful delivery.
               </p>
             </div>
             {/* Segmented Time Filter */}
-            <div className="flex bg-[#1A1A1A] p-1 rounded-[6px]">
+            <div className="flex rounded-lg bg-[var(--color-surface-2)] p-1">
               {(['all', 'month', 'quarter', 'year'] as const).map((range) => (
                 <button
                   key={range}
                   onClick={() => setDateRange(range)}
-                  className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
                     dateRange === range
-                      ? 'bg-[#FF6B00] text-white'
-                      : 'text-[#ffcc99] hover:bg-white/5'
+                      ? 'bg-primary text-black shadow-sm'
+                      : 'text-foreground/60 hover:text-foreground'
                   }`}
                 >
                   {range.charAt(0).toUpperCase() + range.slice(1)}
@@ -412,82 +419,74 @@ export default function EarningsPage() {
 
           {/* Summary Cards */}
           {loading ? (
-            <div className="px-4 py-8 text-center text-white">Loading...</div>
+            <div className="grid grid-cols-1 gap-4 px-4 py-3 md:grid-cols-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="surface-card h-[168px] animate-pulse" />
+              ))}
+            </div>
           ) : earningsReport ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 py-3">
-              {/* Top-left: Total Revenue (largest, orange accent) */}
-              <div className="bg-[#1a1a1a] border border-[#FF6B00]/40 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-[#FF6B00]/20 rounded-xl">
-                    <TrendingUp className="w-6 h-6 text-[#FF6B00]" />
-                  </div>
+            <div className="grid grid-cols-1 gap-4 px-4 py-3 reveal-stagger md:grid-cols-2">
+              {/* Total Revenue (orange accent) */}
+              <div className="surface-card border-l-2 border-l-primary p-6">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/12 text-primary ring-1 ring-primary/20">
+                  <TrendingUp className="h-5 w-5" />
                 </div>
-                <p className="text-[#ffcc99] text-sm font-medium mb-1">Total Revenue</p>
-                <p className="text-white text-2xl font-bold">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Total Revenue</p>
+                <p className="mt-1 font-display text-3xl font-bold tracking-tight text-foreground tabular-nums">
                   {formatPrice(earningsReport.totalGross)}
                 </p>
-                <p className="text-[#ffcc99] text-xs mt-2">
-                  {earningsReport.totalOrders} orders
-                </p>
+                <p className="mt-2 text-xs text-foreground/45">{earningsReport.totalOrders} orders</p>
               </div>
 
-              {/* Top-right: Net Earnings (green left border) */}
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6 border-l-4 border-l-[#22C55E]">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-green-500/20 rounded-xl">
-                    <DollarSign className="w-6 h-6 text-green-400" />
-                  </div>
+              {/* Net Earnings (success) */}
+              <div className="surface-card border-l-2 border-l-success p-6">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-success-soft text-success">
+                  <DollarSign className="h-5 w-5" />
                 </div>
-                <p className="text-[#ffcc99] text-sm font-medium mb-1">Net Earnings</p>
-                <p className="text-white text-2xl font-bold">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Net Earnings</p>
+                <p className="mt-1 font-display text-3xl font-bold tracking-tight text-foreground tabular-nums">
                   {formatPrice(earningsReport.totalNet)}
                 </p>
-                <p className="text-[#ffcc99] text-xs mt-2">
-                  After commission
-                </p>
+                <p className="mt-2 text-xs text-foreground/45">After commission</p>
               </div>
 
-              {/* Bottom-left: Platform Commission (neutral) */}
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-[#2a2a2a] rounded-xl">
-                    <TrendingDown className="w-6 h-6 text-[#ffcc99]" />
-                  </div>
+              {/* Platform Commission (neutral) */}
+              <div className="surface-card p-6">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-surface-2)] text-foreground/60">
+                  <TrendingDown className="h-5 w-5" />
                 </div>
-                <p className="text-[#ffcc99] text-sm font-medium mb-1">Platform Commission</p>
-                <p className="text-white text-2xl font-bold">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Platform Commission</p>
+                <p className="mt-1 font-display text-3xl font-bold tracking-tight text-foreground tabular-nums">
                   {formatPrice(earningsReport.totalCommission)}
                 </p>
-                <p className={`text-xs mt-2 ${earningsReport.totalGross > 0 ? 'text-[#ffcc99]' : 'text-[#A0A0A0]'}`}>
+                <p className="mt-2 text-xs text-foreground/45">
                   {earningsReport.totalGross > 0
                     ? `${((earningsReport.totalCommission / earningsReport.totalGross) * 100).toFixed(1)}% of revenue`
                     : '— % of revenue'}
                 </p>
               </div>
 
-              {/* Bottom-right: Available Balance (special styling) */}
-              <div className="p-6" style={{ backgroundColor: '#FF6B0010', border: '1px solid #FF6B0040', borderRadius: '12px' }}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="p-3 rounded-xl" style={{ backgroundColor: '#FF6B0020' }}>
-                    <Wallet className="w-6 h-6" style={{ color: '#FF6B00' }} />
-                  </div>
+              {/* Available Balance (primary tint + CTA) */}
+              <div className="rounded-2xl border border-primary/40 bg-primary/[0.06] p-6 shadow-[var(--shadow-card)]">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/20 text-primary">
+                  <Wallet className="h-5 w-5" />
                 </div>
-                <p className="text-[#ffcc99] text-sm font-medium mb-1">Available Balance</p>
-                <p className="text-white text-2xl font-bold font-dm-mono" style={{ fontFamily: "'DM Mono', monospace" }}>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Available Balance</p>
+                <p className="mt-1 font-display text-3xl font-bold tracking-tight text-foreground tabular-nums">
                   {formatPrice(availableForWithdrawal)}
                 </p>
-                <p className="text-[#A0A0A0] text-xs mt-1">Minimum payout: ₦1,000</p>
+                <p className="mt-1 text-xs text-foreground/45">Minimum payout: ₦1,000</p>
                 <button
                   onClick={handleRequestPayout}
                   disabled={availableForWithdrawal < MIN_PAYOUT_AMOUNT}
                   title={availableForWithdrawal < MIN_PAYOUT_AMOUNT ? 'Minimum payout is ₦1,000' : undefined}
-                  className={`mt-4 w-full px-4 py-3 text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all ${
+                  className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-all ${
                     availableForWithdrawal >= MIN_PAYOUT_AMOUNT
-                      ? 'bg-[#FF6B00] text-white hover:bg-[#FF6B00]/90 animate-glow-pulse'
-                      : 'bg-[#2a2a2a] text-[#A0A0A0] cursor-not-allowed'
+                      ? 'bg-primary text-black hover:bg-primary-dark shadow-[var(--shadow-primary-glow)]'
+                      : 'cursor-not-allowed bg-[var(--color-surface-2)] text-foreground/40'
                   }`}
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="h-4 w-4" />
                   Request Payout
                 </button>
               </div>
@@ -497,35 +496,35 @@ export default function EarningsPage() {
           {/* Earnings Breakdown */}
           {earningsReport && (
             <div className="px-4 py-3">
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
-                <h3 className="text-white text-lg font-bold mb-4">Earnings Breakdown</h3>
+              <div className="surface-card p-6">
+                <h3 className="mb-4 font-display text-lg font-bold text-foreground">Earnings Breakdown</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-[#ffcc99]">Gross Revenue</span>
-                    <span className="text-white font-semibold text-right">
+                    <span className="text-foreground/60">Gross Revenue</span>
+                    <span className="text-right font-semibold text-foreground tabular-nums">
                       {formatPrice(earningsReport.totalGross)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[#ffcc99] flex items-center gap-1.5">
+                    <span className="flex items-center gap-1.5 text-foreground/60">
                       Platform Commission ({earningsReport.totalGross > 0
                         ? ((earningsReport.totalCommission / earningsReport.totalGross) * 100).toFixed(0)
                         : '—'}%)
                       <span
-                        className="inline-flex text-[#A0A0A0] cursor-help"
+                        className="inline-flex cursor-help text-foreground/40"
                         title="Commission rate depends on your product category (8–15%)"
                       >
-                        <Info className="w-4 h-4" />
+                        <Info className="h-4 w-4" />
                       </span>
                     </span>
-                    <span className="text-[#FF6B00] font-semibold text-right">
+                    <span className="text-right font-semibold text-primary tabular-nums">
                       -{formatPrice(earningsReport.totalCommission)}
                     </span>
                   </div>
-                  <div className="h-px bg-[#2A2A2A]"></div>
+                  <div className="h-px bg-border-custom"></div>
                   <div className="flex items-center justify-between pt-2">
-                    <span className="text-white font-bold text-base">Net Earnings</span>
-                    <span className="text-[#22C55E] font-bold text-base text-right">
+                    <span className="text-base font-bold text-foreground">Net Earnings</span>
+                    <span className="text-right text-base font-bold text-success tabular-nums">
                       {formatPrice(earningsReport.totalNet)}
                     </span>
                   </div>
@@ -537,61 +536,42 @@ export default function EarningsPage() {
           {/* Payout Requests Table */}
           {payoutRequests.length > 0 && (
             <div className="px-4 py-3">
-              <h3 className="text-white text-lg font-bold mb-4">Payout Requests</h3>
-              <div className="flex overflow-hidden rounded-xl border border-[#ff6600]/30 bg-black">
-                <table className="flex-1">
+              <h3 className="mb-4 font-display text-lg font-bold text-foreground">Payout Requests</h3>
+              <div className="surface-card overflow-hidden">
+                <table className="w-full">
                   <thead>
-                    <tr className="bg-[#1a1a1a]">
-                      <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
-                        Request ID
-                      </th>
-                      <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
-                        Amount
-                      </th>
-                      <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
-                        Requested
-                      </th>
-                      <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
-                        Status
-                      </th>
-                      <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">
-                        Actions
-                      </th>
+                    <tr className="border-b border-border-custom bg-[var(--color-surface-2)]">
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Request ID</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Amount</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Requested</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Status</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {payoutRequests.map((request) => (
-                      <tr
-                        key={request.id}
-                        className="border-t border-t-[#ff6600]/30"
-                      >
-                        <td className="h-[72px] px-4 py-2 text-white text-sm font-normal leading-normal">
+                      <tr key={request.id} className="border-t border-border-custom">
+                        <td className="h-[72px] px-4 py-2 font-dm-mono text-sm text-foreground/70">
                           #{request.id.slice(0, 8)}
                         </td>
-                        <td className="h-[72px] px-4 py-2 text-white text-sm font-bold leading-normal">
+                        <td className="h-[72px] px-4 py-2 text-sm font-bold text-foreground tabular-nums">
                           {formatPrice(request.amount)}
                         </td>
-                        <td className="h-[72px] px-4 py-2 text-[#ffcc99] text-sm font-normal leading-normal">
+                        <td className="h-[72px] px-4 py-2 text-sm text-foreground/55">
                           {formatDate(request.requestedAt)}
                         </td>
-                        <td className="h-[72px] px-4 py-2 text-sm font-normal leading-normal">
-                          <span
-                            className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border ${getStatusBadgeColor(
-                              request.status
-                            )}`}
-                          >
-                            {request.status}
-                          </span>
+                        <td className="h-[72px] px-4 py-2 text-sm">
+                          <StatusBadge status={request.status} tone={payoutTone(request.status)} />
                         </td>
-                        <td className="h-[72px] px-4 py-2 text-sm font-normal leading-normal">
+                        <td className="h-[72px] px-4 py-2 text-sm">
                           {request.status === 'REQUESTED' && (
                             <button
                               onClick={() => handleCancelPayoutRequest(request.id)}
                               disabled={cancelling === request.id}
-                              className="flex items-center gap-1 px-3 py-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50 text-sm font-medium"
+                              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-danger transition-colors hover:bg-danger-soft disabled:opacity-50"
                             >
-                              <X className="w-4 h-4" />
-                              {cancelling === request.id ? 'Cancelling...' : 'Cancel'}
+                              <X className="h-4 w-4" />
+                              {cancelling === request.id ? 'Cancelling…' : 'Cancel'}
                             </button>
                           )}
                         </td>
@@ -606,8 +586,8 @@ export default function EarningsPage() {
           {/* SECTION 4.2 — resolved: per-order payout line items (table below) */}
           {/* Payout History Table */}
           <div className="px-4 py-3">
-            <h3 className="text-white text-lg font-bold mb-4">Payout History</h3>
-            <div className="overflow-x-auto rounded-xl border border-[#ff6600]/30 bg-black">
+            <h3 className="mb-4 font-display text-lg font-bold text-foreground">Payout History</h3>
+            <div className="surface-card overflow-x-auto">
               <table className="w-full table-fixed min-w-[800px]">
                 <colgroup>
                   <col style={{ width: '15%' }} />
@@ -620,15 +600,15 @@ export default function EarningsPage() {
                   <col style={{ width: '10%' }} />
                 </colgroup>
                 <thead>
-                  <tr className="bg-[#1a1a1a]">
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Order ID</th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Date</th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Gross</th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Commission</th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Rate</th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Net Amount</th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Refunded</th>
-                    <th className="px-4 py-3 text-left text-white text-sm font-medium leading-normal">Status</th>
+                  <tr className="border-b border-border-custom bg-[var(--color-surface-2)]">
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Order ID</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Date</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Gross</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Commission</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Rate</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Net Amount</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Refunded</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -636,65 +616,52 @@ export default function EarningsPage() {
                     <tr>
                       <td colSpan={8} className="px-4 py-12">
                         <div className="flex flex-col items-center justify-center text-center">
-                          <div className="w-10 h-10 mb-3 flex items-center justify-center rounded-full" style={{ backgroundColor: '#FF6B0020' }}>
-                            <Wallet className="w-10 h-10" style={{ color: '#FF6B00' }} />
+                          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/12 text-primary ring-1 ring-primary/20">
+                            <Wallet className="h-6 w-6" />
                           </div>
-                          <p className="text-white font-semibold mb-1">No payouts yet</p>
-                          <p className="text-[#A0A0A0] text-sm">Payouts will appear here once you request your first payout</p>
+                          <p className="mb-1 font-semibold text-foreground">No payouts yet</p>
+                          <p className="text-sm text-foreground/50">Payouts will appear here once you request your first payout</p>
                         </div>
                       </td>
                     </tr>
                   ) : (
                     payouts.map((payout) => (
-                      <tr
-                        key={payout.id}
-                        className="border-t border-t-[#ff6600]/30"
-                      >
-                        <td className="h-[72px] px-4 py-2 text-white text-sm font-normal leading-normal">
+                      <tr key={payout.id} className="border-t border-border-custom">
+                        <td className="h-[72px] px-4 py-2 font-dm-mono text-sm text-foreground/70">
                           #{payout.orderId.slice(0, 8)}
                         </td>
-                        <td className="h-[72px] px-4 py-2 text-[#ffcc99] text-sm font-normal leading-normal">
+                        <td className="h-[72px] px-4 py-2 text-sm text-foreground/55">
                           {formatDate(payout.createdAt)}
                         </td>
-                        <td className="h-[72px] px-4 py-2 text-[#ffcc99] text-sm font-normal leading-normal">
+                        <td className="h-[72px] px-4 py-2 text-sm text-foreground/70 tabular-nums">
                           {formatPrice(payout.gross)}
                         </td>
-                        <td className="h-[72px] px-4 py-2 text-[#FF6B00] text-sm font-normal leading-normal">
+                        <td className="h-[72px] px-4 py-2 text-sm text-primary tabular-nums">
                           -{formatPrice(payout.commission)}
                         </td>
-                        <td className="h-[72px] px-4 py-2 text-[#ffcc99] text-sm font-normal leading-normal">
+                        <td className="h-[72px] px-4 py-2 text-sm text-foreground/55 tabular-nums">
                           {payout.commissionRate ? `${payout.commissionRate}%` : '—'}
                         </td>
-                        <td className="h-[72px] px-4 py-2 text-white text-sm font-bold leading-normal">
+                        <td className="h-[72px] px-4 py-2 text-sm font-bold text-foreground tabular-nums">
                           {formatPrice(payout.net)}
                         </td>
-                        <td className="h-[72px] px-4 py-2 text-sm font-normal leading-normal">
+                        <td className="h-[72px] px-4 py-2 text-sm">
                           {payout.refundedAmount && payout.refundedAmount > 0 ? (
-                            <span className="text-yellow-400 font-medium">
+                            <span className="font-medium text-warning tabular-nums">
                               {formatPrice(payout.refundedAmount)}
                             </span>
                           ) : (
-                            <span className="text-gray-500">—</span>
+                            <span className="text-foreground/40">—</span>
                           )}
                         </td>
-                        <td className="h-[72px] px-4 py-2 text-sm font-normal leading-normal">
+                        <td className="h-[72px] px-4 py-2 text-sm">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border ${getStatusBadgeColor(
-                                payout.status
-                              )}`}
-                            >
-                              {payout.status}
-                            </span>
+                            <StatusBadge status={payout.status} tone={payoutTone(payout.status)} />
                             {payout.isReversed ? (
-                              <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border bg-red-500/20 text-red-400 border-red-500/30">
-                                Reversed
-                              </span>
+                              <StatusBadge tone="danger" label="Reversed" dot={false} />
                             ) : null}
                             {!payout.isReversed && (payout.refundedAmount ?? 0) > 0 ? (
-                              <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-                                Refunded
-                              </span>
+                              <StatusBadge tone="warning" label="Refunded" dot={false} />
                             ) : null}
                           </div>
                         </td>
@@ -708,17 +675,15 @@ export default function EarningsPage() {
 
           {/* Payout Request Modal */}
           {showPayoutModal && (
-            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#1a1a1a] border border-[#FF6B00]/50 rounded-xl p-6 max-w-md w-full">
-                <h2 className="text-white text-2xl font-bold mb-4">Request Payout</h2>
-                <p className="text-[#22C55E] text-sm font-medium mb-6">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+              <div className="surface-card w-full max-w-md p-6 shadow-[var(--shadow-elevated)] reveal-up">
+                <h2 className="mb-1 font-display text-2xl font-bold text-foreground">Request Payout</h2>
+                <p className="mb-6 text-sm font-medium text-success">
                   Available balance: {formatPrice(availableForWithdrawal)}
                 </p>
 
                 <div className="mb-5">
-                  <label className="block text-white text-sm font-medium mb-2">
-                    Amount to withdraw
-                  </label>
+                  <label className="mb-2 block text-sm font-medium text-foreground">Amount to withdraw</label>
                   <input
                     type="number"
                     value={payoutAmount}
@@ -727,40 +692,38 @@ export default function EarningsPage() {
                     step="0.01"
                     min="0"
                     max={(availableForWithdrawal / 100).toString()}
-                    className="form-input flex w-full resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#ff6600]/30 bg-black focus:border-[#FF6B00] h-14 placeholder:text-[#ffcc99] p-4 text-base font-normal leading-normal"
+                    className="h-14 w-full rounded-xl border border-border-custom bg-[var(--color-surface-2)] p-4 text-base text-foreground placeholder:text-foreground/40 focus:border-primary focus:outline-none"
                   />
                 </div>
 
                 {bankAccount ? (
-                  <div className="mb-5 p-4 rounded-xl bg-black/50 border border-[#2A2A2A]">
-                    <p className="text-[#ffcc99] text-xs font-medium mb-1">Your payout account details</p>
-                    <p className="text-white text-sm">{bankAccount.bankName}</p>
-                    <p className="text-[#ffcc99] text-sm font-mono">
+                  <div className="mb-5 rounded-xl border border-border-custom bg-[var(--color-surface-2)] p-4">
+                    <p className="mb-1 text-xs font-medium text-foreground/55">Your payout account details</p>
+                    <p className="text-sm text-foreground">{bankAccount.bankName}</p>
+                    <p className="font-dm-mono text-sm text-foreground/70">
                       {bankAccount.accountNumber ? bankAccount.accountNumber.replace(/\d(?=\d{4})/g, '*') : 'N/A'}
                     </p>
                   </div>
                 ) : (
-                  <div className="mb-5 p-4 rounded-xl bg-black/50 border border-[#2A2A2A]">
-                    <p className="text-[#A0A0A0] text-sm">Add your payout account in Settings to receive payouts</p>
+                  <div className="mb-5 rounded-xl border border-border-custom bg-[var(--color-surface-2)] p-4">
+                    <p className="text-sm text-foreground/50">Add your payout account in Settings to receive payouts</p>
                   </div>
                 )}
 
-                <p className="text-[#A0A0A0] text-xs mb-5">
-                  Payouts are processed within 1–3 business days
-                </p>
+                <p className="mb-5 text-xs text-foreground/45">Payouts are processed within 1–3 business days</p>
 
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={handleSubmitPayoutRequest}
                     disabled={requesting || !bankAccount}
-                    className="w-full bg-[#FF6B00] hover:bg-[#FF6B00]/90 disabled:bg-[#FF6B00]/50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-semibold transition"
+                    className="w-full rounded-xl bg-primary px-6 py-3 font-semibold text-black transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {requesting ? 'Submitting...' : 'Confirm Payout'}
+                    {requesting ? 'Submitting…' : 'Confirm Payout'}
                   </button>
                   <button
                     onClick={handlePayoutModalClose}
                     disabled={requesting}
-                    className="text-[#ffcc99] hover:text-white text-sm font-medium transition disabled:opacity-50"
+                    className="text-sm font-medium text-foreground/60 transition hover:text-foreground disabled:opacity-50"
                   >
                     Cancel
                   </button>

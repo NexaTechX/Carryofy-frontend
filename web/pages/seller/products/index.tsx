@@ -12,6 +12,7 @@ import RemoteImage from '../../../components/common/RemoteImage';
 import { useConfirmation } from '../../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 import { resolveSellerKycStatus } from '../../../lib/seller/kyc-status';
+import BulkProductImport from '../../../components/seller/product/BulkProductImport';
 import {
   unwrapSellerMePayload,
   sellerNeedsProfileOnboardingFromProfile,
@@ -169,9 +170,9 @@ export default function ProductsPage() {
   };
 
   const getStockBadge = (quantity: number) => {
-    if (quantity === 0) return { label: 'Out of stock', bg: '#EF444420', color: '#EF4444' };
-    if (quantity <= 5) return { label: `Low: ${quantity}`, bg: '#F59E0B20', color: '#F59E0B' };
-    return { label: `${quantity} in stock`, bg: '#22C55E20', color: '#22C55E' };
+    if (quantity === 0) return { label: 'Out of stock', bg: 'var(--color-danger-soft)', color: 'var(--color-danger)' };
+    if (quantity <= 5) return { label: `Low: ${quantity}`, bg: 'var(--color-warning-soft)', color: 'var(--color-warning)' };
+    return { label: `${quantity} in stock`, bg: 'var(--color-success-soft)', color: 'var(--color-success)' };
   };
 
   const getStatusPill = (status: string) => {
@@ -328,8 +329,8 @@ export default function ProductsPage() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#ffcc99]">Loading...</p>
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-foreground/60">Loading...</p>
         </div>
       </div>
     );
@@ -352,24 +353,27 @@ export default function ProductsPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-white">Products</h1>
-              <p className="text-[#ffcc99] text-sm mt-1">
+              <h1 className="text-2xl font-bold text-foreground">Products</h1>
+              <p className="text-foreground/60 text-sm mt-1">
                 Manage your product listings ({products.length} products)
               </p>
             </div>
             {kycStatus === 'APPROVED' ? (
-              <Link
-                href="/seller/products/new"
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#ff6600] to-[#cc5200] text-white font-medium rounded-xl hover:from-[#cc5200] hover:to-[#ff6600] transition-all"
-              >
-                <Plus className="w-5 h-5" />
-                Add Product
-              </Link>
+              <div className="flex items-center gap-2">
+                <BulkProductImport onComplete={fetchProducts} />
+                <Link
+                  href="/seller/products/new"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-foreground font-medium rounded-xl hover:bg-primary-dark transition-all"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add Product
+                </Link>
+              </div>
             ) : (
               <button
                 disabled
                 title="Complete KYC verification to add products"
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#333]/60 text-[#ffcc99]/40 font-medium rounded-xl cursor-not-allowed border border-[#ff6600]/10"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[var(--color-surface-2)] text-foreground/30 font-medium rounded-xl cursor-not-allowed border border-primary/10"
               >
                 <Plus className="w-5 h-5" />
                 Add Product
@@ -423,7 +427,7 @@ export default function ProductsPage() {
               </div>
               <Link
                 href="/seller/settings?tab=kyc"
-                className={`flex-shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all ${kycStatus === 'PENDING'
+                className={`flex-shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold text-foreground transition-all ${kycStatus === 'PENDING'
                     ? 'bg-yellow-600 hover:bg-yellow-500'
                     : kycStatus === 'REJECTED'
                       ? 'bg-red-600 hover:bg-red-500'
@@ -439,20 +443,20 @@ export default function ProductsPage() {
           <div className="mb-6 w-full">
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#A0A0A0]" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/50" />
                 <input
                   type="text"
                   placeholder="Search products by name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-[#1a1a1a] border border-[#2A2A2A] rounded-xl text-white placeholder:text-[#A0A0A0] focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent"
+                  className="w-full pl-12 pr-4 py-3 bg-card border border-border-custom rounded-xl text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               <div className="flex gap-3 flex-shrink-0">
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                  className="px-4 py-3 bg-[#1a1a1a] border border-[#2A2A2A] rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6600] min-w-[140px]"
+                  className="px-4 py-3 bg-card border border-border-custom rounded-xl text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary min-w-[140px]"
                 >
                   {STATUS_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -463,7 +467,7 @@ export default function ProductsPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortBy)}
-                  className="px-4 py-3 bg-[#1a1a1a] border border-[#2A2A2A] rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6600] min-w-[140px]"
+                  className="px-4 py-3 bg-card border border-border-custom rounded-xl text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary min-w-[140px]"
                 >
                   {SORT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -490,31 +494,31 @@ export default function ProductsPage() {
           {/* Delete Confirmation Modal */}
           {deleteConfirm && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-2xl p-6 max-w-md w-full">
+              <div className="bg-card border border-primary/30 rounded-2xl p-6 max-w-md w-full">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
                     <AlertCircle className="w-6 h-6 text-red-400" />
                   </div>
                   <div>
-                    <h3 className="text-white font-semibold">Delete Product</h3>
-                    <p className="text-[#ffcc99] text-sm">This action cannot be undone</p>
+                    <h3 className="text-foreground font-semibold">Delete Product</h3>
+                    <p className="text-foreground/60 text-sm">This action cannot be undone</p>
                   </div>
                 </div>
-                <p className="text-gray-300 text-sm mb-6">
+                <p className="text-foreground/70 text-sm mb-6">
                   Are you sure you want to delete this product? All data associated with it will be permanently removed.
                 </p>
                 <div className="flex gap-3">
                   <button
                     onClick={handleDeleteCancel}
                     disabled={deleting}
-                    className="flex-1 px-4 py-2.5 bg-[#0a0a0a] border border-[#ff6600]/30 text-[#ffcc99] rounded-xl font-medium hover:bg-[#ff6600]/10 transition-colors disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 bg-[var(--color-surface-2)] border border-primary/30 text-foreground/60 rounded-xl font-medium hover:bg-primary/10 transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDeleteConfirm}
                     disabled={deleting}
-                    className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 bg-red-500 text-foreground rounded-xl font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
                   >
                     {deleting ? 'Deleting...' : 'Delete'}
                   </button>
@@ -527,17 +531,17 @@ export default function ProductsPage() {
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
-                <div className="w-10 h-10 border-3 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mx-auto mb-3"></div>
-                <p className="text-[#ffcc99] text-sm">Loading products...</p>
+                <div className="w-10 h-10 border-3 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-3"></div>
+                <p className="text-foreground/60 text-sm">Loading products...</p>
               </div>
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-2xl p-16 text-center flex flex-col items-center justify-center">
-              <div className="w-[48px] h-[48px] rounded-lg bg-[#ff6600]/20 flex items-center justify-center mx-auto mb-5">
-                <Package className="w-12 h-12 text-[#ff6600]" />
+            <div className="bg-card border border-border-custom rounded-2xl p-16 text-center flex flex-col items-center justify-center">
+              <div className="w-[48px] h-[48px] rounded-lg bg-primary/15 flex items-center justify-center mx-auto mb-5">
+                <Package className="w-12 h-12 text-primary" />
               </div>
-              <h3 className="text-white font-bold text-xl mb-2">No products yet</h3>
-              <p className="text-[#A0A0A0] text-sm mb-8 max-w-sm">
+              <h3 className="text-foreground font-bold text-xl mb-2">No products yet</h3>
+              <p className="text-foreground/50 text-sm mb-8 max-w-sm">
                 {searchQuery
                   ? 'Try a different search term'
                   : needsProfileOnboarding
@@ -553,7 +557,7 @@ export default function ProductsPage() {
               {!searchQuery && needsProfileOnboarding && (
                 <Link
                   href="/seller/onboard"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-[#ff6600] text-white font-bold rounded-xl hover:bg-[#cc5200] transition-colors"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-foreground font-bold rounded-xl hover:bg-primary-dark transition-colors"
                 >
                   <ShieldAlert className="w-6 h-6" />
                   Complete Store Setup
@@ -562,7 +566,7 @@ export default function ProductsPage() {
               {!searchQuery && !needsProfileOnboarding && kycStatus === 'APPROVED' && !sellerNotFound && (
                 <Link
                   href="/seller/products/new"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-[#ff6600] text-white font-bold rounded-xl hover:bg-[#cc5200] transition-colors text-base"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-foreground font-bold rounded-xl hover:bg-primary-dark transition-colors text-base"
                 >
                   <Plus className="w-6 h-6" />
                   Add Your First Product
@@ -571,7 +575,7 @@ export default function ProductsPage() {
               {!searchQuery && !needsProfileOnboarding && kycStatus !== 'APPROVED' && (
                 <Link
                   href="/seller/settings?tab=kyc"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 transition-colors"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-foreground font-bold rounded-xl hover:bg-blue-500 transition-colors"
                 >
                   <ShieldAlert className="w-6 h-6" />
                   {kycStatus === 'PENDING' ? 'View KYC Status' : kycStatus === 'REJECTED' ? 'Resubmit KYC' : 'Apply for KYC Verification'}
@@ -580,7 +584,7 @@ export default function ProductsPage() {
               {!searchQuery && !needsProfileOnboarding && sellerNotFound && kycStatus === 'APPROVED' && (
                 <Link
                   href="/seller/onboard"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-[#ff6600] text-white font-bold rounded-xl hover:bg-[#cc5200] transition-colors"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-foreground font-bold rounded-xl hover:bg-primary-dark transition-colors"
                 >
                   <ShieldAlert className="w-6 h-6" />
                   Complete Seller Onboarding
@@ -588,68 +592,68 @@ export default function ProductsPage() {
               )}
             </div>
           ) : (
-            <div className="bg-[#1a1a1a] border border-[#2A2A2A] border-l-[3px] border-l-[#ff6600] rounded-r-xl overflow-hidden">
+            <div className="bg-card border border-border-custom border-l-[3px] border-l-primary rounded-r-xl overflow-hidden">
               {/* Desktop Table */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-[#111111] border-b border-[#2A2A2A]">
+                    <tr className="bg-[var(--color-surface-2)] border-b border-border-custom">
                       <th className="px-6 py-4 text-left w-12">
                         <button
                           onClick={handleSelectAll}
-                          className="p-1 hover:bg-[#1A1A1A] rounded transition-colors"
+                          className="p-1 hover:bg-[var(--color-surface-2)] rounded transition-colors"
                           title="Select All"
                         >
                           {selectedProducts.size === filteredProducts.length && filteredProducts.length > 0 ? (
-                            <CheckSquare className="w-5 h-5 text-[#ff6600]" />
+                            <CheckSquare className="w-5 h-5 text-primary" />
                           ) : (
-                            <Square className="w-5 h-5 text-[#A0A0A0]" />
+                            <Square className="w-5 h-5 text-foreground/50" />
                           )}
                         </button>
                       </th>
-                      <th className="px-6 py-4 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-[#A0A0A0]">
+                      <th className="px-6 py-4 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-foreground/50">
                         Product
                       </th>
-                      <th className="px-6 py-4 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-[#A0A0A0]">
+                      <th className="px-6 py-4 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-foreground/50">
                         Price
                       </th>
-                      <th className="px-6 py-4 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-[#A0A0A0]">
+                      <th className="px-6 py-4 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-foreground/50">
                         Stock
                       </th>
-                      <th className="px-6 py-4 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-[#A0A0A0]">
+                      <th className="px-6 py-4 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-foreground/50">
                         Commission
                       </th>
-                      <th className="px-6 py-4 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-[#A0A0A0]">
+                      <th className="px-6 py-4 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-foreground/50">
                         Status
                       </th>
-                      <th className="px-6 py-4 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-[#A0A0A0]">
+                      <th className="px-6 py-4 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-foreground/50">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#2A2A2A]">
+                  <tbody className="divide-y divide-border-custom">
                     {filteredProducts.map((product) => {
                       const stockBadge = getStockBadge(product.quantity);
                       const statusPill = getStatusPill(product.status);
                       const isSelected = selectedProducts.has(product.id);
 
                       return (
-                        <tr key={product.id} className="hover:bg-[#1A1A1A]/50 transition-colors">
+                        <tr key={product.id} className="hover:bg-[var(--color-surface-2)]/50 transition-colors">
                           <td className="px-6 py-4">
                             <button
                               onClick={() => handleSelectProduct(product.id)}
-                              className="p-1 hover:bg-[#1A1A1A] rounded transition-colors"
+                              className="p-1 hover:bg-[var(--color-surface-2)] rounded transition-colors"
                             >
                               {isSelected ? (
-                                <CheckSquare className="w-5 h-5 text-[#ff6600]" />
+                                <CheckSquare className="w-5 h-5 text-primary" />
                               ) : (
-                                <Square className="w-5 h-5 text-[#A0A0A0]" />
+                                <Square className="w-5 h-5 text-foreground/50" />
                               )}
                             </button>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-[#2A2A2A] bg-[#111111]">
+                              <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-border-custom bg-[var(--color-surface-2)]">
                                 {product.images?.[0] ? (
                                   <RemoteImage
                                     src={product.images[0]}
@@ -660,22 +664,22 @@ export default function ProductsPage() {
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center">
-                                    <Package className="w-4 h-4 text-[#A0A0A0]" />
+                                    <Package className="w-4 h-4 text-foreground/50" />
                                   </div>
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <p className="text-white font-bold text-[14px] truncate max-w-[280px]" title={product.title}>
+                                <p className="text-foreground font-bold text-[14px] truncate max-w-[280px]" title={product.title}>
                                   {product.title.length > 40 ? `${product.title.slice(0, 40)}…` : product.title}
                                 </p>
-                                <p className="text-[#555555] text-[11px] font-mono mt-0.5">
+                                <p className="text-foreground/40 text-[11px] font-mono mt-0.5">
                                   {product.id}
                                 </p>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <p className="text-white text-[14px]" style={{ fontFamily: "'DM Mono', monospace" }}>
+                            <p className="text-foreground text-[14px]" style={{ fontFamily: "'DM Mono', monospace" }}>
                               {formatPrice(product.price)}
                             </p>
                           </td>
@@ -689,11 +693,11 @@ export default function ProductsPage() {
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex flex-col items-end">
-                              <span className="text-[#ff6600] font-bold text-[14px]">
+                              <span className="text-primary font-bold text-[14px]">
                                 {product.categoryRel?.commissionB2C?.toFixed(1) ?? 'N/A'}%
                               </span>
                               {product.categoryRel?.name && (
-                                <span className="text-[#A0A0A0] text-[11px] mt-0.5">
+                                <span className="text-foreground/50 text-[11px] mt-0.5">
                                   {product.categoryRel.name}
                                 </span>
                               )}
@@ -706,8 +710,8 @@ export default function ProductsPage() {
                                   statusPill.isPendingApproval
                                     ? 'bg-amber-500/15 text-amber-200 border border-amber-500/35'
                                     : statusPill.isActive
-                                      ? 'bg-[#22C55E15] text-[#22C55E]'
-                                      : 'bg-[#2A2A2A] text-[#A0A0A0]'
+                                      ? 'bg-success-soft text-success'
+                                      : 'bg-[var(--color-surface-2)] text-foreground/50'
                                 }`}
                               >
                                 <span
@@ -715,8 +719,8 @@ export default function ProductsPage() {
                                     statusPill.isPendingApproval
                                       ? 'bg-amber-400'
                                       : statusPill.isActive
-                                        ? 'bg-[#22C55E]'
-                                        : 'bg-[#A0A0A0]'
+                                        ? 'bg-success'
+                                        : 'bg-foreground/40'
                                   }`}
                                 />
                                 {statusPill.label}
@@ -732,14 +736,14 @@ export default function ProductsPage() {
                             <div className="flex items-center justify-end gap-2">
                               <Link
                                 href={`/seller/products/${product.id}/edit`}
-                                className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-[#1A1A1A] text-[#A0A0A0] hover:text-[#ff6600] transition-colors"
+                                className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-[var(--color-surface-2)] text-foreground/50 hover:text-primary transition-colors"
                                 title="Edit product"
                               >
                                 <Edit className="w-4 h-4" />
                               </Link>
                               <Link
                                 href={`/seller/products/${product.id}`}
-                                className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-[#1A1A1A] text-[#A0A0A0] hover:text-[#3B82F6] transition-colors"
+                                className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-[var(--color-surface-2)] text-foreground/50 hover:text-info transition-colors"
                                 title="Preview listing"
                               >
                                 <Eye className="w-4 h-4" />
@@ -747,14 +751,14 @@ export default function ProductsPage() {
                               <button
                                 onClick={() => handleDuplicate(product.id)}
                                 disabled={duplicating === product.id}
-                                className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-[#1A1A1A] text-[#A0A0A0] hover:text-[#A0A0A0] transition-colors disabled:opacity-50"
+                                className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-[var(--color-surface-2)] text-foreground/50 hover:text-foreground/50 transition-colors disabled:opacity-50"
                                 title="Duplicate"
                               >
                                 <Copy className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDeleteClick(product.id)}
-                                className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-[#1A1A1A] text-[#A0A0A0] hover:text-[#EF4444] transition-colors"
+                                className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-[var(--color-surface-2)] text-foreground/50 hover:text-danger transition-colors"
                                 title="Delete"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -769,7 +773,7 @@ export default function ProductsPage() {
               </div>
 
               {/* Mobile Cards */}
-              <div className="md:hidden divide-y divide-[#2A2A2A]">
+              <div className="md:hidden divide-y divide-border-custom">
                 {filteredProducts.map((product) => {
                   const stockBadge = getStockBadge(product.quantity);
                   const statusPill = getStatusPill(product.status);
@@ -777,7 +781,7 @@ export default function ProductsPage() {
                   return (
                     <div key={product.id} className="p-4">
                       <div className="flex gap-4">
-                        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-[#2A2A2A] bg-[#111111]">
+                        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-border-custom bg-[var(--color-surface-2)]">
                           {product.images?.[0] ? (
                             <RemoteImage
                               src={product.images[0]}
@@ -788,13 +792,13 @@ export default function ProductsPage() {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <Package className="w-5 h-5 text-[#A0A0A0]" />
+                              <Package className="w-5 h-5 text-foreground/50" />
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-white font-bold text-sm line-clamp-2">{product.title}</p>
-                          <p className="text-white text-sm mt-1" style={{ fontFamily: "'DM Mono', monospace" }}>
+                          <p className="text-foreground font-bold text-sm line-clamp-2">{product.title}</p>
+                          <p className="text-foreground text-sm mt-1" style={{ fontFamily: "'DM Mono', monospace" }}>
                             {formatPrice(product.price)}
                           </p>
                           <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -803,8 +807,8 @@ export default function ProductsPage() {
                                 statusPill.isPendingApproval
                                   ? 'bg-amber-500/15 text-amber-200 border border-amber-500/35'
                                   : statusPill.isActive
-                                    ? 'bg-[#22C55E15] text-[#22C55E]'
-                                    : 'bg-[#2A2A2A] text-[#A0A0A0]'
+                                    ? 'bg-success-soft text-success'
+                                    : 'bg-[var(--color-surface-2)] text-foreground/50'
                               }`}
                             >
                               <span
@@ -812,8 +816,8 @@ export default function ProductsPage() {
                                   statusPill.isPendingApproval
                                     ? 'bg-amber-400'
                                     : statusPill.isActive
-                                      ? 'bg-[#22C55E]'
-                                      : 'bg-[#A0A0A0]'
+                                      ? 'bg-success'
+                                      : 'bg-foreground/40'
                                 }`}
                               />
                               {statusPill.label}
@@ -825,20 +829,20 @@ export default function ProductsPage() {
                               {stockBadge.label}
                             </span>
                           </div>
-                          <div className="mt-2 p-2 bg-[#111111] rounded-lg border border-[#2A2A2A]">
-                            <p className="text-[#ff6600] font-bold text-sm">
+                          <div className="mt-2 p-2 bg-[var(--color-surface-2)] rounded-lg border border-border-custom">
+                            <p className="text-primary font-bold text-sm">
                               {product.categoryRel?.commissionB2C?.toFixed(1) ?? 'N/A'}%
                             </p>
                             {product.categoryRel?.name && (
-                              <p className="text-[#A0A0A0] text-xs mt-0.5">{product.categoryRel.name}</p>
+                              <p className="text-foreground/50 text-xs mt-0.5">{product.categoryRel.name}</p>
                             )}
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-[#2A2A2A]">
+                      <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-border-custom">
                         <Link
                           href={`/seller/products/${product.id}/edit`}
-                          className="flex items-center gap-1 px-3 py-1.5 text-[#A0A0A0] hover:text-[#ff6600] text-sm font-medium"
+                          className="flex items-center gap-1 px-3 py-1.5 text-foreground/50 hover:text-primary text-sm font-medium"
                         >
                           <Edit className="w-4 h-4" />
                           Edit
@@ -846,14 +850,14 @@ export default function ProductsPage() {
                         <button
                           onClick={() => handleDuplicate(product.id)}
                           disabled={duplicating === product.id}
-                          className="flex items-center gap-1 px-3 py-1.5 text-[#A0A0A0] hover:text-white text-sm font-medium disabled:opacity-50"
+                          className="flex items-center gap-1 px-3 py-1.5 text-foreground/50 hover:text-foreground text-sm font-medium disabled:opacity-50"
                         >
                           <Copy className="w-4 h-4" />
                           {duplicating === product.id ? 'Duplicating...' : 'Duplicate'}
                         </button>
                         <button
                           onClick={() => handleDeleteClick(product.id)}
-                          className="flex items-center gap-1 px-3 py-1.5 text-[#A0A0A0] hover:text-[#EF4444] text-sm font-medium"
+                          className="flex items-center gap-1 px-3 py-1.5 text-foreground/50 hover:text-danger text-sm font-medium"
                         >
                           <Trash2 className="w-4 h-4" />
                           Delete
@@ -869,24 +873,24 @@ export default function ProductsPage() {
 
         {/* Floating bulk action bar */}
         {selectedProducts.size > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between gap-4 px-4 py-3 bg-[#1a1a1a] border-t border-[#2A2A2A] shadow-lg">
+          <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between gap-4 px-4 py-3 bg-card border-t border-border-custom shadow-lg">
             <div className="flex items-center gap-4 flex-1 min-w-0">
-              <span className="text-white font-medium whitespace-nowrap">
+              <span className="text-foreground font-medium whitespace-nowrap">
                 {selectedProducts.size} selected
               </span>
-              <span className="text-[#A0A0A0] hidden sm:inline">·</span>
+              <span className="text-foreground/50 hidden sm:inline">·</span>
               <button
                 onClick={handleBulkDelete}
                 disabled={bulkProcessing}
-                className="text-[#EF4444] hover:text-[#F87171] font-medium text-sm disabled:opacity-50 whitespace-nowrap"
+                className="text-danger hover:text-danger font-medium text-sm disabled:opacity-50 whitespace-nowrap"
               >
                 Delete selected
               </button>
-              <span className="text-[#A0A0A0] hidden sm:inline">·</span>
+              <span className="text-foreground/50 hidden sm:inline">·</span>
               <div className="relative">
                 <button
                   onClick={() => setBulkStatusOpen((v) => !v)}
-                  className="text-[#A0A0A0] hover:text-white font-medium text-sm py-1 whitespace-nowrap"
+                  className="text-foreground/50 hover:text-foreground font-medium text-sm py-1 whitespace-nowrap"
                 >
                   Change status
                 </button>
@@ -896,18 +900,18 @@ export default function ProductsPage() {
                       className="fixed inset-0 z-40"
                       onClick={() => setBulkStatusOpen(false)}
                     />
-                    <div className="absolute bottom-full left-0 mb-2 py-1 bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg shadow-xl z-50 min-w-[140px]">
+                    <div className="absolute bottom-full left-0 mb-2 py-1 bg-card border border-border-custom rounded-lg shadow-xl z-50 min-w-[140px]">
                       <button
                         onClick={() => handleBulkStatusChange('ACTIVE')}
                         disabled={bulkProcessing}
-                        className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#2A2A2A] disabled:opacity-50"
+                        className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-[var(--color-surface-2)] disabled:opacity-50"
                       >
                         Set Active
                       </button>
                       <button
                         onClick={() => handleBulkStatusChange('INACTIVE')}
                         disabled={bulkProcessing}
-                        className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#2A2A2A] disabled:opacity-50"
+                        className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-[var(--color-surface-2)] disabled:opacity-50"
                       >
                         Set Inactive
                       </button>
@@ -918,7 +922,7 @@ export default function ProductsPage() {
             </div>
             <button
               onClick={() => setSelectedProducts(new Set())}
-              className="p-2 text-[#A0A0A0] hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-colors flex-shrink-0"
+              className="p-2 text-foreground/50 hover:text-foreground hover:bg-[var(--color-surface-2)] rounded-lg transition-colors flex-shrink-0"
               title="Dismiss"
             >
               <X className="w-5 h-5" />

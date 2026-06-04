@@ -17,10 +17,14 @@ import {
   copyToClipboard,
   formatDateWithTime,
 } from '../../../lib/api/utils';
-import { sellerGet } from '../../../lib/seller/http';
+import { apiClient } from '../../../lib/api/client';
+import { unwrapAxiosBody } from '../../../lib/api/normalizeResponse';
 import { parseSellerOrdersList } from '../../../lib/seller/orders';
 import toast from 'react-hot-toast';
 import { formatSellerPayoutLabel } from '../../../lib/seller/order-payout';
+import StatusBadge from '../../../components/ui/StatusBadge';
+
+type BadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'primary';
 
 interface OrderItem {
   id: string;
@@ -140,15 +144,20 @@ export default function OrdersPage() {
       const query = params.toString();
       const path = query ? `/orders?${query}` : '/orders';
 
-      const responseData = await sellerGet<unknown>(path);
-      if (responseData === null) {
-        setListError('Could not load orders. Please try again.');
-        setOrders([]);
-        return;
-      }
-      setOrders(parseSellerOrdersList(responseData) as Order[]);
-    } catch {
-      setListError('Could not load orders. Please try again.');
+      const { data } = await apiClient.get(path);
+      setOrders(parseSellerOrdersList(unwrapAxiosBody(data)) as Order[]);
+    } catch (err: any) {
+      // Surface the real cause so a stale/restarted API or expired session is obvious.
+      const status = err?.response?.status as number | undefined;
+      setListError(
+        !err?.response
+          ? 'Cannot reach the server. Check that the API is running, then retry.'
+          : status === 401
+            ? 'Your session has expired. Please sign in again.'
+            : status && status >= 500
+              ? 'The server had a problem loading orders. Please try again shortly.'
+              : 'Could not load orders. Please try again.',
+      );
       setOrders([]);
     } finally {
       setLoading(false);
@@ -186,27 +195,19 @@ export default function OrdersPage() {
     }
   };
 
-  const getStatusColor = (order: Order) => {
-    if (order.status === 'PENDING_PAYMENT') {
-      return {
-        bg: 'bg-[#6B7280]/20',
-        border: 'border-[#6B7280]/50',
-        dot: 'bg-[#9CA3AF]',
-        text: 'text-[#D1D5DB]',
-      };
-    }
-    const key = getStatusKey(order);
-    switch (key) {
+  const getStatusTone = (order: Order): BadgeTone => {
+    if (order.status === 'PENDING_PAYMENT') return 'neutral';
+    switch (getStatusKey(order)) {
       case 'pending':
-        return { bg: 'bg-[#B8860B]/20', border: 'border-[#B8860B]/50', dot: 'bg-[#B8860B]', text: 'text-[#E6B800]' };
+        return 'warning';
       case 'out_for_delivery':
-        return { bg: 'bg-[#2563EB]/20', border: 'border-[#2563EB]/50', dot: 'bg-[#3B82F6]', text: 'text-[#60A5FA]' };
+        return 'info';
       case 'delivered':
-        return { bg: 'bg-[#16A34A]/20', border: 'border-[#16A34A]/50', dot: 'bg-[#22C55E]', text: 'text-[#4ADE80]' };
+        return 'success';
       case 'cancelled':
-        return { bg: 'bg-[#DC2626]/20', border: 'border-[#DC2626]/50', dot: 'bg-[#EF4444]', text: 'text-[#F87171]' };
+        return 'danger';
       default:
-        return { bg: 'bg-[#1A1A1A]', border: 'border-[#FF6B00]/30', dot: 'bg-[#A0A0A0]', text: 'text-white' };
+        return 'neutral';
     }
   };
 
@@ -290,10 +291,10 @@ export default function OrdersPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#FF6B00]/30 border-t-[#FF6B00] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[#ffcc99]">Loading...</p>
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-foreground/60">Loading…</p>
         </div>
       </div>
     );
@@ -303,10 +304,10 @@ export default function OrdersPage() {
 
   const statusFilters: { value: StatusKey; label: string; dotColor: string }[] = [
     { value: 'all', label: 'All Orders', dotColor: '' },
-    { value: 'pending', label: 'Pending', dotColor: 'bg-[#B8860B]' },
-    { value: 'out_for_delivery', label: 'Out for Delivery', dotColor: 'bg-[#3B82F6]' },
-    { value: 'delivered', label: 'Delivered', dotColor: 'bg-[#22C55E]' },
-    { value: 'cancelled', label: 'Cancelled', dotColor: 'bg-[#EF4444]' },
+    { value: 'pending', label: 'Pending', dotColor: 'bg-warning' },
+    { value: 'out_for_delivery', label: 'Out for Delivery', dotColor: 'bg-info' },
+    { value: 'delivered', label: 'Delivered', dotColor: 'bg-success' },
+    { value: 'cancelled', label: 'Cancelled', dotColor: 'bg-danger' },
   ];
 
   const isEmpty = !loading && filteredOrders.length === 0;
@@ -328,14 +329,14 @@ export default function OrdersPage() {
               <button
                 type="button"
                 onClick={() => fetchOrders()}
-                className="btn-mobile shrink-0 rounded-lg bg-[#ff6600] px-4 py-2.5 text-sm font-semibold text-black hover:bg-[#ff8533] sm:py-2"
+                className="btn-mobile shrink-0 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-black hover:bg-primary-dark sm:py-2"
               >
                 Retry
               </button>
             </div>
           )}
           <div className="flex flex-wrap justify-between gap-3 px-3 py-3 sm:p-4">
-            <h1 className="min-w-0 text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-[32px]">
+            <h1 className="min-w-0 text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl lg:text-[32px]">
               Orders
             </h1>
           </div>
@@ -343,7 +344,7 @@ export default function OrdersPage() {
           {/* Type filter - segmented control */}
           <div className="px-3 py-2 sm:px-4">
             <div
-              className="flex w-full max-w-full gap-1 overflow-x-auto rounded-xl bg-[#1A1A1A] p-1 scrollbar-hide sm:inline-flex sm:w-auto sm:rounded-lg"
+              className="flex w-full max-w-full gap-1 overflow-x-auto rounded-xl bg-[var(--color-surface-2)] p-1 scrollbar-hide sm:inline-flex sm:w-auto sm:rounded-lg"
               role="tablist"
             >
               {[
@@ -356,8 +357,8 @@ export default function OrdersPage() {
                   type="button"
                   onClick={() => setOrderTypeFilter(f.value)}
                   className={`btn-mobile inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors sm:min-h-0 sm:rounded-md sm:px-4 ${orderTypeFilter === f.value
-                      ? 'bg-[#FF6B00] text-white'
-                      : 'text-[#A0A0A0] hover:text-white'
+                      ? 'bg-primary text-black shadow-sm'
+                      : 'text-foreground/60 hover:text-foreground'
                     }`}
                 >
                   {f.icon && <Building2 className="h-4 w-4 shrink-0" />}
@@ -378,8 +379,8 @@ export default function OrdersPage() {
                   type="button"
                   onClick={() => setStatusFilter(filter.value)}
                   className={`btn-mobile inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors sm:px-4 ${statusFilter === filter.value
-                      ? 'border-transparent bg-[#FF6B00] text-white'
-                      : 'border-[#FF6B00]/30 bg-[#1A1A1A] text-[#ffcc99] hover:bg-[#FF6B00]/10'
+                      ? 'border-transparent bg-primary text-black'
+                      : 'border-border-custom bg-[var(--color-surface-2)] text-foreground/70 hover:border-primary/50 hover:text-foreground'
                     }`}
                 >
                   {filter.dotColor && (
@@ -394,8 +395,8 @@ export default function OrdersPage() {
           {/* Search bar + date range + Export */}
           <div className="px-3 py-2 sm:px-4 sm:py-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <div className="flex min-h-[48px] w-full flex-1 items-stretch overflow-hidden rounded-xl border border-[#FF6B00]/20 bg-[#1A1A1A] sm:min-h-[48px] sm:max-w-xl">
-                <div className="flex items-center justify-center pl-3 text-[#ffcc99] sm:pl-4">
+              <div className="flex min-h-[48px] w-full flex-1 items-stretch overflow-hidden rounded-xl border border-border-custom bg-[var(--color-surface-2)] transition-colors focus-within:border-primary/60 sm:min-h-[48px] sm:max-w-xl">
+                <div className="flex items-center justify-center pl-3 text-foreground/40 sm:pl-4">
                   <Search className="h-5 w-5" />
                 </div>
                 <input
@@ -403,7 +404,7 @@ export default function OrdersPage() {
                   placeholder="Search by order ID or status"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="min-h-[48px] min-w-0 flex-1 bg-transparent px-3 py-2 text-base text-white placeholder:text-[#A0A0A0] focus:outline-none sm:text-sm"
+                  className="min-h-[48px] min-w-0 flex-1 bg-transparent px-3 py-2 text-base text-foreground placeholder:text-foreground/40 focus:outline-none sm:text-sm"
                 />
               </div>
               <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
@@ -411,20 +412,20 @@ export default function OrdersPage() {
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="min-h-[48px] min-w-0 flex-1 rounded-lg border border-[#FF6B00]/20 bg-[#1A1A1A] px-3 text-base text-white focus:border-[#FF6B00]/50 focus:outline-none sm:h-10 sm:min-h-0 sm:flex-none sm:text-sm"
+                  className="min-h-[48px] min-w-0 flex-1 rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 text-base text-foreground focus:border-primary/60 focus:outline-none sm:h-10 sm:min-h-0 sm:flex-none sm:text-sm"
                 />
-                <span className="shrink-0 px-0.5 text-sm text-[#A0A0A0]">to</span>
+                <span className="shrink-0 px-0.5 text-sm text-foreground/50">to</span>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="min-h-[48px] min-w-0 flex-1 rounded-lg border border-[#FF6B00]/20 bg-[#1A1A1A] px-3 text-base text-white focus:border-[#FF6B00]/50 focus:outline-none sm:h-10 sm:min-h-0 sm:flex-none sm:text-sm"
+                  className="min-h-[48px] min-w-0 flex-1 rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 text-base text-foreground focus:border-primary/60 focus:outline-none sm:h-10 sm:min-h-0 sm:flex-none sm:text-sm"
                 />
               </div>
               <button
                 type="button"
                 onClick={handleExportCsv}
-                className="btn-mobile inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-[#FF6B00]/50 text-sm font-semibold text-[#FF6B00] transition-colors hover:bg-[#FF6B00]/10 sm:h-10 sm:w-auto sm:rounded-lg sm:px-4"
+                className="btn-mobile inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-primary/50 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 sm:h-10 sm:w-auto sm:rounded-lg sm:px-4"
               >
                 <Download className="h-4 w-4" />
                 Export CSV
@@ -435,19 +436,21 @@ export default function OrdersPage() {
           {/* Mobile: order cards */}
           <div className="space-y-3 px-3 pb-4 sm:px-4 lg:hidden">
             {loading ? (
-              <div className="rounded-xl border border-[#FF6B00]/30 bg-black px-4 py-10 text-center text-white">
-                Loading orders…
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="surface-card h-[104px] animate-pulse" />
+                ))}
               </div>
             ) : isEmpty ? (
-              <div className="rounded-xl border border-[#FF6B00]/30 bg-black px-4 py-12">
+              <div className="surface-card px-4 py-12">
                 <div className="mx-auto flex max-w-sm flex-col items-center text-center">
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#FF6B00]/20">
-                    <ShoppingBag className="h-7 w-7 text-[#FF6B00]" />
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary ring-1 ring-primary/20">
+                    <ShoppingBag className="h-7 w-7" />
                   </div>
-                  <h3 className="mb-2 text-lg font-bold text-white">
+                  <h3 className="mb-2 text-lg font-bold text-foreground">
                     {isSearchOrFilter ? 'No orders found' : 'No orders yet'}
                   </h3>
-                  <p className="mb-6 text-sm text-[#A0A0A0]">
+                  <p className="mb-6 text-sm text-foreground/50">
                     {isSearchOrFilter
                       ? 'Try adjusting your search or filters.'
                       : "When buyers place orders for your products, they'll appear here."}
@@ -456,13 +459,13 @@ export default function OrdersPage() {
                     <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
                       <Link
                         href="/seller/products"
-                        className="btn-mobile inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#FF6B00]/50 px-4 py-3 text-sm font-semibold text-[#FF6B00] hover:bg-[#FF6B00]/10"
+                        className="btn-mobile inline-flex min-h-[48px] items-center justify-center rounded-xl border border-primary/50 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10"
                       >
                         View your products
                       </Link>
                       <Link
                         href="/seller"
-                        className="btn-mobile inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#FF6B00] px-4 py-3 text-sm font-semibold text-black hover:bg-[#E65100]"
+                        className="btn-mobile inline-flex min-h-[48px] items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-black hover:bg-primary-dark"
                       >
                         Share your store
                       </Link>
@@ -471,38 +474,29 @@ export default function OrdersPage() {
                 </div>
               </div>
             ) : (
-              filteredOrders.map((order) => {
-                const statusStyle = getStatusColor(order);
-                return (
+              filteredOrders.map((order) => (
                   <button
                     key={order.id}
                     type="button"
                     onClick={() => router.push(`/seller/orders/${order.id}`)}
-                    className="btn-mobile w-full rounded-2xl border border-white/[0.08] bg-[#1A1A1A] p-4 text-left shadow-sm ring-1 ring-black/20 transition active:scale-[0.99]"
+                    className="surface-card btn-mobile w-full p-4 text-left transition active:scale-[0.99]"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className="truncate font-mono text-[13px] font-semibold text-white"
-                            style={{ fontFamily: "'DM Mono', ui-monospace, monospace" }}
-                            title={order.id}
-                          >
+                          <span className="truncate font-dm-mono text-[13px] font-semibold text-foreground" title={order.id}>
                             #{order.id.slice(0, 8)}
                           </span>
                           {isB2B(order) && (
-                            <span className="shrink-0 rounded-md bg-[#FF6B00]/25 px-2 py-0.5 text-[11px] font-semibold text-[#FF6B00]">
+                            <span className="shrink-0 rounded-md bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">
                               B2B
                             </span>
                           )}
                         </div>
-                        <p className="mt-1 text-xs text-[#A0A0A0]">{formatDateWithTime(order.createdAt)}</p>
+                        <p className="mt-1 text-xs text-foreground/50">{formatDateWithTime(order.createdAt)}</p>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-2">
-                        <span
-                          className="font-mono text-lg font-bold text-white"
-                          style={{ fontFamily: "'DM Mono', ui-monospace, monospace" }}
-                        >
+                        <span className="font-dm-mono text-lg font-bold text-foreground">
                           {formatSellerPayoutLabel(order)}
                         </span>
                         <button
@@ -511,47 +505,41 @@ export default function OrdersPage() {
                             e.stopPropagation();
                             void handleCopyOrderId(e, order.id);
                           }}
-                          className="btn-mobile rounded-lg p-2 text-[#A0A0A0] hover:bg-white/10 hover:text-white"
+                          className="btn-mobile rounded-lg p-2 text-foreground/50 hover:bg-white/10 hover:text-foreground"
                           aria-label="Copy order ID"
                         >
                           <Copy className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
-                      <span
-                        className={`inline-flex max-w-[min(100%,14rem)] items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium ${statusStyle.bg} ${statusStyle.border} ${statusStyle.text}`}
-                      >
-                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusStyle.dot}`} />
-                        <span className="truncate">{getStatusDisplay(order)}</span>
-                      </span>
-                      <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold text-[#FF6B00]">
+                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-border-custom pt-3">
+                      <StatusBadge tone={getStatusTone(order)} label={getStatusDisplay(order)} />
+                      <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold text-primary">
                         Open
                         <ChevronRight className="h-4 w-4" />
                       </span>
                     </div>
                   </button>
-                );
-              })
+              ))
             )}
           </div>
 
           {/* Desktop: orders table */}
           <div className="hidden px-4 py-3 lg:block">
-            <div className="overflow-hidden rounded-xl border border-[#FF6B00]/30 bg-black">
+            <div className="surface-card overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-[#1A1A1A]">
-                    <th className="w-[180px] px-4 py-3 text-left text-sm font-medium text-white">
+                  <tr className="border-b border-border-custom bg-[var(--color-surface-2)]">
+                    <th className="w-[180px] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">
                       Order ID
                     </th>
-                    <th className="w-[160px] px-4 py-3 text-left text-sm font-medium text-white">
+                    <th className="w-[160px] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">
                       Date
                     </th>
-                    <th className="w-[120px] px-4 py-3 text-right text-sm font-medium text-white">
+                    <th className="w-[120px] px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-foreground/55">
                       Your payout
                     </th>
-                    <th className="w-[140px] px-4 py-3 text-left text-sm font-medium text-white">
+                    <th className="w-[140px] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/55">
                       Status
                     </th>
                     <th className="w-[120px] px-4 py-3" />
@@ -559,22 +547,24 @@ export default function OrdersPage() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-white">
-                        Loading...
-                      </td>
-                    </tr>
+                    [1, 2, 3, 4].map((i) => (
+                      <tr key={i} className="border-t border-border-custom">
+                        <td colSpan={5} className="px-4 py-4">
+                          <div className="h-6 w-full animate-pulse rounded bg-[var(--color-surface-2)]" />
+                        </td>
+                      </tr>
+                    ))
                   ) : isEmpty ? (
                     <tr>
                       <td colSpan={5} className="p-0">
                         <div className="flex flex-col items-center justify-center px-4 py-16">
-                          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FF6B00]/20">
-                            <ShoppingBag className="h-6 w-6 text-[#FF6B00]" />
+                          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/12 text-primary ring-1 ring-primary/20">
+                            <ShoppingBag className="h-6 w-6" />
                           </div>
-                          <h3 className="text-white text-xl font-bold mb-2">
+                          <h3 className="text-foreground text-xl font-bold mb-2">
                             {isSearchOrFilter ? 'No orders found' : 'No orders yet'}
                           </h3>
-                          <p className="text-[#A0A0A0] text-center max-w-sm mb-6">
+                          <p className="text-foreground/50 text-center max-w-sm mb-6">
                             {isSearchOrFilter
                               ? 'Try adjusting your search or filters.'
                               : "When buyers place orders for your products, they'll appear here."}
@@ -583,13 +573,13 @@ export default function OrdersPage() {
                             <div className="flex gap-3">
                               <Link
                                 href="/seller/products"
-                                className="px-4 py-2 rounded-lg border border-[#FF6B00]/50 text-[#FF6B00] text-sm font-medium hover:bg-[#FF6B00]/10 transition-colors"
+                                className="px-4 py-2 rounded-lg border border-primary/50 text-primary text-sm font-semibold hover:bg-primary/10 transition-colors"
                               >
                                 View your products
                               </Link>
                               <Link
                                 href="/seller"
-                                className="px-4 py-2 rounded-lg bg-[#FF6B00] text-white text-sm font-medium hover:bg-[#E65100] transition-colors"
+                                className="px-4 py-2 rounded-lg bg-primary text-black text-sm font-semibold hover:bg-primary-dark transition-colors"
                               >
                                 Share your store
                               </Link>
@@ -600,7 +590,6 @@ export default function OrdersPage() {
                     </tr>
                   ) : (
                     filteredOrders.map((order) => {
-                      const statusStyle = getStatusColor(order);
                       const isHovered = hoveredRowId === order.id;
                       const showCopy = orderIdHovered === order.id;
                       return (
@@ -611,7 +600,7 @@ export default function OrdersPage() {
                             setHoveredRowId(null);
                             setOrderIdHovered(null);
                           }}
-                          className={`cursor-pointer border-t border-[#FF6B00]/20 transition-colors ${isHovered ? 'bg-[#1E1E1E]' : 'bg-[#1A1A1A] hover:bg-[#1E1E1E]'}`}
+                          className={`cursor-pointer border-t border-border-custom transition-colors ${isHovered ? 'bg-[var(--color-surface-2)]' : 'hover:bg-[var(--color-surface-2)]'}`}
                           onClick={() => router.push(`/seller/orders/${order.id}`)}
                         >
                           <td className="h-[72px] px-4 py-2">
@@ -622,17 +611,14 @@ export default function OrdersPage() {
                                 onMouseLeave={() => setOrderIdHovered(null)}
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <span
-                                  className="max-w-[140px] truncate font-mono text-[13px] text-[#A0A0A0]"
-                                  style={{ fontFamily: "'DM Mono', monospace" }}
-                                >
+                                <span className="max-w-[140px] truncate font-dm-mono text-[13px] text-foreground/60">
                                   #{order.id.slice(0, 8)}
                                 </span>
                                 {showCopy && (
                                   <button
                                     type="button"
                                     onClick={(e) => handleCopyOrderId(e, order.id)}
-                                    className="shrink-0 rounded p-1 text-[#A0A0A0] hover:bg-white/10 hover:text-white"
+                                    className="shrink-0 rounded p-1 text-foreground/50 hover:bg-white/10 hover:text-foreground"
                                     aria-label="Copy order ID"
                                   >
                                     <Copy className="h-3.5 w-3.5" />
@@ -640,36 +626,28 @@ export default function OrdersPage() {
                                 )}
                               </div>
                               {isB2B(order) && (
-                                <span className="shrink-0 rounded bg-[#FF6B00]/25 px-2 py-0.5 text-[10px] font-medium text-[#FF6B00]">
+                                <span className="shrink-0 rounded bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
                                   B2B
                                 </span>
                               )}
                             </div>
                           </td>
-                          <td className="h-[72px] px-4 py-2 text-sm text-[#A0A0A0]">
+                          <td className="h-[72px] px-4 py-2 text-sm text-foreground/50">
                             {formatDateWithTime(order.createdAt)}
                           </td>
                           <td className="h-[72px] px-4 py-2 text-right">
-                            <span
-                              className="font-mono font-bold text-white"
-                              style={{ fontFamily: "'DM Mono', monospace" }}
-                            >
+                            <span className="font-dm-mono font-bold text-foreground">
                               {formatSellerPayoutLabel(order)}
                             </span>
                           </td>
                           <td className="h-[72px] px-4 py-2">
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-medium ${statusStyle.bg} ${statusStyle.border} ${statusStyle.text}`}
-                            >
-                              <span className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`} />
-                              {getStatusDisplay(order)}
-                            </span>
+                            <StatusBadge tone={getStatusTone(order)} label={getStatusDisplay(order)} />
                           </td>
                           <td className="h-[72px] px-4 py-2 text-right">
                             <Link
                               href={`/seller/orders/${order.id}`}
                               onClick={(e) => e.stopPropagation()}
-                              className={`inline-flex items-center gap-1 text-sm text-[#FF6B00] hover:text-[#E65100] ${isHovered ? 'opacity-100' : 'opacity-0'} transition-opacity`}
+                              className={`inline-flex items-center gap-1 text-sm text-primary hover:text-primary-dark ${isHovered ? 'opacity-100' : 'opacity-0'} transition-opacity`}
                             >
                               View details <ChevronRight className="h-4 w-4" />
                             </Link>

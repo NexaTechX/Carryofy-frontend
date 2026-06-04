@@ -74,7 +74,7 @@ export default function RefundsPage() {
         icon: <AlertCircle className="w-3 h-3" />,
       },
       COMPLETED: {
-        label: 'Completed',
+        label: 'Refunded to your card/bank',
         className: 'bg-green-500/10 text-green-400 border-green-500/30',
         icon: <CheckCircle2 className="w-3 h-3" />,
       },
@@ -97,6 +97,25 @@ export default function RefundsPage() {
         {config.label}
       </span>
     );
+  };
+
+  // Refunds are returned to the buyer's ORIGINAL PAYMENT METHOD (processed by our
+  // finance team). Copy must not imply an instant in-app credit.
+  const getStatusNote = (status: string): string | null => {
+    switch (status) {
+      case 'REQUESTED':
+        return "We're reviewing your refund request.";
+      case 'APPROVED':
+        return "Approved — we'll return this to your original payment method within 5–10 business days.";
+      case 'PROCESSING':
+        return 'Your refund is being processed back to your original payment method.';
+      case 'COMPLETED':
+        return 'Refund sent to your original payment method. Allow a few business days for your bank to post it.';
+      case 'REJECTED':
+        return 'This refund request was declined.';
+      default:
+        return null;
+    }
   };
 
   if (!mounted) {
@@ -184,13 +203,19 @@ export default function RefundsPage() {
                     >
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
+                          <div className="flex items-center gap-3 mb-2">
                             {getStatusBadge(refund.status)}
                             <span className="text-[#ffcc99]/70 text-sm">
                               Requested: {formatDateTime(refund.createdAt)}
                             </span>
                           </div>
-                          
+
+                          {getStatusNote(refund.status) && (
+                            <p className="text-[#ffcc99]/80 text-sm mb-3">
+                              {getStatusNote(refund.status)}
+                            </p>
+                          )}
+
                           <div className="space-y-2">
                             <div>
                               <p className="text-[#ffcc99]/70 text-sm">Order ID</p>

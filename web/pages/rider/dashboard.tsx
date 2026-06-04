@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../../lib/auth'; // Adjust import based on your auth hook location
-import { Loader2, Navigation, Power, Shield, MapPin } from 'lucide-react';
+import { Loader2, Navigation, Power, Shield, MapPin, Landmark, ChevronRight } from 'lucide-react';
 import { showSuccessToast, showErrorToast } from '../../lib/ui/toast'; // Adjust import
 
 export default function RiderDashboard() {
@@ -173,7 +174,21 @@ export default function RiderDashboard() {
                     )}
                 </div>
 
-                <div className="mt-8 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-4 flex items-start gap-4">
+                <Link
+                    href="/rider/bank-account"
+                    className="mt-8 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-4 flex items-center gap-4 transition hover:border-[#ff6600]"
+                >
+                    <Landmark className="w-6 h-6 text-[#ff6600] shrink-0" />
+                    <div className="flex-1">
+                        <h3 className="font-bold text-white mb-1">Payout bank account</h3>
+                        <p className="text-xs text-[#ffcc99]/70">
+                            Add or update the bank account where your delivery earnings are paid.
+                        </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-[#ffcc99]/50 shrink-0" />
+                </Link>
+
+                <div className="mt-4 bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-4 flex items-start gap-4">
                     <Shield className="w-6 h-6 text-[#ff6600] shrink-0" />
                     <div>
                         <h3 className="font-bold text-white mb-1">Safety First</h3>

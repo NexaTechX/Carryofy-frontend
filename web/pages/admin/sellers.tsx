@@ -19,6 +19,8 @@ import {
   useAdminSellers,
   useApproveSellerMutation,
   useRejectSellerMutation,
+  useSuspendSellerMutation,
+  useUnsuspendSellerMutation,
 } from '../../lib/admin/hooks/useAdminSellers';
 import { useKycAuditLog } from '../../lib/admin/hooks/useKycAuditLog';
 import { AdminSeller, SellerRiskScore } from '../../lib/admin/types';
@@ -123,6 +125,8 @@ export default function AdminSellers() {
   const { data: sellers, isLoading, isError, error, refetch } = useAdminSellers();
   const approveSeller = useApproveSellerMutation();
   const rejectSeller = useRejectSellerMutation();
+  const suspendSeller = useSuspendSellerMutation();
+  const unsuspendSeller = useUnsuspendSellerMutation();
   const { data: auditLogs, isLoading: auditLogsLoading } = useKycAuditLog(selectedSeller?.id || null);
 
   const pendingCount = sellers?.filter((seller) => seller.kycStatus === 'PENDING').length ?? 0;
@@ -279,7 +283,15 @@ export default function AdminSellers() {
 
   const handleSuspend = (seller: AdminSeller) => {
     setActionMenuOpen(null);
-    toast.success(`Suspend action requested for ${seller.businessName}. Backend integration pending.`);
+    if (seller.isSuspended) {
+      unsuspendSeller.mutate(seller.id);
+      return;
+    }
+    const reason =
+      typeof window !== 'undefined'
+        ? window.prompt(`Reason for suspending ${seller.businessName}? (optional)`) ?? undefined
+        : undefined;
+    suspendSeller.mutate({ sellerId: seller.id, reason });
   };
 
   const handleRequestMoreInfo = (seller: AdminSeller) => {

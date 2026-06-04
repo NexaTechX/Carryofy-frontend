@@ -101,15 +101,15 @@ export default function FleetIncomingDeliveriesPage() {
       </Head>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Incoming</h1>
-          <p className="mt-1 text-sm text-zinc-400">
+          <h1 className="text-2xl font-semibold text-foreground">Incoming</h1>
+          <p className="mt-1 text-sm text-foreground/60">
             Orders routed to your fleet — assign an available rider to each delivery.
           </p>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-zinc-800">
+        <div className="overflow-x-auto rounded-xl border border-border-custom">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-zinc-800 bg-zinc-900/50 text-xs uppercase text-zinc-500">
+            <thead className="border-b border-border-custom bg-[var(--color-surface-2)] text-xs uppercase text-foreground/45">
               <tr>
                 <th className="px-4 py-3">Order</th>
                 <th className="px-4 py-3">Destination</th>
@@ -118,9 +118,9 @@ export default function FleetIncomingDeliveriesPage() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800">
+            <tbody className="divide-y divide-border-custom">
               {deliveries.map((d) => (
-                <tr key={d.id} className="text-zinc-300">
+                <tr key={d.id} className="text-foreground/70">
                   <td className="px-4 py-3 font-mono text-xs">
                     #{String(d.orderId).slice(0, 8)}…
                   </td>
@@ -130,7 +130,7 @@ export default function FleetIncomingDeliveriesPage() {
                   <td className="max-w-[180px] truncate px-4 py-3 text-xs">
                     {itemSummary(d)}
                   </td>
-                  <td className="px-4 py-3 text-xs text-zinc-400">
+                  <td className="px-4 py-3 text-xs text-foreground/60">
                     {new Date(d.updatedAt).toLocaleString()}
                   </td>
                   <td className="px-4 py-3">
@@ -140,7 +140,7 @@ export default function FleetIncomingDeliveriesPage() {
                         setAssignTarget(d);
                         setSelectedRiderId('');
                       }}
-                      className="rounded-lg bg-[#F97316] px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-600"
+                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-primary-dark"
                     >
                       Assign Rider
                     </button>
@@ -150,7 +150,7 @@ export default function FleetIncomingDeliveriesPage() {
             </tbody>
           </table>
           {deliveries.length === 0 && (
-            <p className="p-6 text-center text-zinc-500">
+            <p className="p-6 text-center text-foreground/45">
               No incoming deliveries right now.
             </p>
           )}
@@ -164,23 +164,23 @@ export default function FleetIncomingDeliveriesPage() {
           aria-modal="true"
           aria-labelledby="assign-rider-title"
         >
-          <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-[#0f1218] p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-xl border border-border-custom bg-card p-6 shadow-xl">
             <h2
               id="assign-rider-title"
-              className="text-lg font-semibold text-white"
+              className="text-lg font-semibold text-foreground"
             >
               Assign rider
             </h2>
-            <p className="mt-1 text-sm text-zinc-400">
+            <p className="mt-1 text-sm text-foreground/60">
               Order #{assignTarget.orderId.slice(0, 8)}…
             </p>
-            <label className="mt-4 block text-xs font-medium text-zinc-500">
+            <label className="mt-4 block text-xs font-medium text-foreground/45">
               Available riders
             </label>
             <select
               value={selectedRiderId}
               onChange={(e) => setSelectedRiderId(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+              className="mt-1 w-full rounded-lg border border-border-custom bg-[var(--color-surface-2)] px-3 py-2 text-sm text-foreground"
             >
               <option value="">Select rider</option>
               {availableRiders.map((r) => (
@@ -198,7 +198,7 @@ export default function FleetIncomingDeliveriesPage() {
               <button
                 type="button"
                 onClick={closeModal}
-                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                className="rounded-lg border border-border-custom px-4 py-2 text-sm text-foreground/70 hover:bg-card"
               >
                 Cancel
               </button>
@@ -206,7 +206,7 @@ export default function FleetIncomingDeliveriesPage() {
                 type="button"
                 onClick={handleAssign}
                 disabled={submitting || !selectedRiderId}
-                className="rounded-lg bg-[#F97316] px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-foreground hover:bg-primary-dark disabled:opacity-50"
               >
                 {submitting ? 'Assigning…' : 'Confirm'}
               </button>

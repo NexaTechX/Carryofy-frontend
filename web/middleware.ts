@@ -1,59 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { jwtVerify } from 'jose';
+import { verifyRoutingAccessToken } from './lib/auth/sessionToken';
 import { ACCESS_TOKEN_COOKIE } from './lib/auth/token';
 import { getRoleRedirect } from './lib/auth/utils';
-
-function getJwtFromCookie(rawToken: string): string {
-  if (!rawToken) return '';
-  if (rawToken.includes('.')) return rawToken;
-  try {
-    const decoded = decodeURIComponent(rawToken);
-    return decoded.includes('.') ? decoded : rawToken;
-  } catch {
-    return rawToken;
-  }
-}
-
-/** Dev-only fallback when JWT_SECRET is unset locally. */
-function decodeJwtPayloadUnsafe(token: string): { role?: string; exp?: number } | null {
-  try {
-    const jwt = getJwtFromCookie(token);
-    const parts = jwt.split('.');
-    if (parts.length < 2) return null;
-    const p = parts[1];
-    const b64 = p.replace(/-/g, '+').replace(/_/g, '/');
-    const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
-    const json = atob(b64 + pad);
-    return JSON.parse(json) as { role?: string; exp?: number };
-  } catch {
-    return null;
-  }
-}
-
-async function verifyAccessToken(
-  token: string,
-): Promise<{ role?: string; exp?: number } | null> {
-  const secret = process.env.JWT_SECRET;
-  const jwt = getJwtFromCookie(token);
-  if (!jwt) return null;
-
-  if (secret) {
-    try {
-      const { payload } = await jwtVerify(jwt, new TextEncoder().encode(secret), {
-        algorithms: ['HS256'],
-      });
-      return payload as { role?: string; exp?: number };
-    } catch {
-      // Signature mismatch or rotation — still decode payload so API-issued tokens work.
-      // API routes enforce auth; middleware only gates dashboard navigation.
-    }
-  } else if (process.env.NODE_ENV === 'production') {
-    console.warn('[middleware] JWT_SECRET unset — decoding token without verification');
-  }
-
-  return decodeJwtPayloadUnsafe(jwt);
-}
 
 function dashboardRedirect(request: NextRequest, role: string) {
   return NextResponse.redirect(new URL(getRoleRedirect(role), request.url));
@@ -85,7 +34,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
-  const payload = token ? await verifyAccessToken(token) : null;
+  const payload = token ? await verifyRoutingAccessToken(token) : null;
   const role = payload?.role ? String(payload.role).toUpperCase() : null;
   const expired = !!token && !!payload?.exp && payload.exp * 1000 <= Date.now();
   const tokenInvalid = !token || !role || expired;

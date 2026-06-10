@@ -707,6 +707,7 @@ export default function AdminPayouts() {
                   type="button"
                   onClick={openBulkApprove}
                   disabled={selectedIds.size === 0}
+                  style={selectedIds.size === 0 ? { backgroundColor: '#2a2a2a', color: '#6b7280' } : undefined}
                   className={`rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] transition ${
                     selectedIds.size === 0
                       ? 'cursor-not-allowed bg-[#2a2a2a] text-gray-500'

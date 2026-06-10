@@ -412,6 +412,10 @@ export default function AdminPayouts() {
   };
 
   const openBulkApprove = () => {
+    if (selectedIds.size === 0) {
+      toast.error('Select at least one requested payout to approve');
+      return;
+    }
     setBulkAction('approve');
     setBulkStep('select');
     setBulkConfirmPin('');
@@ -427,10 +431,13 @@ export default function AdminPayouts() {
       toast.error('Enter PIN or password to confirm');
       return;
     }
-    const toAct = bulkAction === 'approve'
-      ? (selectedIds.size ? Array.from(selectedIds) : requestedForBulk.map((p) => p.id))
-      : Array.from(selectedIds);
+    const toAct = Array.from(selectedIds);
     const list = (payouts ?? []).filter((p) => toAct.includes(p.id) && p.status === 'REQUESTED');
+    if (list.length === 0) {
+      toast.error('Select at least one requested payout');
+      setBulkStep('select');
+      return;
+    }
     if (bulkAction === 'approve') {
       for (const p of list) await approvePayout.mutateAsync(p.id);
       toast.success(`${list.length} payout(s) approved`);
@@ -699,7 +706,8 @@ export default function AdminPayouts() {
                 <button
                   type="button"
                   onClick={openBulkApprove}
-                  className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light"
+                  disabled={selectedIds.size === 0}
+                  className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Bulk Approve
                 </button>
@@ -875,7 +883,7 @@ export default function AdminPayouts() {
             </h3>
             <p className="mt-2 text-sm text-gray-400">
               {bulkAction === 'approve'
-                ? `Approve ${selectedIds.size ? selectedIds.size : requestedForBulk.length} payout(s)? You will need to confirm with PIN or password in the next step.`
+                ? `Approve ${selectedIds.size} selected payout(s)? You will need to confirm with PIN or password in the next step.`
                 : `Reject ${selectedIds.size} selected payout(s)? You will need to confirm with PIN or password in the next step.`}
             </p>
             <div className="mt-6 flex gap-3">

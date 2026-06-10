@@ -478,7 +478,11 @@ export default function AdminFinance() {
                   type="button"
                   onClick={() => setBulkModal('approve')}
                   disabled={selectedIds.size === 0}
-                  className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light disabled:cursor-not-allowed disabled:opacity-50"
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+                    selectedIds.size === 0
+                      ? 'cursor-not-allowed bg-[#2a2a2a] text-gray-500'
+                      : 'bg-primary text-black hover:bg-primary-light'
+                  }`}
                 >
                   Approve Selected
                 </button>

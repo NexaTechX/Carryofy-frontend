@@ -26,6 +26,7 @@ interface Product {
   seller: {
     id: string;
     businessName: string;
+    kycStatus?: string;
     isVerified?: boolean;
   };
   sellingMode?: string;
@@ -239,7 +240,7 @@ export default function ProductsPage() {
                 seller: {
                   id: r.seller?.id ?? '',
                   businessName: r.seller?.businessName ?? 'Seller',
-                  isVerified: true,
+                  kycStatus: r.seller?.kycStatus,
                 },
                 match_reason: (r as Product).match_reason,
               })),
@@ -349,7 +350,7 @@ export default function ProductsPage() {
     price: p.price,
     images: p.images || [],
     quantity: p.quantity ?? 0,
-    seller: { id: p.seller.id, businessName: p.seller.businessName, isVerified: p.seller.isVerified ?? true },
+    seller: { id: p.seller.id, businessName: p.seller.businessName, kycStatus: p.seller.kycStatus },
     keyFeatures: p.keyFeatures,
     moq: p.moq,
     requestQuoteOnly: p.requestQuoteOnly,

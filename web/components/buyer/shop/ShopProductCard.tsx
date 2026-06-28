@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { BadgeCheck, Check, Heart, Package, ShoppingCart } from 'lucide-react';
+import { isSellerVerified } from '../../../lib/sellerVerification';
 import { useWishlist } from '../../../lib/hooks/useWishlist';
 import { useCart } from '../../../lib/contexts/CartContext';
 import { tokenManager } from '../../../lib/auth';
@@ -19,6 +20,9 @@ export interface ShopProductCardProduct {
   seller: {
     id: string;
     businessName: string;
+    /** Real KYC status from the backend. The badge derives from this only. */
+    kycStatus?: string;
+    /** @deprecated no longer drives the badge; kept for back-compat with callers. */
     isVerified?: boolean;
   };
   keyFeatures?: string[];
@@ -70,7 +74,7 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
   const priceDisplay = getPriceDisplay();
   const productHref = href || `/buyer/products/${product.id}`;
   const fulfilled = product.fulfilledByCarryofy !== false;
-  const isVerified = product.seller?.isVerified !== false;
+  const isVerified = isSellerVerified(product.seller);
   const qty = product.quantity ?? 0;
   const lowStockThreshold = 5;
   const stockLabel =

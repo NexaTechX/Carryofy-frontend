@@ -428,7 +428,7 @@ export default function BulkOrderPage() {
                           <p className="text-white font-medium text-sm line-clamp-2">{item.title}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[#ffcc99]/70 text-xs">{item.seller?.businessName ?? 'Seller'}</span>
-                            {item.seller?.isVerified !== false && (
+                            {item.seller?.isVerified === true && (
                               <span className="inline-flex items-center gap-0.5 text-green-400 text-[10px]">
                                 <ShieldCheck className="w-3 h-3" /> Verified
                               </span>

@@ -3,14 +3,16 @@ import { useState } from 'react';
 import { ZoomIn, ZoomOut, Download, X, FileText, ExternalLink } from 'lucide-react';
 
 interface DocumentViewerProps {
-  idImage: string;
-  addressProofImage?: string;
-  idType: string;
-  idNumber: string;
-  businessType: string;
-  registrationNumber?: string;
-  taxId?: string;
-  bvn?: string;
+  idImage?: string | null;
+  idImageBack?: string | null;
+  cacDocumentUrl?: string | null;
+  addressProofImage?: string | null;
+  idType?: string | null;
+  idNumber?: string | null;
+  businessType?: string | null;
+  registrationNumber?: string | null;
+  taxId?: string | null;
+  bvn?: string | null;
   onClose?: () => void;
 }
 
@@ -48,6 +50,8 @@ const getFileExtension = (url: string): string => {
 
 export default function DocumentViewer({
   idImage,
+  idImageBack,
+  cacDocumentUrl,
   addressProofImage,
   idType,
   idNumber,
@@ -163,19 +167,19 @@ export default function DocumentViewer({
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-1">
                 Business Type
               </p>
-              <p className="text-white">{businessType}</p>
+              <p className="text-white">{businessType || '—'}</p>
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-1">
                 ID Type
               </p>
-              <p className="text-white">{idType}</p>
+              <p className="text-white">{idType || '—'}</p>
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-1">
                 ID Number
               </p>
-              <p className="text-white font-mono">{idNumber}</p>
+              <p className="text-white font-mono">{idNumber || '—'}</p>
             </div>
             {registrationNumber && (
               <div>
@@ -207,11 +211,23 @@ export default function DocumentViewer({
         {/* Documents */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-white mb-4">Documents</h3>
-          
-          <ImagePreview url={idImage} title={`${idType} Document`} />
-          
+
+          {idImage ? (
+            <ImagePreview url={idImage} title={`${idType || 'ID'} — Front`} />
+          ) : (
+            <p className="text-sm text-gray-500">No ID document uploaded.</p>
+          )}
+
+          {idImageBack && (
+            <ImagePreview url={idImageBack} title={`${idType || 'ID'} — Back`} />
+          )}
+
+          {cacDocumentUrl && (
+            <ImagePreview url={cacDocumentUrl} title="CAC / Business Registration" />
+          )}
+
           {addressProofImage && (
-            <ImagePreview url={addressProofImage} title="Address Proof" />
+            <ImagePreview url={addressProofImage} title="Proof of Address" />
           )}
         </div>
       </div>

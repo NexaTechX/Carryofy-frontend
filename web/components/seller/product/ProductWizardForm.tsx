@@ -1153,7 +1153,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                   Back to Products
                 </button>
                 <a
-                  href="/seller/settings?tab=kyc"
+                  href="/seller/onboarding"
                   className={`flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-white transition-all ${isPending
                     ? 'bg-yellow-600 hover:bg-yellow-500'
                     : isRejected

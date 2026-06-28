@@ -8,7 +8,6 @@ import { AdminGuard } from '../components/auth/AdminGuard';
 import { AuthProvider } from '../lib/auth';
 import { CartProvider } from '../lib/contexts/CartContext';
 import { WishlistProvider } from '../lib/contexts/WishlistContext';
-import { initAnalytics } from '../lib/firebase/config';
 import posthog from 'posthog-js';
 import { PostHogProvider } from 'posthog-js/react';
 import { useRouter } from 'next/router';
@@ -43,11 +42,15 @@ export default function App({ Component, pageProps }: AppProps) {
   // Initialize Firebase Analytics after first paint to reduce IndexedDB races with HMR/navigation.
   useEffect(() => {
     const run = () => {
-      initAnalytics().then((analyticsInstance) => {
-        if (analyticsInstance) {
-          console.log('✅ Firebase Analytics initialized');
-        }
-      });
+      // Dynamic import keeps the Firebase SDK out of the shared _app chunk
+      // (loads lazily after first paint instead of on the critical path).
+      import('../lib/firebase/config').then(({ initAnalytics }) =>
+        initAnalytics().then((analyticsInstance) => {
+          if (analyticsInstance) {
+            console.log('✅ Firebase Analytics initialized');
+          }
+        })
+      );
     };
     if (typeof requestIdleCallback !== 'undefined') {
       const id = requestIdleCallback(run, { timeout: 4000 });

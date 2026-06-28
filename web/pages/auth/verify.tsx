@@ -94,13 +94,13 @@ export default function EmailVerification() {
                   const sellerJson = await sellerRes.json();
                   const profile = unwrapSellerMePayload(sellerJson);
                   redirectPath = sellerNeedsProfileOnboardingFromProfile(profile)
-                    ? '/seller/onboard'
-                    : '/seller/settings?tab=kyc&welcome=1';
+                    ? '/seller/onboarding'
+                    : '/seller/onboarding';
                 } else {
-                  redirectPath = '/seller/onboard';
+                  redirectPath = '/seller/onboarding';
                 }
               } catch {
-                redirectPath = '/seller/onboard';
+                redirectPath = '/seller/onboarding';
               }
             }
             window.location.assign(redirectPath);

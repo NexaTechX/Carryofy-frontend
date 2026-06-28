@@ -818,7 +818,7 @@ export default function AnalyticsPage() {
                       </span>
                       {!identityVerified && (
                         <Link
-                          href="/seller/settings?tab=kyc"
+                          href="/seller/onboarding"
                           className="text-sm text-[#FF6B00] hover:underline"
                         >
                           Verify now

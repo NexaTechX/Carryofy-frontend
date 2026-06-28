@@ -8,7 +8,7 @@ import { ShieldCheck, Clock, ShieldX } from 'lucide-react';
 export default function SellerKycBanner({ status }: { status: string | null }) {
   if (!status || status === 'APPROVED') return null;
 
-  const kycHref = '/seller/settings?tab=kyc';
+  const kycHref = '/seller/onboarding';
 
   if (status === 'PENDING') {
     return (
@@ -32,13 +32,13 @@ export default function SellerKycBanner({ status }: { status: string | null }) {
         <div className="flex-1">
           <p className="text-sm font-semibold text-red-300">Verification rejected</p>
           <p className="mt-0.5 text-xs text-red-200/80">
-            Your KYC was not approved. Review the reason in settings and resubmit your documents.
+            Your KYC was not approved. Review the reason, fix the details and resubmit.
           </p>
           <Link
             href={kycHref}
             className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-red-600"
           >
-            Resubmit KYC
+            Fix &amp; resubmit
           </Link>
         </div>
       </div>

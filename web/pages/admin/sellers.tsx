@@ -26,6 +26,7 @@ import { useKycAuditLog } from '../../lib/admin/hooks/useKycAuditLog';
 import { AdminSeller, SellerRiskScore } from '../../lib/admin/types';
 import { toast } from 'react-hot-toast';
 import DocumentViewer from '../../components/admin/DocumentViewer';
+import SellerOnboardingDetails from '../../components/admin/SellerOnboardingDetails';
 import KycAuditLog from '../../components/admin/KycAuditLog';
 import { Download, ChevronDown, ChevronRight, MoreVertical, Send, Eye, CheckCircle, PauseCircle, MessageSquare } from 'lucide-react';
 import { bulkApproveSellersRequest, bulkRejectSellersRequest, sendKycReminderRequest } from '../../lib/admin/api';
@@ -81,7 +82,7 @@ function formatRevenue(minorUnits: number | null | undefined): string {
 }
 
 /** Business type display (map backend values to Individual / LLC / Enterprise). */
-function businessTypeBadge(businessType: string | undefined): string {
+function businessTypeBadge(businessType: string | null | undefined): string {
   if (!businessType) return '—';
   const t = businessType.toLowerCase();
   if (t.includes('company') || t.includes('enterprise')) return 'Enterprise';
@@ -1043,11 +1044,16 @@ export default function AdminSellers() {
               </div>
             </div>
 
+            {/* Full onboarding submission: profile, location, stock & supply, bank, photos */}
+            <SellerOnboardingDetails seller={selectedSeller} />
+
             {/* Uploaded documents with preview */}
             {selectedSeller.kyc && (
               <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
                 <DocumentViewer
                   idImage={selectedSeller.kyc.idImage}
+                  idImageBack={selectedSeller.kyc.idImageBack}
+                  cacDocumentUrl={selectedSeller.kyc.cacDocumentUrl}
                   addressProofImage={selectedSeller.kyc.addressProofImage}
                   idType={selectedSeller.kyc.idType}
                   idNumber={selectedSeller.kyc.idNumber}

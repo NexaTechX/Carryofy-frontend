@@ -398,6 +398,21 @@ export default function ProductsPage() {
             </Link>
           </div>
         )}
+        {/* Trust + contact strip — surface escrow assurance and WhatsApp support
+            up front (not only at checkout), where first-visit trust is decided. */}
+        <div className="mb-4 rounded-lg border border-border-custom bg-foreground/5 px-4 py-2.5 text-xs text-foreground/80 flex flex-wrap items-center justify-between gap-2">
+          <span>
+            🛡️ <strong className="text-foreground">Buyer Protection</strong> — your payment is held securely until you confirm delivery.
+          </span>
+          <a
+            href="https://wa.me/2349166783040"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-primary hover:underline shrink-0"
+          >
+            Need help? Chat on WhatsApp
+          </a>
+        </div>
         <div className="flex h-full min-h-0 -m-3 sm:-m-4 lg:-m-6 xl:-m-8">
           {/* Filter Panel - Desktop (max 260px, collapsible) */}
           <div

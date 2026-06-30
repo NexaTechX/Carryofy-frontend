@@ -90,6 +90,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   }, []);
 
   const PROFILE_ONBOARD_ALLOWLIST = [
+    '/seller/onboarding',
     '/seller/onboard',
     '/seller/settings',
     '/seller/help',
@@ -97,15 +98,19 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   ];
 
   useEffect(() => {
-    if (!mounted || !needsProfileOnboarding) return;
+    if (!mounted) return;
+    // A seller who hasn't started/finished onboarding, or whose KYC was never submitted,
+    // is forced into the unified onboarding wizard and cannot reach the dashboard.
+    const mustOnboard = needsProfileOnboarding || kycStatus === 'NOT_SUBMITTED';
+    if (!mustOnboard) return;
     const path = router.pathname;
     const allowed = PROFILE_ONBOARD_ALLOWLIST.some(
       (p) => path === p || path.startsWith(`${p}/`),
     );
     if (!allowed) {
-      router.replace('/seller/onboard');
+      router.replace('/seller/onboarding');
     }
-  }, [mounted, needsProfileOnboarding, router.pathname, router]);
+  }, [mounted, needsProfileOnboarding, kycStatus, router.pathname, router]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -704,10 +709,10 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                         : 'Complete your KYC verification to activate your store and start receiving orders.'}
                     </span>
                     <Link
-                      href="/seller/settings?tab=kyc"
+                      href="/seller/onboarding"
                       className="shrink-0 text-xs font-bold px-3 py-1 rounded-md transition bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                      {kycStatus === 'REJECTED' ? 'Resubmit' : 'Complete KYC'}
+                      {kycStatus === 'REJECTED' ? 'Fix & resubmit' : 'Complete KYC'}
                     </Link>
                   </div>
                   <button

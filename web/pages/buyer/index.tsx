@@ -91,7 +91,7 @@ function mapApiProductToShopCard(p: Record<string, unknown>): ShopProductCardPro
     seller: {
       id: String(seller.id ?? ''),
       businessName: String(seller.businessName ?? ''),
-      isVerified: seller.isVerified !== false,
+      kycStatus: typeof seller.kycStatus === 'string' ? seller.kycStatus : undefined,
     },
     keyFeatures: p.keyFeatures as string[] | undefined,
     moq: p.moq as number | undefined,

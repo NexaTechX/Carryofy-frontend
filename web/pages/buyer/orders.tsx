@@ -6,6 +6,7 @@ import Image from 'next/image';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import apiClient from '../../lib/api/client';
+import { isSellerVerified } from '../../lib/sellerVerification';
 import { parseOrdersList } from '../../lib/api/orders';
 import { unwrapAxiosBody } from '../../lib/api/normalizeResponse';
 import {
@@ -38,6 +39,7 @@ interface OrderItem {
     seller?: {
       id: string;
       businessName: string;
+      kycStatus?: string;
       isVerified?: boolean;
     };
   };
@@ -447,7 +449,7 @@ export default function OrdersPage() {
                         primaryItem.product.images?.[0] ||
                         'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
                       const sellerName = primaryItem.product.seller?.businessName ?? 'Seller';
-                      const isVerified = primaryItem.product.seller?.isVerified ?? true;
+                      const isVerified = isSellerVerified(primaryItem.product.seller);
                       const totalQty = order.items.reduce((sum, i) => sum + i.quantity, 0);
 
                       return (

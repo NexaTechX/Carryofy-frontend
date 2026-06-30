@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { GetServerSideProps } from 'next';
 import BuyerLayout from '../../../components/buyer/BuyerLayout';
 import apiClient from '../../../lib/api/client';
+import { isSellerVerified } from '../../../lib/sellerVerification';
 import {
   getApiConnectionErrorMessage,
   isApiConnectionError,
@@ -73,6 +74,7 @@ interface Product {
   seller: {
     id: string;
     businessName: string;
+    kycStatus?: string;
     isVerified?: boolean;
   };
   createdAt: string;
@@ -752,7 +754,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                       <span className="text-sm text-[#ffcc99]/70">No reviews yet</span>
                     )}
                   </button>
-                  {product.seller?.isVerified !== false && (
+                  {isSellerVerified(product.seller) && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-medium rounded">
                       <Shield className="w-3.5 h-3.5" />
                       Verified Seller
@@ -1052,7 +1054,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                     </div>
                     <div>
                       <h3 className="text-white font-bold text-lg">{product.seller.businessName}</h3>
-                      {product.seller?.isVerified !== false && (
+                      {isSellerVerified(product.seller) && (
                         <span className="inline-flex items-center gap-1 text-green-400 text-sm">
                           <Shield className="w-4 h-4" />
                           Verified Seller

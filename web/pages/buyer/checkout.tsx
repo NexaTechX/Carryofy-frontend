@@ -856,7 +856,7 @@ export default function CheckoutPage() {
 
         setOrderMessage({
           type: 'error',
-          text: errorMessage || 'Validation failed. Please check your card details and try again.',
+          text: errorMessage || 'Payment could not be completed. Please try again.',
         });
       } else {
         setOrderMessage({
@@ -1769,7 +1769,7 @@ export default function CheckoutPage() {
 
                         <div className="p-3 bg-[#0d0d0d] border border-[#ff6600]/30 rounded-xl">
                           <p className="text-[#ffcc99] text-xs">
-                            <strong className="text-white">Secure payment:</strong> You will be redirected to Paystack to complete payment. No card details are entered on this site.
+                            <strong className="text-white">Secure payment:</strong> Pay by card, bank transfer, or USSD. You will be redirected to Paystack to complete payment. No card or bank details are entered on this site.
                           </p>
                         </div>
 

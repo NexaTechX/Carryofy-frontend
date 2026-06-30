@@ -747,7 +747,9 @@ function Step9Consent({ preferences, updatePreferences, onComplete, isLoading }:
 export default function AIOnboardingWizard() {
   const router = useRouter();
   const { user } = useAuth();
-  const [currentStep, setCurrentStep] = useState(1);
+  // First step of the trimmed buyer flow (see getStepsToShow). loadPreferences
+  // overrides this when resuming a draft.
+  const [currentStep, setCurrentStep] = useState(4);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [preferences, setPreferences] = useState<Partial<AIOnboardingPreferences>>({});
@@ -758,10 +760,14 @@ export default function AIOnboardingWizard() {
   const [alreadyCompletedRedirect, setAlreadyCompletedRedirect] = useState(false);
   const isEditMode = router.query.edit === 'true';
   // Buyer onboarding only: sellers are redirected at page level. Only show buyer steps so questions are totally different from seller onboarding.
-  const getStepsToShow = (role?: string) => {
-    const userRole = role || preferences.userRole;
-    if (userRole === 'seller') return [1, 2, 3, 7, 10, 12]; // Not used here; sellers never reach this page
-    return [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12]; // Buyer-only flow (no "both" mix)
+  const getStepsToShow = (_role?: string) => {
+    // Buyer-only flow (sellers are redirected at the page level). Trimmed to the
+    // few steps relevant to B2B sourcing — categories (4) and order frequency
+    // (8) — plus consent (12). All optional except consent; a Skip button exits
+    // at any point and the wizard never gates /buyer/products. The old 11-step
+    // B2C quiz (budget, delivery speed, price-sensitivity, brands, etc.) was
+    // wrong framing for B2B retailers.
+    return [4, 8, 12];
   };
 
   const stepsToShow = getStepsToShow();
@@ -936,11 +942,7 @@ export default function AIOnboardingWizard() {
         }
         break;
       case 4:
-        if (!preferences.favoriteCategories || preferences.favoriteCategories.length === 0) {
-          errors[4] = 'Please select at least one category';
-          setValidationErrors(errors);
-          return false;
-        }
+        // Optional — buyers can proceed (or Skip) without picking categories.
         break;
       case 5:
         if (!preferences.budgetRange) {
@@ -960,11 +962,7 @@ export default function AIOnboardingWizard() {
         // Optional
         break;
       case 8:
-        if (!preferences.shoppingFrequency) {
-          errors[8] = 'Please select shopping frequency';
-          setValidationErrors(errors);
-          return false;
-        }
+        // Optional — order frequency is a hint, not a gate.
         break;
       case 9:
         if (!preferences.priceSensitivity) {

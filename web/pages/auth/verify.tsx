@@ -8,11 +8,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, CheckCircle, Clock, ArrowLeft } from 'lucide-react';
 import { authService, useAuth, getRoleRedirect, tokenManager } from '../../lib/auth';
-import { getApiBaseUrl } from '../../lib/api/utils';
-import {
-  unwrapSellerMePayload,
-  sellerNeedsProfileOnboardingFromProfile,
-} from '../../lib/seller/onboarding';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
 
 const verifySchema = z.object({
@@ -84,24 +79,10 @@ export default function EmailVerification() {
             }
             let redirectPath = getRoleRedirect(updatedUser.role);
             if (updatedUser.role === 'SELLER') {
-              try {
-                const token = tokenManager.getAccessToken();
-                const apiUrl = getApiBaseUrl();
-                const sellerRes = await fetch(`${apiUrl}/sellers/me`, {
-                  headers: token ? { Authorization: `Bearer ${token}` } : {},
-                });
-                if (sellerRes.ok) {
-                  const sellerJson = await sellerRes.json();
-                  const profile = unwrapSellerMePayload(sellerJson);
-                  redirectPath = sellerNeedsProfileOnboardingFromProfile(profile)
-                    ? '/seller/onboard'
-                    : '/seller/settings?tab=kyc&welcome=1';
-                } else {
-                  redirectPath = '/seller/onboard';
-                }
-              } catch {
-                redirectPath = '/seller/onboard';
-              }
+              // All seller post-verification paths currently land on the single
+              // onboarding wizard (the previous /sellers/me branch resolved to
+              // the same route on both sides — dead code).
+              redirectPath = '/seller/onboarding';
             }
             window.location.assign(redirectPath);
           } else {

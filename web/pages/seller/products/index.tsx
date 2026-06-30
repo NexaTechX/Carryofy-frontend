@@ -426,7 +426,7 @@ export default function ProductsPage() {
                 </p>
               </div>
               <Link
-                href="/seller/settings?tab=kyc"
+                href="/seller/onboarding"
                 className={`flex-shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold text-foreground transition-all ${kycStatus === 'PENDING'
                     ? 'bg-yellow-600 hover:bg-yellow-500'
                     : kycStatus === 'REJECTED'
@@ -556,7 +556,7 @@ export default function ProductsPage() {
               </p>
               {!searchQuery && needsProfileOnboarding && (
                 <Link
-                  href="/seller/onboard"
+                  href="/seller/onboarding"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-foreground font-bold rounded-xl hover:bg-primary-dark transition-colors"
                 >
                   <ShieldAlert className="w-6 h-6" />
@@ -574,7 +574,7 @@ export default function ProductsPage() {
               )}
               {!searchQuery && !needsProfileOnboarding && kycStatus !== 'APPROVED' && (
                 <Link
-                  href="/seller/settings?tab=kyc"
+                  href="/seller/onboarding"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-foreground font-bold rounded-xl hover:bg-blue-500 transition-colors"
                 >
                   <ShieldAlert className="w-6 h-6" />
@@ -583,7 +583,7 @@ export default function ProductsPage() {
               )}
               {!searchQuery && !needsProfileOnboarding && sellerNotFound && kycStatus === 'APPROVED' && (
                 <Link
-                  href="/seller/onboard"
+                  href="/seller/onboarding"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-foreground font-bold rounded-xl hover:bg-primary-dark transition-colors"
                 >
                   <ShieldAlert className="w-6 h-6" />

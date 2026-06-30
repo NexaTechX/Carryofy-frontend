@@ -30,7 +30,7 @@ export default function AddProductPage() {
         } else {
           setState('blocked');
           toast.error('Complete KYC verification before adding products.');
-          router.replace('/seller/settings?tab=kyc');
+          router.replace('/seller/onboarding');
         }
       } catch {
         if (!cancelled) setState('allowed');

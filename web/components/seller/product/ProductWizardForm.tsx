@@ -1962,8 +1962,13 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                                     } ${errors.categoryIds ? 'border-red-500' : ''}`}
                                     disabled={!formData.categoryIds.includes(cat.id) && (formData.categoryIds?.length ?? 0) >= 10}
                                   >
-                                    <span className="text-2xl shrink-0 w-10 h-10 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center">
-                                      {cat.icon || <Package className="w-5 h-5 text-[#F97316]" />}
+                                    <span className="text-2xl shrink-0 w-10 h-10 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden">
+                                      {/* Only render cat.icon when it's an emoji; some categories store a
+                                          lucide icon NAME (e.g. "Shirt", "ShoppingBag") which would render as
+                                          oversized text spilling across the card. Fall back to Package for those. */}
+                                      {cat.icon && !/^[\x00-\x7F]+$/.test(cat.icon)
+                                        ? cat.icon
+                                        : <Package className="w-5 h-5 text-[#F97316]" />}
                                     </span>
                                     <span className="flex-1 min-w-0">
                                       <span className="text-sm font-semibold text-white block truncate">{cat.name}</span>

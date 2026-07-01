@@ -13,8 +13,10 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [heroCtaInView, setHeroCtaInView] = useState(true);
-  /** Home hero is a light marketplace layout — keep nav readable with solid bar */
-  const transparentNav = false;
+  /** Home hero is a dark marketplace canvas — nav is transparent over it, then
+   *  condenses to a solid navy bar on scroll. Other pages keep the light bar. */
+  const darkHome = isHome;
+  const transparentNav = isHome && !scrolled;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -69,24 +71,26 @@ export default function Header() {
     { name: 'Contact', href: '/contact' },
   ];
 
-  const navBgClass = transparentNav
-    ? 'bg-transparent py-4 border-b border-transparent'
+  const navBgClass = darkHome
+    ? scrolled
+      ? 'bg-background/95 backdrop-blur-md border-b border-border-custom py-3'
+      : 'bg-transparent py-4 border-b border-transparent'
     : scrolled
       ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200 py-3'
       : 'bg-white py-4';
 
-  const navLinkClass = transparentNav
-    ? 'text-white/90 hover:text-white font-medium transition-colors py-2'
+  const navLinkClass = darkHome
+    ? 'text-foreground/75 font-medium hover:text-primary transition-colors py-2'
     : 'text-[#111111] font-medium hover:text-[#FF6B00] transition-colors py-2';
 
-  const brandTextClass = transparentNav ? 'text-white' : 'text-[#111111]';
+  const brandTextClass = darkHome ? 'text-foreground' : 'text-[#111111]';
 
-  const secondaryLinkClass = transparentNav
-    ? 'px-5 py-2.5 text-white/90 font-medium hover:text-white transition-colors'
+  const secondaryLinkClass = darkHome
+    ? 'px-5 py-2.5 text-foreground/75 font-medium hover:text-primary transition-colors'
     : 'px-5 py-2.5 text-[#111111] font-medium hover:text-[#FF6B00] transition-colors';
 
-  const primaryCtaClass = transparentNav
-    ? 'px-6 py-2.5 bg-white text-zinc-950 rounded-full font-semibold hover:bg-zinc-100 transition-colors shadow-sm'
+  const primaryCtaClass = darkHome
+    ? 'px-6 py-2.5 bg-primary text-[#1a0e00] rounded-full font-semibold hover:bg-primary-dark transition-colors'
     : 'px-6 py-2.5 bg-[#FF6B00] text-black rounded-full font-semibold hover:bg-[#E65100] transition-colors';
 
   return (
@@ -137,8 +141,8 @@ export default function Header() {
               <Link
                 href="/buyer/products"
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                  transparentNav
-                    ? 'bg-white text-zinc-950 hover:bg-zinc-100'
+                  darkHome
+                    ? 'bg-primary text-[#1a0e00] hover:bg-primary-dark'
                     : 'bg-[#FF6B00] text-black hover:bg-[#E65100]'
                 }`}
               >
@@ -148,7 +152,7 @@ export default function Header() {
             <button
               type="button"
               className={`focus:outline-none p-2 touch-target btn-mobile rounded-lg transition-colors ${
-                transparentNav ? 'text-white hover:bg-white/10' : 'text-[#111111] hover:bg-gray-100'
+                darkHome ? 'text-foreground hover:bg-white/10' : 'text-[#111111] hover:bg-gray-100'
               }`}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
@@ -175,31 +179,47 @@ export default function Header() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className="lg:hidden absolute top-full left-4 right-4 mt-2 bg-white rounded-2xl border border-gray-200 shadow-2xl overflow-hidden z-50 max-h-[80vh] overflow-y-auto"
+                className={`lg:hidden absolute top-full left-4 right-4 mt-2 rounded-2xl border shadow-2xl overflow-hidden z-50 max-h-[80vh] overflow-y-auto ${
+                  darkHome ? 'bg-card border-border-custom' : 'bg-white border-gray-200'
+                }`}
               >
                 <div className="flex flex-col p-4 space-y-1 safe-bottom">
                   {navLinks.map((item) => (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className="block py-3 px-4 text-[#111111] hover:text-[#FF6B00] hover:bg-[#FF6B00]/5 rounded-xl transition-colors font-medium touch-target btn-mobile"
+                      className={`block py-3 px-4 rounded-xl transition-colors font-medium touch-target btn-mobile ${
+                        darkHome
+                          ? 'text-foreground/85 hover:text-primary hover:bg-primary/10'
+                          : 'text-[#111111] hover:text-[#FF6B00] hover:bg-[#FF6B00]/5'
+                      }`}
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       {item.name}
                     </Link>
                   ))}
 
-                  <div className="pt-4 mt-2 border-t border-gray-100 space-y-2">
+                  <div
+                    className={`pt-4 mt-2 border-t space-y-2 ${
+                      darkHome ? 'border-border-custom' : 'border-gray-100'
+                    }`}
+                  >
                     <Link
                       href="/auth/login"
-                      className="block w-full py-3 text-center text-[#111111] font-semibold rounded-xl border border-gray-200 hover:border-[#FF6B00] hover:text-[#FF6B00] transition-colors touch-target btn-mobile"
+                      className={`block w-full py-3 text-center font-semibold rounded-xl border transition-colors touch-target btn-mobile ${
+                        darkHome
+                          ? 'text-foreground border-border-strong hover:border-primary hover:text-primary'
+                          : 'text-[#111111] border-gray-200 hover:border-[#FF6B00] hover:text-[#FF6B00]'
+                      }`}
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Sign in
                     </Link>
                     <Link
                       href="/buyer/products"
-                      className="block w-full py-3 text-center bg-[#FF6B00] text-black rounded-xl font-semibold touch-target btn-mobile"
+                      className={`block w-full py-3 text-center rounded-xl font-semibold touch-target btn-mobile ${
+                        darkHome ? 'bg-primary text-[#1a0e00]' : 'bg-[#FF6B00] text-black'
+                      }`}
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Browse catalogue

@@ -9,7 +9,7 @@ import { CombinedSchema } from '../components/seo/JsonLd';
 
 const sectionLoading = () => (
   <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-    <div className="h-48 animate-pulse rounded-2xl bg-stone-200/80" aria-hidden />
+    <div className="h-48 animate-pulse rounded-2xl bg-card" aria-hidden />
   </div>
 );
 
@@ -112,7 +112,7 @@ export default function Home() {
         ]}
       />
 
-      <div className="landing-page flex min-h-screen flex-col bg-stone-50 text-zinc-900 antialiased">
+      <div className="landing-page flex min-h-screen flex-col bg-background text-foreground antialiased">
         <Header />
         <main className="grow">
           <HeroSection />

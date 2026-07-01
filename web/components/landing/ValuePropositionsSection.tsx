@@ -47,7 +47,7 @@ const supplierFeatures = [
 
 export default function ValuePropositionsSection() {
   return (
-    <section className="bg-stone-50 py-20 sm:py-24 lg:py-28">
+    <section className="bg-background py-20 sm:py-24 lg:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
@@ -72,7 +72,7 @@ export default function ValuePropositionsSection() {
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm ring-1 ring-zinc-950/4"
+            className="group relative overflow-hidden rounded-2xl border border-border-custom bg-card shadow-card"
           >
             <div className="absolute inset-x-0 top-0 z-10 h-1 bg-primary" aria-hidden />
             <div className="relative aspect-16/11 sm:aspect-16/10">
@@ -91,15 +91,15 @@ export default function ValuePropositionsSection() {
                 </h3>
               </div>
             </div>
-            <div className="border-t border-zinc-100 p-6 sm:p-8">
-              <ul className="space-y-4 text-sm leading-relaxed text-zinc-600 sm:text-[15px]">
+            <div className="border-t border-border-custom p-6 sm:p-8">
+              <ul className="space-y-4 text-sm leading-relaxed text-foreground/65 sm:text-[15px]">
                 {retailerFeatures.map((item) => (
                   <li key={item.title} className="flex gap-3">
                     <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
                       <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
                     </span>
                     <span>
-                      <strong className="font-semibold text-zinc-900">{item.title}:</strong>{' '}
+                      <strong className="font-semibold text-foreground">{item.title}:</strong>{' '}
                       {item.text}
                     </span>
                   </li>
@@ -107,14 +107,14 @@ export default function ValuePropositionsSection() {
               </ul>
               <Link
                 href="/buyer/products"
-                className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-zinc-900 transition hover:text-primary"
+                className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-foreground transition hover:text-primary"
               >
-                <span className="border-b border-zinc-900/30 transition group-hover/link:border-primary/50">
+                <span className="border-b border-foreground/30 transition group-hover/link:border-primary/60">
                   Browse wholesale as a retailer
                 </span>
                 <ArrowUpRight className="h-4 w-4 shrink-0 text-primary" strokeWidth={2} />
               </Link>
-              <p className="mt-3 text-[12px] leading-snug text-zinc-500">
+              <p className="mt-3 text-[12px] leading-snug text-foreground/50">
                 Used by boutique owners across Yaba, Lekki &amp; Surulere
               </p>
             </div>
@@ -125,7 +125,7 @@ export default function ValuePropositionsSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.06 }}
-            className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm ring-1 ring-zinc-950/4"
+            className="group relative overflow-hidden rounded-2xl border border-border-custom bg-card shadow-card"
           >
             <div className="absolute inset-x-0 top-0 z-10 h-1 bg-primary" aria-hidden />
             <div className="relative aspect-16/11 sm:aspect-16/10">
@@ -144,15 +144,15 @@ export default function ValuePropositionsSection() {
                 </h3>
               </div>
             </div>
-            <div className="border-t border-zinc-100 p-6 sm:p-8">
-              <ul className="space-y-4 text-sm leading-relaxed text-zinc-600 sm:text-[15px]">
+            <div className="border-t border-border-custom p-6 sm:p-8">
+              <ul className="space-y-4 text-sm leading-relaxed text-foreground/65 sm:text-[15px]">
                 {supplierFeatures.map((item) => (
                   <li key={item.title} className="flex gap-3">
                     <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
                       <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
                     </span>
                     <span>
-                      <strong className="font-semibold text-zinc-900">{item.title}:</strong>{' '}
+                      <strong className="font-semibold text-foreground">{item.title}:</strong>{' '}
                       {item.text}
                     </span>
                   </li>
@@ -160,14 +160,14 @@ export default function ValuePropositionsSection() {
               </ul>
               <Link
                 href="/merchant-onboarding"
-                className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-zinc-900 transition hover:text-primary"
+                className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-foreground transition hover:text-primary"
               >
-                <span className="border-b border-zinc-900/30 transition group-hover/link:border-primary/50">
+                <span className="border-b border-foreground/30 transition group-hover/link:border-primary/60">
                   Partner as a seller
                 </span>
                 <ArrowUpRight className="h-4 w-4 shrink-0 text-primary" strokeWidth={2} />
               </Link>
-              <p className="mt-3 text-[12px] leading-snug text-zinc-500">
+              <p className="mt-3 text-[12px] leading-snug text-foreground/50">
                 Verified suppliers across all product categories
               </p>
             </div>

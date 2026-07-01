@@ -23,15 +23,15 @@ function ProductSkeleton({ index }: { index: number }) {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
-      className="bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-md sm:shadow-lg border border-gray-100"
+      className="bg-card rounded-xl sm:rounded-2xl overflow-hidden shadow-card border border-border-custom"
     >
-      <div className="relative h-40 sm:h-52 lg:h-64 bg-gray-200 animate-pulse"></div>
+      <div className="relative h-40 sm:h-52 lg:h-64 bg-surface-2 animate-pulse"></div>
       <div className="p-3 sm:p-4 lg:p-6 space-y-3">
-        <div className="h-3 bg-gray-200 rounded animate-pulse w-1/3"></div>
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-2/3"></div>
+        <div className="h-3 bg-surface-2 rounded animate-pulse w-1/3"></div>
+        <div className="h-4 bg-surface-2 rounded animate-pulse w-2/3"></div>
         <div className="flex items-center justify-between mt-4">
-          <div className="h-5 bg-gray-200 rounded animate-pulse w-1/4"></div>
-          <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+          <div className="h-5 bg-surface-2 rounded animate-pulse w-1/4"></div>
+          <div className="w-8 h-8 bg-surface-2 rounded-full animate-pulse"></div>
         </div>
       </div>
     </motion.div>
@@ -43,15 +43,15 @@ function ErrorState({ onRetry }: { onRetry?: () => void }) {
   return (
     <div className="col-span-full py-12 text-center">
       <div className="max-w-md mx-auto">
-        <AlertCircle className="w-16 h-16 text-orange-500 mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-gray-900 mb-2">Unable to Load Products</h3>
-        <p className="text-gray-600 mb-6">
+        <AlertCircle className="w-16 h-16 text-primary mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-foreground mb-2">Unable to Load Products</h3>
+        <p className="text-foreground/60 mb-6">
           We're having trouble fetching the latest products. Please try again.
         </p>
         {onRetry && (
           <button
             onClick={onRetry}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary-dark transition-all duration-300"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-[#1a0e00] rounded-full font-semibold hover:bg-primary-dark transition-all duration-300"
           >
             <RefreshCw className="w-4 h-4" />
             Try Again
@@ -73,7 +73,7 @@ function formatPrice(priceInKobo: number): string {
 
 function FeaturedProducts({ products = [], loading = false, error, onRetry }: FeaturedProductsProps) {
   return (
-    <section className="border-b border-zinc-200/80 bg-stone-50 py-14 sm:py-16 lg:py-20">
+    <section className="border-b border-border-custom bg-background py-14 sm:py-16 lg:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-10 flex flex-col gap-4 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -89,7 +89,7 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
           </div>
           <Link
             href="/buyer/products"
-            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-primary transition hover:text-primary-dark"
+            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-primary transition hover:text-primary-light"
           >
             See all products
             <ArrowRight className="h-4 w-4" aria-hidden />
@@ -124,18 +124,18 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 whileHover={{ y: -8 }}
-                className="group relative overflow-hidden rounded-xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-950/5 transition hover:-translate-y-1 hover:shadow-md"
+                className="group relative overflow-hidden rounded-xl border border-border-custom bg-card shadow-card transition hover:-translate-y-1 hover:border-primary/50"
               >
                 {/* Fulfilled by Carryofy Badge */}
                 {isInStock && (
                   <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-10">
-                    <span className="rounded-md bg-zinc-950/85 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm sm:text-xs">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-success-soft px-2 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-success backdrop-blur-sm sm:text-[11px]">
                       In stock
                     </span>
                   </div>
                 )}
 
-                <div className="relative h-40 sm:h-52 lg:h-64 bg-gray-100 overflow-hidden">
+                <div className="relative h-40 sm:h-52 lg:h-64 bg-surface-2 overflow-hidden">
                   {product.images?.[0] ? (
                     <Image
                       src={imageSrc}
@@ -174,26 +174,26 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
                 </div>
 
                 <div className="p-3 sm:p-4 lg:p-6">
-                  <div className="mb-1 text-[10px] font-medium text-zinc-500 sm:mb-2 sm:text-xs">
+                  <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground/45 sm:mb-2">
                     {product.category}
                   </div>
-                  <h3 className="mb-1 line-clamp-2 min-h-10 text-sm font-semibold text-zinc-900 transition-colors group-hover:text-primary sm:mb-2 sm:min-h-12 sm:text-base lg:text-lg">
+                  <h3 className="mb-1 line-clamp-2 min-h-10 text-sm font-semibold text-foreground transition-colors group-hover:text-primary sm:mb-2 sm:min-h-12 sm:text-base lg:text-lg">
                     {(product as any).title || product.name}
                   </h3>
                   <div className="flex items-center justify-between mt-2 sm:mt-4">
-                    <span className="text-base font-semibold text-zinc-900 sm:text-lg lg:text-xl">
+                    <span className="font-mono text-base font-semibold tabular-nums text-foreground sm:text-lg lg:text-xl">
                       {formatPrice(product.price)}
                     </span>
                     <Link
                       href={`/buyer/products/${product.id}`}
-                      className="p-1.5 sm:p-2 rounded-full bg-linear-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-primary hover:to-orange-600 hover:text-white transition-all duration-300 touch-target btn-mobile shadow-sm hover:shadow-md"
+                      className="p-1.5 sm:p-2 rounded-full border border-border-strong bg-surface-2 text-foreground/70 hover:border-primary hover:bg-primary hover:text-[#1a0e00] transition-all duration-300 touch-target btn-mobile"
                     >
                       <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
                     </Link>
                   </div>
 
                   {product.seller?.businessName && (
-                    <p className="mt-2 truncate text-[10px] text-zinc-500 sm:text-xs">
+                    <p className="mt-2 truncate text-[10px] text-foreground/45 sm:text-xs">
                       {product.seller.businessName}
                     </p>
                   )}
@@ -206,9 +206,9 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
           {!loading && !error && products.length === 0 && (
             <div className="col-span-full py-12 text-center">
               <div className="max-w-md mx-auto">
-                <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">No Products Available</h3>
-                <p className="text-gray-600">
+                <ShoppingBag className="w-16 h-16 text-foreground/25 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-foreground mb-2">No Products Available</h3>
+                <p className="text-foreground/60">
                   Check back soon for amazing products from our merchants!
                 </p>
               </div>
@@ -226,7 +226,7 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
           >
             <Link
               href="/buyer/products"
-              className="inline-flex items-center gap-2 rounded-xl border-2 border-zinc-900 bg-zinc-950 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-800 sm:text-base"
+              className="inline-flex items-center gap-2 rounded-xl bg-foreground px-8 py-3.5 text-sm font-semibold text-background transition hover:bg-white sm:text-base"
             >
               Browse full marketplace
               <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />

@@ -10,11 +10,6 @@ import {
   Store,
   Truck,
 } from 'lucide-react';
-import StockPhoto from '../common/StockPhoto';
-import { unsplashPhoto } from '../../lib/unsplash';
-
-/** Wholesale market / retail trade — marketplace first impression */
-const heroBgImage = unsplashPhoto('photo-1555529669-156f81f57b1e', { w: 1920 });
 
 const quickCategories = [
   { label: 'Electronics', slug: 'electronics' },
@@ -24,11 +19,28 @@ const quickCategories = [
   { label: 'Groceries', slug: 'grocery' },
 ];
 
-const marketplaceStats = [
-  { label: 'Verified vendors', value: 'Screened suppliers', icon: ShieldCheck },
-  { label: 'Wholesale catalogue', value: 'MOQ-friendly SKUs', icon: Store },
-  { label: 'Lagos delivery', value: 'Coordinated last-mile', icon: Truck },
+const indexRows = [
+  {
+    icon: ShieldCheck,
+    label: 'Verified vendors',
+    sub: 'Every supplier screened before trading',
+    metric: 'SCREENED',
+  },
+  {
+    icon: Store,
+    label: 'Wholesale catalogue',
+    sub: 'MOQ-friendly SKUs, unit pricing upfront',
+    metric: 'ALL RETAIL',
+  },
+  {
+    icon: Truck,
+    label: 'Lagos delivery',
+    sub: 'Coordinated dispatch + last-mile handoff',
+    metric: 'SAME-DAY*',
+  },
 ];
+
+const corridors = ['Yaba', 'Surulere', 'Lekki', 'Ajah', 'Ikeja', 'VI'];
 
 export default function HeroSection() {
   const router = useRouter();
@@ -45,185 +57,212 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-stone-100 text-zinc-900">
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        className="border-b border-zinc-200/90 bg-white"
-      >
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-6 gap-y-2 px-4 py-2.5 text-center text-xs text-zinc-600 sm:px-6 sm:text-sm">
-          <span className="inline-flex items-center gap-1.5 font-medium text-zinc-800">
+    <section className="relative isolate overflow-hidden bg-background text-foreground">
+      {/* Backdrop: plotting grid + orange vignette glow (atmosphere, not the subject) */}
+      <div className="landing-grid-dark pointer-events-none absolute inset-0 z-0" aria-hidden />
+      <div className="landing-vignette pointer-events-none absolute inset-0 z-0" aria-hidden />
+      <div
+        className="pointer-events-none absolute -right-40 -top-40 z-0 h-[38rem] w-[38rem] rounded-full bg-primary/10 blur-[120px]"
+        aria-hidden
+      />
+
+      {/* Announcement strip */}
+      <div className="relative z-10 border-b border-border-custom/70">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-6 gap-y-2 px-4 py-2.5 text-center font-mono text-[11px] uppercase tracking-[0.12em] text-foreground/55 sm:px-6">
+          <span className="inline-flex items-center gap-1.5 text-foreground/80">
             <MapPin className="h-3.5 w-3.5 text-primary" aria-hidden />
             Wholesale marketplace · Lagos
           </span>
-          <span className="hidden text-zinc-300 sm:inline" aria-hidden>
-            |
+          <span className="hidden text-border-strong sm:inline" aria-hidden>
+            /
           </span>
-          <span>Browse catalog free — account only when you order</span>
-          <span className="hidden text-zinc-300 md:inline" aria-hidden>
-            |
+          <span>Browse catalogue free — account only when you order</span>
+          <span className="hidden text-border-strong md:inline" aria-hidden>
+            /
           </span>
           <span className="hidden md:inline">Same-day on key corridors</span>
         </div>
-      </motion.div>
+      </div>
 
-      <div className="relative">
+      <div className="relative z-10 mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 sm:py-24 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-14 lg:px-8 lg:py-28">
+        {/* Left — the pitch */}
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-          className="pointer-events-none absolute inset-0"
+          transition={{ duration: 0.55 }}
+          className="max-w-xl"
         >
-          <StockPhoto
-            src={heroBgImage}
-            alt=""
-            fill
-            className="object-cover object-center"
-            sizes="100vw"
-            priority
-          />
-          <div
-            className="absolute inset-0 bg-[linear-gradient(105deg,rgba(250,250,249,0.97)_0%,rgba(250,250,249,0.92)_42%,rgba(250,250,249,0.55)_68%,rgba(250,250,249,0.2)_100%)]"
-            aria-hidden
-          />
+          <div className="landing-eyebrow mb-5 inline-flex items-center gap-2 rounded-full border border-border-custom bg-card/60 px-3 py-1.5">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/70" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            </span>
+            Best B2B wholesale · Nigeria &amp; Africa
+          </div>
+
+          <h1 className="landing-title text-[2.4rem] leading-[1.03] sm:text-5xl lg:text-[3.75rem]">
+            Source stock from{' '}
+            <span className="text-primary">verified Lagos wholesalers</span> — skip the
+            market run.
+          </h1>
+
+          <p className="geo-speakable landing-lead mt-6 text-base sm:text-lg">
+            Browse verified suppliers, compare unit prices, and reorder fast — one wholesale
+            floor with pricing, MOQs, and coordinated delivery across Yaba, Surulere, Lekki
+            &amp; beyond.
+          </p>
+
+          <form
+            onSubmit={handleSearch}
+            className="mt-8 flex flex-col gap-2 sm:flex-row sm:items-stretch"
+            role="search"
+          >
+            <label htmlFor="hero-marketplace-search" className="sr-only">
+              Search wholesale products
+            </label>
+            <div className="relative min-w-0 flex-1">
+              <Search
+                className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground/40"
+                aria-hidden
+              />
+              <input
+                id="hero-marketplace-search"
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search products, brands, or categories…"
+                className="w-full rounded-xl border border-border-strong bg-card py-3.5 pl-12 pr-4 text-sm text-foreground shadow-card placeholder:text-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 sm:text-[15px]"
+              />
+            </div>
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-[#1a0e00] shadow-primary-glow transition hover:bg-primary-dark sm:shrink-0 sm:text-[15px]"
+            >
+              Search catalogue
+            </button>
+          </form>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/45">
+              Popular
+            </span>
+            {quickCategories.map((cat) => (
+              <Link
+                key={cat.slug}
+                href={`/buyer/products?category=${cat.slug}`}
+                className="rounded-full border border-border-custom bg-card/50 px-3 py-1 text-xs font-medium text-foreground/75 transition hover:border-primary/50 hover:text-primary"
+              >
+                {cat.label}
+              </Link>
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.1 }}
+            className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
+          >
+            <Link
+              id="hero-browse-cta"
+              href="/buyer/products"
+              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-foreground px-7 py-3.5 text-sm font-semibold text-background transition hover:bg-white sm:text-[15px]"
+            >
+              Browse wholesale catalogue
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <Link
+              href="/auth/login"
+              className="inline-flex items-center justify-center rounded-xl border border-border-strong bg-card/40 px-6 py-3.5 text-sm font-semibold text-foreground/90 transition hover:border-foreground/40 sm:text-[15px]"
+            >
+              Retailer sign in
+            </Link>
+            <Link
+              href="/merchant-onboarding"
+              className="text-sm font-medium text-foreground/60 underline decoration-border-strong underline-offset-4 transition hover:text-primary"
+            >
+              Sell on Carryofy
+            </Link>
+          </motion.div>
         </motion.div>
 
-        <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-4 py-24 sm:px-6 sm:py-28 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12 lg:px-8 lg:py-32">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55 }}
-            className="max-w-xl"
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45 }}
-              className="landing-eyebrow mb-4 inline-flex items-center gap-2"
-            >
-              <Store className="h-4 w-4 shrink-0" aria-hidden />
-              Best B2B wholesaler e-commerce · Nigeria &amp; Africa
-            </motion.div>
+        {/* Right — live sourcing index panel (data density = the differentiator) */}
+        <motion.aside
+          initial={{ opacity: 0, x: 18 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.55, delay: 0.12 }}
+          className="hidden lg:block"
+        >
+          <div className="relative overflow-hidden rounded-2xl border border-border-custom bg-card/80 shadow-elevated backdrop-blur-sm">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" aria-hidden />
 
-            <h1 className="landing-title text-[2rem] leading-[1.15] sm:text-4xl lg:text-[2.75rem]">
-              The best B2B wholesaler e-commerce for sourcing stock in Nigeria &amp; Africa.
-            </h1>
-
-            <p className="geo-speakable landing-lead mt-5 text-base sm:text-lg">
-              Browse verified Lagos suppliers, compare unit prices, and reorder fast — without
-              running between markets. Built for retailers across Yaba, Surulere, Lekki &amp; beyond.
-            </p>
-
-            <form
-              onSubmit={handleSearch}
-              className="mt-8 flex flex-col gap-2 sm:flex-row sm:items-stretch"
-              role="search"
-            >
-              <label htmlFor="hero-marketplace-search" className="sr-only">
-                Search wholesale products
-              </label>
-              <div className="relative min-w-0 flex-1">
-                <Search
-                  className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400"
-                  aria-hidden
-                />
-                <input
-                  id="hero-marketplace-search"
-                  type="search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search products, brands, or categories…"
-                  className="w-full rounded-xl border border-zinc-200 bg-white py-3.5 pl-12 pr-4 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 sm:text-[15px]"
-                />
-              </div>
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-zinc-950 shadow-md shadow-primary/25 transition hover:bg-primary-dark sm:shrink-0 sm:text-[15px]"
-              >
-                Search catalogue
-              </button>
-            </form>
-
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-zinc-500">Popular:</span>
-              {quickCategories.map((cat) => (
-                <Link
-                  key={cat.slug}
-                  href={`/buyer/products?category=${cat.slug}`}
-                  className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700 transition hover:border-primary/40 hover:text-primary"
-                >
-                  {cat.label}
-                </Link>
-              ))}
+            <div className="flex items-center justify-between border-b border-border-custom px-5 py-3.5">
+              <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/60">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success/70" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
+                </span>
+                Lagos catalogue · live
+              </span>
+              <span className="font-mono text-[11px] tracking-[0.1em] text-foreground/35">
+                /marketplace
+              </span>
             </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.08 }}
-              className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
-            >
-              <Link
-                id="hero-browse-cta"
-                href="/buyer/products"
-                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-950 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-800 sm:text-[15px]"
-              >
-                Browse wholesale catalogue
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-              <Link
-                href="/auth/login"
-                className="inline-flex items-center justify-center rounded-xl border border-zinc-300 bg-white px-6 py-3.5 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400 sm:text-[15px]"
-              >
-                Retailer sign in
-              </Link>
-              <Link
-                href="/merchant-onboarding"
-                className="text-sm font-medium text-zinc-600 underline decoration-zinc-300 underline-offset-4 transition hover:text-primary"
-              >
-                Sell on Carryofy
-              </Link>
-            </motion.div>
-          </motion.div>
-
-          <motion.aside
-            initial={{ opacity: 0, x: 16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="hidden lg:block"
-          >
-            <div className="rounded-2xl border border-zinc-200/90 bg-white/95 p-6 shadow-xl shadow-zinc-900/8 backdrop-blur-sm ring-1 ring-zinc-950/5">
-              <p className="text-sm font-semibold text-zinc-700">On the marketplace</p>
-              <ul className="mt-5 space-y-4">
-                {marketplaceStats.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <li
-                      key={item.label}
-                      className="flex items-start gap-3 border-b border-zinc-100 pb-4 last:border-0 last:pb-0"
-                    >
-                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-                      </span>
-                      <div>
-                        <p className="text-sm font-semibold text-zinc-900">{item.label}</p>
-                        <p className="mt-0.5 text-sm text-zinc-500">{item.value}</p>
+            <ul>
+              {indexRows.map((row, i) => {
+                const Icon = row.icon;
+                return (
+                  <li
+                    key={row.label}
+                    className={`flex items-start gap-3.5 px-5 py-4 ${
+                      i < indexRows.length - 1 ? 'border-b border-border-custom/70' : ''
+                    }`}
+                  >
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+                      <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-foreground">{row.label}</p>
+                        <span className="shrink-0 rounded-md bg-surface-2 px-2 py-0.5 font-mono text-[10px] font-medium tracking-[0.1em] text-primary-light">
+                          {row.metric}
+                        </span>
                       </div>
-                    </li>
-                  );
-                })}
-              </ul>
-              <Link
-                href="/buyer/products"
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary/30 bg-primary/5 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10"
-              >
-                View all categories
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
+                      <p className="mt-1 text-[13px] leading-snug text-foreground/55">
+                        {row.sub}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="border-t border-border-custom px-5 py-4">
+              <p className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/40">
+                Active corridors
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {corridors.map((c) => (
+                  <span
+                    key={c}
+                    className="rounded-md border border-border-custom bg-surface-2/60 px-2 py-1 font-mono text-[11px] tracking-[0.06em] text-foreground/70"
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
             </div>
-          </motion.aside>
-        </div>
+
+            <Link
+              href="/buyer/products"
+              className="flex items-center justify-center gap-2 border-t border-border-custom bg-primary/[0.07] py-3.5 text-sm font-semibold text-primary transition hover:bg-primary/[0.12]"
+            >
+              View all categories
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
+          </div>
+        </motion.aside>
       </div>
     </section>
   );

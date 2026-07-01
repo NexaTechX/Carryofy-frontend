@@ -135,37 +135,47 @@
     border-radius: 8px;
   }
 
-  /* Marketing / landing — restrained trade-catalog typography (no mono labels) */
+  /* Marketing / landing — dark "Kinetic Logistics" trade voice.
+     Scoped to .landing-page (home only); other public pages are unaffected. */
   .landing-page {
     font-family: var(--font-sans);
+    background-color: var(--background);
+    color: var(--foreground);
   }
 
+  /* Industrial micro-label: mono, upper, tracked — reads like a logistics manifest */
   .landing-page .landing-eyebrow {
-    font-family: var(--font-sans);
-    font-size: 0.875rem;
-    font-weight: 600;
-    line-height: 1.35;
-    letter-spacing: 0;
-    text-transform: none;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
     color: var(--color-primary);
   }
 
   .landing-page .landing-eyebrow.text-zinc-600 {
-    color: #52525b;
+    color: #93a0b4;
   }
 
   .landing-page .landing-title {
-    font-family: var(--font-sans);
+    font-family: var(--font-display);
     font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #18181b;
+    letter-spacing: -0.022em;
+    line-height: 1.05;
+    color: #f4f7fb;
   }
 
   .landing-page .landing-lead {
     font-family: var(--font-sans);
     font-weight: 400;
-    line-height: 1.6;
-    color: #52525b;
+    line-height: 1.65;
+    color: #9aa6b8;
+  }
+
+  /* Hairline dividers + faint plotting grid for the sourcing-manifest texture */
+  .landing-hairline {
+    border-color: var(--border-custom);
   }
 }
 

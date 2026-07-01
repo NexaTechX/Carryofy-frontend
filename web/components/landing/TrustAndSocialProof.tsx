@@ -80,7 +80,7 @@ const badges = [
 
 export default function TrustAndSocialProof() {
   return (
-    <section className="relative overflow-hidden border-t border-zinc-200/80 bg-gradient-to-b from-white via-stone-50/80 to-stone-50 py-20 sm:py-24 lg:py-28">
+    <section className="relative overflow-hidden border-t border-border-custom bg-background py-20 sm:py-24 lg:py-28">
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#FF6B00]/30 to-transparent"
         aria-hidden
@@ -109,20 +109,20 @@ export default function TrustAndSocialProof() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.05 }}
-          className="mt-12 rounded-2xl border border-zinc-200/80 bg-white/80 px-4 py-8 shadow-sm ring-1 ring-zinc-950/[0.03] backdrop-blur-sm sm:px-8"
+          className="mt-12 rounded-2xl border border-border-custom bg-card px-4 py-8 shadow-card backdrop-blur-sm sm:px-8"
         >
-          <p className="text-center text-sm font-semibold text-zinc-600">Ecosystem coverage</p>
+          <p className="text-center font-mono text-[11px] uppercase tracking-[0.16em] text-foreground/50">Ecosystem coverage</p>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {corridorPartners.map((p) => (
               <div
                 key={p.label}
-                className="rounded-xl border border-zinc-100 bg-stone-50/90 px-4 py-4 text-center lg:text-left"
+                className="rounded-xl border border-border-custom bg-surface-2/60 px-4 py-4 text-center lg:text-left"
               >
-                <p className="text-xl font-bold text-zinc-950">
+                <p className="text-xl font-bold text-foreground">
                   {p.value}
                 </p>
-                <p className="mt-2 text-sm font-semibold text-zinc-900">{p.label}</p>
-                <p className="mt-1 text-xs leading-snug text-zinc-500">{p.sub}</p>
+                <p className="mt-2 text-sm font-semibold text-foreground/90">{p.label}</p>
+                <p className="mt-1 text-xs leading-snug text-foreground/50">{p.sub}</p>
               </div>
             ))}
           </div>
@@ -136,14 +136,14 @@ export default function TrustAndSocialProof() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.06 }}
-              className="flex gap-4 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.02]"
+              className="flex gap-4 rounded-2xl border border-border-custom bg-card p-5 shadow-card"
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#FF6B00]/20 bg-[#FF6B00]/10 text-[#FF6B00]">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
                 <b.icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
               </div>
               <div>
-                <p className="text-sm font-semibold text-zinc-900">{b.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-zinc-600">{b.text}</p>
+                <p className="text-sm font-semibold text-foreground">{b.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-foreground/60">{b.text}</p>
               </div>
             </motion.div>
           ))}
@@ -157,14 +157,14 @@ export default function TrustAndSocialProof() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.07 }}
-              className="flex min-w-0 flex-col rounded-2xl border border-zinc-200/90 bg-white p-7 shadow-sm ring-1 ring-zinc-950/[0.03]"
+              className="flex min-w-0 flex-col rounded-2xl border border-border-custom bg-card p-7 shadow-card"
             >
-              <Quote className="mb-4 h-7 w-7 text-[#FF6B00]/25" aria-hidden />
-              <blockquote className="mb-8 grow text-[15px] leading-relaxed text-zinc-700 sm:text-base">
+              <Quote className="mb-4 h-7 w-7 text-primary/40" aria-hidden />
+              <blockquote className="mb-8 grow text-[15px] leading-relaxed text-foreground/80 sm:text-base">
                 {t.quote}
               </blockquote>
-              <div className="flex items-center gap-4 border-t border-zinc-100 pt-5">
-                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-white ring-offset-2 ring-offset-white">
+              <div className="flex items-center gap-4 border-t border-border-custom pt-5">
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-border-strong ring-offset-2 ring-offset-card">
                   <StockPhoto
                     src={t.avatar}
                     alt={t.avatarAlt}
@@ -174,8 +174,8 @@ export default function TrustAndSocialProof() {
                   />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-zinc-900">{t.name}</p>
-                  <p className="truncate text-xs text-zinc-600 sm:text-sm">
+                  <p className="font-semibold text-foreground">{t.name}</p>
+                  <p className="truncate text-xs text-foreground/55 sm:text-sm">
                     {t.business}, {t.location}
                   </p>
                 </div>

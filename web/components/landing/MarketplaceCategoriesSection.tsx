@@ -14,7 +14,7 @@ const CARD_H = 168;
 function CategoryTileSkeleton() {
   return (
     <motion.div
-      className="shrink-0 animate-pulse overflow-hidden rounded-xl bg-zinc-200"
+      className="shrink-0 animate-pulse overflow-hidden rounded-xl bg-card"
       style={{ width: CARD_W, height: CARD_H }}
     />
   );
@@ -32,7 +32,7 @@ export default function MarketplaceCategoriesSection() {
   }
 
   return (
-    <section className="border-b border-zinc-200/80 bg-white py-14 sm:py-16 lg:py-20">
+    <section className="border-b border-border-custom bg-background py-14 sm:py-16 lg:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -48,7 +48,7 @@ export default function MarketplaceCategoriesSection() {
           </div>
           <Link
             href="/buyer/products"
-            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-primary transition hover:text-primary-dark"
+            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-primary transition hover:text-primary-light"
           >
             View full marketplace
             <ArrowRight className="h-4 w-4" aria-hidden />
@@ -76,7 +76,7 @@ export default function MarketplaceCategoriesSection() {
                   >
                     <Link
                       href={`/buyer/products?category=${encodeURIComponent(cat.slug)}`}
-                      className="group relative block shrink-0 overflow-hidden rounded-xl shadow-md ring-1 ring-zinc-950/10 transition hover:-translate-y-0.5 hover:shadow-lg"
+                      className="group relative block shrink-0 overflow-hidden rounded-xl shadow-card ring-1 ring-border-custom transition hover:-translate-y-0.5 hover:ring-primary/60"
                       style={{ width: CARD_W, height: CARD_H }}
                       aria-label={`Browse ${label}`}
                     >

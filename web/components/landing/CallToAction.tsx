@@ -18,7 +18,11 @@ export default function CallToAction() {
           sizes="100vw"
           priority={false}
         />
-        <div className="absolute inset-0 bg-zinc-950/88" aria-hidden />
+        <div className="absolute inset-0 bg-background/92" aria-hidden />
+        <div
+          className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_120%,rgba(255,107,0,0.18),transparent_60%)]"
+          aria-hidden
+        />
       </div>
 
       <div className="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">

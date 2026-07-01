@@ -54,7 +54,7 @@ function ConnectorVertical() {
 
 export default function HowItWorks() {
   return (
-    <section className="border-y border-zinc-200/80 bg-white py-20 sm:py-24 lg:py-28">
+    <section className="border-y border-border-custom bg-sidebar-bg py-20 sm:py-24 lg:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
@@ -82,19 +82,19 @@ export default function HowItWorks() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.07 }}
-                className="rounded-2xl border border-primary/15 bg-stone-50/50 p-6 shadow-sm ring-1 ring-zinc-950/3"
+                className="rounded-2xl border border-border-custom bg-card p-6 shadow-card"
               >
                 <div className="flex items-start gap-4">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
                     <step.Icon className="h-7 w-7" strokeWidth={1.75} aria-hidden />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-xs font-medium text-zinc-500">Step {step.id}</span>
-                    <h3 className="mt-1 text-xl font-bold text-zinc-950">
+                    <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/45">Step {step.id}</span>
+                    <h3 className="mt-1 text-xl font-bold text-foreground">
                       {step.title}
                     </h3>
                     <p className="mt-2 text-sm font-medium text-primary">{step.promise}</p>
-                    <p className="mt-3 text-sm leading-relaxed text-zinc-600">{step.description}</p>
+                    <p className="mt-3 text-sm leading-relaxed text-foreground/60">{step.description}</p>
                   </div>
                 </div>
               </motion.div>
@@ -113,20 +113,20 @@ export default function HowItWorks() {
                 transition={{ delay: index * 0.07 }}
                 className="min-w-0 flex-1"
               >
-                <div className="flex h-full flex-col rounded-2xl border border-primary/15 bg-stone-50/50 p-8 shadow-sm ring-1 ring-zinc-950/3">
+                <div className="flex h-full flex-col rounded-2xl border border-border-custom bg-card p-8 shadow-card">
                   <div className="flex items-center gap-4">
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
                       <step.Icon className="h-7 w-7" strokeWidth={1.75} aria-hidden />
                     </div>
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-sm font-semibold text-zinc-700">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-border-strong bg-surface-2 font-mono text-sm font-semibold text-foreground/80">
                       {step.id}
                     </span>
                   </div>
-                  <h3 className="mt-6 text-xl font-bold text-zinc-950">
+                  <h3 className="mt-6 text-xl font-bold text-foreground">
                     {step.title}
                   </h3>
                   <p className="mt-2 text-sm font-medium text-primary">{step.promise}</p>
-                  <p className="mt-4 text-sm leading-relaxed text-zinc-600">{step.description}</p>
+                  <p className="mt-4 text-sm leading-relaxed text-foreground/60">{step.description}</p>
                 </div>
               </motion.div>
               {index < steps.length - 1 && <ConnectorHorizontal />}
@@ -140,7 +140,7 @@ export default function HowItWorks() {
           viewport={{ once: true }}
           className="mx-auto mt-16 max-w-xl text-center"
         >
-          <p className="text-lg font-semibold text-zinc-950 sm:text-xl">
+          <p className="text-lg font-semibold text-foreground sm:text-xl">
             Ready to browse what&apos;s in stock?
           </p>
           <Link

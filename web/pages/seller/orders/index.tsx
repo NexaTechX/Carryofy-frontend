@@ -23,6 +23,8 @@ import { parseSellerOrdersList } from '../../../lib/seller/orders';
 import toast from 'react-hot-toast';
 import { formatSellerPayoutLabel } from '../../../lib/seller/order-payout';
 import StatusBadge from '../../../components/ui/StatusBadge';
+import type { OrderCancellationReason } from '../../../types/order';
+import { cancellationReasonLabel } from '../../../lib/orders/cancellationReason';
 
 type BadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'primary';
 
@@ -60,6 +62,9 @@ interface Order {
   yourPayoutKobo?: number | null;
   payoutStatus?: 'awaiting_payment' | 'pending_confirmation' | 'confirmed' | 'canceled';
   status: string;
+  cancellationReason?: OrderCancellationReason | null;
+  cancellationReasonText?: string | null;
+  canceledAt?: string | null;
   paymentRef?: string;
   delivery?: Delivery;
   createdAt: string;
@@ -513,7 +518,14 @@ export default function OrdersPage() {
                       </div>
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-2 border-t border-border-custom pt-3">
-                      <StatusBadge tone={getStatusTone(order)} label={getStatusDisplay(order)} />
+                      <div className="min-w-0">
+                        <StatusBadge tone={getStatusTone(order)} label={getStatusDisplay(order)} />
+                        {order.status === 'CANCELED' && order.cancellationReason && (
+                          <p className="mt-1 truncate text-xs text-danger">
+                            {cancellationReasonLabel(order.cancellationReason)}
+                          </p>
+                        )}
+                      </div>
                       <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold text-primary">
                         Open
                         <ChevronRight className="h-4 w-4" />
@@ -642,6 +654,14 @@ export default function OrdersPage() {
                           </td>
                           <td className="h-[72px] px-4 py-2">
                             <StatusBadge tone={getStatusTone(order)} label={getStatusDisplay(order)} />
+                            {order.status === 'CANCELED' && order.cancellationReason && (
+                              <p
+                                className="mt-1 max-w-[160px] truncate text-xs text-danger"
+                                title={cancellationReasonLabel(order.cancellationReason)}
+                              >
+                                {cancellationReasonLabel(order.cancellationReason)}
+                              </p>
+                            )}
                           </td>
                           <td className="h-[72px] px-4 py-2 text-right">
                             <Link

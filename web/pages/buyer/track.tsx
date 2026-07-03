@@ -30,6 +30,8 @@ import {
   RefreshCw,
   BadgeCheck,
 } from 'lucide-react';
+import type { OrderCancellationReason } from '../../types/order';
+import { cancellationReasonLabel } from '../../lib/orders/cancellationReason';
 
 const TrackMap = dynamic(() => import('../../components/buyer/TrackMap'), {
   ssr: false,
@@ -51,6 +53,9 @@ interface Order {
   id: string;
   amount: number;
   status: string;
+  cancellationReason?: OrderCancellationReason | null;
+  cancellationReasonText?: string | null;
+  canceledAt?: string | null;
   createdAt: string;
   updatedAt: string;
   seller?: { name: string } | null;
@@ -536,6 +541,38 @@ export default function TrackOrderPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Cancellation notice */}
+                {(order.status === 'CANCELED' || order.status === 'CANCELLED') && (
+                  <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-5 md:p-6">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-400">
+                        <XCircle className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white">Order Canceled</h3>
+                        <p className="mt-0.5 text-sm text-[#ffcc99]/80">
+                          This order was canceled and is no longer being shipped.
+                        </p>
+                        {order.cancellationReason && (
+                          <div className="mt-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-red-300/90">
+                              Reason
+                            </p>
+                            <p className="mt-0.5 text-sm font-medium text-white">
+                              {cancellationReasonLabel(order.cancellationReason)}
+                            </p>
+                            {order.cancellationReasonText && (
+                              <p className="mt-1 text-sm text-[#ffcc99]/80">
+                                {order.cancellationReasonText}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Tracking Timeline (vertical stepper) */}
                 <div className="rounded-xl border border-[#ff6600]/30 bg-[#1a1a1a] p-5 md:p-6">

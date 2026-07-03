@@ -29,6 +29,7 @@ import {
   useAdminOrderDetail,
   useOrderStatusMutation,
   useOrderValidTransitions,
+  useCancellationBreakdown,
 } from '../../lib/admin/hooks/useAdminOrders';
 import {
   useAssignDeliveryMutation,
@@ -38,9 +39,18 @@ import {
 } from '../../lib/admin/hooks/useAdminDeliveries';
 import { fetchAdminFleetOperators } from '../../lib/admin/api';
 import { useQuery } from '@tanstack/react-query';
-import { AdminDeliveryStatus, AdminOrder, AdminOrderStatus } from '../../lib/admin/types';
+import {
+  AdminDeliveryStatus,
+  AdminOrder,
+  AdminOrderStatus,
+  OrderCancellationReason,
+} from '../../lib/admin/types';
 import { toast } from 'react-hot-toast';
 import { formatNgnFromKobo } from '../../lib/api/utils';
+import {
+  ADMIN_CANCELLATION_REASON_OPTIONS,
+  cancellationReasonLabel,
+} from '../../lib/orders/cancellationReason';
 import clsx from 'clsx';
 
 const ORDER_STATUS_OPTIONS: { value: AdminOrderStatus; label: string }[] = [
@@ -231,6 +241,12 @@ export default function AdminOrders() {
   }, [router.query.status]);
 
   const updateOrderStatus = useOrderStatusMutation();
+  const { data: cancellationBreakdown } = useCancellationBreakdown();
+  const [cancelModal, setCancelModal] = useState<{
+    orderId: string;
+    reason: OrderCancellationReason;
+    text: string;
+  } | null>(null);
   const assignDelivery = useAssignDeliveryMutation();
   const assignDeliveryToFleet = useAssignDeliveryToFleetMutation();
   const { data: availableRiders, isLoading: loadingRiders } = useAvailableRiders();
@@ -337,7 +353,39 @@ export default function AdminOrders() {
 
   const handleStatusUpdate = (orderId: string, status: AdminOrderStatus) => {
     if (detailOrder && status === detailOrder.status) return;
+    // Canceling requires a structured reason — collect it before mutating.
+    if (status === 'CANCELED') {
+      setCancelModal({
+        orderId,
+        reason: ADMIN_CANCELLATION_REASON_OPTIONS[0].value,
+        text: '',
+      });
+      return;
+    }
     updateOrderStatus.mutate({ orderId, status }, { onSuccess: () => setFocusedOrder(null) });
+  };
+
+  const submitAdminCancel = () => {
+    if (!cancelModal) return;
+    const text = cancelModal.text.trim();
+    if (cancelModal.reason === 'OTHER' && !text) {
+      toast.error('Please describe the cancellation reason.');
+      return;
+    }
+    updateOrderStatus.mutate(
+      {
+        orderId: cancelModal.orderId,
+        status: 'CANCELED',
+        cancellationReason: cancelModal.reason,
+        ...(text ? { cancellationReasonText: text } : {}),
+      },
+      {
+        onSuccess: () => {
+          setCancelModal(null);
+          setFocusedOrder(null);
+        },
+      },
+    );
   };
 
   const handleAssignDelivery = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -426,6 +474,56 @@ export default function AdminOrders() {
                 );
               })}
             </div>
+          </section>
+
+          {/* Cancellation-reason breakdown — visibility into WHY orders are canceled */}
+          <section className="mb-6 rounded-xl border border-red-500/25 bg-[#161b24] p-5">
+            <div className="mb-4 flex items-baseline justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-red-300/90">
+                  Why orders are canceled
+                </h2>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Breakdown across all canceled orders
+                </p>
+              </div>
+              <p className="shrink-0 text-right">
+                <span className="text-2xl font-bold tabular-nums text-white">
+                  {cancellationBreakdown?.total ?? 0}
+                </span>
+                <span className="ml-1 text-xs text-gray-500">canceled</span>
+              </p>
+            </div>
+
+            {!cancellationBreakdown ? (
+              <p className="py-4 text-sm text-gray-500">Loading breakdown…</p>
+            ) : cancellationBreakdown.total === 0 ? (
+              <p className="py-4 text-sm text-gray-500">No canceled orders yet.</p>
+            ) : (
+              <div className="space-y-2.5">
+                {cancellationBreakdown.breakdown
+                  .filter((entry) => entry.count > 0)
+                  .map((entry) => (
+                    <div key={entry.reason} className="flex items-center gap-3">
+                      <span className="w-40 shrink-0 truncate text-xs font-medium text-gray-300">
+                        {cancellationReasonLabel(entry.reason)}
+                      </span>
+                      <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-[#0d1117]">
+                        <div
+                          className="h-full rounded-full bg-red-500/70"
+                          style={{ width: `${Math.max(entry.percentage, 2)}%` }}
+                        />
+                      </div>
+                      <span className="w-16 shrink-0 text-right text-xs tabular-nums text-gray-400">
+                        {entry.count}
+                        <span className="ml-1 text-gray-600">
+                          {entry.percentage}%
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            )}
           </section>
 
           {/* Stalled Orders banner */}
@@ -739,6 +837,21 @@ export default function AdminOrders() {
                   ))}
                 </select>
               </div>
+              {detailOrder.status === 'CANCELED' && (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-300/90">
+                    Cancellation reason
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-white">
+                    {cancellationReasonLabel(detailOrder.cancellationReason)}
+                  </p>
+                  {detailOrder.cancellationReasonText && (
+                    <p className="mt-1 text-sm text-gray-300">
+                      {detailOrder.cancellationReasonText}
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="border-t border-[#1f1f1f] pt-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Timeline</p>
                 <ul className="mt-2 space-y-2">
@@ -1060,6 +1173,85 @@ export default function AdminOrders() {
           <LoadingState label="Fetching order details…" />
         )}
       </AdminDrawer>
+
+      {cancelModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#2a2a2a] bg-[#151b24] p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-white">Cancel Order</h3>
+            <p className="mt-0.5 text-sm text-gray-400">
+              Record why this order is being canceled. The buyer is notified with this reason.
+            </p>
+
+            <div className="mt-5 space-y-4">
+              <div>
+                <label
+                  htmlFor="admin-cancel-reason"
+                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500"
+                >
+                  Reason
+                </label>
+                <select
+                  id="admin-cancel-reason"
+                  value={cancelModal.reason}
+                  onChange={(e) =>
+                    setCancelModal((prev) =>
+                      prev
+                        ? { ...prev, reason: e.target.value as OrderCancellationReason }
+                        : prev,
+                    )
+                  }
+                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#0d1117] px-3 py-2.5 text-sm text-white focus:border-primary focus:outline-none"
+                >
+                  {ADMIN_CANCELLATION_REASON_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="admin-cancel-text"
+                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500"
+                >
+                  Details {cancelModal.reason === 'OTHER' ? '(required)' : '(optional)'}
+                </label>
+                <textarea
+                  id="admin-cancel-text"
+                  value={cancelModal.text}
+                  onChange={(e) =>
+                    setCancelModal((prev) => (prev ? { ...prev, text: e.target.value } : prev))
+                  }
+                  rows={3}
+                  maxLength={1000}
+                  placeholder="Add context for the buyer and audit log…"
+                  className="w-full resize-none rounded-lg border border-[#2a2a2a] bg-[#0d1117] px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:border-primary focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setCancelModal(null)}
+                disabled={updateOrderStatus.isPending}
+                className="rounded-lg border border-[#2a2a2a] px-4 py-2 text-sm font-semibold text-gray-200 transition hover:bg-[#1c232e] disabled:opacity-50"
+              >
+                Keep Order
+              </button>
+              <button
+                type="button"
+                onClick={submitAdminCancel}
+                disabled={updateOrderStatus.isPending}
+                className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-60"
+              >
+                {updateOrderStatus.isPending ? 'Canceling…' : 'Cancel Order'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

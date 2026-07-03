@@ -3,15 +3,22 @@ import { toast } from 'react-hot-toast';
 import {
   fetchAdminOrderById,
   fetchAdminOrders,
+  fetchCancellationBreakdown,
   fetchOrderValidTransitions,
   updateOrderStatusRequest,
 } from '../../admin/api';
-import { AdminOrder, AdminOrderStatus } from '../../admin/types';
+import {
+  AdminOrder,
+  AdminOrderStatus,
+  CancellationBreakdown,
+  OrderCancellationReason,
+} from '../../admin/types';
 
 const orderKeys = {
   all: ['admin', 'orders'] as const,
   detail: (orderId: string) => ['admin', 'orders', orderId] as const,
   validTransitions: (orderId: string) => ['admin', 'orders', orderId, 'valid-transitions'] as const,
+  cancellationBreakdown: ['admin', 'orders', 'cancellation-breakdown'] as const,
 };
 
 function getAdminOrdersErrorMessage(error: unknown): string {
@@ -77,13 +84,27 @@ export function useOrderStatusMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ orderId, status }: { orderId: string; status: AdminOrderStatus }) =>
-      updateOrderStatusRequest(orderId, status),
+    mutationFn: ({
+      orderId,
+      status,
+      cancellationReason,
+      cancellationReasonText,
+    }: {
+      orderId: string;
+      status: AdminOrderStatus;
+      cancellationReason?: OrderCancellationReason;
+      cancellationReasonText?: string;
+    }) =>
+      updateOrderStatusRequest(orderId, status, {
+        cancellationReason,
+        cancellationReasonText,
+      }),
     onSuccess: async (_, variables) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: orderKeys.all }),
         queryClient.invalidateQueries({ queryKey: orderKeys.detail(variables.orderId) }),
         queryClient.invalidateQueries({ queryKey: orderKeys.validTransitions(variables.orderId) }),
+        queryClient.invalidateQueries({ queryKey: orderKeys.cancellationBreakdown }),
       ]);
       toast.success('Order status updated.');
     },
@@ -91,6 +112,15 @@ export function useOrderStatusMutation() {
       console.error(error);
       toast.error(getOrderStatusErrorMessage(error));
     },
+  });
+}
+
+export function useCancellationBreakdown(options?: { refetchInterval?: number | false }) {
+  return useQuery<CancellationBreakdown>({
+    queryKey: orderKeys.cancellationBreakdown,
+    queryFn: fetchCancellationBreakdown,
+    refetchInterval: options?.refetchInterval ?? 60_000,
+    retry: 1,
   });
 }
 

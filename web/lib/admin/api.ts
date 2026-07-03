@@ -55,6 +55,8 @@ import {
   BroadcastAudience,
   AudienceFilters,
   AdminLocationsResponse,
+  OrderCancellationReason,
+  CancellationBreakdown,
 } from './types';
 
 const ADMIN_DASHBOARD_CACHE_TAG = 'admin-dashboard';
@@ -457,8 +459,24 @@ export async function fetchOrderValidTransitions(orderId: string): Promise<Admin
   return (normalized?.validTransitions ?? []) as AdminOrderStatus[];
 }
 
-export async function updateOrderStatusRequest(orderId: string, status: AdminOrderStatus): Promise<void> {
-  await apiClient.put(`/orders/${orderId}/status`, { status });
+export async function updateOrderStatusRequest(
+  orderId: string,
+  status: AdminOrderStatus,
+  options?: { cancellationReason?: OrderCancellationReason; cancellationReasonText?: string },
+): Promise<void> {
+  const body: Record<string, unknown> = { status };
+  if (options?.cancellationReason) {
+    body.cancellationReason = options.cancellationReason;
+  }
+  if (options?.cancellationReasonText) {
+    body.cancellationReasonText = options.cancellationReasonText;
+  }
+  await apiClient.put(`/orders/${orderId}/status`, body);
+}
+
+export async function fetchCancellationBreakdown(): Promise<CancellationBreakdown> {
+  const { data } = await apiClient.get('/orders/admin/cancellation-breakdown');
+  return normalizeResponse<CancellationBreakdown>(data);
 }
 
 export async function fetchActiveDeliveries(): Promise<AdminDelivery[]> {

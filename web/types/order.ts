@@ -25,12 +25,24 @@ export interface Delivery {
   estimatedDelivery?: string;
 }
 
+export type OrderCancellationReason =
+  | 'SELLER_UNAVAILABLE'
+  | 'BUYER_CANCELLED'
+  | 'PAYMENT_FAILED'
+  | 'OUT_OF_STOCK'
+  | 'LOGISTICS_ISSUE'
+  | 'OTHER'
+  | 'UNKNOWN_PRE_FEATURE';
+
 export interface Order {
   id: string;
   userId: string;
   items: OrderItem[];
   amount: number;
   status: string;
+  cancellationReason?: OrderCancellationReason | null;
+  cancellationReasonText?: string | null;
+  canceledAt?: string | null;
   paymentRef?: string;
   delivery?: Delivery;
   createdAt: string;

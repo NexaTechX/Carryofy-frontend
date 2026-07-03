@@ -11,6 +11,8 @@ import {
   formatSellerPayoutLabel,
   sellerPayoutDetailMessage,
 } from '../../../../lib/seller/order-payout';
+import type { OrderCancellationReason } from '../../../../types/order';
+import { cancellationReasonLabel } from '../../../../lib/orders/cancellationReason';
 import toast from 'react-hot-toast';
 
 interface OrderItem {
@@ -45,6 +47,9 @@ interface Order {
   yourPayoutKobo?: number | null;
   payoutStatus?: 'awaiting_payment' | 'pending_confirmation' | 'confirmed' | 'canceled';
   status: string;
+  cancellationReason?: OrderCancellationReason | null;
+  cancellationReasonText?: string | null;
+  canceledAt?: string | null;
   paymentRef?: string;
   delivery?: Delivery;
   createdAt: string;
@@ -301,6 +306,24 @@ export default function OrderDetailPage() {
               )}
             </div>
           </div>
+
+          {order.status === 'CANCELED' && order.cancellationReason && (
+            <div className="px-4 pt-2">
+              <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-red-300/90">
+                  Cancellation reason
+                </p>
+                <p className="mt-0.5 text-sm font-medium text-white">
+                  {cancellationReasonLabel(order.cancellationReason)}
+                </p>
+                {order.cancellationReasonText && (
+                  <p className="mt-1 text-sm text-[#ffcc99]/80">
+                    {order.cancellationReasonText}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="px-4 py-3">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

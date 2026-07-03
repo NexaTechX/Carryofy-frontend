@@ -94,6 +94,26 @@ export interface OrderDistributionResponse {
   total: number;
 }
 
+export type OrderCancellationReason =
+  | 'SELLER_UNAVAILABLE'
+  | 'BUYER_CANCELLED'
+  | 'PAYMENT_FAILED'
+  | 'OUT_OF_STOCK'
+  | 'LOGISTICS_ISSUE'
+  | 'OTHER'
+  | 'UNKNOWN_PRE_FEATURE';
+
+export interface CancellationReasonEntry {
+  reason: OrderCancellationReason;
+  count: number;
+  percentage: number;
+}
+
+export interface CancellationBreakdown {
+  total: number;
+  breakdown: CancellationReasonEntry[];
+}
+
 export interface LowStockItem {
   productId: string;
   productTitle: string;
@@ -331,6 +351,9 @@ export interface AdminOrder {
   userId: string;
   amount: number;
   status: AdminOrderStatus;
+  cancellationReason?: OrderCancellationReason | null;
+  cancellationReasonText?: string | null;
+  canceledAt?: string | null;
   paymentRef?: string;
   createdAt: string;
   updatedAt: string;

@@ -31,6 +31,11 @@ import RefundRequestModal from '../../../components/buyer/RefundRequestModal';
 import { useConfirmation } from '../../../lib/hooks/useConfirmation';
 import { formatDateTime, formatNgnFromKobo } from '../../../lib/api/utils';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
+import type { OrderCancellationReason } from '../../../types/order';
+import {
+  BUYER_CANCELLATION_REASON_OPTIONS,
+  cancellationReasonLabel,
+} from '../../../lib/orders/cancellationReason';
 
 interface OrderItem {
   id: string;
@@ -62,6 +67,9 @@ interface OrderDetail {
   userId: string;
   amount: number;
   status: string;
+  cancellationReason?: OrderCancellationReason | null;
+  cancellationReasonText?: string | null;
+  canceledAt?: string | null;
   paymentRef?: string;
   paystackReference?: string;
   createdAt: string;
@@ -161,6 +169,11 @@ export default function BuyerOrderDetailPage() {
     proofUploadedAt?: string;
   } | null>(null);
   const confirmation = useConfirmation();
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState<OrderCancellationReason>(
+    BUYER_CANCELLATION_REASON_OPTIONS[0].value,
+  );
+  const [cancelReasonText, setCancelReasonText] = useState('');
 
   // Fetch order details
   const fetchOrder = async (orderId: string) => {
@@ -464,25 +477,32 @@ export default function BuyerOrderDetailPage() {
     }
   };
 
-  // Handle canceling order
-  const handleCancelOrder = async () => {
+  // Open the cancellation modal (buyer must choose a reason)
+  const handleCancelOrder = () => {
     if (!order) return;
+    setCancelReason(BUYER_CANCELLATION_REASON_OPTIONS[0].value);
+    setCancelReasonText('');
+    setCancelModalOpen(true);
+  };
 
-    const confirmed = await confirmation.confirm({
-      title: 'Cancel Order',
-      message: 'Are you sure you want to cancel this order?',
-      confirmText: 'Cancel Order',
-      cancelText: 'Keep Order',
-      variant: 'warning',
-    });
-
-    if (!confirmed) return;
+  // Submit the cancellation with the selected structured reason
+  const submitCancelOrder = async () => {
+    if (!order) return;
+    const trimmedText = cancelReasonText.trim();
+    // Require a description when "Other" is selected.
+    if (cancelReason === 'OTHER' && !trimmedText) {
+      showErrorToast('Please describe your reason for canceling.');
+      return;
+    }
 
     try {
       setCanceling(true);
-      confirmation.setLoading(true);
-      await apiClient.put(`/orders/${order.id}/cancel`);
+      await apiClient.put(`/orders/${order.id}/cancel`, {
+        cancellationReason: cancelReason,
+        ...(trimmedText ? { cancellationReasonText: trimmedText } : {}),
+      });
       showSuccessToast('Order canceled successfully');
+      setCancelModalOpen(false);
       // Refresh order details
       await fetchOrder(order.id);
     } catch (err: unknown) {
@@ -493,7 +513,6 @@ export default function BuyerOrderDetailPage() {
       showErrorToast(errorMessage);
     } finally {
       setCanceling(false);
-      confirmation.setLoading(false);
     }
   };
 
@@ -661,6 +680,21 @@ export default function BuyerOrderDetailPage() {
                               ? 'This order was canceled. If you still need the items, you can place a new order.'
                               : 'The payment for this order failed or was abandoned. Please try again or place a new order.'}
                           </p>
+                          {order.status === 'CANCELED' && order.cancellationReason && (
+                            <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-red-300/90">
+                                Cancellation reason
+                              </p>
+                              <p className="text-sm font-medium text-white mt-0.5">
+                                {cancellationReasonLabel(order.cancellationReason)}
+                              </p>
+                              {order.cancellationReasonText && (
+                                <p className="text-sm text-[#ffcc99]/80 mt-1">
+                                  {order.cancellationReasonText}
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1057,6 +1091,87 @@ export default function BuyerOrderDetailPage() {
         onCancel={confirmation.handleCancel}
         loading={confirmation.loading}
       />
+
+      {cancelModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#2d3849] bg-[#1c2432] p-6 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-400">
+                <XCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Cancel Order</h3>
+                <p className="mt-0.5 text-sm text-[#ffcc99]/80">
+                  Tell us why you&apos;re canceling. This helps us improve.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div>
+                <label
+                  htmlFor="cancel-reason"
+                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#ffcc99]/70"
+                >
+                  Reason
+                </label>
+                <select
+                  id="cancel-reason"
+                  value={cancelReason}
+                  onChange={(e) =>
+                    setCancelReason(e.target.value as OrderCancellationReason)
+                  }
+                  className="w-full rounded-lg border border-[#2d3849] bg-[#10151d] px-3 py-2.5 text-sm text-white focus:border-primary focus:outline-none"
+                >
+                  {BUYER_CANCELLATION_REASON_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="cancel-reason-text"
+                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#ffcc99]/70"
+                >
+                  Details {cancelReason === 'OTHER' ? '(required)' : '(optional)'}
+                </label>
+                <textarea
+                  id="cancel-reason-text"
+                  value={cancelReasonText}
+                  onChange={(e) => setCancelReasonText(e.target.value)}
+                  rows={3}
+                  maxLength={1000}
+                  placeholder="Add any extra detail…"
+                  className="w-full resize-none rounded-lg border border-[#2d3849] bg-[#10151d] px-3 py-2.5 text-sm text-white placeholder:text-[#ffcc99]/40 focus:border-primary focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setCancelModalOpen(false)}
+                disabled={canceling}
+                className="rounded-lg border border-[#2d3849] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#232e41] disabled:opacity-50"
+              >
+                Keep Order
+              </button>
+              <button
+                type="button"
+                onClick={submitCancelOrder}
+                disabled={canceling}
+                className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-60"
+              >
+                {canceling && <Loader2 className="h-4 w-4 animate-spin" />}
+                Cancel Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

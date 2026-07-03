@@ -208,8 +208,6 @@ export default function AdminAnalytics() {
   const processedGmv = metrics?.periodProcessedGmvKobo ?? 0;
   const platformCommission = metrics?.platformCommissionKobo ?? 0;
   const deliverySpreadKobo = metrics?.deliverySpreadKobo ?? 0;
-  const platformRevenueKobo =
-    metrics?.platformRevenueKobo ?? platformCommission + deliverySpreadKobo;
   const riderPayoutTotalKobo =
     metrics?.riderPayoutTotalKobo ?? metrics?.riderCommissionKobo ?? 0;
   const aovKobo = totalOrders > 0 ? Math.round(totalRevenueKobo / totalOrders) : 0;
@@ -434,14 +432,25 @@ export default function AdminAnalytics() {
               </KpiCard>
 
               <KpiCard
-                label="Platform revenue"
-                description="Seller commission plus delivery spread (period)"
+                label="Seller commission revenue"
+                description="Platform cut of product sales (period)"
                 loading={kpiLoading}
-                trendPct={pctDelta(platformRevenueKobo, prior?.platformRevenueKobo ?? 0)}
+                trendPct={pctDelta(platformCommission, prior?.platformCommissionKobo ?? 0)}
                 trendSuffix={vsSuffix}
                 fetching={dashboardFetching}
               >
-                {formatNairaKobo(platformRevenueKobo)}
+                {formatNairaKobo(platformCommission)}
+              </KpiCard>
+
+              <KpiCard
+                label="Delivery commission revenue"
+                description="Platform spread on delivery fees (period)"
+                loading={kpiLoading}
+                trendPct={pctDelta(deliverySpreadKobo, prior?.deliverySpreadKobo ?? 0)}
+                trendSuffix={vsSuffix}
+                fetching={dashboardFetching}
+              >
+                {formatNairaKobo(deliverySpreadKobo)}
               </KpiCard>
 
               <KpiCard

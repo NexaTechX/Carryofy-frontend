@@ -114,6 +114,14 @@ export interface CancellationBreakdown {
   breakdown: CancellationReasonEntry[];
 }
 
+/** Aggregate funnel stats across ALL orders (GET /orders/admin/stats). */
+export interface AdminOrderStats {
+  statusCounts: Record<string, number>;
+  deliveredToday: number;
+  cancelledToday: number;
+  stalled: { count: number; oldestOrderId: string | null };
+}
+
 export interface LowStockItem {
   productId: string;
   productTitle: string;

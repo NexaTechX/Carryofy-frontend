@@ -27,18 +27,20 @@ const ROUTE_TIER_REQUIREMENTS: Record<string, AdminTier[]> = {
 };
 
 export function normalizeAdminTier(value: string | null | undefined): AdminTier {
-  const v = (value ?? 'SUPER_ADMIN').toUpperCase();
+  const v = (value ?? '').toUpperCase();
   if (v === 'OPS' || v === 'FINANCE' || v === 'SUPPORT' || v === 'SUPER_ADMIN') {
     return v;
   }
-  return 'SUPER_ADMIN';
+  // Fail safe: unknown/missing roles get the most restrictive tier so a loading
+  // profile or an unrecognized backend role never grants super-admin access.
+  return 'SUPPORT';
 }
 
 export function canAccessAdminRoute(
   href: string,
   tier: AdminTier | null | undefined,
 ): boolean {
-  const normalized = normalizeAdminTier(tier ?? 'SUPER_ADMIN');
+  const normalized = normalizeAdminTier(tier);
   if (normalized === 'SUPER_ADMIN') return true;
 
   // Match exact route or longest registered prefix (e.g. /admin/orders/abc → /admin/orders)

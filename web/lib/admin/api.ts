@@ -57,6 +57,7 @@ import {
   AdminLocationsResponse,
   OrderCancellationReason,
   CancellationBreakdown,
+  AdminOrderStats,
   OperationalIssuesResponse,
 } from './types';
 
@@ -529,6 +530,16 @@ export async function updateOrderStatusRequest(
 export async function fetchCancellationBreakdown(): Promise<CancellationBreakdown> {
   const { data } = await apiClient.get('/orders/admin/cancellation-breakdown');
   return normalizeResponse<CancellationBreakdown>(data);
+}
+
+/** Aggregate funnel/stalled stats across ALL orders — not limited to one page. */
+export async function fetchAdminOrderStats(params?: {
+  orderType?: 'CONSUMER' | 'B2B';
+}): Promise<AdminOrderStats> {
+  const { data } = await apiClient.get('/orders/admin/stats', {
+    params: params?.orderType ? { orderType: params.orderType } : undefined,
+  });
+  return normalizeResponse<AdminOrderStats>(data);
 }
 
 export async function fetchActiveDeliveries(): Promise<AdminDelivery[]> {

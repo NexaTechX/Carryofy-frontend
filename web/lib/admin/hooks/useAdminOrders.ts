@@ -3,12 +3,14 @@ import { toast } from 'react-hot-toast';
 import {
   fetchAdminOrderById,
   fetchAdminOrdersPage,
+  fetchAdminOrderStats,
   fetchCancellationBreakdown,
   fetchOrderValidTransitions,
   updateOrderStatusRequest,
 } from '../../admin/api';
 import {
   AdminOrder,
+  AdminOrderStats,
   AdminOrderStatus,
   CancellationBreakdown,
   OrderCancellationReason,
@@ -20,6 +22,7 @@ const orderKeys = {
   detail: (orderId: string) => ['admin', 'orders', orderId] as const,
   validTransitions: (orderId: string) => ['admin', 'orders', orderId, 'valid-transitions'] as const,
   cancellationBreakdown: ['admin', 'orders', 'cancellation-breakdown'] as const,
+  stats: (orderType?: string) => ['admin', 'orders', 'stats', orderType ?? 'ALL'] as const,
 };
 
 export interface AdminOrdersPageResult {
@@ -68,6 +71,19 @@ export function useAdminOrders(options?: {
         throw new Error(getAdminOrdersErrorMessage(error));
       }
     },
+    refetchInterval: options?.refetchInterval ?? 30_000,
+    retry: 1,
+  });
+}
+
+/** Aggregate funnel/stalled stats across ALL orders — independent of list pagination. */
+export function useAdminOrderStats(options?: {
+  refetchInterval?: number | false;
+  orderType?: 'CONSUMER' | 'B2B';
+}) {
+  return useQuery<AdminOrderStats>({
+    queryKey: orderKeys.stats(options?.orderType),
+    queryFn: () => fetchAdminOrderStats({ orderType: options?.orderType }),
     refetchInterval: options?.refetchInterval ?? 30_000,
     retry: 1,
   });

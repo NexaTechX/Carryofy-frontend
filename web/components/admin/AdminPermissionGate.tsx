@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ShieldOff } from 'lucide-react';
+import { LoadingState } from './ui';
 import {
   canAccessAdminRoute,
   normalizeAdminTier,
@@ -10,6 +11,8 @@ import {
 
 interface AdminPermissionGateProps {
   adminRole?: string | null;
+  /** While the admin profile is loading, show a spinner instead of assuming a tier. */
+  isRoleLoading?: boolean;
   children: React.ReactNode;
 }
 
@@ -19,11 +22,16 @@ interface AdminPermissionGateProps {
  */
 export default function AdminPermissionGate({
   adminRole,
+  isRoleLoading = false,
   children,
 }: AdminPermissionGateProps) {
   const router = useRouter();
   const tier = normalizeAdminTier(adminRole);
   const path = router.pathname ?? '/admin';
+
+  if (isRoleLoading && !adminRole) {
+    return <LoadingState fullscreen label="Checking permissions…" />;
+  }
 
   if (canAccessAdminRoute(path, tier)) {
     return <>{children}</>;

@@ -75,7 +75,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, []);
 
   const canFetchAdminData = isAuthenticated && !authLoading;
-  const { data: adminProfile } = useAdminProfile();
+  const { data: adminProfile, isLoading: adminProfileLoading } = useAdminProfile();
   const adminTier = adminProfile?.adminRole;
 
   const visibleNavGroups = useMemo(() => {
@@ -345,7 +345,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <AdminBreadcrumbs />
 
           <main className="flex-1 overflow-y-auto bg-background">
-            <AdminPermissionGate adminRole={adminTier}>
+            <AdminPermissionGate adminRole={adminTier} isRoleLoading={adminProfileLoading}>
               {children}
             </AdminPermissionGate>
           </main>

@@ -1,6 +1,7 @@
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useAdminDashboard } from '../../lib/admin/hooks/useAdminDashboard';
 import { useAdminProfile } from '../../lib/admin/hooks/useAdminProfile';
+import { useOperationalIssues } from '../../lib/admin/hooks/useOperationalIssues';
 import { useRefundStats } from '../../lib/admin/hooks/useRefunds';
 import { usePendingProducts } from '../../lib/admin/hooks/usePendingProducts';
 import {
@@ -23,13 +24,15 @@ import {
   Warehouse,
   ClipboardList,
 } from 'lucide-react';
-import { AdminCard, AdminErrorState, AdminPageHeader } from '../../components/admin/ui';
+import { AdminCard, AdminDrawer, AdminErrorState, AdminPageHeader } from '../../components/admin/ui';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useState } from 'react';
 import type {
   CommissionPeriodEntry,
   CohortRetentionResponse,
   DashboardMetrics,
+  OperationalIssue,
   SalesTrendPoint,
 } from '../../lib/admin/types';
 
@@ -154,8 +157,10 @@ function DashboardSkeleton() {
 }
 
 export default function AdminDashboard() {
+  const [issuesDrawerOpen, setIssuesDrawerOpen] = useState(false);
   const { data, isLoading, isError, error, refetch } = useAdminDashboard();
   const { data: profile } = useAdminProfile();
+  const { data: operationalIssues, isLoading: issuesLoading } = useOperationalIssues();
   const { data: refundStats } = useRefundStats();
   const { data: pendingProducts = [] } = usePendingProducts();
 
@@ -204,15 +209,11 @@ export default function AdminDashboard() {
 
   const pendingRefunds = refundStats?.pending ?? 0;
   const productsAwaitingReview = Array.isArray(pendingProducts) ? pendingProducts.length : 0;
-  const stalledOrders = metrics.pendingOrders ?? pendingPayments ?? 0;
 
-  const hasUrgentActions =
-    pendingSellerApprovals > 0 ||
-    productsAwaitingReview > 0 ||
-    pendingRefunds > 0 ||
-    stalledOrders > 0 ||
-    (pendingQuoteRequestsCount ?? 0) > 0;
-  const platformHealthy = !hasUrgentActions;
+  const issueTotal = operationalIssues?.total ?? 0;
+  const issueList = operationalIssues?.issues ?? [];
+  /** Green while issues are loading; amber when any operational issue exists. */
+  const platformHealthy = issuesLoading ? true : issueTotal === 0;
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', {
@@ -270,41 +271,44 @@ export default function AdminDashboard() {
     return { ...row, comparison };
   });
 
-  const urgentChips: { label: string; count: number; href: string }[] = [];
-  if (pendingSellerApprovals > 0) {
-    urgentChips.push({
-      label: 'Pending seller KYC approvals',
-      count: pendingSellerApprovals,
-      href: '/admin/sellers?kyc=pending',
-    });
-  }
-  if (productsAwaitingReview > 0) {
-    urgentChips.push({
-      label: 'Products awaiting review',
-      count: productsAwaitingReview,
-      href: '/admin/products?status=pending',
-    });
-  }
-  if (pendingRefunds > 0) {
-    urgentChips.push({
-      label: 'Overdue refunds',
-      count: pendingRefunds,
-      href: '/admin/refunds',
-    });
-  }
-  if (stalledOrders > 0) {
-    urgentChips.push({
-      label: 'Stalled orders',
-      count: stalledOrders,
-      href: '/admin/orders?status=PENDING_PAYMENT',
-    });
-  }
-  if ((pendingQuoteRequestsCount ?? 0) > 0) {
-    urgentChips.push({
-      label: 'Pending quote requests',
-      count: pendingQuoteRequestsCount,
-      href: '/admin/quote-requests',
-    });
+  const urgentChips: { label: string; count: number; href: string }[] = issueList.map(
+    (issue: OperationalIssue) => ({
+      label: issue.title,
+      count: issue.count,
+      href: issue.href,
+    }),
+  );
+
+  // Legacy fallback if operational-issues endpoint hasn't loaded yet
+  if (urgentChips.length === 0 && !issuesLoading) {
+    if (pendingSellerApprovals > 0) {
+      urgentChips.push({
+        label: 'Pending seller KYC approvals',
+        count: pendingSellerApprovals,
+        href: '/admin/sellers?filter=PENDING',
+      });
+    }
+    if (productsAwaitingReview > 0) {
+      urgentChips.push({
+        label: 'Products awaiting review',
+        count: productsAwaitingReview,
+        href: '/admin/products?status=pending',
+      });
+    }
+    if (pendingRefunds > 0) {
+      urgentChips.push({
+        label: 'Pending refunds',
+        count: pendingRefunds,
+        href: '/admin/refunds',
+      });
+    }
+    if ((pendingQuoteRequestsCount ?? 0) > 0) {
+      urgentChips.push({
+        label: 'Pending quote requests',
+        count: pendingQuoteRequestsCount ?? 0,
+        href: '/admin/quote-requests',
+      });
+    }
   }
 
   const categoryChartData = (topCategories?.categories || []).slice(0, 5).map((cat) => ({
@@ -349,7 +353,7 @@ export default function AdminDashboard() {
     { label: 'Add Product', href: '/admin/products', icon: Package },
     { label: 'View Warehouse', href: '/admin/warehouse', icon: Warehouse },
     { label: 'Generate Report', href: '/admin/reports', icon: ClipboardList },
-    { label: 'Approve Pending Sellers', href: '/admin/sellers?kyc=pending', icon: CheckCircle2 },
+    { label: 'Approve Pending Sellers', href: '/admin/sellers?filter=PENDING', icon: CheckCircle2 },
     { label: 'Send Broadcast', href: '/admin/broadcast', icon: Send },
     { label: 'View Live Map', href: '/admin/deliveries', icon: MapPin },
     { label: 'Process Refunds', href: '/admin/refunds', icon: Receipt },
@@ -368,12 +372,22 @@ export default function AdminDashboard() {
                 <p className="mt-1 text-sm text-gray-400">{dateStr}</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <span
-                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!platformHealthy) setIssuesDrawerOpen(true);
+                  }}
+                  disabled={platformHealthy}
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                     platformHealthy
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                      ? 'cursor-default bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                      : 'cursor-pointer bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 hover:border-amber-400/50'
                   }`}
+                  aria-label={
+                    platformHealthy
+                      ? 'All systems operational'
+                      : `${issueTotal} operational issues detected. Click to view.`
+                  }
                 >
                   {platformHealthy ? (
                     <>
@@ -383,10 +397,10 @@ export default function AdminDashboard() {
                   ) : (
                     <>
                       <AlertCircle className="h-4 w-4" />
-                      Issues Detected
+                      Issues Detected ({issueTotal})
                     </>
                   )}
-                </span>
+                </button>
                 <span className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
                   <Radio className="h-4 w-4" />
                   Live Mode
@@ -681,11 +695,31 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td colSpan={4} className="py-8 text-center text-gray-500">
-                        No product performance data this week. Connect a top-products report or API to populate this leaderboard.
-                      </td>
-                    </tr>
+                    {(data.topProducts ?? []).length > 0 ? (
+                      (data.topProducts ?? []).map((product, index) => (
+                        <tr
+                          key={product.productId}
+                          className="border-b border-border-custom/60 last:border-0"
+                        >
+                          <td className="py-3 pr-4 text-gray-400">{index + 1}</td>
+                          <td className="py-3 pr-4 font-medium text-foreground">
+                            {product.productTitle}
+                          </td>
+                          <td className="py-3 pr-4 text-right text-gray-300">
+                            {product.unitsSold.toLocaleString()}
+                          </td>
+                          <td className="py-3 text-right font-medium text-foreground">
+                            {formatCurrency(product.revenueKobo / 100)}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center text-gray-500">
+                          No product sales in the last 7 days.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -693,6 +727,56 @@ export default function AdminDashboard() {
           </section>
 
         </div>
+
+      <AdminDrawer
+        open={issuesDrawerOpen}
+        onClose={() => setIssuesDrawerOpen(false)}
+        title="Operational issues"
+        description={
+          issueTotal > 0
+            ? `${issueTotal} item${issueTotal === 1 ? '' : 's'} need attention across ${issueList.length} categor${issueList.length === 1 ? 'y' : 'ies'}.`
+            : 'No issues detected.'
+        }
+        className="max-w-lg"
+      >
+        {issueList.length === 0 ? (
+          <p className="text-sm text-gray-400">All monitored systems look healthy.</p>
+        ) : (
+          <ul className="space-y-3">
+            {issueList.map((issue) => (
+              <li
+                key={issue.key}
+                className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4"
+              >
+                <div className="flex items-start gap-3">
+                  <span
+                    className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${
+                      issue.severity === 'critical' ? 'bg-red-400' : 'bg-amber-400'
+                    }`}
+                    aria-hidden
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-white">{issue.title}</p>
+                      <span className="rounded-full bg-[#1a1f2e] px-2 py-0.5 text-xs font-bold text-gray-200">
+                        {issue.count}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-400">{issue.description}</p>
+                    <Link
+                      href={issue.href}
+                      onClick={() => setIssuesDrawerOpen(false)}
+                      className="mt-3 inline-flex text-xs font-semibold uppercase tracking-[0.12em] text-primary hover:text-primary-light"
+                    >
+                      Review →
+                    </Link>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </AdminDrawer>
     </AdminLayout>
   );
 }

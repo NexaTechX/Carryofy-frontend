@@ -139,6 +139,13 @@ export interface CohortRetentionResponse {
   message?: string;
 }
 
+export interface TopProductEntry {
+  productId: string;
+  productTitle: string;
+  unitsSold: number;
+  revenueKobo: number;
+}
+
 export interface AdminDashboardData {
   metrics: DashboardMetrics;
   salesTrend: SalesTrendResponse;
@@ -151,7 +158,24 @@ export interface AdminDashboardData {
   pendingPayments: number;
   pendingQuoteRequestsCount?: number;
   b2bOrdersCount?: number;
+  topProducts?: TopProductEntry[];
   dateRange?: { startDate?: string; endDate?: string };
+}
+
+export type OperationalIssueSeverity = 'critical' | 'warning';
+
+export interface OperationalIssue {
+  key: string;
+  severity: OperationalIssueSeverity;
+  title: string;
+  description: string;
+  count: number;
+  href: string;
+}
+
+export interface OperationalIssuesResponse {
+  total: number;
+  issues: OperationalIssue[];
 }
 
 export interface AdminProfile {
@@ -159,6 +183,7 @@ export interface AdminProfile {
   name: string;
   email: string;
   role: string;
+  adminRole?: 'SUPER_ADMIN' | 'OPS' | 'FINANCE' | 'SUPPORT' | null;
   phone?: string;
   verified: boolean;
   createdAt: string;
@@ -198,10 +223,15 @@ export interface AdminSeller {
     bvn?: string | null;
     submittedAt: string;
     rejectionReason?: string | null;
+    rejectionReasonCode?: string | null;
     rejectedBy?: string | null;
     rejectedAt?: string | null;
     submissionCount: number;
   } | null;
+  /** Internal admin/support note (never shown to the seller). */
+  adminNote?: string | null;
+  adminNoteUpdatedBy?: string | null;
+  adminNoteUpdatedAt?: string | null;
   // --- Onboarding profile detail (shown in the admin verification drawer) ---
   businessDescription?: string | null;
   sellingMode?: string | null;
@@ -630,7 +660,7 @@ export interface TeamMember {
   id: string;
   name: string;
   email: string;
-  role: 'Admin' | 'Support' | 'Finance';
+  role: 'SUPER_ADMIN' | 'OPS' | 'FINANCE' | 'SUPPORT';
   createdAt: string;
   /** Last time the member was active in the admin panel (ISO string). Shown in Settings when available. */
   lastActiveAt?: string;
@@ -639,13 +669,13 @@ export interface TeamMember {
 export interface CreateTeamMemberPayload {
   name: string;
   email: string;
-  role: 'Admin' | 'Support' | 'Finance';
+  role: 'SUPER_ADMIN' | 'OPS' | 'FINANCE' | 'SUPPORT';
 }
 
 export interface UpdateTeamMemberPayload {
   name?: string;
   email?: string;
-  role?: 'Admin' | 'Support' | 'Finance';
+  role?: 'SUPER_ADMIN' | 'OPS' | 'FINANCE' | 'SUPPORT';
 }
 
 export type BannerPlacement = 'HERO' | 'SHOP' | 'BOTH';

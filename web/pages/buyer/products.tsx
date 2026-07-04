@@ -93,6 +93,8 @@ export default function ProductsPage() {
   const [selectedSellerId, setSelectedSellerId] = useState('');
   /** Skip one sync from URL after we shallow-replace ?search= so typing is not overwritten */
   const skipSearchSyncRef = useRef(false);
+  /** Monotonic id so a slow earlier fetch (e.g. the unfiltered initial load) can't overwrite newer search results */
+  const fetchSeqRef = useRef(0);
 
   const b2bOnly = purchaseType === 'B2B' ? true : purchaseType === 'B2C' ? false : undefined;
 
@@ -212,6 +214,9 @@ export default function ProductsPage() {
   }, [showFiltersMobile]);
 
   const fetchProducts = async (searchOverride?: string, pageOverride?: number) => {
+    const fetchId = ++fetchSeqRef.current;
+    /** True while this fetch is still the latest one; stale fetches must not touch state. */
+    const isCurrent = () => fetchSeqRef.current === fetchId;
     try {
       setLoading(true);
       setError(null);
@@ -225,10 +230,13 @@ export default function ProductsPage() {
           setAiSearchLoading(true);
           const aiEndpoint = tokenManager.isAuthenticated() ? '/search/ai' : '/search/ai/public';
           const aiRes = await apiClient.post(aiEndpoint, { query: searchTerm });
+          if (!isCurrent()) return;
           const aiData = (aiRes.data as { data?: unknown })?.data ?? aiRes.data;
           const aiResults = (aiData as { results?: Product[] })?.results;
           const interpreted = (aiData as { interpreted?: { intent?: string } })?.interpreted;
-          if (Array.isArray(aiResults)) {
+          // Only trust AI results when it actually matched something —
+          // otherwise fall through to keyword search below.
+          if (Array.isArray(aiResults) && aiResults.length > 0) {
             setProducts(
               aiResults.map((r) => ({
                 id: r.id,
@@ -253,7 +261,7 @@ export default function ProductsPage() {
         } catch {
           // silent fallback to keyword search
         } finally {
-          setAiSearchLoading(false);
+          if (isCurrent()) setAiSearchLoading(false);
         }
       }
 
@@ -280,6 +288,7 @@ export default function ProductsPage() {
       if (selectedSellerId) params.append('sellerId', selectedSellerId);
 
       const response = await apiClient.get<ProductsResponse>(`/products?${params.toString()}`);
+      if (!isCurrent()) return;
       const responseData = (response.data as any).data || response.data;
 
       if (responseData && Array.isArray(responseData.products)) {
@@ -292,6 +301,7 @@ export default function ProductsPage() {
         setTotal(0);
       }
     } catch (err: any) {
+      if (!isCurrent()) return;
       setError(
         isApiConnectionError(err)
           ? getApiConnectionErrorMessage('load')
@@ -301,7 +311,7 @@ export default function ProductsPage() {
       setTotalPages(1);
       setTotal(0);
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   };
 

@@ -6,8 +6,9 @@ import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import { Gift, ArrowLeft, Copy, Share2, CheckCircle2, UserPlus } from 'lucide-react';
 import { getMyReferralCode, getMyReferrals, type MyReferralsResponse } from '../../lib/api/referral';
-import { formatNgnFromKobo } from '../../lib/api/utils';
-import { showSuccessToast, showErrorToast } from '../../lib/ui/toast';
+import { formatNgnFromKobo, isApiConnectionError, getApiConnectionErrorMessage } from '../../lib/api/utils';
+import { showSuccessToast } from '../../lib/ui/toast';
+import LoadFailedState from '../../components/buyer/LoadFailedState';
 
 export default function BuyerReferralsPage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function BuyerReferralsPage() {
   const [code, setCode] = useState<string | null>(null);
   const [referrals, setReferrals] = useState<MyReferralsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -30,24 +32,31 @@ export default function BuyerReferralsPage() {
     }
   }, [router]);
 
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setLoadError(null);
+      const [codeRes, referralsRes] = await Promise.all([
+        getMyReferralCode(),
+        getMyReferrals(),
+      ]);
+      setCode(codeRes.code);
+      setReferrals(referralsRes);
+    } catch (err: any) {
+      setLoadError(
+        isApiConnectionError(err)
+          ? getApiConnectionErrorMessage('load')
+          : err?.response?.data?.message || null,
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!mounted) return;
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [codeRes, referralsRes] = await Promise.all([
-          getMyReferralCode(),
-          getMyReferrals(),
-        ]);
-        setCode(codeRes.code);
-        setReferrals(referralsRes);
-      } catch (err: any) {
-        showErrorToast(err.response?.data?.message || 'Failed to load referral data');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted]);
 
   const shareUrl = typeof window !== 'undefined' && code
@@ -97,6 +106,8 @@ export default function BuyerReferralsPage() {
 
           {loading ? (
             <p className="text-gray-400">Loading…</p>
+          ) : loadError ? (
+            <LoadFailedState label="referral details" message={loadError} onRetry={fetchData} />
           ) : (
             <>
               {code && (

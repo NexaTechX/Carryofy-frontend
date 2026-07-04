@@ -6,7 +6,8 @@ import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { tokenManager, userManager } from '../../lib/auth';
 import { Wallet as WalletIcon, ArrowLeft, Gift, CreditCard, RotateCcw, Truck } from 'lucide-react';
 import { getWalletBalance, getWalletTransactions, type WalletTransaction } from '../../lib/api/wallet';
-import { formatNgnFromKobo } from '../../lib/api/utils';
+import { formatNgnFromKobo, isApiConnectionError, getApiConnectionErrorMessage } from '../../lib/api/utils';
+import LoadFailedState from '../../components/buyer/LoadFailedState';
 
 const TYPE_LABEL: Record<string, string> = {
   REFERRAL_REWARD: 'Referral reward',
@@ -21,6 +22,7 @@ export default function BuyerWalletPage() {
   const [balanceKobo, setBalanceKobo] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -35,25 +37,31 @@ export default function BuyerWalletPage() {
     }
   }, [router]);
 
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setLoadError(null);
+      const [bal, tx] = await Promise.all([
+        getWalletBalance(),
+        getWalletTransactions({ limit: 50 }),
+      ]);
+      setBalanceKobo(bal?.balanceKobo ?? 0);
+      setTransactions(Array.isArray(tx?.transactions) ? tx.transactions : []);
+    } catch (err: any) {
+      setLoadError(
+        isApiConnectionError(err)
+          ? getApiConnectionErrorMessage('load')
+          : err?.response?.data?.message || null,
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!mounted) return;
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [bal, tx] = await Promise.all([
-          getWalletBalance(),
-          getWalletTransactions({ limit: 50 }),
-        ]);
-        setBalanceKobo(bal?.balanceKobo ?? 0);
-        setTransactions(Array.isArray(tx?.transactions) ? tx.transactions : []);
-      } catch {
-        setBalanceKobo(0);
-        setTransactions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted]);
 
   return (
@@ -77,6 +85,8 @@ export default function BuyerWalletPage() {
 
           {loading ? (
             <p className="text-gray-400">Loading…</p>
+          ) : loadError ? (
+            <LoadFailedState label="rewards" message={loadError} onRetry={fetchData} />
           ) : (
             <>
               <div className="rounded-xl border border-[#1f2432] bg-[#0e131d] p-6 mb-6">

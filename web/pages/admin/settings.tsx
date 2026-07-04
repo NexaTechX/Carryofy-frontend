@@ -11,6 +11,11 @@ import {
   useDeleteTeamMember,
 } from '../../lib/admin/hooks/useSettings';
 import { TeamMember } from '../../lib/admin/types';
+import {
+  ADMIN_TIER_LABELS,
+  TEAM_TIER_OPTIONS,
+  type AdminTier,
+} from '../../lib/admin/adminPermissions';
 import { LoadingState } from '../../components/admin/ui';
 import CommissionSplitSettings from '../../components/admin/CommissionSplitSettings';
 import { useConfirmation } from '../../lib/hooks/useConfirmation';
@@ -20,7 +25,7 @@ type TeamMemberForm = {
   id?: string;
   name: string;
   email: string;
-  role: 'Admin' | 'Support' | 'Finance';
+  role: AdminTier;
 };
 
 type SortKey = 'name' | 'email' | 'role' | 'lastActiveAt';
@@ -719,11 +724,18 @@ export default function AdminSettings() {
             {openSections.team && (
               <div className="border-t border-[#1f1f1f] p-6">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <p className="text-sm text-gray-400">Control access across your admin team.</p>
-                  {/* SECTION 6.2 — resolved: creation disabled until invite flow ships (API returns 501) */}
-                  <p className="text-sm text-amber-200/90">
-                    Adding team members from the dashboard is not available yet.
+                  <p className="text-sm text-gray-400">
+                    Control access across your admin team. New members receive a password-setup email.
                   </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMemberModal({ name: '', email: '', role: 'SUPPORT' })
+                    }
+                    className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-black transition hover:bg-[#ff9140]"
+                  >
+                    Add member
+                  </button>
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -735,9 +747,11 @@ export default function AdminSettings() {
                       className="rounded-lg border border-[#2a2a2a] bg-[#151515] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
                     >
                       <option value="all">All roles</option>
-                      <option value="Admin">Admin</option>
-                      <option value="Support">Support</option>
-                      <option value="Finance">Finance</option>
+                      {TEAM_TIER_OPTIONS.map((tier) => (
+                        <option key={tier} value={tier}>
+                          {ADMIN_TIER_LABELS[tier]}
+                        </option>
+                      ))}
                     </select>
                   </label>
                 </div>
@@ -777,7 +791,7 @@ export default function AdminSettings() {
                             <td className="px-6 py-4">{member.email}</td>
                             <td className="px-6 py-4">
                               <span className="inline-flex rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                                {member.role}
+                                {ADMIN_TIER_LABELS[member.role] ?? member.role}
                               </span>
                             </td>
                             <td className="px-6 py-4 text-gray-400">{formatLastActive(member.lastActiveAt)}</td>
@@ -996,13 +1010,18 @@ export default function AdminSettings() {
                     <select
                       value={memberModal.role}
                       onChange={(e) =>
-                        setMemberModal({ ...memberModal, role: e.target.value as 'Admin' | 'Support' | 'Finance' })
+                        setMemberModal({
+                          ...memberModal,
+                          role: e.target.value as AdminTier,
+                        })
                       }
                       className={`${inputClass} mt-2`}
                     >
-                      <option value="Admin">Admin</option>
-                      <option value="Support">Support</option>
-                      <option value="Finance">Finance</option>
+                      {TEAM_TIER_OPTIONS.map((tier) => (
+                        <option key={tier} value={tier}>
+                          {ADMIN_TIER_LABELS[tier]}
+                        </option>
+                      ))}
                     </select>
                   </label>
                 </div>

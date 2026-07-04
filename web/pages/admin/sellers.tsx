@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/router';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
   AdminCard,
@@ -29,10 +30,19 @@ import DocumentViewer from '../../components/admin/DocumentViewer';
 import SellerOnboardingDetails from '../../components/admin/SellerOnboardingDetails';
 import KycAuditLog from '../../components/admin/KycAuditLog';
 import { Download, ChevronDown, ChevronRight, MoreVertical, Send, Eye, CheckCircle, PauseCircle, MessageSquare } from 'lucide-react';
-import { bulkApproveSellersRequest, bulkRejectSellersRequest, sendKycReminderRequest } from '../../lib/admin/api';
+import {
+  bulkApproveSellersRequest,
+  bulkRejectSellersRequest,
+  sendKycReminderRequest,
+  updateSellerAdminNoteRequest,
+} from '../../lib/admin/api';
+import { KYC_REJECTION_REASONS, kycRejectionReasonLabel } from '../../lib/kyc/rejection-reasons';
 import { formatDate } from '../../lib/api/utils';
 
-const SELLER_FILTERS = ['ALL', 'PENDING', 'NOT_SUBMITTED', 'APPROVED', 'REJECTED', 'KYC_EXPIRING'] as const;
+/** Must match MAX_KYC_SUBMISSION_ATTEMPTS on the backend. */
+const MAX_KYC_SUBMISSIONS = 5;
+
+const SELLER_FILTERS = ['ALL', 'PENDING', 'NOT_SUBMITTED', 'APPROVED', 'REJECTED'] as const;
 type SellerFilter = (typeof SELLER_FILTERS)[number];
 
 const statusTone: Record<string, 'neutral' | 'success' | 'warning' | 'danger'> = {
@@ -40,7 +50,6 @@ const statusTone: Record<string, 'neutral' | 'success' | 'warning' | 'danger'> =
   PENDING: 'warning',
   APPROVED: 'success',
   REJECTED: 'danger',
-  EXPIRED: 'danger',
 };
 
 const statusLabel: Record<string, string> = {
@@ -48,11 +57,7 @@ const statusLabel: Record<string, string> = {
   PENDING: 'Pending review',
   APPROVED: 'Verified',
   REJECTED: 'Rejected',
-  EXPIRED: 'Expired',
 };
-
-/** KYC expires within this many days = "expiring soon" */
-const KYC_EXPIRING_DAYS = 30;
 
 /** Derive risk score when backend does not provide it (e.g. from status). */
 function getRiskScore(seller: AdminSeller): SellerRiskScore {
@@ -61,15 +66,6 @@ function getRiskScore(seller: AdminSeller): SellerRiskScore {
   if (seller.kycStatus === 'PENDING') return 'Medium';
   if (seller.kycStatus === 'NOT_SUBMITTED') return 'Low';
   return 'Low';
-}
-
-/** Whether seller's KYC expires within the next 30 days. */
-function isKycExpiringSoon(expiresAt: string | null | undefined): boolean {
-  if (!expiresAt) return false;
-  const exp = new Date(expiresAt);
-  const now = new Date();
-  const days = (exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-  return days >= 0 && days <= KYC_EXPIRING_DAYS;
 }
 
 /** Format revenue from minor units to ₦ display. */
@@ -91,39 +87,62 @@ function businessTypeBadge(businessType: string | null | undefined): string {
 }
 
 export default function AdminSellers() {
+  const router = useRouter();
   const [filter, setFilter] = useState<SellerFilter>('PENDING');
   const [selectedSeller, setSelectedSeller] = useState<AdminSeller | null>(null);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [sellerToReject, setSellerToReject] = useState<AdminSeller | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
-  const [selectedPredefinedReason, setSelectedPredefinedReason] = useState<string>('');
+  const [selectedReasonCode, setSelectedReasonCode] = useState<string>('');
   const [selectedSellerIds, setSelectedSellerIds] = useState<Set<string>>(new Set());
-
-  const PREDEFINED_REJECTION_REASONS = [
-    'ID document is unclear or unreadable',
-    'ID document does not match provided information',
-    'Missing required documents',
-    'Documents are expired or invalid',
-    'Business registration documents are missing or invalid',
-    'Tax ID is missing or invalid',
-    'Address proof is missing or invalid',
-    'BVN verification failed',
-    'Duplicate ID number detected',
-    'Suspicious or fraudulent information',
-    'Incomplete application',
-    'Other (specify below)',
-  ];
   const [searchQuery, setSearchQuery] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [businessTypeFilter, setBusinessTypeFilter] = useState<string>('');
-  const [expirationStartDate, setExpirationStartDate] = useState('');
-  const [expirationEndDate, setExpirationEndDate] = useState('');
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const [complianceNotes, setComplianceNotes] = useState<Record<string, string>>({});
+  const [noteSaving, setNoteSaving] = useState(false);
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
 
   const { data: sellers, isLoading, isError, error, refetch } = useAdminSellers();
+
+  // Deep-link support: /admin/sellers?filter=PENDING|...
+  useEffect(() => {
+    if (!router.isReady) return;
+    const raw = router.query.filter;
+    const value = typeof raw === 'string' ? raw.toUpperCase() : '';
+    if (value && (SELLER_FILTERS as readonly string[]).includes(value)) {
+      setFilter(value as SellerFilter);
+    }
+  }, [router.isReady, router.query.filter]);
+
+  // Seed the compliance-note draft from the persisted admin note when a seller is opened.
+  useEffect(() => {
+    if (!selectedSeller) return;
+    setComplianceNotes((prev) =>
+      prev[selectedSeller.id] !== undefined
+        ? prev
+        : { ...prev, [selectedSeller.id]: selectedSeller.adminNote ?? '' }
+    );
+  }, [selectedSeller]);
+
+  const handleSaveAdminNote = async () => {
+    if (!selectedSeller) return;
+    setNoteSaving(true);
+    try {
+      await updateSellerAdminNoteRequest(
+        selectedSeller.id,
+        (complianceNotes[selectedSeller.id] ?? '').trim()
+      );
+      toast.success('Note saved.');
+      refetch();
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to save note.');
+    } finally {
+      setNoteSaving(false);
+    }
+  };
   const approveSeller = useApproveSellerMutation();
   const rejectSeller = useRejectSellerMutation();
   const suspendSeller = useSuspendSellerMutation();
@@ -134,17 +153,13 @@ export default function AdminSellers() {
   const notSubmittedCount = sellers?.filter((seller) => seller.kycStatus === 'NOT_SUBMITTED').length ?? 0;
   const approvedCount = sellers?.filter((seller) => seller.kycStatus === 'APPROVED').length ?? 0;
   const rejectedCount = sellers?.filter((seller) => seller.kycStatus === 'REJECTED').length ?? 0;
-  const expiringSoonCount =
-    sellers?.filter((s) => isKycExpiringSoon(s.kycExpiresAt ?? undefined)).length ?? 0;
 
   const filteredSellers = useMemo(() => {
     if (!sellers) return [];
     let filtered = sellers;
 
     // Filter by status
-    if (filter === 'KYC_EXPIRING') {
-      filtered = filtered.filter((s) => isKycExpiringSoon(s.kycExpiresAt ?? undefined));
-    } else if (filter !== 'ALL') {
+    if (filter !== 'ALL') {
       filtered = filtered.filter((seller) => seller.kycStatus === filter);
     }
 
@@ -179,29 +194,16 @@ export default function AdminSellers() {
       });
     }
 
-    // Filter by expiration date range
-    if (expirationStartDate || expirationEndDate) {
-      filtered = filtered.filter((seller) => {
-        if (!seller.kycExpiresAt) return false;
-        const expirationDate = new Date(seller.kycExpiresAt);
-        if (expirationStartDate && expirationDate < new Date(expirationStartDate)) return false;
-        if (expirationEndDate && expirationDate > new Date(expirationEndDate)) return false;
-        return true;
-      });
-    }
-
     return filtered;
-  }, [sellers, filter, searchQuery, startDate, endDate, businessTypeFilter, expirationStartDate, expirationEndDate]);
+  }, [sellers, filter, searchQuery, startDate, endDate, businessTypeFilter]);
 
-  const hasActiveFilters = searchQuery.trim() || startDate || endDate || businessTypeFilter || expirationStartDate || expirationEndDate;
+  const hasActiveFilters = searchQuery.trim() || startDate || endDate || businessTypeFilter;
 
   const clearFilters = () => {
     setSearchQuery('');
     setStartDate('');
     setEndDate('');
     setBusinessTypeFilter('');
-    setExpirationStartDate('');
-    setExpirationEndDate('');
   };
 
   const exportToCsv = () => {
@@ -223,7 +225,6 @@ export default function AdminSellers() {
       'BVN',
       'Submission Count',
       'Submitted At',
-      'KYC Expires At',
       'Created At',
     ];
 
@@ -240,7 +241,6 @@ export default function AdminSellers() {
       seller.kyc?.bvn || '—',
       String(seller.kyc?.submissionCount || 0),
       seller.kyc?.submittedAt ? new Date(seller.kyc.submittedAt).toLocaleString() : '—',
-      seller.kycExpiresAt ? new Date(seller.kycExpiresAt).toLocaleString() : '—',
       new Date(seller.createdAt).toLocaleString(),
     ]);
 
@@ -262,12 +262,10 @@ export default function AdminSellers() {
 
   const handleSendKycReminder = async () => {
     const eligible = filteredSellers.filter(
-      (s) =>
-        selectedSellerIds.has(s.id) &&
-        (s.kycStatus === 'PENDING' || isKycExpiringSoon(s.kycExpiresAt ?? undefined))
+      (s) => selectedSellerIds.has(s.id) && s.kycStatus === 'PENDING'
     );
     if (eligible.length === 0) {
-      toast.error('Select sellers with pending or expiring KYC to send reminders.');
+      toast.error('Select sellers with pending KYC to send reminders.');
       return;
     }
     try {
@@ -360,25 +358,42 @@ export default function AdminSellers() {
   const handleReject = (seller: AdminSeller) => {
     setSellerToReject(seller);
     setRejectionReason('');
-    setSelectedPredefinedReason('');
+    setSelectedReasonCode('');
     setRejectModalOpen(true);
+  };
+
+  /**
+   * Compose the seller-visible rejection text from the selected reason code and
+   * optional details. Returns null when the selection is incomplete.
+   */
+  const buildRejection = (): { reason: string; code: string } | null => {
+    if (!selectedReasonCode) {
+      toast.error('Please select a rejection reason');
+      return null;
+    }
+    const detail = rejectionReason.trim();
+    if (selectedReasonCode === 'OTHER' && !detail) {
+      toast.error('Please describe the rejection reason');
+      return null;
+    }
+    const label = KYC_REJECTION_REASONS.find((r) => r.code === selectedReasonCode)?.label ?? '';
+    const reason =
+      selectedReasonCode === 'OTHER' ? detail : detail ? `${label}. ${detail}` : label;
+    return { reason, code: selectedReasonCode };
   };
 
   const confirmReject = () => {
     if (!sellerToReject) return;
-    
-    // Validate that a reason is provided
-    const finalReason = selectedPredefinedReason === 'Other (specify below)' 
-      ? rejectionReason.trim() 
-      : selectedPredefinedReason || rejectionReason.trim();
-    
-    if (!finalReason) {
-      toast.error('Please provide a rejection reason');
-      return;
-    }
-    
+
+    const rejection = buildRejection();
+    if (!rejection) return;
+
     rejectSeller.mutate(
-      { sellerId: sellerToReject.id, rejectionReason: finalReason },
+      {
+        sellerId: sellerToReject.id,
+        rejectionReason: rejection.reason,
+        rejectionReasonCode: rejection.code,
+      },
       {
       onSuccess: () => {
           toast.success(`${sellerToReject.businessName} has been rejected.`);
@@ -388,7 +403,7 @@ export default function AdminSellers() {
           setRejectModalOpen(false);
           setSellerToReject(null);
           setRejectionReason('');
-          setSelectedPredefinedReason('');
+          setSelectedReasonCode('');
           // Refetch to get updated data
           refetch();
       },
@@ -474,20 +489,14 @@ export default function AdminSellers() {
       return;
     }
 
-    // Validate that a reason is provided
-    const finalReason = selectedPredefinedReason === 'Other (specify below)' 
-      ? rejectionReason.trim() 
-      : selectedPredefinedReason || rejectionReason.trim();
-    
-    if (!finalReason) {
-      toast.error('Please provide a rejection reason');
-      return;
-    }
+    const rejection = buildRejection();
+    if (!rejection) return;
 
     try {
       const result = await bulkRejectSellersRequest(
         pendingSellerIds,
-        finalReason
+        rejection.reason,
+        rejection.code
       );
       toast.success(`${result.rejected} seller(s) rejected successfully.`);
       if (result.failed > 0) {
@@ -497,7 +506,7 @@ export default function AdminSellers() {
       setRejectModalOpen(false);
       setSellerToReject(null);
       setRejectionReason('');
-      setSelectedPredefinedReason('');
+      setSelectedReasonCode('');
       refetch();
     } catch (error) {
       console.error('Bulk reject error:', error);
@@ -514,7 +523,7 @@ export default function AdminSellers() {
             subtitle="Review incoming KYC submissions, manage existing merchants, and keep the marketplace compliant."
           />
 
-          <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <AdminCard
               title="Awaiting Review"
               description="KYC submitted and waiting for your decision."
@@ -548,14 +557,6 @@ export default function AdminSellers() {
             >
               <p className="text-3xl font-semibold text-[#ff9aa8]">{rejectedCount}</p>
             </AdminCard>
-            <AdminCard
-              title="KYC Expiring Soon"
-              description="Verification documents expire within 30 days."
-              className="border-amber-500/40 bg-amber-950/20"
-              onClick={() => setFilter('KYC_EXPIRING')}
-            >
-              <p className="text-3xl font-semibold text-amber-400">{expiringSoonCount}</p>
-            </AdminCard>
           </section>
 
           <AdminToolbar className="mb-6">
@@ -571,11 +572,7 @@ export default function AdminSellers() {
                       active={filter === item}
                       onClick={() => setFilter(item)}
                     >
-                      {item === 'ALL'
-                        ? 'All Sellers'
-                        : item === 'KYC_EXPIRING'
-                          ? 'KYC Expiring Soon'
-                          : statusLabel[item] ?? item}
+                      {item === 'ALL' ? 'All Sellers' : statusLabel[item] ?? item}
                     </AdminFilterChip>
                   ))}
                 </div>
@@ -625,22 +622,6 @@ export default function AdminSellers() {
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="px-2 py-1 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <span>Expiration:</span>
-                      <input
-                        type="date"
-                        value={expirationStartDate}
-                        onChange={(e) => setExpirationStartDate(e.target.value)}
-                        className="px-2 py-1 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                      <span>-</span>
-                      <input
-                        type="date"
-                        value={expirationEndDate}
-                        onChange={(e) => setExpirationEndDate(e.target.value)}
                         className="px-2 py-1 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
@@ -770,10 +751,6 @@ export default function AdminSellers() {
                 </DataTableHead>
                 <DataTableBody>
                   {filteredSellers.map((seller) => {
-                    const kycDisplayStatus =
-                      seller.kycExpiresAt && new Date(seller.kycExpiresAt) < new Date()
-                        ? 'EXPIRED'
-                        : seller.kycStatus;
                     const risk = getRiskScore(seller);
                     return (
                       <tr
@@ -811,8 +788,8 @@ export default function AdminSellers() {
                         </DataTableCell>
                         <DataTableCell>
                           <StatusBadge
-                            tone={statusTone[kycDisplayStatus] ?? 'neutral'}
-                            label={statusLabel[kycDisplayStatus] ?? kycDisplayStatus}
+                            tone={statusTone[seller.kycStatus] ?? 'neutral'}
+                            label={statusLabel[seller.kycStatus] ?? seller.kycStatus}
                           />
                         </DataTableCell>
                         <DataTableCell className="font-mono text-gray-300">
@@ -932,7 +909,7 @@ export default function AdminSellers() {
         title={selectedSeller?.businessName}
         description={
           selectedSeller
-            ? `${statusLabel[selectedSeller.kycExpiresAt && new Date(selectedSeller.kycExpiresAt) < new Date() ? 'EXPIRED' : selectedSeller.kycStatus]} · ${businessTypeBadge(selectedSeller.kyc?.businessType)}`
+            ? `${statusLabel[selectedSeller.kycStatus]} · ${businessTypeBadge(selectedSeller.kyc?.businessType)}`
             : undefined
         }
         className="max-w-2xl"
@@ -996,8 +973,8 @@ export default function AdminSellers() {
                 <p className="text-white font-medium">{selectedSeller.businessName}</p>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <StatusBadge
-                    tone={statusTone[selectedSeller.kycExpiresAt && new Date(selectedSeller.kycExpiresAt) < new Date() ? 'EXPIRED' : selectedSeller.kycStatus] ?? 'neutral'}
-                    label={statusLabel[selectedSeller.kycExpiresAt && new Date(selectedSeller.kycExpiresAt) < new Date() ? 'EXPIRED' : selectedSeller.kycStatus] ?? selectedSeller.kycStatus ?? '—'}
+                    tone={statusTone[selectedSeller.kycStatus] ?? 'neutral'}
+                    label={statusLabel[selectedSeller.kycStatus] ?? selectedSeller.kycStatus ?? '—'}
                   />
                   <span className="rounded px-2 py-0.5 text-xs bg-gray-500/20 text-gray-300">
                     {businessTypeBadge(selectedSeller.kyc?.businessType)}
@@ -1022,14 +999,6 @@ export default function AdminSellers() {
                   <p className="text-white">{formatDate(selectedSeller.createdAt)}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">KYC expires</span>
-                  <p className="text-white">
-                    {selectedSeller.kycExpiresAt
-                      ? formatDate(selectedSeller.kycExpiresAt)
-                      : '—'}
-                  </p>
-                </div>
-                <div>
                   <span className="text-gray-500">Total revenue</span>
                   <p className="text-white">{formatRevenue(selectedSeller.totalRevenue)}</p>
                 </div>
@@ -1043,6 +1012,29 @@ export default function AdminSellers() {
                 </div>
               </div>
             </div>
+
+            {/* Rejection details (why this seller is stuck + what they were told) */}
+            {selectedSeller.kycStatus === 'REJECTED' && selectedSeller.kyc && (
+              <div className="rounded-xl border border-[#3a1f1f] bg-[#181010] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#ff9aa8] mb-2">
+                  Rejection details
+                </p>
+                {selectedSeller.kyc.rejectionReasonCode && (
+                  <span className="inline-flex rounded-full bg-red-500/20 px-2.5 py-0.5 text-xs font-medium text-red-300">
+                    {kycRejectionReasonLabel(selectedSeller.kyc.rejectionReasonCode)}
+                  </span>
+                )}
+                {selectedSeller.kyc.rejectionReason && (
+                  <p className="mt-2 text-sm text-gray-300">{selectedSeller.kyc.rejectionReason}</p>
+                )}
+                <p className="mt-2 text-xs text-gray-500">
+                  {selectedSeller.kyc.rejectedAt
+                    ? `Rejected on ${formatDate(selectedSeller.kyc.rejectedAt)}. `
+                    : ''}
+                  The seller sees this reason and can fix and resubmit from their onboarding wizard.
+                </p>
+              </div>
+            )}
 
             {/* Full onboarding submission: profile, location, stock & supply, bank, photos */}
             <SellerOnboardingDetails seller={selectedSeller} />
@@ -1102,13 +1094,13 @@ export default function AdminSellers() {
               </p>
             </div>
 
-            {/* Compliance notes */}
+            {/* Compliance notes (persisted, internal-only) */}
             <div className="rounded-xl border border-[#1f1f1f] bg-[#10151d] p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 mb-2">
                 Compliance notes
               </p>
               <textarea
-                value={complianceNotes[selectedSeller.id] ?? ''}
+                value={complianceNotes[selectedSeller.id] ?? selectedSeller.adminNote ?? ''}
                 onChange={(e) =>
                   setComplianceNotes((prev) => ({
                     ...prev,
@@ -1118,7 +1110,24 @@ export default function AdminSellers() {
                 placeholder="Add internal notes about this seller (e.g. verification follow-up, risk flags)..."
                 className="w-full min-h-[80px] rounded-lg border border-[#2a2a2a] bg-[#0f1419] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary"
                 rows={3}
+                maxLength={2000}
               />
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <p className="text-xs text-gray-500">
+                  Visible to admins and support only — never shown to the seller.
+                  {selectedSeller.adminNoteUpdatedAt
+                    ? ` Last saved ${formatDate(selectedSeller.adminNoteUpdatedAt)}.`
+                    : ''}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleSaveAdminNote}
+                  disabled={noteSaving}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-black transition hover:bg-primary-light disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {noteSaving ? 'Saving...' : 'Save note'}
+                </button>
+              </div>
             </div>
 
             {/* Submission count */}
@@ -1130,10 +1139,10 @@ export default function AdminSellers() {
                       Submission count
                     </p>
                     <p className="text-sm text-white">
-                      {selectedSeller.kyc.submissionCount} / 3 submissions
+                      {selectedSeller.kyc.submissionCount} / {MAX_KYC_SUBMISSIONS} submissions
                     </p>
                   </div>
-                  {selectedSeller.kyc.submissionCount >= 3 && (
+                  {selectedSeller.kyc.submissionCount >= MAX_KYC_SUBMISSIONS && (
                     <button
                       type="button"
                       onClick={async () => {
@@ -1194,47 +1203,37 @@ export default function AdminSellers() {
                 Rejection Reason <span className="text-red-400">*</span>
               </label>
               <select
-                value={selectedPredefinedReason}
-                onChange={(e) => {
-                  setSelectedPredefinedReason(e.target.value);
-                  if (e.target.value !== 'Other (specify below)') {
-                    setRejectionReason('');
-                  }
-                }}
+                value={selectedReasonCode}
+                onChange={(e) => setSelectedReasonCode(e.target.value)}
                 className="w-full p-3 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary mb-3"
               >
                 <option value="">Select a reason...</option>
-                {PREDEFINED_REJECTION_REASONS.map((reason) => (
-                  <option key={reason} value={reason}>
-                    {reason}
+                {KYC_REJECTION_REASONS.map((reason) => (
+                  <option key={reason.code} value={reason.code}>
+                    {reason.label}
                   </option>
                 ))}
               </select>
-              {selectedPredefinedReason === 'Other (specify below)' && (
-                <textarea
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Enter custom rejection reason..."
-                  className="w-full p-3 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                  rows={4}
-                  maxLength={1000}
-                  required
-                />
-              )}
-              {!selectedPredefinedReason && (
-                <textarea
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Or enter a custom rejection reason..."
-                  className="w-full p-3 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                  rows={4}
-                  maxLength={1000}
-                />
-              )}
-              {rejectionReason && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {rejectionReason.length}/1000 characters
-                </p>
+              {selectedReasonCode && (
+                <>
+                  <textarea
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    placeholder={
+                      selectedReasonCode === 'OTHER'
+                        ? 'Describe the rejection reason (shown to the seller)...'
+                        : 'Optional details for the seller (e.g. which document to fix)...'
+                    }
+                    className="w-full p-3 bg-[#0f1419] border border-[#2a2a2a] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                    rows={4}
+                    maxLength={1000}
+                    required={selectedReasonCode === 'OTHER'}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    The seller will see the reason above{selectedReasonCode !== 'OTHER' ? ' along with any details you add' : ''}.
+                    {rejectionReason ? ` ${rejectionReason.length}/1000 characters.` : ''}
+                  </p>
+                </>
               )}
             </div>
             <div className="flex gap-3 justify-end">
@@ -1244,7 +1243,7 @@ export default function AdminSellers() {
                   setRejectModalOpen(false);
                   setSellerToReject(null);
                   setRejectionReason('');
-                  setSelectedPredefinedReason('');
+                  setSelectedReasonCode('');
                 }}
                 className="px-4 py-2 rounded-lg border border-[#2a2a2a] text-gray-300 hover:bg-[#0f1419] transition"
               >

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
   AdminPageHeader,
@@ -125,6 +126,7 @@ function StatCard({
 }
 
 export default function AdminQuoteRequestsPage() {
+  const router = useRouter();
   const [data, setData] = useState<{
     items: AdminQuoteRequest[];
     pagination: { page: number; total: number; totalPages: number };
@@ -145,6 +147,18 @@ export default function AdminQuoteRequestsPage() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | undefined>(undefined);
   const [tableColumns, setTableColumns] = useColumnVisibility(QUOTE_TABLE_COLUMNS);
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
+
+  // Deep-link support: /admin/quote-requests?status=PENDING|...
+  useEffect(() => {
+    if (!router.isReady) return;
+    const status = router.query.status;
+    if (typeof status !== 'string') return;
+    const normalized = status.toUpperCase();
+    if (STATUS_TABS.some((tab) => tab.value === normalized)) {
+      setStatusTab(normalized);
+      setPage(1);
+    }
+  }, [router.isReady, router.query.status]);
 
   const loadFilters = useCallback(async () => {
     try {

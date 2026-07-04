@@ -214,13 +214,27 @@ export default function AdminOrders() {
   const [orderTypeFilter, setOrderTypeFilter] = useState<OrderTypeFilter>('ALL');
   const [focusedOrder, setFocusedOrder] = useState<AdminOrder | null>(null);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const pageLimit = 20;
 
-  const { data: orders, isLoading, isError, error, refetch, dataUpdatedAt } = useAdminOrders({
+  const apiStatus = filter === 'ALL' ? undefined : filter;
+
+  const { data, isLoading, isError, error, refetch, dataUpdatedAt } = useAdminOrders({
     refetchInterval: 30_000,
     orderType: orderTypeFilter === 'ALL' ? undefined : orderTypeFilter,
+    page,
+    limit: pageLimit,
+    status: apiStatus,
+    search: search.trim() || undefined,
   });
+  const orders = data?.orders;
+  const pagination = data?.pagination;
   const [tableColumns, setTableColumns] = useColumnVisibility(ORDER_TABLE_COLUMNS);
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, orderTypeFilter, search]);
 
   useEffect(() => {
     const orderId = router.query.orderId;
@@ -257,23 +271,9 @@ export default function AdminOrders() {
   });
   const activeFleetOperators = fleetOperators.filter((f) => f.isActive);
 
-  const filteredByStatus = useMemo(() => {
-    if (!orders) return [];
-    if (filter === 'ALL') return orders;
-    return orders.filter((order) => order.status === filter);
-  }, [orders, filter]);
+  const filteredByStatus = orders ?? [];
 
-  const filteredOrders = useMemo(() => {
-    if (!search.trim()) return filteredByStatus;
-    const q = search.trim().toLowerCase();
-    return filteredByStatus.filter((order) => {
-      const id = order.id.toLowerCase();
-      const name = (order.user?.name ?? '').toLowerCase();
-      const email = (order.user?.email ?? '').toLowerCase();
-      const seller = getOrderSeller(order).toLowerCase();
-      return id.includes(q) || name.includes(q) || email.includes(q) || seller.includes(q);
-    });
-  }, [filteredByStatus, search]);
+  const filteredOrders = filteredByStatus;
 
   const visibleCols = tableColumns.filter((c) => c.visible);
   const { getRowProps } = useTableKeyboardNav({
@@ -307,17 +307,17 @@ export default function AdminOrders() {
   const stalledOrders = useMemo(() => (orders ?? []).filter(isStalled), [orders]);
 
   const filterCounts = useMemo(() => {
-    const list = orders ?? [];
+    const total = pagination?.total ?? orders?.length ?? 0;
     return {
-      ALL: list.length,
-      PENDING_PAYMENT: list.filter((o) => o.status === 'PENDING_PAYMENT').length,
-      PAID: list.filter((o) => o.status === 'PAID').length,
-      PROCESSING: list.filter((o) => o.status === 'PROCESSING').length,
-      OUT_FOR_DELIVERY: list.filter((o) => o.status === 'OUT_FOR_DELIVERY').length,
-      DELIVERED: list.filter((o) => o.status === 'DELIVERED').length,
-      CANCELED: list.filter((o) => o.status === 'CANCELED').length,
+      ALL: filter === 'ALL' ? total : undefined,
+      PENDING_PAYMENT: filter === 'PENDING_PAYMENT' ? total : undefined,
+      PAID: filter === 'PAID' ? total : undefined,
+      PROCESSING: filter === 'PROCESSING' ? total : undefined,
+      OUT_FOR_DELIVERY: filter === 'OUT_FOR_DELIVERY' ? total : undefined,
+      DELIVERED: filter === 'DELIVERED' ? total : undefined,
+      CANCELED: filter === 'CANCELED' ? total : undefined,
     };
-  }, [orders]);
+  }, [filter, orders?.length, pagination?.total]);
 
   const focusedOrderId = focusedOrder?.id ?? null;
   const { data: orderDetail } = useAdminOrderDetail(focusedOrderId);
@@ -761,6 +761,32 @@ export default function AdminOrders() {
                   </DataTableBody>
                 </DataTable>
               </DataTableContainer>
+
+              {pagination && pagination.totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-between">
+                  <p className="text-sm text-gray-400">
+                    Showing {(page - 1) * pageLimit + 1} to {Math.min(page * pageLimit, pagination.total)} of {pagination.total} orders
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="rounded-lg border border-gray-700 px-4 py-2 text-sm text-white transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => p + 1)}
+                      disabled={page >= pagination.totalPages}
+                      className="rounded-lg border border-gray-700 px-4 py-2 text-sm text-white transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

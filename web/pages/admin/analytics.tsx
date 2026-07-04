@@ -190,6 +190,7 @@ export default function AdminAnalytics() {
   } = useQuery({
     queryKey: ['admin', 'sharing-analytics', sharingQuery],
     queryFn: () => getPlatformWideAnalytics(sharingQuery),
+    retry: 1,
   });
 
   const { data: broadcastHistory } = useQuery({
@@ -254,8 +255,6 @@ export default function AdminAnalytics() {
       clickRate: totalSent > 0 ? (totalClicks / totalSent) * 100 : 0,
     };
   }, [broadcastHistory]);
-
-  const shareBadge = sharingAnalytics?.shareTrackingRecorded === false;
 
   const kpiLoading = dashboardLoading && !dashboardData;
 
@@ -689,11 +688,6 @@ export default function AdminAnalytics() {
                 <h2 className="border-l-4 border-[#FF6B00] pl-3 text-xl font-bold text-white">
                   Product sharing
                 </h2>
-                {shareBadge ? (
-                  <span className="w-fit rounded-full border border-[#2a3142] bg-[#1a1f2e] px-3 py-1 text-xs font-medium text-gray-400">
-                    Coming soon — connect in-app Share actions to the API
-                  </span>
-                ) : null}
               </div>
               <Link
                 href="/admin/sharing/analytics"
@@ -704,105 +698,105 @@ export default function AdminAnalytics() {
               </Link>
             </div>
             {sharingError ? (
-              <div className="rounded-2xl border-2 border-red-500/40 bg-[#121826] p-6 text-center">
-                <p className="text-gray-300">Sharing analytics failed to load.</p>
+              <p className="mb-4 text-sm text-gray-400">
+                Share metrics could not be refreshed.{' '}
                 <button
                   type="button"
                   onClick={() => refetchSharing()}
-                  className="mt-3 text-sm text-red-300 underline"
+                  className="text-[#FF6B00] underline hover:no-underline"
                 >
                   Retry
                 </button>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                  {[
-                    {
-                      title: 'Total shares',
-                      sub: 'Product links shared',
-                      v: sharingLoading ? null : formatNumber(sharingAnalytics?.totalShares ?? 0),
-                      icon: Share2,
-                    },
-                    {
-                      title: 'Unique sharers',
-                      sub: 'Users who shared',
-                      v: sharingLoading ? null : formatNumber(sharingAnalytics?.uniqueSharers ?? 0),
-                      icon: Users,
-                    },
-                    {
-                      title: 'Products shared',
-                      sub: 'Unique products',
-                      v: sharingLoading ? null : formatNumber(sharingAnalytics?.uniqueProducts ?? 0),
-                      icon: Package,
-                    },
-                    {
-                      title: 'Avg per product',
-                      sub: 'Shares per product',
-                      v: sharingLoading
-                        ? null
-                        : sharingAnalytics && sharingAnalytics.uniqueProducts > 0
-                          ? (sharingAnalytics.totalShares / sharingAnalytics.uniqueProducts).toFixed(1)
-                          : '0',
-                      icon: TrendingUp,
-                    },
-                  ].map((card) => (
-                    <div
-                      key={card.title}
-                      className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)]"
-                    >
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{card.title}</p>
-                      <p className="text-xs text-gray-500">{card.sub}</p>
-                      {sharingLoading ? (
-                        <Skeleton className="mt-3 h-9 w-20" />
-                      ) : (
-                        <p className="mt-2 flex items-center gap-2 text-3xl font-bold text-white">
-                          <card.icon className="h-6 w-6 text-[#FF6B00]" />
-                          {card.v}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+              </p>
+            ) : null}
+            {!sharingError && !sharingLoading && (sharingAnalytics?.totalShares ?? 0) === 0 ? (
+              <p className="mb-4 text-sm text-gray-400">No share data for this period.</p>
+            ) : null}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                {
+                  title: 'Total shares',
+                  sub: 'Product links shared',
+                  v: sharingLoading ? null : formatNumber(sharingAnalytics?.totalShares ?? 0),
+                  icon: Share2,
+                },
+                {
+                  title: 'Unique sharers',
+                  sub: 'Users who shared',
+                  v: sharingLoading ? null : formatNumber(sharingAnalytics?.uniqueSharers ?? 0),
+                  icon: Users,
+                },
+                {
+                  title: 'Products shared',
+                  sub: 'Unique products',
+                  v: sharingLoading ? null : formatNumber(sharingAnalytics?.uniqueProducts ?? 0),
+                  icon: Package,
+                },
+                {
+                  title: 'Avg per product',
+                  sub: 'Shares per product',
+                  v: sharingLoading
+                    ? null
+                    : sharingAnalytics && sharingAnalytics.uniqueProducts > 0
+                      ? (sharingAnalytics.totalShares / sharingAnalytics.uniqueProducts).toFixed(1)
+                      : '0',
+                  icon: TrendingUp,
+                },
+              ].map((card) => (
+                <div
+                  key={card.title}
+                  className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)]"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{card.title}</p>
+                  <p className="text-xs text-gray-500">{card.sub}</p>
+                  {sharingLoading ? (
+                    <Skeleton className="mt-3 h-9 w-20" />
+                  ) : (
+                    <p className="mt-2 flex items-center gap-2 text-3xl font-bold text-white">
+                      <card.icon className="h-6 w-6 text-[#FF6B00]" />
+                      {card.v}
+                    </p>
+                  )}
                 </div>
-                <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-2">
-                  <div className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6">
-                    <h4 className="mb-4 font-semibold text-white">Platform breakdown</h4>
-                    {sharingLoading ? (
-                      <Skeleton className="h-[280px] w-full" />
-                    ) : sharingAnalytics?.sharesByPlatform && sharingAnalytics.sharesByPlatform.length > 0 ? (
-                      <DonutChart data={buildDonutData(sharingAnalytics.sharesByPlatform)} height={280} showLegend />
-                    ) : (
-                      <p className="py-12 text-center text-gray-400">No platform data in this range</p>
-                    )}
-                  </div>
-                  <div className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6">
-                    <h4 className="mb-4 font-semibold text-white">Shares by role</h4>
-                    {sharingLoading ? (
-                      <Skeleton className="h-[280px] w-full" />
-                    ) : sharingAnalytics?.sharesByRole && sharingAnalytics.sharesByRole.length > 0 ? (
-                      <div className="h-[280px]">
-                        <BarChart
-                          data={sharingAnalytics.sharesByRole.map((r) => ({
-                            label: r.role,
-                            value: r.count,
-                          }))}
-                          color="#8b5cf6"
-                        />
-                      </div>
-                    ) : (
-                      <p className="py-12 text-center text-gray-400">No role data in this range</p>
-                    )}
-                  </div>
-                </div>
-                {sharingTimeChartData.length > 0 && (
-                  <div className="mt-10 rounded-2xl border border-[#2a3142] bg-[#121826] p-6">
-                    <h4 className="mb-4 font-semibold text-white">Sharing trends</h4>
-                    <div className="h-[260px]">
-                      <BarChart data={sharingTimeChartData} color="#FF6B00" />
-                    </div>
-                  </div>
+              ))}
+            </div>
+            <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-2">
+              <div className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6">
+                <h4 className="mb-4 font-semibold text-white">Platform breakdown</h4>
+                {sharingLoading ? (
+                  <Skeleton className="h-[280px] w-full" />
+                ) : sharingAnalytics?.sharesByPlatform && sharingAnalytics.sharesByPlatform.length > 0 ? (
+                  <DonutChart data={buildDonutData(sharingAnalytics.sharesByPlatform)} height={280} showLegend />
+                ) : (
+                  <p className="py-12 text-center text-gray-400">No platform data in this range</p>
                 )}
-              </>
+              </div>
+              <div className="rounded-2xl border border-[#2a3142] bg-[#121826] p-6">
+                <h4 className="mb-4 font-semibold text-white">Shares by role</h4>
+                {sharingLoading ? (
+                  <Skeleton className="h-[280px] w-full" />
+                ) : sharingAnalytics?.sharesByRole && sharingAnalytics.sharesByRole.length > 0 ? (
+                  <div className="h-[280px]">
+                    <BarChart
+                      data={sharingAnalytics.sharesByRole.map((r) => ({
+                        label: r.role,
+                        value: r.count,
+                      }))}
+                      color="#8b5cf6"
+                    />
+                  </div>
+                ) : (
+                  <p className="py-12 text-center text-gray-400">No role data in this range</p>
+                )}
+              </div>
+            </div>
+            {sharingTimeChartData.length > 0 && (
+              <div className="mt-10 rounded-2xl border border-[#2a3142] bg-[#121826] p-6">
+                <h4 className="mb-4 font-semibold text-white">Sharing trends</h4>
+                <div className="h-[260px]">
+                  <BarChart data={sharingTimeChartData} color="#FF6B00" />
+                </div>
+              </div>
             )}
           </section>
 

@@ -297,18 +297,21 @@ export default function AdminOrders() {
   const stalledCount = orderStats?.stalled.count ?? 0;
   const oldestStalledOrderId = orderStats?.stalled.oldestOrderId ?? null;
 
-  const filterCounts = useMemo(() => {
-    const total = pagination?.total ?? orders?.length ?? 0;
+  // Per-tab totals come from the aggregate stats endpoint so every tab keeps its
+  // count regardless of which filter is active or which page is loaded.
+  const filterCounts = useMemo<Partial<Record<OrderFilter, number>>>(() => {
+    const statusCounts = orderStats?.statusCounts;
+    if (!statusCounts) return {};
     return {
-      ALL: filter === 'ALL' ? total : undefined,
-      PENDING_PAYMENT: filter === 'PENDING_PAYMENT' ? total : undefined,
-      PAID: filter === 'PAID' ? total : undefined,
-      PROCESSING: filter === 'PROCESSING' ? total : undefined,
-      OUT_FOR_DELIVERY: filter === 'OUT_FOR_DELIVERY' ? total : undefined,
-      DELIVERED: filter === 'DELIVERED' ? total : undefined,
-      CANCELED: filter === 'CANCELED' ? total : undefined,
+      ALL: Object.values(statusCounts).reduce((sum, n) => sum + n, 0),
+      PENDING_PAYMENT: statusCounts.PENDING_PAYMENT ?? 0,
+      PAID: statusCounts.PAID ?? 0,
+      PROCESSING: statusCounts.PROCESSING ?? 0,
+      OUT_FOR_DELIVERY: statusCounts.OUT_FOR_DELIVERY ?? 0,
+      DELIVERED: statusCounts.DELIVERED ?? 0,
+      CANCELED: statusCounts.CANCELED ?? 0,
     };
-  }, [filter, orders?.length, pagination?.total]);
+  }, [orderStats?.statusCounts]);
 
   const focusedOrderId = focusedOrder?.id ?? null;
   const { data: orderDetail } = useAdminOrderDetail(focusedOrderId);

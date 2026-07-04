@@ -19,7 +19,6 @@ import {
   Scale,
   Gift,
   Wallet as WalletIcon,
-  Bell,
   ClipboardList,
   MoreHorizontal,
 } from 'lucide-react';
@@ -76,7 +75,6 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
     { name: 'Home', href: '/buyer', icon: Home },
     { name: 'Shop', href: '/buyer/products', icon: ShoppingBag },
     { name: 'My Orders', href: '/buyer/orders', icon: Package },
-    { name: 'Notifications', href: '/buyer/notifications', icon: Bell },
     { name: 'My Quotes', href: '/buyer/quotes', icon: FileText },
     { name: 'Bulk Order', href: '/buyer/bulk-order', icon: Layers },
     { name: 'Saved Lists', href: '/buyer/wishlist', icon: Bookmark },

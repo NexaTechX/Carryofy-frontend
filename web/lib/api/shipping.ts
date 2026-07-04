@@ -6,7 +6,10 @@ export interface ShippingQuoteItem {
 }
 
 export interface ShippingQuoteRequest {
-  addressId: string;
+  /** Saved address id — omit when passing addressLatitude/addressLongitude for draft checkout addresses */
+  addressId?: string;
+  addressLatitude?: number;
+  addressLongitude?: number;
   items: ShippingQuoteItem[];
   shippingMethod: 'STANDARD' | 'EXPRESS' | 'SCHEDULED' | 'PICKUP';
   cartSubtotalKobo?: number;

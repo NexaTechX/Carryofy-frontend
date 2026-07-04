@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import RemoteImage from '../../components/common/RemoteImage';
@@ -139,6 +139,9 @@ export default function CheckoutPage() {
   const [businessPurpose, setBusinessPurpose] = useState('');
   const [gettingLocation, setGettingLocation] = useState(false);
   const [normalizingAddress, setNormalizingAddress] = useState(false);
+  const [newAddressCoords, setNewAddressCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [newAddressGeocoding, setNewAddressGeocoding] = useState(false);
+  const skipNextGeocodeResetRef = useRef(false);
   const [multiVendorFromApi, setMultiVendorFromApi] = useState(false);
 
   type CartSellerGroup = {
@@ -288,6 +291,68 @@ export default function CheckoutPage() {
   const cartSubtotal = quote ? quoteSubtotal : (cart?.totalAmount ?? 0);
   const belowMinimum = cartSubtotal < minOrderKobo;
 
+  const newAddressHasMinimumFields = Boolean(
+    deliveryInfo.city.trim() && deliveryInfo.state.trim(),
+  );
+
+  // Debounced geocoding for draft checkout addresses (saved address id not selected)
+  useEffect(() => {
+    if (selectedAddressId) {
+      setNewAddressCoords(null);
+      setNewAddressGeocoding(false);
+      return;
+    }
+
+    const city = deliveryInfo.city.trim();
+    const state = deliveryInfo.state.trim();
+    if (!city || !state) {
+      setNewAddressCoords(null);
+      setNewAddressGeocoding(false);
+      return;
+    }
+
+    if (skipNextGeocodeResetRef.current) {
+      skipNextGeocodeResetRef.current = false;
+    } else {
+      setNewAddressCoords(null);
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      if (!cancelled) {
+        setNewAddressCoords(null);
+      }
+      setNewAddressGeocoding(true);
+      try {
+        const coords = await geocodeAddress({
+          line1: deliveryInfo.address.trim() || city,
+          line2: deliveryInfo.landmark?.trim(),
+          city,
+          state,
+          country: 'Nigeria',
+        });
+        if (!cancelled) {
+          setNewAddressCoords(coords);
+        }
+      } finally {
+        if (!cancelled) {
+          setNewAddressGeocoding(false);
+        }
+      }
+    }, 700);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    selectedAddressId,
+    deliveryInfo.address,
+    deliveryInfo.city,
+    deliveryInfo.state,
+    deliveryInfo.landmark,
+  ]);
+
   // Fetch shipping quote when cart/quote, address and shipping method are available
   useEffect(() => {
     const items = quote
@@ -297,6 +362,7 @@ export default function CheckoutPage() {
       setShippingFee(0);
       setShippingAppliedDiscount(null);
       setShippingQuoteError(null);
+      setShippingQuoteLoading(false);
       return;
     }
     if (!quote && hasMultipleSellersInCart) {
@@ -306,23 +372,55 @@ export default function CheckoutPage() {
       setShippingQuoteLoading(false);
       return;
     }
+
     const addressId = selectedAddressId;
-    if (!addressId) {
+    const draftCoords = !addressId && newAddressHasMinimumFields ? newAddressCoords : null;
+
+    if (!addressId && !newAddressHasMinimumFields) {
       setShippingQuoteError('Select address to see shipping cost');
       setShippingFee(0);
       setShippingAppliedDiscount(null);
+      setShippingQuoteLoading(false);
       return;
     }
+
+    if (!addressId && (newAddressGeocoding || !draftCoords)) {
+      if (!newAddressGeocoding && newAddressHasMinimumFields && !draftCoords) {
+        setShippingQuoteLoading(false);
+        setShippingQuoteError(
+          'Could not locate this address for shipping. Refine your address or use “Improve address with AI”.',
+        );
+        setShippingFee(0);
+        setShippingAppliedDiscount(null);
+        return;
+      }
+      setShippingQuoteLoading(true);
+      setShippingQuoteError(null);
+      return;
+    }
+
     let cancelled = false;
     setShippingQuoteLoading(true);
     setShippingQuoteError(null);
-    fetchShippingQuote({
-      addressId,
-      items,
-      shippingMethod,
-      cartSubtotalKobo,
-      orderType: quote ? 'B2B' : resolvedCheckoutOrderType,
-    })
+
+    const quoteRequest = addressId
+      ? {
+          addressId,
+          items,
+          shippingMethod,
+          cartSubtotalKobo,
+          orderType: quote ? 'B2B' as const : resolvedCheckoutOrderType,
+        }
+      : {
+          addressLatitude: draftCoords!.latitude,
+          addressLongitude: draftCoords!.longitude,
+          items,
+          shippingMethod,
+          cartSubtotalKobo,
+          orderType: quote ? 'B2B' as const : resolvedCheckoutOrderType,
+        };
+
+    fetchShippingQuote(quoteRequest)
       .then((res) => {
         if (!cancelled) {
           const fee = Number(res?.shippingFeeKobo);
@@ -341,7 +439,18 @@ export default function CheckoutPage() {
         if (!cancelled) setShippingQuoteLoading(false);
       });
     return () => { cancelled = true; };
-  }, [cart?.items, quote, selectedAddressId, shippingMethod, cartSubtotalKobo, resolvedCheckoutOrderType, hasMultipleSellersInCart]);
+  }, [
+    cart?.items,
+    quote,
+    selectedAddressId,
+    newAddressHasMinimumFields,
+    newAddressCoords,
+    newAddressGeocoding,
+    shippingMethod,
+    cartSubtotalKobo,
+    resolvedCheckoutOrderType,
+    hasMultipleSellersInCart,
+  ]);
 
   const fetchAddresses = async () => {
     // Only fetch addresses if user is authenticated
@@ -401,6 +510,7 @@ export default function CheckoutPage() {
 
   const handleAddressSelect = (addressId: string) => {
     setSelectedAddressId(addressId);
+    setNewAddressCoords(null);
     const selectedAddress = savedAddresses.find(addr => addr.id === addressId);
     if (selectedAddress) {
       setDeliveryInfo({
@@ -414,6 +524,7 @@ export default function CheckoutPage() {
 
   const handleCreateNewAddress = () => {
     setSelectedAddressId(null);
+    setNewAddressCoords(null);
     setShowNewAddressForm(true);
     setDeliveryInfo({
       address: '',
@@ -499,6 +610,35 @@ export default function CheckoutPage() {
     return cart.totalAmount + effectiveShippingFeeKobo - discount - rewardAppliedToShippingKobo;
   }, [cart, quote, quoteSubtotal, effectiveShippingFeeKobo, discount, rewardAppliedToShippingKobo]);
 
+  const isShippingLineLoading = useMemo(() => {
+    if (shippingQuoteLoading || newAddressGeocoding) return true;
+    if (selectedAddressId) return false;
+    return newAddressHasMinimumFields && !newAddressCoords && !shippingQuoteError;
+  }, [
+    shippingQuoteLoading,
+    newAddressGeocoding,
+    selectedAddressId,
+    newAddressHasMinimumFields,
+    newAddressCoords,
+    shippingQuoteError,
+  ]);
+
+  const isShippingReady = useMemo(() => {
+    if (hasMultipleSellersInCart) return false;
+    if (isShippingLineLoading) return false;
+    if (shippingQuoteError) return false;
+    if (selectedAddressId) return true;
+    if (!newAddressHasMinimumFields) return false;
+    return newAddressCoords != null;
+  }, [
+    hasMultipleSellersInCart,
+    isShippingLineLoading,
+    shippingQuoteError,
+    selectedAddressId,
+    newAddressHasMinimumFields,
+    newAddressCoords,
+  ]);
+
   const formatPrice = (priceInKobo: number) => {
     const n = Number(priceInKobo);
     if (!Number.isFinite(n)) return '₦0.00';
@@ -506,6 +646,42 @@ export default function CheckoutPage() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
+  };
+
+  const renderShippingSummaryValue = (compact = false) => {
+    if (isShippingLineLoading) {
+      return (
+        <span className="flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Calculating...
+        </span>
+      );
+    }
+    if (shippingQuoteError) {
+      return (
+        <span className={`text-[#ffcc99]/70 ${compact ? 'text-xs text-right max-w-44' : 'text-sm'}`}>
+          {shippingQuoteError}
+        </span>
+      );
+    }
+    if (effectiveShippingFeeKobo === 0) {
+      return 'Free';
+    }
+    if (rewardAppliedToShippingKobo > 0) {
+      return (
+        <span className="flex items-center gap-2">
+          {deliveryDiscountKobo > 0 && (
+            <span className="line-through text-[#ffcc99]/60">{formatPrice(shippingFee)}</span>
+          )}
+          <span className="text-green-400">
+            {rewardAppliedToShippingKobo >= effectiveShippingFeeKobo
+              ? 'Free'
+              : formatPrice(effectiveShippingFeeKobo - rewardAppliedToShippingKobo)}
+          </span>
+        </span>
+      );
+    }
+    return formatPrice(effectiveShippingFeeKobo);
   };
 
   const handleContactChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -559,6 +735,8 @@ export default function CheckoutPage() {
         setTimeout(() => setOrderMessage(null), 3000);
         return;
       }
+      skipNextGeocodeResetRef.current = true;
+      setNewAddressCoords(coords);
       const reversed = await reverseGeocode(coords.latitude, coords.longitude);
       if (reversed) {
         setDeliveryInfo((prev) => ({
@@ -675,7 +853,15 @@ export default function CheckoutPage() {
     if (!selectedAddressId) {
       if (!deliveryInfo.address || !deliveryInfo.city || !deliveryInfo.state) {
         setOrderMessage({ type: 'error', text: 'Please provide your delivery address or select a saved address.' });
-        setCurrentStep(2); // Redirect to Step 2 if address is missing
+        setCurrentStep(2);
+        return false;
+      }
+      if (!isShippingReady) {
+        setOrderMessage({
+          type: 'error',
+          text: shippingQuoteError || 'Shipping cost is still being calculated. Please wait a moment.',
+        });
+        setCurrentStep(2);
         return false;
       }
     }
@@ -1100,13 +1286,13 @@ export default function CheckoutPage() {
                         </div>
                         <div className="flex items-center justify-between py-2">
                           <span className="text-[#ff6600] font-bold">
-                            {shippingQuoteLoading ? (
+                            {isShippingLineLoading ? (
                               <span className="flex items-center gap-2">
                                 <Loader2 className="w-4 h-4 animate-spin" />
                                 Calculating...
                               </span>
                             ) : shippingQuoteError ? (
-                              '—'
+                              <span className="text-[#ffcc99]/70 text-sm font-normal">{shippingQuoteError}</span>
                             ) : shippingFee === 0 ? (
                               'Free'
                             ) : (
@@ -1210,23 +1396,7 @@ export default function CheckoutPage() {
                           <div className="flex justify-between">
                             <span className="text-[#ffcc99]">Shipping</span>
                             <span className="text-white font-semibold">
-                              {shippingQuoteLoading ? (
-                                <span className="flex items-center gap-2">
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                  Calculating...
-                                </span>
-                              ) : shippingQuoteError ? (
-                                '—'
-                              ) : effectiveShippingFeeKobo === 0 ? (
-                                'Free'
-                              ) : rewardAppliedToShippingKobo > 0 ? (
-                                <span className="flex items-center gap-2">
-                                  {deliveryDiscountKobo > 0 && <span className="line-through text-[#ffcc99]/60">{formatPrice(shippingFee)}</span>}
-                                  <span className="text-green-400">{rewardAppliedToShippingKobo >= effectiveShippingFeeKobo ? 'Free' : formatPrice(effectiveShippingFeeKobo - rewardAppliedToShippingKobo)}</span>
-                                </span>
-                              ) : (
-                                formatPrice(effectiveShippingFeeKobo)
-                              )}
+                              {renderShippingSummaryValue()}
                             </span>
                           </div>
                           {shippingQuoteError && (
@@ -1645,12 +1815,7 @@ export default function CheckoutPage() {
                           <div className="flex justify-between">
                             <span className="text-[#ffcc99]">Shipping</span>
                             <span className="text-white font-semibold">
-                              {shippingQuoteError ? '—' : effectiveShippingFeeKobo === 0 ? 'Free' : rewardAppliedToShippingKobo > 0 ? (
-                                <span className="flex items-center gap-2">
-                                  {deliveryDiscountKobo > 0 && <span className="line-through text-[#ffcc99]/60">{formatPrice(shippingFee)}</span>}
-                                  <span className="text-green-400">{rewardAppliedToShippingKobo >= effectiveShippingFeeKobo ? 'Free' : formatPrice(effectiveShippingFeeKobo - rewardAppliedToShippingKobo)}</span>
-                                </span>
-                              ) : formatPrice(effectiveShippingFeeKobo)}
+                              {renderShippingSummaryValue(true)}
                             </span>
                           </div>
                           {deliveryDiscountKobo > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Delivery discount (20%)</span><span className="text-green-400 font-semibold">- {formatPrice(deliveryDiscountKobo)}</span></div>}
@@ -1671,8 +1836,8 @@ export default function CheckoutPage() {
                           <button
                             type="button"
                             onClick={() => goToStep(3)}
-                            disabled={hasMultipleSellersInCart}
-                            className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition ${hasMultipleSellersInCart ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={hasMultipleSellersInCart || !isShippingReady}
+                            className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] transition ${hasMultipleSellersInCart || !isShippingReady ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             Continue to confirmation <ChevronRight className="w-5 h-5" />
                           </button>
@@ -1751,12 +1916,7 @@ export default function CheckoutPage() {
                           <div className="flex justify-between">
                             <span className="text-[#ffcc99]">Shipping</span>
                             <span className="text-white font-semibold">
-                              {shippingQuoteError ? '—' : effectiveShippingFeeKobo === 0 ? 'Free' : rewardAppliedToShippingKobo > 0 ? (
-                                <span className="flex items-center gap-2">
-                                  {deliveryDiscountKobo > 0 && <span className="line-through text-[#ffcc99]/60">{formatPrice(shippingFee)}</span>}
-                                  <span className="text-green-400">{rewardAppliedToShippingKobo >= effectiveShippingFeeKobo ? 'Free' : formatPrice(effectiveShippingFeeKobo - rewardAppliedToShippingKobo)}</span>
-                                </span>
-                              ) : formatPrice(effectiveShippingFeeKobo)}
+                              {renderShippingSummaryValue(true)}
                             </span>
                           </div>
                           {deliveryDiscountKobo > 0 && <div className="flex justify-between"><span className="text-[#ffcc99]">Delivery discount (20%)</span><span className="text-green-400 font-semibold">- {formatPrice(deliveryDiscountKobo)}</span></div>}

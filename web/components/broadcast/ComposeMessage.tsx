@@ -1,8 +1,12 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
+import type { RecipientKey } from '../../hooks/useBroadcast';
+import { MESSAGE_MAX_LENGTH } from '../../hooks/useBroadcast';
+import { getTokenSegmentWarnings } from '../../lib/broadcast-placeholders';
 
 type Props = {
   subject: string;
   message: string;
+  selectedRecipients: RecipientKey[];
   showSubject: boolean;
   placeholder: string;
   onSubjectChange: (value: string) => void;
@@ -16,6 +20,7 @@ const VARIABLES = ['[First Name]', '[Business Name]', '[Order Count]'];
 export function ComposeMessage({
   subject,
   message,
+  selectedRecipients,
   showSubject,
   placeholder,
   onSubjectChange,
@@ -24,6 +29,13 @@ export function ComposeMessage({
   errors,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const tokenWarnings = useMemo(
+    () => getTokenSegmentWarnings(message, selectedRecipients),
+    [message, selectedRecipients],
+  );
+
+  const counterOverLimit = message.length > MESSAGE_MAX_LENGTH;
 
   return (
     <section className="rounded-lg border border-[#2a2a2a] bg-[#111111] p-4">
@@ -52,9 +64,16 @@ export function ComposeMessage({
           value={message}
           onChange={(event) => onMessageChange(event.target.value)}
           placeholder={placeholder}
-          className="min-h-[160px] w-full rounded-md border border-[#2a2a2a] bg-[#1a1a1a] px-3 py-2 pr-16 text-sm text-white placeholder:text-[#9ca3af] focus:border-[#F97316] focus:outline-none"
+          maxLength={MESSAGE_MAX_LENGTH + 50}
+          className="min-h-[160px] w-full rounded-md border border-[#2a2a2a] bg-[#1a1a1a] px-3 py-2 pb-8 text-sm text-white placeholder:text-[#9ca3af] focus:border-[#F97316] focus:outline-none"
         />
-        <span className="absolute bottom-2 right-2 text-xs text-[#9ca3af]">{message.length}</span>
+        <span
+          className={`pointer-events-none absolute bottom-2 right-3 text-xs tabular-nums ${
+            counterOverLimit ? 'text-red-400' : 'text-[#9ca3af]'
+          }`}
+        >
+          {message.length}/{MESSAGE_MAX_LENGTH}
+        </span>
       </div>
 
       {errors?.message ? (
@@ -62,6 +81,16 @@ export function ComposeMessage({
           {errors.message}
         </div>
       ) : null}
+
+      {tokenWarnings.map((warning) => (
+        <div
+          key={warning}
+          className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200"
+          role="alert"
+        >
+          {warning}
+        </div>
+      ))}
 
       <div className="mt-3 flex flex-wrap gap-2">
         {VARIABLES.map((variable) => (

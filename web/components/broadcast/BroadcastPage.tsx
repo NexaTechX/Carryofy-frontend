@@ -6,6 +6,7 @@ import { ComposeMessage } from './ComposeMessage';
 import { SchedulePicker } from './SchedulePicker';
 import { BroadcastPreview } from './BroadcastPreview';
 import { BroadcastHistory } from './BroadcastHistory';
+import { ConfirmBroadcastModal } from './ConfirmBroadcastModal';
 import { useBroadcast } from '../../hooks/useBroadcast';
 
 export function BroadcastPage() {
@@ -22,7 +23,12 @@ export function BroadcastPage() {
     setField,
     toggleRecipient,
     toggleChannel,
-    submit,
+    requestSubmit,
+    confirmSubmit,
+    cancelConfirm,
+    showConfirmModal,
+    canSubmit,
+    submitDisabledReason,
     insertVariable,
     cancelScheduledBroadcast,
   } = useBroadcast();
@@ -81,6 +87,7 @@ export function BroadcastPage() {
           <ComposeMessage
             subject={state.subject}
             message={state.message}
+            selectedRecipients={state.recipients}
             showSubject={state.channels.includes('email')}
             placeholder={messagePlaceholder}
             onSubjectChange={(subject) => setField('subject', subject)}
@@ -96,15 +103,22 @@ export function BroadcastPage() {
             error={state.errors.schedule}
           />
 
-          <button
-            type="button"
-            onClick={() => void submit()}
-            disabled={state.isSubmitting}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#F97316] px-4 py-3 text-sm font-semibold text-white transition-all duration-150 ease-in hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {state.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {state.isScheduled ? 'Schedule Broadcast' : 'Send Broadcast'}
-          </button>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => requestSubmit()}
+              disabled={!canSubmit}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#F97316] px-4 py-3 text-sm font-semibold text-white transition-all duration-150 ease-in hover:brightness-110 disabled:cursor-not-allowed disabled:bg-[#2a2a2a] disabled:text-[#6b7280] disabled:hover:brightness-100"
+            >
+              {state.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {state.isScheduled ? 'Schedule Broadcast' : 'Send Broadcast'}
+            </button>
+            {!canSubmit && submitDisabledReason ? (
+              <p className="text-center text-xs text-[#9ca3af]" role="status">
+                {submitDisabledReason}
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <div className="xl:col-span-3">
@@ -112,6 +126,7 @@ export function BroadcastPage() {
             subject={state.subject}
             message={state.message}
             broadcastType={state.broadcastType}
+            channels={state.channels}
           />
           <BroadcastHistory
             rows={history}
@@ -120,6 +135,23 @@ export function BroadcastPage() {
           />
         </div>
       </div>
+
+      {showConfirmModal ? (
+        <ConfirmBroadcastModal
+          broadcastType={state.broadcastType}
+          recipients={state.recipients}
+          recipientCounts={state.recipientCounts}
+          totalRecipients={recipientTotal}
+          channels={state.channels}
+          subject={state.subject}
+          message={state.message}
+          isScheduled={state.isScheduled}
+          scheduledAt={state.scheduledAt}
+          isSubmitting={state.isSubmitting}
+          onConfirm={() => void confirmSubmit()}
+          onCancel={cancelConfirm}
+        />
+      ) : null}
     </div>
   );
 }

@@ -35,6 +35,8 @@ export interface BroadcastHistoryItem {
   status: 'SENT' | 'SCHEDULED' | 'FAILED' | 'DRAFT' | string;
 }
 
+export const MESSAGE_MAX_LENGTH = 500;
+
 const INITIAL_STATE: BroadcastState = {
   recipients: [],
   broadcastType: 'Product Launch',
@@ -124,6 +126,7 @@ export function useBroadcast() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [successBanner, setSuccessBanner] = useState('');
   const [errorBanner, setErrorBanner] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const messagePlaceholder = useMemo(
     () => TYPE_TO_PLACEHOLDER[state.broadcastType] ?? 'Write your message here...',
@@ -235,6 +238,9 @@ export function useBroadcast() {
         'Choose Email or In-App Notification to deliver this broadcast (WhatsApp is not available yet).';
     }
     if (!state.message.trim()) errors.message = 'Message body is required';
+    if (state.message.length > MESSAGE_MAX_LENGTH) {
+      errors.message = `Message must be ${MESSAGE_MAX_LENGTH} characters or fewer`;
+    }
     if (state.channels.includes('email') && !state.subject.trim()) {
       errors.subject = 'Subject is required when Email is selected';
     }
@@ -244,13 +250,30 @@ export function useBroadcast() {
     return errors;
   }, [state]);
 
-  const submit = useCallback(async () => {
-    const errors = validate();
-    if (Object.keys(errors).length > 0) {
-      setState((prev) => ({ ...prev, errors }));
-      return false;
+  const submitDisabledReason = useMemo(() => {
+    if (!state.recipients.length) return 'Select at least one recipient segment to enable send';
+    if (!state.message.trim()) return 'Enter a message body to enable send';
+    if (state.message.length > MESSAGE_MAX_LENGTH) {
+      return `Shorten your message to ${MESSAGE_MAX_LENGTH} characters or fewer`;
     }
+    if (
+      !state.channels.includes('email') &&
+      !state.channels.includes('inapp')
+    ) {
+      return 'Enable Email or In-App Notification to enable send';
+    }
+    if (state.channels.includes('email') && !state.subject.trim()) {
+      return 'Add an email subject to enable send';
+    }
+    if (state.isScheduled && !state.scheduledAt) {
+      return 'Choose a schedule date and time to enable send';
+    }
+    return null;
+  }, [state]);
 
+  const canSubmit = submitDisabledReason === null && !state.isSubmitting;
+
+  const executeSubmit = useCallback(async () => {
     setState((prev) => ({ ...prev, isSubmitting: true, errors: {} }));
     setErrorBanner('');
 
@@ -294,6 +317,7 @@ export function useBroadcast() {
       );
       resetComposerAfterSuccess();
       await fetchHistory();
+      setShowConfirmModal(false);
       return true;
     } catch (error) {
       let message = 'Something went wrong while submitting.';
@@ -313,7 +337,32 @@ export function useBroadcast() {
     } finally {
       setState((prev) => ({ ...prev, isSubmitting: false }));
     }
-  }, [fetchHistory, resetComposerAfterSuccess, state, validate]);
+  }, [fetchHistory, resetComposerAfterSuccess, state]);
+
+  const requestSubmit = useCallback(() => {
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      setState((prev) => ({ ...prev, errors }));
+      return false;
+    }
+    setShowConfirmModal(true);
+    return true;
+  }, [validate]);
+
+  const confirmSubmit = useCallback(async () => {
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      setState((prev) => ({ ...prev, errors }));
+      setShowConfirmModal(false);
+      return false;
+    }
+    return executeSubmit();
+  }, [executeSubmit, validate]);
+
+  const cancelConfirm = useCallback(() => {
+    if (state.isSubmitting) return;
+    setShowConfirmModal(false);
+  }, [state.isSubmitting]);
 
   const insertVariable = useCallback((variable: string, textarea: HTMLTextAreaElement | null) => {
     if (!textarea) {
@@ -354,7 +403,12 @@ export function useBroadcast() {
     setField,
     toggleRecipient,
     toggleChannel,
-    submit,
+    requestSubmit,
+    confirmSubmit,
+    cancelConfirm,
+    showConfirmModal,
+    canSubmit,
+    submitDisabledReason,
     insertVariable,
     fetchHistory,
     cancelScheduledBroadcast,

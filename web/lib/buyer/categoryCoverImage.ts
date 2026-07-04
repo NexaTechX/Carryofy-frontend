@@ -43,6 +43,10 @@ const CUSTOM_COVER_URLS: Partial<Record<CategoryCoverKey, string>> = {
   sports: 'https://www.vanguardpkg.com/wp-content/uploads/2021/11/sports-and-outdoors-2.jpeg',
   automotive:
     'https://supplymaster.store/cdn/shop/collections/Car-Parts-2_20wide_1.jpg?v=1620901497&width=1296',
+  jewelry:
+    'https://buybluebox.com/cdn/shop/files/Listing1.png?v=1755589649',
+  watches:
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSEw9MsB8QQNuEo6VOfT1McUps2lpfUQoL-PsO4sTlFdBmCrzN7u2VO8w4&s=10',
 };
 
 const RULES: { re: RegExp; key: CategoryCoverKey }[] = [
@@ -67,8 +71,8 @@ const RULES: { re: RegExp; key: CategoryCoverKey }[] = [
 ];
 
 const REMOTE_FALLBACK: Record<CategoryCoverKey, string> = {
-  watches: unsplash('photo-1523170335258-fcd31818e03f'),
-  jewelry: unsplash('photo-1515562141207-7a168fb98a02'),
+  watches: CUSTOM_COVER_URLS.watches ?? unsplash('photo-1523170335258-fcd31818e03f'),
+  jewelry: CUSTOM_COVER_URLS.jewelry ?? unsplash('photo-1515562141207-7a168fb98a02'),
   baby: unsplash('photo-1515488042361-ee00e0ddd4e4'),
   pet: unsplash('photo-1450778869180-41d573580173'),
   automotive:

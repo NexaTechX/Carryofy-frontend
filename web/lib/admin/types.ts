@@ -415,6 +415,11 @@ export interface AdminOrder {
   distanceKmForPricing?: number;
   items: AdminOrderItem[];
   delivery?: AdminDelivery | null;
+  /** Immutable checkout delivery address (preferred over live `address`). */
+  deliveryAddressSnapshot?: DeliveryAddressSnapshot | null;
+  /** Admin-only diagnostic when live saved address differs from snapshot. */
+  addressDriftDiagnostic?: AddressDriftDiagnostic | null;
+  /** @deprecated Use deliveryAddressSnapshot — live Address book row. */
   address?: {
     line1: string;
     line2?: string | null;
@@ -430,6 +435,42 @@ export interface AdminOrder {
     phone?: string;
   };
 }
+
+export type DeliveryAddressSnapshot = {
+  line1: string;
+  line2?: string | null;
+  city: string;
+  state: string;
+  country: string;
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
+export type AddressDriftDiagnostic = {
+  suspectedHistoricalDrift: boolean;
+  liveDiffersFromSnapshot: boolean;
+  driftFields: string[];
+  liveAddress?: DeliveryAddressSnapshot | null;
+};
+
+export type AddressDriftReportRow = {
+  orderId: string;
+  status: string;
+  createdAt: string;
+  shippingFeeKobo: number;
+  distanceKmForPricing: number | null;
+  deliveryAddressSnapshot: DeliveryAddressSnapshot;
+  liveAddress: DeliveryAddressSnapshot | null;
+  driftReasons: string[];
+};
+
+export type AddressDriftReport = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  orders: AddressDriftReportRow[];
+};
 
 export type StockMovementType = 'INBOUND' | 'OUTBOUND' | 'ADJUSTMENT';
 

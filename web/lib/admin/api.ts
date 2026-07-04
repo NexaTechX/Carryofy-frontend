@@ -58,6 +58,7 @@ import {
   OrderCancellationReason,
   CancellationBreakdown,
   AdminOrderStats,
+  AddressDriftReport,
   OperationalIssuesResponse,
 } from './types';
 
@@ -504,6 +505,16 @@ export async function fetchAdminOrders(params?: { orderType?: 'CONSUMER' | 'B2B'
 export async function fetchAdminOrderById(orderId: string): Promise<AdminOrder> {
   const { data } = await apiClient.get(`/orders/${orderId}`);
   return normalizeResponse<AdminOrder>(data);
+}
+
+export async function fetchAddressDriftReport(params?: {
+  page?: number;
+  limit?: number;
+}): Promise<AddressDriftReport> {
+  const { data } = await apiClient.get('/orders/admin/address-drift-report', {
+    params,
+  });
+  return normalizeResponse<AddressDriftReport>(data);
 }
 
 export async function fetchOrderValidTransitions(orderId: string): Promise<AdminOrderStatus[]> {

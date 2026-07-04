@@ -38,7 +38,7 @@ import {
   useDeliveryByOrder,
   useAvailableRiders,
 } from '../../lib/admin/hooks/useAdminDeliveries';
-import { fetchAdminFleetOperators } from '../../lib/admin/api';
+import { fetchAdminFleetOperators, fetchAddressDriftReport } from '../../lib/admin/api';
 import { useQuery } from '@tanstack/react-query';
 import {
   AdminDeliveryStatus,
@@ -251,6 +251,12 @@ export default function AdminOrders() {
     reason: OrderCancellationReason;
     text: string;
   } | null>(null);
+  const [driftReportOpen, setDriftReportOpen] = useState(false);
+  const { data: driftReport, isLoading: driftReportLoading } = useQuery({
+    queryKey: ['admin', 'orders', 'address-drift-report'],
+    queryFn: () => fetchAddressDriftReport({ page: 1, limit: 100 }),
+    enabled: driftReportOpen,
+  });
   const assignDelivery = useAssignDeliveryMutation();
   const assignDeliveryToFleet = useAssignDeliveryToFleetMutation();
   const { data: availableRiders, isLoading: loadingRiders } = useAvailableRiders();
@@ -585,8 +591,8 @@ export default function AdminOrders() {
           </AdminToolbar>
 
           {/* Search bar */}
-          <div className="mb-4">
-            <div className="relative max-w-sm">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="relative max-w-sm flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
               <input
                 type="search"
@@ -596,6 +602,13 @@ export default function AdminOrders() {
                 className="w-full rounded-xl border border-[#1f1f1f] bg-[#111111] py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
               />
             </div>
+            <button
+              type="button"
+              onClick={() => setDriftReportOpen(true)}
+              className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-200 hover:bg-amber-500/20"
+            >
+              Address drift report
+            </button>
           </div>
 
           {isLoading ? (
@@ -908,14 +921,34 @@ export default function AdminOrders() {
                 <div><span className="text-gray-500">Email</span> <span className="text-gray-200">{detailOrder.user?.email ?? '—'}</span></div>
                 {detailOrder.user?.phone && <div><span className="text-gray-500">Phone</span> <span className="text-gray-200">{detailOrder.user.phone}</span></div>}
               </div>
-              {detailOrder.address && (
+              {detailOrder.deliveryAddressSnapshot && (
                 <div className="mt-3 border-t border-[#1f1f1f] pt-3">
-                  <p className="text-xs text-gray-500">Delivery address</p>
+                  <p className="text-xs text-gray-500">Delivery address (checkout snapshot)</p>
                   <p className="mt-1 text-gray-200">
-                    {detailOrder.address.line1}
-                    {detailOrder.address.line2 && `, ${detailOrder.address.line2}`}
+                    {detailOrder.deliveryAddressSnapshot.line1}
+                    {detailOrder.deliveryAddressSnapshot.line2 && `, ${detailOrder.deliveryAddressSnapshot.line2}`}
                   </p>
-                  <p className="text-gray-300">{detailOrder.address.city}, {detailOrder.address.state}</p>
+                  <p className="text-gray-300">
+                    {detailOrder.deliveryAddressSnapshot.city}, {detailOrder.deliveryAddressSnapshot.state}
+                  </p>
+                </div>
+              )}
+              {(detailOrder.addressDriftDiagnostic?.suspectedHistoricalDrift ||
+                detailOrder.addressDriftDiagnostic?.liveDiffersFromSnapshot) && (
+                <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-100">
+                  <p className="font-semibold flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    Address snapshot drift detected
+                  </p>
+                  <p className="mt-1 text-amber-200/90">
+                    The buyer&apos;s saved address book may differ from the address frozen at checkout.
+                    Delivery fees were calculated for the snapshot, not the live profile address.
+                  </p>
+                  {detailOrder.addressDriftDiagnostic?.driftFields?.length ? (
+                    <p className="mt-1 text-amber-200/80">
+                      Changed fields: {detailOrder.addressDriftDiagnostic.driftFields.join(', ')}
+                    </p>
+                  ) : null}
                 </div>
               )}
             </section>
@@ -1194,6 +1227,71 @@ export default function AdminOrders() {
           <LoadingState label="Fetching order details…" />
         )}
       </AdminDrawer>
+
+      {driftReportOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
+          <div className="flex max-h-[85vh] w-full max-w-4xl flex-col rounded-2xl border border-[#2a2a2a] bg-[#151b24] shadow-2xl">
+            <div className="border-b border-[#2a2a2a] p-6">
+              <h3 className="text-lg font-bold text-white">Address drift report</h3>
+              <p className="mt-1 text-sm text-gray-400">
+                Diagnostic only — orders where checkout delivery snapshot may not match the buyer&apos;s current saved address.
+              </p>
+            </div>
+            <div className="flex-1 overflow-auto p-6">
+              {driftReportLoading ? (
+                <LoadingState label="Scanning orders…" />
+              ) : driftReport && driftReport.orders.length > 0 ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-400">{driftReport.total} order(s) with suspected drift</p>
+                  {driftReport.orders.map((row) => (
+                    <div
+                      key={row.orderId}
+                      className="rounded-lg border border-[#1f1f1f] bg-[#0d1117] p-4 text-sm"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          className="font-mono text-primary hover:underline"
+                          onClick={() => {
+                            setDriftReportOpen(false);
+                            setFocusedOrder({ id: row.orderId } as AdminOrder);
+                          }}
+                        >
+                          #{row.orderId.slice(0, 8)}
+                        </button>
+                        <span className="text-gray-500">{row.status}</span>
+                      </div>
+                      <p className="mt-2 text-gray-300">
+                        Snapshot: {row.deliveryAddressSnapshot.line1}, {row.deliveryAddressSnapshot.city}
+                      </p>
+                      {row.liveAddress && (
+                        <p className="text-amber-200/90">
+                          Live profile: {row.liveAddress.line1}, {row.liveAddress.city}
+                        </p>
+                      )}
+                      <p className="mt-1 text-xs text-gray-500">
+                        {row.driftReasons.join(' · ')} · Fee {formatNgnFromKobo(row.shippingFeeKobo)}
+                        {row.distanceKmForPricing != null ? ` · ${row.distanceKmForPricing}km` : ''}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">No address drift detected in scanned orders.</p>
+              )}
+            </div>
+            <div className="border-t border-[#2a2a2a] p-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setDriftReportOpen(false)}
+                className="rounded-lg border border-[#2a2a2a] px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-[#1c232e]"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {cancelModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">

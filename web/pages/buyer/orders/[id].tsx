@@ -968,7 +968,7 @@ export default function BuyerOrderDetailPage() {
                   <div className="bg-[#1a1a1a] border border-[#ff6600]/30 rounded-xl p-6">
                     <h2 className="text-white text-xl font-bold mb-3">Invoice</h2>
                     <p className="text-[#ffcc99]/80 text-sm mb-4">
-                      Download your invoice for this order. The invoice will open in a new window where you can print or save as PDF.
+                      Download your invoice for this order as a PDF file.
                     </p>
                     <button
                       onClick={async () => {
@@ -978,26 +978,26 @@ export default function BuyerOrderDetailPage() {
                         }
                         try {
                           const response = await apiClient.get(`/orders/${order.id}/invoice`, {
-                            responseType: 'text',
+                            responseType: 'blob',
                           });
-                          const html = typeof response.data === 'string' ? response.data : (response.data as any)?.data ?? '';
-                          if (!html) {
+                          const pdfBlob =
+                            response.data instanceof Blob
+                              ? response.data
+                              : new Blob([response.data], { type: 'application/pdf' });
+                          if (!pdfBlob.size) {
                             showErrorToast('Invoice could not be loaded.');
                             return;
                           }
 
-                          // Create a blob and a temporary link to force download
-                          const blob = new Blob([html], { type: 'text/html' });
-                          const url = window.URL.createObjectURL(blob);
+                          const url = window.URL.createObjectURL(pdfBlob);
                           const link = document.createElement('a');
                           link.href = url;
-                          link.setAttribute('download', `invoice-${order.id.slice(0, 8)}.html`);
+                          link.setAttribute('download', `invoice-${order.id.slice(0, 8)}.pdf`);
                           document.body.appendChild(link);
                           link.click();
 
-                          // Clean up
                           document.body.removeChild(link);
-                          window.URL.revokeObjectURL(url);
+                          window.setTimeout(() => window.URL.revokeObjectURL(url), 600_000);
                         } catch (err: unknown) {
                           const msg = err && typeof err === 'object' && err !== null && 'response' in err
                             ? (err as { response?: { data?: { message?: string } } }).response?.data?.message

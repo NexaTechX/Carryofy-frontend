@@ -115,6 +115,17 @@ function normalizeCatalogProduct(raw: Record<string, unknown>): Product {
     const title = (raw.title as string) || (raw.name as string) || 'Product';
     const qty = (raw.quantity as number) ?? (raw.stockQuantity as number) ?? 0;
     const base = raw as unknown as Product;
+    const sellerRaw = raw.seller as Record<string, unknown> | undefined;
+    const seller = sellerRaw
+        ? {
+              id: String(sellerRaw.id ?? raw.sellerId ?? ''),
+              businessName: String(sellerRaw.businessName ?? ''),
+              email: String(sellerRaw.email ?? base.seller?.email ?? ''),
+              kycStatus:
+                  typeof sellerRaw.kycStatus === 'string' ? sellerRaw.kycStatus : undefined,
+          }
+        : base.seller;
+
     return {
         ...base,
         id: String(raw.id),
@@ -124,7 +135,13 @@ function normalizeCatalogProduct(raw: Record<string, unknown>): Product {
         images: Array.isArray(raw.images) ? (raw.images as string[]) : base.images ?? [],
         category: (raw.category as string) || base.category || '',
         status: (raw.status as Product['status']) || base.status,
+        seller,
     };
+}
+
+/** Landing / storefront catalogue — active listings only. */
+function isActiveCatalogProduct(product: Product): boolean {
+    return String(product.status ?? '').toUpperCase() === 'ACTIVE';
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -156,20 +173,25 @@ export async function getFeaturedProducts(limit: number = 8): Promise<Product[]>
             page: '1',
             limit: String(limit),
             sortBy: 'newest',
-            inStockOnly: 'false',
+            status: 'ACTIVE',
+            inStockOnly: 'true',
         });
 
         const response = await getWithNetworkRetry(`/products?${params.toString()}`);
         const rows = unwrapProductListPayload(response.data);
 
         if (rows.length > 0) {
-            return rows.map((row) => normalizeCatalogProduct(row));
+            return rows
+                .map((row) => normalizeCatalogProduct(row))
+                .filter(isActiveCatalogProduct);
         }
 
         // Fallback: legacy getProducts path
-        const legacy = await getProducts({ limit, page: 1 });
+        const legacy = await getProducts({ limit, page: 1, status: 'ACTIVE' as Product['status'] });
         const legacyRows = unwrapProductListPayload(legacy);
-        return legacyRows.map((row) => normalizeCatalogProduct(row));
+        return legacyRows
+            .map((row) => normalizeCatalogProduct(row))
+            .filter(isActiveCatalogProduct);
     } catch (error: unknown) {
         console.error('Error fetching featured products:', error);
         return [];

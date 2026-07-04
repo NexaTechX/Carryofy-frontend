@@ -23,6 +23,7 @@ export interface Product {
         id: string;
         businessName: string;
         email: string;
+        kycStatus?: string;
     };
     sellingMode?: 'B2C_ONLY' | 'B2B_ONLY' | 'BOTH';
     moq?: number;

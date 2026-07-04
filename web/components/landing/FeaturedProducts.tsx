@@ -2,9 +2,10 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ShoppingBag, ArrowRight, Star, Sparkles, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Star, TrendingUp, AlertCircle, RefreshCw, BadgeCheck } from 'lucide-react';
 import StockPhoto from '../common/StockPhoto';
 import { unsplashPhoto } from '../../lib/unsplash';
+import { isSellerVerified } from '../../lib/sellerVerification';
 import { Product } from '../../types/product';
 
 const productPlaceholder = unsplashPhoto('photo-1505740420928-5e560c06d30e', { w: 500 });
@@ -109,6 +110,7 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
           {!loading && products.length > 0 && products.slice(0, 10).map((product, index) => {
             const stock = (product as any).quantity ?? product.stockQuantity ?? 0;
             const isInStock = stock > 0;
+            const sellerVerified = isSellerVerified(product.seller);
 
             const imageSrc = product.images?.[0] || productPlaceholder;
             const imageAlt = (product as { title?: string }).title || product.name;
@@ -126,11 +128,23 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
                 whileHover={{ y: -8 }}
                 className="group relative overflow-hidden rounded-xl border border-border-custom bg-card shadow-card transition hover:-translate-y-1 hover:border-primary/50"
               >
-                {/* Fulfilled by Carryofy Badge */}
+                {/* Status badges */}
                 {isInStock && (
                   <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-10">
                     <span className="inline-flex items-center gap-1 rounded-md bg-success-soft px-2 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-success backdrop-blur-sm sm:text-[11px]">
                       In stock
+                    </span>
+                  </div>
+                )}
+                {sellerVerified && (
+                  <div
+                    className={`absolute left-2 z-10 sm:left-3 ${
+                      isInStock ? 'top-10 sm:top-12' : 'top-2 sm:top-3'
+                    }`}
+                  >
+                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-700 backdrop-blur-sm sm:text-[11px]">
+                      <BadgeCheck className="h-3 w-3" aria-hidden />
+                      Verified
                     </span>
                   </div>
                 )}

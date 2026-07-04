@@ -4,8 +4,9 @@ import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import {
   Building2, Store, User, MapPin, Crosshair, Upload, CheckCircle2, Check,
-  Clock, Loader2, ArrowLeft, ArrowRight, ShieldCheck, Package, Landmark,
+  Clock, Loader2, ArrowLeft, ArrowRight, ShieldCheck, ShieldX, Package, Landmark,
 } from 'lucide-react';
+import { kycRejectionReasonLabel } from '../../lib/kyc/rejection-reasons';
 import apiClient, { refreshAccessTokenBeforeRedirect } from '../../lib/api/client';
 import { unwrapAxiosBody } from '../../lib/api/normalizeResponse';
 import { useAuth } from '../../lib/auth';
@@ -170,6 +171,8 @@ export default function SellerOnboardingWizard() {
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [resolving, setResolving] = useState(false);
   const [locked, setLocked] = useState(false); // approved/pending -> read-only-ish
+  // Set when the seller's previous submission was rejected: why + what to fix.
+  const [rejection, setRejection] = useState<{ reason: string | null; code: string | null } | null>(null);
 
   const sellerIdRef = useRef<string>('');
   const submittedRef = useRef(false);
@@ -221,6 +224,14 @@ export default function SellerOnboardingWizard() {
           return;
         }
         setLocked(kyc === 'APPROVED' || kyc === 'PENDING');
+        setRejection(
+          kyc === 'REJECTED'
+            ? {
+                reason: k?.rejectionReason ?? null,
+                code: k?.rejectionReasonCode ?? null,
+              }
+            : null,
+        );
 
         const phone = (user as { phone?: string })?.phone || '';
         const sellerType = k?.businessType || TYPE_FROM_LEGAL[p?.legalEntityType || ''] || '';
@@ -655,6 +666,25 @@ export default function SellerOnboardingWizard() {
           </div>
 
           <div className={styles.mcontent}>
+            {rejection && (
+              <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+                <ShieldX className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+                <div>
+                  <p className="text-sm font-semibold text-red-300">
+                    Your last submission was rejected — fix the details below and resubmit
+                  </p>
+                  {kycRejectionReasonLabel(rejection.code) &&
+                    kycRejectionReasonLabel(rejection.code) !== 'Other' && (
+                    <span className="mt-1.5 inline-flex rounded-full bg-red-500/20 px-2.5 py-0.5 text-xs font-medium text-red-300">
+                      {kycRejectionReasonLabel(rejection.code)}
+                    </span>
+                  )}
+                  {rejection.reason && (
+                    <p className="mt-1.5 text-xs text-red-200/80">{rejection.reason}</p>
+                  )}
+                </div>
+              </div>
+            )}
             <div className={styles.stage} key={step}>
               {renderStep()}
               <div className={styles.nav}>
@@ -1235,6 +1265,7 @@ interface OnboardingState {
     businessType: string | null; idType: string | null; idNumber: string | null; idImage: string | null;
     idImageBack: string | null; cacDocumentUrl: string | null; addressProofImage: string | null;
     bvn: string | null; registrationNumber: string | null; taxId: string | null;
+    rejectionReason?: string | null; rejectionReasonCode?: string | null; rejectedAt?: string | null;
   } | null;
   bankAccount: { accountName: string; accountNumber: string; bankCode: string; bankName: string; accountType: string | null } | null;
 }

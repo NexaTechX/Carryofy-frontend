@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
@@ -7,6 +8,7 @@ import RemoteImage from '../../../components/common/RemoteImage';
 import { useAuth, tokenManager, userManager } from '../../../lib/auth';
 import { apiClient } from '../../../lib/api/client';
 import { resolveSellerKycStatus } from '../../../lib/seller/kyc-status';
+import { kycRejectionReasonLabel } from '../../../lib/kyc/rejection-reasons';
 import {
   unwrapSellerMePayload,
   sellerNeedsProfileOnboardingFromProfile,
@@ -1175,12 +1177,26 @@ export default function SettingsPage() {
                             {kycStatus === 'REJECTED' && (
                               <div className="mt-3">
                                 <p className="text-red-400 text-xs mb-2">Your KYC application was rejected.</p>
-                                {sellerProfile.kyc?.rejectionReason && (
+                                {(kycForm.kyc?.rejectionReason || kycForm.kyc?.rejectionReasonCode) && (
                                   <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(127,29,29,0.2)', border: '1px solid rgba(185,28,28,0.3)' }}>
                                     <p className="text-xs font-semibold text-red-300 mb-1">Rejection Reason:</p>
-                                    <p className="text-xs text-red-400">{sellerProfile.kyc.rejectionReason}</p>
+                                    {kycRejectionReasonLabel(kycForm.kyc?.rejectionReasonCode) &&
+                                      kycRejectionReasonLabel(kycForm.kyc?.rejectionReasonCode) !== 'Other' && (
+                                      <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium text-red-300 mb-1" style={{ backgroundColor: 'rgba(239,68,68,0.2)' }}>
+                                        {kycRejectionReasonLabel(kycForm.kyc?.rejectionReasonCode)}
+                                      </span>
+                                    )}
+                                    {kycForm.kyc?.rejectionReason && (
+                                      <p className="text-xs text-red-400">{kycForm.kyc.rejectionReason}</p>
+                                    )}
                                   </div>
                                 )}
+                                <Link
+                                  href="/seller/onboarding"
+                                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-red-600"
+                                >
+                                  Fix &amp; resubmit
+                                </Link>
                               </div>
                             )}
                           </div>

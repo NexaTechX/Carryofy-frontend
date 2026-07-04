@@ -7,6 +7,8 @@ import { tokenManager, userManager } from '../../../lib/auth';
 import { ArrowLeft, Scale, Send } from 'lucide-react';
 import { getDispute, addDisputeMessage, type Dispute } from '../../../lib/api/disputes';
 import { showErrorToast, showSuccessToast } from '../../../lib/ui/toast';
+import { isApiConnectionError, getApiConnectionErrorMessage } from '../../../lib/api/utils';
+import LoadFailedState from '../../../components/buyer/LoadFailedState';
 
 const STATUS_LABEL: Record<string, string> = {
   OPEN: 'Open',
@@ -39,21 +41,28 @@ export default function BuyerDisputeDetailPage() {
     }
   }, [router]);
 
+  const fetchOne = async () => {
+    if (typeof id !== 'string') return;
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getDispute(id);
+      setDispute(data);
+    } catch (err: any) {
+      setError(
+        isApiConnectionError(err)
+          ? getApiConnectionErrorMessage('load')
+          : err.response?.data?.message || 'Dispute not found',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!mounted || typeof id !== 'string') return;
-    const fetchOne = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getDispute(id);
-        setDispute(data);
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Dispute not found');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchOne();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, id]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -77,7 +86,11 @@ export default function BuyerDisputeDetailPage() {
     return (
       <BuyerLayout>
         <div className="mx-auto max-w-3xl px-4 py-8">
-          {loading ? <p className="text-gray-400">Loading…</p> : error ? <p className="text-red-400">{error}</p> : null}
+          {loading ? (
+            <p className="text-gray-400">Loading…</p>
+          ) : (
+            <LoadFailedState label="dispute" message={error} onRetry={fetchOne} />
+          )}
         </div>
       </BuyerLayout>
     );

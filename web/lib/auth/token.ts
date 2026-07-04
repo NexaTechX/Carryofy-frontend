@@ -71,6 +71,21 @@ function clearAccessTokenCookie(): void {
   document.cookie = `${ACCESS_TOKEN_COOKIE}=; path=/; max-age=0; samesite=lax`;
 }
 
+/** Decode the `exp` claim (ms since epoch) from a JWT without verifying it. */
+export function decodeJwtExpiryMs(token: string | null): number | null {
+  if (!token) return null;
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+  try {
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+    const payload = JSON.parse(atob(b64 + pad)) as { exp?: number };
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
 export const tokenManager = {
   setTokens: async (accessToken: string, refreshToken: string): Promise<void> => {
     if (typeof window !== 'undefined') {
@@ -141,6 +156,11 @@ export const tokenManager = {
 
   hasAccessToken: (): boolean => {
     return !!tokenManager.getAccessToken();
+  },
+
+  /** Expiry of the stored access token in ms since epoch, or null if absent/undecodable. */
+  getAccessTokenExpiryMs: (): number | null => {
+    return decodeJwtExpiryMs(tokenManager.getAccessToken());
   },
 
   isAuthenticated: (): boolean => {

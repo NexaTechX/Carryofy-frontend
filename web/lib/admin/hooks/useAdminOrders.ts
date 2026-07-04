@@ -2,13 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import {
   fetchAdminOrderById,
-  fetchAdminOrders,
+  fetchAdminOrdersPage,
+  fetchAdminOrderStats,
   fetchCancellationBreakdown,
   fetchOrderValidTransitions,
   updateOrderStatusRequest,
 } from '../../admin/api';
 import {
   AdminOrder,
+  AdminOrderStats,
   AdminOrderStatus,
   CancellationBreakdown,
   OrderCancellationReason,
@@ -16,10 +18,22 @@ import {
 
 const orderKeys = {
   all: ['admin', 'orders'] as const,
+  list: (params: Record<string, unknown>) => ['admin', 'orders', params] as const,
   detail: (orderId: string) => ['admin', 'orders', orderId] as const,
   validTransitions: (orderId: string) => ['admin', 'orders', orderId, 'valid-transitions'] as const,
   cancellationBreakdown: ['admin', 'orders', 'cancellation-breakdown'] as const,
+  stats: (orderType?: string) => ['admin', 'orders', 'stats', orderType ?? 'ALL'] as const,
 };
+
+export interface AdminOrdersPageResult {
+  orders: AdminOrder[];
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
 
 function getAdminOrdersErrorMessage(error: unknown): string {
   const err = error as { response?: { data?: { message?: string | string[] }; status?: number }; message?: string };
@@ -32,17 +46,45 @@ function getAdminOrdersErrorMessage(error: unknown): string {
   return 'Failed to load orders.';
 }
 
-export function useAdminOrders(options?: { refetchInterval?: number | false; orderType?: 'CONSUMER' | 'B2B' }) {
-  return useQuery<AdminOrder[]>({
-    queryKey: [...orderKeys.all, options?.orderType],
+export function useAdminOrders(options?: {
+  refetchInterval?: number | false;
+  orderType?: 'CONSUMER' | 'B2B';
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+}) {
+  const queryParams = {
+    page: options?.page ?? 1,
+    limit: options?.limit ?? 20,
+    orderType: options?.orderType,
+    status: options?.status,
+    search: options?.search,
+  };
+
+  return useQuery<AdminOrdersPageResult>({
+    queryKey: orderKeys.list(queryParams),
     queryFn: async () => {
       try {
-        return await fetchAdminOrders({ orderType: options?.orderType });
+        return await fetchAdminOrdersPage(queryParams);
       } catch (error) {
         throw new Error(getAdminOrdersErrorMessage(error));
       }
     },
-    refetchInterval: options?.refetchInterval ?? 30_000, // near-real-time: 30s
+    refetchInterval: options?.refetchInterval ?? 30_000,
+    retry: 1,
+  });
+}
+
+/** Aggregate funnel/stalled stats across ALL orders — independent of list pagination. */
+export function useAdminOrderStats(options?: {
+  refetchInterval?: number | false;
+  orderType?: 'CONSUMER' | 'B2B';
+}) {
+  return useQuery<AdminOrderStats>({
+    queryKey: orderKeys.stats(options?.orderType),
+    queryFn: () => fetchAdminOrderStats({ orderType: options?.orderType }),
+    refetchInterval: options?.refetchInterval ?? 30_000,
     retry: 1,
   });
 }
@@ -123,5 +165,3 @@ export function useCancellationBreakdown(options?: { refetchInterval?: number | 
     retry: 1,
   });
 }
-
-

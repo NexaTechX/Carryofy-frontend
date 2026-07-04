@@ -1,5 +1,5 @@
 import apiClient from '../api/client';
-import { normalizeResponse, unwrapApiEnvelope } from './normalizeResponse';
+import { normalizeResponse, unwrapApiEnvelope, unwrapAxiosBody } from './normalizeResponse';
 import {
   AdminDashboardData,
   DashboardMetrics,
@@ -57,6 +57,8 @@ import {
   AdminLocationsResponse,
   OrderCancellationReason,
   CancellationBreakdown,
+  AdminOrderStats,
+  OperationalIssuesResponse,
 } from './types';
 
 const ADMIN_DASHBOARD_CACHE_TAG = 'admin-dashboard';
@@ -65,6 +67,10 @@ export const adminDashboardKeys = {
   all: [ADMIN_DASHBOARD_CACHE_TAG] as const,
   range: (params: ReportsQueryParams) =>
     [ADMIN_DASHBOARD_CACHE_TAG, params.startDate ?? '', params.endDate ?? ''] as const,
+};
+
+export const operationalIssuesKeys = {
+  all: ['admin', 'operational-issues'] as const,
 };
 
 /**
@@ -288,10 +294,24 @@ export async function approveSellerRequest(sellerId: string): Promise<void> {
   await apiClient.put(`/sellers/${sellerId}/approve`);
 }
 
-export async function rejectSellerRequest(sellerId: string, rejectionReason?: string): Promise<void> {
+export async function rejectSellerRequest(
+  sellerId: string,
+  rejectionReason?: string,
+  rejectionReasonCode?: string,
+): Promise<void> {
   await apiClient.put(`/sellers/${sellerId}/reject`, {
     rejectionReason: rejectionReason || undefined,
+    rejectionReasonCode: rejectionReasonCode || undefined,
   });
+}
+
+/** Save the internal admin/support note for a seller. Empty string clears it. */
+export async function updateSellerAdminNoteRequest(
+  sellerId: string,
+  adminNote: string,
+): Promise<{ adminNote: string | null; adminNoteUpdatedAt: string | null }> {
+  const { data } = await apiClient.put(`/sellers/${sellerId}/admin-note`, { adminNote });
+  return normalizeResponse<{ adminNote: string | null; adminNoteUpdatedAt: string | null }>(data);
 }
 
 export async function suspendSellerRequest(sellerId: string, reason?: string): Promise<void> {
@@ -309,10 +329,15 @@ export async function bulkApproveSellersRequest(sellerIds: string[]): Promise<{ 
   return normalizeResponse<{ approved: number; failed: number }>(data);
 }
 
-export async function bulkRejectSellersRequest(sellerIds: string[], rejectionReason?: string): Promise<{ rejected: number; failed: number }> {
+export async function bulkRejectSellersRequest(
+  sellerIds: string[],
+  rejectionReason?: string,
+  rejectionReasonCode?: string,
+): Promise<{ rejected: number; failed: number }> {
   const { data } = await apiClient.post('/sellers/bulk-reject', {
     sellerIds,
     rejectionReason: rejectionReason || undefined,
+    rejectionReasonCode: rejectionReasonCode || undefined,
   });
   return normalizeResponse<{ rejected: number; failed: number }>(data);
 }
@@ -406,6 +431,36 @@ function mapAdminOrderFromApi(order: AdminOrder & { orderType?: 'CONSUMER' | 'B2
   };
 }
 
+export async function fetchAdminOrdersPage(params?: {
+  page?: number;
+  limit?: number;
+  orderType?: 'CONSUMER' | 'B2B';
+  status?: string;
+  search?: string;
+}): Promise<{ orders: AdminOrder[]; pagination?: AdminOrdersPagination }> {
+  const queryParams: Record<string, string | number> = {
+    page: params?.page ?? 1,
+    limit: params?.limit ?? 20,
+  };
+  if (params?.orderType) {
+    queryParams.orderType = params.orderType;
+  }
+  if (params?.status) {
+    queryParams.status = params.status;
+  }
+  if (params?.search?.trim()) {
+    queryParams.search = params.search.trim();
+  }
+
+  const { data } = await apiClient.get('/orders', { params: queryParams });
+  const { orders, pagination } = parseOrdersListPage(data);
+  return {
+    orders: orders.map(mapAdminOrderFromApi),
+    pagination,
+  };
+}
+
+/** @deprecated Prefer fetchAdminOrdersPage for paginated admin views. */
 export async function fetchAdminOrders(params?: { orderType?: 'CONSUMER' | 'B2B' }): Promise<AdminOrder[]> {
   const allOrders: AdminOrder[] = [];
   const limit = 100;
@@ -413,13 +468,11 @@ export async function fetchAdminOrders(params?: { orderType?: 'CONSUMER' | 'B2B'
   let totalPages = 1;
 
   while (page <= totalPages) {
-    const queryParams: Record<string, string | number> = { page, limit };
-    if (params?.orderType) {
-      queryParams.orderType = params.orderType;
-    }
-
-    const { data } = await apiClient.get('/orders', { params: queryParams });
-    const { orders, pagination } = parseOrdersListPage(data);
+    const { orders, pagination } = await fetchAdminOrdersPage({
+      page,
+      limit,
+      orderType: params?.orderType,
+    });
 
     if (page === 1 && pagination && pagination.total > 0 && orders.length === 0) {
       throw new Error(
@@ -427,7 +480,7 @@ export async function fetchAdminOrders(params?: { orderType?: 'CONSUMER' | 'B2B'
       );
     }
 
-    allOrders.push(...orders.map(mapAdminOrderFromApi));
+    allOrders.push(...orders);
 
     if (orders.length === 0) {
       break;
@@ -477,6 +530,16 @@ export async function updateOrderStatusRequest(
 export async function fetchCancellationBreakdown(): Promise<CancellationBreakdown> {
   const { data } = await apiClient.get('/orders/admin/cancellation-breakdown');
   return normalizeResponse<CancellationBreakdown>(data);
+}
+
+/** Aggregate funnel/stalled stats across ALL orders — not limited to one page. */
+export async function fetchAdminOrderStats(params?: {
+  orderType?: 'CONSUMER' | 'B2B';
+}): Promise<AdminOrderStats> {
+  const { data } = await apiClient.get('/orders/admin/stats', {
+    params: params?.orderType ? { orderType: params.orderType } : undefined,
+  });
+  return normalizeResponse<AdminOrderStats>(data);
 }
 
 export async function fetchActiveDeliveries(): Promise<AdminDelivery[]> {
@@ -834,315 +897,103 @@ export async function deleteNotificationRequest(notificationId: string): Promise
 
 export { fetchAdminProfile } from './fetchAdminProfile';
 
+export async function fetchOperationalIssues(): Promise<OperationalIssuesResponse> {
+  const { data } = await apiClient.get('/admin/operational-issues');
+  return normalizeResponse<OperationalIssuesResponse>(data);
+}
+
+function mapAdminDashboardResponse(normalized: Record<string, unknown>): AdminDashboardData {
+  const rawMetrics = (normalized?.metrics ?? normalized) as Record<string, unknown> | undefined;
+  const defaultCommissionRevenue: CommissionRevenueResponse = {
+    periods: [],
+    totalRevenue: 0,
+    growth: 0,
+  };
+  const defaultSalesTrend: SalesTrendResponse = {
+    trend: [],
+    totalSales: 0,
+    totalOrders: 0,
+    period: 'last-7-days',
+  };
+  const defaultTopCategories: TopCategoriesResponse = { categories: [], total: 0 };
+
+  const metrics: DashboardMetrics = {
+    totalUsers: (rawMetrics?.totalUsers as number) ?? 0,
+    totalSellers: (rawMetrics?.totalSellers as number) ?? 0,
+    totalProducts: (rawMetrics?.totalProducts as number) ?? 0,
+    totalOrders: (rawMetrics?.totalOrders as number) ?? 0,
+    todaysOrders: (rawMetrics?.todaysOrders as number) ?? 0,
+    totalRevenue: (rawMetrics?.totalRevenue as number) ?? 0,
+    totalCommissions: (rawMetrics?.totalCommissions as number) ?? 0,
+    pendingOrders: (rawMetrics?.pendingOrders as number) ?? 0,
+    activeDeliveries: (rawMetrics?.activeDeliveries as number) ?? 0,
+    pendingApprovals: (rawMetrics?.pendingApprovals as number) ?? 0,
+    totalCustomers: (rawMetrics?.totalCustomers as number) ?? 0,
+    newCustomersThisMonth: (rawMetrics?.newCustomersThisMonth as number) ?? 0,
+    activeCustomersThisMonth: (rawMetrics?.activeCustomersThisMonth as number) ?? 0,
+    customerRetentionRate: (rawMetrics?.customerRetentionRate as number) ?? 0,
+    periodProcessedGmvKobo: rawMetrics?.periodProcessedGmvKobo as number | undefined,
+    platformCommissionKobo: rawMetrics?.platformCommissionKobo as number | undefined,
+    activeSellersThisPeriod: rawMetrics?.activeSellersThisPeriod as number | undefined,
+    pendingPayoutsKobo: rawMetrics?.pendingPayoutsKobo as number | undefined,
+    repeatOrderRatePercent: rawMetrics?.repeatOrderRatePercent as number | undefined,
+    funnelUniqueVisitors: rawMetrics?.funnelUniqueVisitors as number | undefined,
+    buyerTotalPaidKobo: rawMetrics?.buyerTotalPaidKobo as number | undefined,
+    deliverySpreadKobo: rawMetrics?.deliverySpreadKobo as number | undefined,
+    riderPayoutTotalKobo: rawMetrics?.riderPayoutTotalKobo as number | undefined,
+    platformRevenueKobo: rawMetrics?.platformRevenueKobo as number | undefined,
+    riderCommissionKobo: rawMetrics?.riderCommissionKobo as number | undefined,
+    priorPeriod: rawMetrics?.priorPeriod as DashboardMetrics['priorPeriod'],
+  };
+
+  return {
+    metrics,
+    salesTrend: (normalized?.salesTrend as SalesTrendResponse | undefined) ?? defaultSalesTrend,
+    topCategories: (normalized?.topCategories as TopCategoriesResponse | undefined) ?? defaultTopCategories,
+    commissionRevenue:
+      (normalized?.commissionRevenue as CommissionRevenueResponse | undefined) ?? defaultCommissionRevenue,
+    orderDistribution: (Array.isArray(normalized?.orderDistribution)
+      ? normalized.orderDistribution
+      : []) as OrderDistributionEntry[],
+    cohortRetention: normalized?.cohortRetention as AdminDashboardData['cohortRetention'],
+    lowStock: (Array.isArray(normalized?.lowStock) ? normalized.lowStock : []) as LowStockItem[],
+    pendingSellerApprovals:
+      typeof normalized?.pendingSellerApprovals === 'number' ? normalized.pendingSellerApprovals : 0,
+    pendingPayments: typeof normalized?.pendingPayments === 'number' ? normalized.pendingPayments : 0,
+    pendingQuoteRequestsCount:
+      typeof normalized?.pendingQuoteRequestsCount === 'number' ? normalized.pendingQuoteRequestsCount : 0,
+    b2bOrdersCount: typeof normalized?.b2bOrdersCount === 'number' ? normalized.b2bOrdersCount : 0,
+    topProducts: (Array.isArray(normalized?.topProducts)
+      ? normalized.topProducts
+      : []) as AdminDashboardData['topProducts'],
+    dateRange: normalized?.dateRange as AdminDashboardData['dateRange'],
+  };
+}
+
 export async function fetchAdminDashboard(params?: ReportsQueryParams): Promise<AdminDashboardData> {
   try {
-    const [response, customerMetrics] = await Promise.all([
-      apiClient.get('/admin/dashboard', { params }),
-      fetchAdminCustomerMetrics(),
-    ]);
-
-    // Log response in development for debugging
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Admin dashboard response:', response.data);
-    }
-
-    const normalized = normalizeResponse<Record<string, unknown>>(response.data);
-
-    // Log normalized data in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Normalized admin dashboard data:', normalized);
-    }
-
-    // Backend may return metrics in .metrics or as top-level (e.g. /reports/dashboard returns flat KPIs)
-    const rawMetrics = (normalized?.metrics ?? normalized) as Record<string, unknown> | undefined;
-    const defaultMetrics = {
-      totalUsers: 0,
-      totalSellers: 0,
-      totalProducts: 0,
-      totalOrders: 0,
-      todaysOrders: 0,
-      totalRevenue: 0,
-      totalCommissions: 0,
-      pendingOrders: 0,
-      activeDeliveries: 0,
-      pendingApprovals: 0,
-      totalCustomers: 0,
-      newCustomersThisMonth: 0,
-      activeCustomersThisMonth: 0,
-      customerRetentionRate: 0,
+    const { data } = await apiClient.get('/admin/dashboard', { params });
+    const normalized = normalizeResponse<Record<string, unknown>>(data);
+    return mapAdminDashboardResponse(normalized);
+  } catch (error: unknown) {
+    const err = error as {
+      response?: { status?: number; data?: { message?: string } };
+      message?: string;
     };
-    let totalCustomers =
-      customerMetrics.totalCustomers > 0
-        ? customerMetrics.totalCustomers
-        : ((rawMetrics?.totalCustomers as number) ?? defaultMetrics.totalCustomers);
-    let totalUsers = (rawMetrics?.totalUsers as number) ?? defaultMetrics.totalUsers;
+    const status = err?.response?.status;
 
-    const newCustomersThisMonth = customerMetrics.newCustomersThisMonth;
-    const activeCustomersThisMonth = customerMetrics.activeCustomersThisMonth;
-    const customerRetentionRate = customerMetrics.customerRetentionRate;
-
-    if (totalCustomers === 0 && totalUsers === 0) {
-      const [usersTotal, buyersTotal] = await Promise.all([
-        fetchUsersCount(),
-        fetchUsersCount('BUYER'),
-      ]);
-      if (usersTotal > 0 && totalUsers === 0) totalUsers = usersTotal;
-      if (buyersTotal > 0 && totalCustomers === 0) totalCustomers = buyersTotal;
+    if (status === 401) {
+      throw new Error('Not signed in or session expired. Sign in again as an admin.');
     }
-
-    let totalSellers = (rawMetrics?.totalSellers as number) ?? defaultMetrics.totalSellers;
-    if (totalSellers === 0) {
-      const sellersCount = await fetchSellersCount();
-      if (sellersCount > 0) totalSellers = sellersCount;
+    if (status === 403) {
+      throw new Error('Access denied. This dashboard requires an admin account.');
     }
-
-    const hasDateRange = !!(params?.startDate && params?.endDate);
-    let totalRevenue = (rawMetrics?.totalRevenue as number) ?? defaultMetrics.totalRevenue;
-    if (!hasDateRange && totalRevenue === 0) {
-      const salesTotal = await fetchTotalSales();
-      if (salesTotal > 0) totalRevenue = salesTotal;
-    }
-
-    const metrics = {
-      totalUsers,
-      totalSellers,
-      totalProducts: (rawMetrics?.totalProducts as number) ?? defaultMetrics.totalProducts,
-      totalOrders: (rawMetrics?.totalOrders as number) ?? defaultMetrics.totalOrders,
-      todaysOrders: (rawMetrics?.todaysOrders as number) ?? defaultMetrics.todaysOrders,
-      totalRevenue,
-      totalCommissions: (rawMetrics?.totalCommissions as number) ?? defaultMetrics.totalCommissions,
-      pendingOrders: (rawMetrics?.pendingOrders as number) ?? defaultMetrics.pendingOrders,
-      activeDeliveries: (rawMetrics?.activeDeliveries as number) ?? defaultMetrics.activeDeliveries,
-      pendingApprovals: (rawMetrics?.pendingApprovals as number) ?? defaultMetrics.pendingApprovals,
-      totalCustomers,
-      newCustomersThisMonth,
-      activeCustomersThisMonth,
-      customerRetentionRate,
-      periodProcessedGmvKobo: rawMetrics?.periodProcessedGmvKobo as number | undefined,
-      platformCommissionKobo: rawMetrics?.platformCommissionKobo as number | undefined,
-      activeSellersThisPeriod: rawMetrics?.activeSellersThisPeriod as number | undefined,
-      pendingPayoutsKobo: rawMetrics?.pendingPayoutsKobo as number | undefined,
-      repeatOrderRatePercent: rawMetrics?.repeatOrderRatePercent as number | undefined,
-      funnelUniqueVisitors: rawMetrics?.funnelUniqueVisitors as number | undefined,
-      buyerTotalPaidKobo: rawMetrics?.buyerTotalPaidKobo as number | undefined,
-      deliverySpreadKobo: rawMetrics?.deliverySpreadKobo as number | undefined,
-      riderPayoutTotalKobo: rawMetrics?.riderPayoutTotalKobo as number | undefined,
-      platformRevenueKobo: rawMetrics?.platformRevenueKobo as number | undefined,
-      riderCommissionKobo: rawMetrics?.riderCommissionKobo as number | undefined,
-      priorPeriod: rawMetrics?.priorPeriod as DashboardMetrics['priorPeriod'],
-    };
-
-    // Fallback: fetch commission revenue from dedicated endpoint when dashboard returns empty
-    const defaultCommissionRevenue: CommissionRevenueResponse = {
-      periods: [],
-      totalRevenue: 0,
-      growth: 0,
-    };
-    let commissionRevenue: CommissionRevenueResponse =
-      (normalized?.commissionRevenue as CommissionRevenueResponse | undefined) ?? defaultCommissionRevenue;
-    const needsCommissionFallback =
-      (commissionRevenue.totalRevenue ?? 0) === 0 ||
-      !Array.isArray(commissionRevenue.periods) ||
-      commissionRevenue.periods.length === 0;
-
-    if (needsCommissionFallback) {
-      const commissionData = await fetchCommissionRevenue();
-      if (
-        (commissionData.totalRevenue ?? 0) > 0 ||
-        (Array.isArray(commissionData.periods) && commissionData.periods.length > 0)
-      ) {
-        commissionRevenue = commissionData;
-      } else if ((metrics.totalCommissions ?? 0) > 0 && (commissionRevenue.totalRevenue ?? 0) === 0) {
-        commissionRevenue = {
-          ...commissionRevenue,
-          totalRevenue: metrics.totalCommissions ?? 0,
-        };
-      }
-    }
-
-    // Ensure all fields are properly structured with fallbacks
-    const defaultSalesTrend: SalesTrendResponse = {
-      trend: [],
-      totalSales: 0,
-      totalOrders: 0,
-      period: 'last-7-days',
-    };
-    const defaultTopCategories: TopCategoriesResponse = { categories: [], total: 0 };
-    const result: AdminDashboardData = {
-      metrics,
-      salesTrend: (normalized?.salesTrend as SalesTrendResponse | undefined) ?? defaultSalesTrend,
-      topCategories: (normalized?.topCategories as TopCategoriesResponse | undefined) ?? defaultTopCategories,
-      commissionRevenue,
-      orderDistribution: (Array.isArray(normalized?.orderDistribution) ? normalized.orderDistribution : []) as OrderDistributionEntry[],
-      cohortRetention: normalized?.cohortRetention as AdminDashboardData['cohortRetention'],
-      lowStock: (Array.isArray(normalized?.lowStock) ? normalized.lowStock : []) as LowStockItem[],
-      pendingSellerApprovals: typeof normalized?.pendingSellerApprovals === 'number' ? normalized.pendingSellerApprovals : 0,
-      pendingPayments: typeof normalized?.pendingPayments === 'number' ? normalized.pendingPayments : 0,
-      pendingQuoteRequestsCount: typeof normalized?.pendingQuoteRequestsCount === 'number' ? normalized.pendingQuoteRequestsCount : 0,
-      b2bOrdersCount: typeof normalized?.b2bOrdersCount === 'number' ? normalized.b2bOrdersCount : 0,
-      dateRange: normalized?.dateRange as AdminDashboardData['dateRange'],
-    };
-
-    // Log final result in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Final admin dashboard result:', result);
-    }
-
-    return result;
-  } catch (error: any) {
-    const status = error?.response?.status;
-    const isAuthError = status === 401 || status === 403;
-
-    console.error('Admin dashboard endpoint failed:', {
-      error: error?.message,
-      response: error?.response?.data,
-      status,
-      url: error?.config?.url,
-    });
-
-    // Don't fall back on auth errors — surface them so the user can fix API URL or admin role
-    if (isAuthError) {
-      const message =
-        status === 401
-          ? 'Not signed in or session expired. Sign in again as an admin.'
-          : 'Access denied. This dashboard requires an admin account.';
-      throw new Error(message);
-    }
-
-    // For 404 or other client errors, fail fast instead of returning zeros
-    if (status >= 400 && status < 500) {
-      const msg = (error?.response?.data as { message?: string })?.message || error?.message || 'Dashboard request failed.';
+    if (status && status >= 400 && status < 500) {
+      const msg = err?.response?.data?.message || err?.message || 'Dashboard request failed.';
       throw new Error(msg);
     }
 
-    console.warn('Falling back to individual endpoints...');
-
-    const results = await Promise.allSettled([
-      fetchDashboardMetrics(),
-      fetchSalesTrend(),
-      fetchTopCategories(),
-      fetchCommissionRevenue(),
-      fetchOrderDistribution(),
-      fetchLowStock(),
-      fetchSellers(),
-    ]);
-
-    // Extract results with fallbacks
-    const metrics = results[0].status === 'fulfilled' ? results[0].value : {
-      totalUsers: 0,
-      totalSellers: 0,
-      totalProducts: 0,
-      totalOrders: 0,
-      todaysOrders: 0,
-      totalRevenue: 0,
-      totalCommissions: 0,
-      pendingOrders: 0,
-      activeDeliveries: 0,
-      pendingApprovals: 0,
-      totalCustomers: 0,
-      newCustomersThisMonth: 0,
-      activeCustomersThisMonth: 0,
-      customerRetentionRate: 0,
-    };
-
-    const salesTrend = results[1].status === 'fulfilled' ? results[1].value : {
-      trend: [],
-      totalSales: 0,
-      totalOrders: 0,
-      period: 'last-7-days',
-    };
-
-    const topCategories = results[2].status === 'fulfilled' ? results[2].value : {
-      categories: [],
-      total: 0,
-    };
-
-    const commissionRevenue = results[3].status === 'fulfilled' ? results[3].value : {
-      periods: [],
-      totalRevenue: 0,
-      growth: 0,
-    };
-
-    const orderDistribution = results[4].status === 'fulfilled' ? results[4].value : [];
-    const lowStock = results[5].status === 'fulfilled' ? results[5].value : [];
-    const sellers = results[6].status === 'fulfilled' ? results[6].value : [];
-
-    const pendingSellerApprovals = (sellers || []).filter((seller) => seller.kycStatus === 'PENDING').length;
-    const pendingPayments =
-      (orderDistribution || []).find((entry) => entry.status.toLowerCase().includes('pending'))?.count ?? 0;
-
-    // Fallback: fetch from APIs when dashboard metrics are zero
-    let finalMetrics = metrics;
-    let finalCommissionRevenue = commissionRevenue;
-    const needsCommissionFallback =
-      (commissionRevenue.totalRevenue ?? 0) === 0 ||
-      !Array.isArray(commissionRevenue.periods) ||
-      commissionRevenue.periods.length === 0;
-    if (needsCommissionFallback) {
-      const commissionData = await fetchCommissionRevenue();
-      if (
-        (commissionData.totalRevenue ?? 0) > 0 ||
-        (Array.isArray(commissionData.periods) && commissionData.periods.length > 0)
-      ) {
-        finalCommissionRevenue = commissionData;
-      } else if ((metrics.totalCommissions ?? 0) > 0) {
-        finalCommissionRevenue = {
-          ...commissionRevenue,
-          totalRevenue: metrics.totalCommissions ?? 0,
-        };
-      }
-    }
-
-    const needsFallback =
-      (metrics.totalCustomers === 0 && metrics.totalUsers === 0) ||
-      metrics.totalSellers === 0 ||
-      metrics.totalRevenue === 0;
-
-    if (needsFallback) {
-      const [usersTotal, buyersTotal, sellersTotal, salesTotal, customerMetrics] = await Promise.all([
-        fetchUsersCount(),
-        fetchUsersCount('BUYER'),
-        fetchSellersCount(),
-        fetchTotalSales(),
-        fetchAdminCustomerMetrics(),
-      ]);
-      if (
-        usersTotal > 0 ||
-        buyersTotal > 0 ||
-        sellersTotal > 0 ||
-        salesTotal > 0 ||
-        customerMetrics.totalCustomers > 0
-      ) {
-        finalMetrics = {
-          ...metrics,
-          totalUsers: metrics.totalUsers > 0 ? metrics.totalUsers : usersTotal,
-          totalCustomers:
-            customerMetrics.totalCustomers > 0
-              ? customerMetrics.totalCustomers
-              : (metrics.totalCustomers ?? 0) > 0
-                ? (metrics.totalCustomers ?? buyersTotal)
-                : buyersTotal,
-          totalSellers: metrics.totalSellers > 0 ? metrics.totalSellers : sellersTotal,
-          totalRevenue: metrics.totalRevenue > 0 ? metrics.totalRevenue : salesTotal,
-          newCustomersThisMonth: customerMetrics.newCustomersThisMonth,
-          activeCustomersThisMonth: customerMetrics.activeCustomersThisMonth,
-          customerRetentionRate: customerMetrics.customerRetentionRate,
-        };
-      }
-    }
-
-    return {
-      metrics: finalMetrics,
-      salesTrend,
-      topCategories,
-      commissionRevenue: finalCommissionRevenue,
-      orderDistribution: orderDistribution || [],
-      lowStock: lowStock || [],
-      pendingSellerApprovals,
-      pendingPayments,
-      pendingQuoteRequestsCount: 0,
-      b2bOrdersCount: 0,
-    };
+    throw error instanceof Error ? error : new Error('Dashboard request failed.');
   }
 }
 
@@ -1520,7 +1371,7 @@ export async function getAudienceCount(
   const { data } = await apiClient.get(
     qs ? `/admin/broadcast/audience/count?${qs}` : '/admin/broadcast/audience/count',
   );
-  return normalizeResponse<AudienceCount>(data);
+  return unwrapAxiosBody<AudienceCount>(data);
 }
 
 export async function fetchBroadcastProducts(

@@ -157,21 +157,22 @@ export function useBroadcast() {
 
   const fetchCounts = useCallback(async () => {
     setIsLoadingCounts(true);
+    setErrorBanner('');
     try {
       const counts = await getAudienceCount(['BUYER', 'SELLER', 'RIDER']);
       setState((prev) => ({
         ...prev,
         recipientCounts: {
-          buyers: counts.BUYER,
-          sellers: counts.SELLER,
-          riders: counts.RIDER,
+          buyers: counts.BUYER ?? 0,
+          sellers: counts.SELLER ?? 0,
+          riders: counts.RIDER ?? 0,
         },
       }));
-    } catch {
-      setState((prev) => ({
-        ...prev,
-        recipientCounts: { buyers: 0, sellers: 0, riders: 0 },
-      }));
+    } catch (error) {
+      console.error('Failed to load broadcast audience counts:', error);
+      setErrorBanner(
+        'Could not load recipient counts. The broadcast API may be unavailable — deploy the latest API or try again.',
+      );
     } finally {
       setIsLoadingCounts(false);
     }

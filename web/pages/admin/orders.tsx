@@ -27,6 +27,7 @@ import { getStatusTone } from '../../lib/admin/statusTones';
 import {
   useAdminOrders,
   useAdminOrderDetail,
+  useAdminOrderStats,
   useOrderStatusMutation,
   useOrderValidTransitions,
   useCancellationBreakdown,
@@ -42,6 +43,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   AdminDeliveryStatus,
   AdminOrder,
+  AdminOrderStats,
   AdminOrderStatus,
   OrderCancellationReason,
 } from '../../lib/admin/types';
@@ -98,14 +100,6 @@ const ORDER_STATUS_QUERY_ALIASES: Record<string, OrderFilter> = {
   canceled: 'CANCELED',
   cancelled: 'CANCELED',
 };
-
-const STALLED_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
-
-function isToday(iso: string): boolean {
-  const d = new Date(iso);
-  const today = new Date();
-  return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
-}
 
 function timeElapsed(iso: string): string {
   const then = new Date(iso).getTime();
@@ -189,21 +183,12 @@ const STAT_STRIP = [
   },
 ] as const;
 
-function getStatCount(orders: AdminOrder[] | undefined, key: string): number {
-  if (!orders) return 0;
-  if (key === 'DELIVERED_TODAY') {
-    return orders.filter((o) => o.status === 'DELIVERED' && isToday(o.updatedAt)).length;
-  }
-  if (key === 'CANCELLED_TODAY') {
-    return orders.filter((o) => o.status === 'CANCELED' && isToday(o.updatedAt)).length;
-  }
-  return orders.filter((o) => o.status === key).length;
-}
-
-function isStalled(order: AdminOrder): boolean {
-  if (order.status === 'DELIVERED' || order.status === 'CANCELED') return false;
-  const updated = new Date(order.updatedAt).getTime();
-  return Date.now() - updated > STALLED_THRESHOLD_MS;
+/** Read stat-strip counts from the aggregate stats endpoint (covers ALL orders, not one page). */
+function getStatCount(stats: AdminOrderStats | undefined, key: string): number {
+  if (!stats) return 0;
+  if (key === 'DELIVERED_TODAY') return stats.deliveredToday;
+  if (key === 'CANCELLED_TODAY') return stats.cancelledToday;
+  return stats.statusCounts[key] ?? 0;
 }
 
 type OrderTypeFilter = 'ALL' | 'CONSUMER' | 'B2B';
@@ -214,13 +199,32 @@ export default function AdminOrders() {
   const [orderTypeFilter, setOrderTypeFilter] = useState<OrderTypeFilter>('ALL');
   const [focusedOrder, setFocusedOrder] = useState<AdminOrder | null>(null);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const pageLimit = 20;
 
-  const { data: orders, isLoading, isError, error, refetch, dataUpdatedAt } = useAdminOrders({
+  const apiStatus = filter === 'ALL' ? undefined : filter;
+
+  const { data, isLoading, isError, error, refetch, dataUpdatedAt } = useAdminOrders({
+    refetchInterval: 30_000,
+    orderType: orderTypeFilter === 'ALL' ? undefined : orderTypeFilter,
+    page,
+    limit: pageLimit,
+    status: apiStatus,
+    search: search.trim() || undefined,
+  });
+  const orders = data?.orders;
+  const pagination = data?.pagination;
+  // Stat strip and stalled banner must reflect the full order set, not the current page.
+  const { data: orderStats } = useAdminOrderStats({
     refetchInterval: 30_000,
     orderType: orderTypeFilter === 'ALL' ? undefined : orderTypeFilter,
   });
   const [tableColumns, setTableColumns] = useColumnVisibility(ORDER_TABLE_COLUMNS);
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, orderTypeFilter, search]);
 
   useEffect(() => {
     const orderId = router.query.orderId;
@@ -257,23 +261,9 @@ export default function AdminOrders() {
   });
   const activeFleetOperators = fleetOperators.filter((f) => f.isActive);
 
-  const filteredByStatus = useMemo(() => {
-    if (!orders) return [];
-    if (filter === 'ALL') return orders;
-    return orders.filter((order) => order.status === filter);
-  }, [orders, filter]);
+  const filteredByStatus = orders ?? [];
 
-  const filteredOrders = useMemo(() => {
-    if (!search.trim()) return filteredByStatus;
-    const q = search.trim().toLowerCase();
-    return filteredByStatus.filter((order) => {
-      const id = order.id.toLowerCase();
-      const name = (order.user?.name ?? '').toLowerCase();
-      const email = (order.user?.email ?? '').toLowerCase();
-      const seller = getOrderSeller(order).toLowerCase();
-      return id.includes(q) || name.includes(q) || email.includes(q) || seller.includes(q);
-    });
-  }, [filteredByStatus, search]);
+  const filteredOrders = filteredByStatus;
 
   const visibleCols = tableColumns.filter((c) => c.visible);
   const { getRowProps } = useTableKeyboardNav({
@@ -304,20 +294,24 @@ export default function AdminOrders() {
     await downloadBlob(csvUtf8Blob(csv), `orders-${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
-  const stalledOrders = useMemo(() => (orders ?? []).filter(isStalled), [orders]);
+  const stalledCount = orderStats?.stalled.count ?? 0;
+  const oldestStalledOrderId = orderStats?.stalled.oldestOrderId ?? null;
 
-  const filterCounts = useMemo(() => {
-    const list = orders ?? [];
+  // Per-tab totals come from the aggregate stats endpoint so every tab keeps its
+  // count regardless of which filter is active or which page is loaded.
+  const filterCounts = useMemo<Partial<Record<OrderFilter, number>>>(() => {
+    const statusCounts = orderStats?.statusCounts;
+    if (!statusCounts) return {};
     return {
-      ALL: list.length,
-      PENDING_PAYMENT: list.filter((o) => o.status === 'PENDING_PAYMENT').length,
-      PAID: list.filter((o) => o.status === 'PAID').length,
-      PROCESSING: list.filter((o) => o.status === 'PROCESSING').length,
-      OUT_FOR_DELIVERY: list.filter((o) => o.status === 'OUT_FOR_DELIVERY').length,
-      DELIVERED: list.filter((o) => o.status === 'DELIVERED').length,
-      CANCELED: list.filter((o) => o.status === 'CANCELED').length,
+      ALL: Object.values(statusCounts).reduce((sum, n) => sum + n, 0),
+      PENDING_PAYMENT: statusCounts.PENDING_PAYMENT ?? 0,
+      PAID: statusCounts.PAID ?? 0,
+      PROCESSING: statusCounts.PROCESSING ?? 0,
+      OUT_FOR_DELIVERY: statusCounts.OUT_FOR_DELIVERY ?? 0,
+      DELIVERED: statusCounts.DELIVERED ?? 0,
+      CANCELED: statusCounts.CANCELED ?? 0,
     };
-  }, [orders]);
+  }, [orderStats?.statusCounts]);
 
   const focusedOrderId = focusedOrder?.id ?? null;
   const { data: orderDetail } = useAdminOrderDetail(focusedOrderId);
@@ -424,8 +418,9 @@ export default function AdminOrders() {
   };
 
   const handleEscalateStalled = () => {
-    if (stalledOrders.length > 0) {
-      setFocusedOrder(stalledOrders[0]);
+    if (oldestStalledOrderId) {
+      // The order may not be on the current page; the detail drawer fetches by id.
+      setFocusedOrder({ id: oldestStalledOrderId } as AdminOrder);
       setFilter('ALL');
     }
   };
@@ -445,7 +440,7 @@ export default function AdminOrders() {
           <section className="mb-6 -mx-4 px-4 sm:mx-0 sm:px-0">
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-track-[#111] scrollbar-thumb-[#333]">
               {STAT_STRIP.map((stat) => {
-                const count = getStatCount(orders, stat.key);
+                const count = getStatCount(orderStats, stat.key);
                 return (
                   <div
                     key={stat.key}
@@ -527,13 +522,13 @@ export default function AdminOrders() {
           </section>
 
           {/* Stalled Orders banner */}
-          {stalledOrders.length > 0 && (
+          {stalledCount > 0 && (
             <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
               <div className="flex items-center gap-3">
                 <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400" />
                 <div>
                   <p className="text-sm font-semibold text-amber-200">
-                    Stalled Orders — {stalledOrders.length} order{stalledOrders.length !== 1 ? 's' : ''} in same status for over 2 hours
+                    Stalled Orders — {stalledCount} order{stalledCount !== 1 ? 's' : ''} in same status for over 2 hours
                   </p>
                   <p className="text-xs text-amber-200/80">
                     Review and escalate to unblock fulfilment.
@@ -761,6 +756,32 @@ export default function AdminOrders() {
                   </DataTableBody>
                 </DataTable>
               </DataTableContainer>
+
+              {pagination && pagination.totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-between">
+                  <p className="text-sm text-gray-400">
+                    Showing {(page - 1) * pageLimit + 1} to {Math.min(page * pageLimit, pagination.total)} of {pagination.total} orders
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="rounded-lg border border-gray-700 px-4 py-2 text-sm text-white transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => p + 1)}
+                      disabled={page >= pagination.totalPages}
+                      className="rounded-lg border border-gray-700 px-4 py-2 text-sm text-white transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

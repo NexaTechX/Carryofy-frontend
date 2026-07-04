@@ -87,7 +87,15 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
   const payload = token ? await verifyAccessToken(token) : null;
   const role = payload?.role ? String(payload.role).toUpperCase() : null;
-  const expired = !!token && !!payload?.exp && payload.exp * 1000 <= Date.now();
+  // An expired-but-present token is allowed through within the refresh-token
+  // window: the client silently refreshes (AuthProvider timer + axios 401
+  // interceptor) and the API enforces real auth on every request. Redirecting
+  // here would boot actively-browsing users to login the instant the short
+  // access token lapses. Only force login once the refresh token itself must
+  // be dead (grace matches JWT_REFRESH_EXPIRES_IN).
+  const REFRESH_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
+  const expMs = payload?.exp ? payload.exp * 1000 : null;
+  const expired = !!token && !!expMs && expMs + REFRESH_GRACE_MS <= Date.now();
   const tokenInvalid = !token || !role || expired;
 
   if (pathname.startsWith('/buyer')) {

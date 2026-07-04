@@ -2,6 +2,12 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User } from './types';
 import { tokenManager } from './token';
 import { authService } from './service';
+import { refreshAccessTokenAndGet } from '../api/client';
+
+/** Renew the access token this long before it expires. */
+const REFRESH_LEAD_MS = 2 * 60 * 1000;
+/** Minimum delay between scheduled refreshes (guards against tight loops on short/clock-skewed tokens). */
+const MIN_REFRESH_DELAY_MS = 15 * 1000;
 
 
 interface AuthContextType {
@@ -72,6 +78,51 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         initAuth();
     }, [setUser]);
+
+    // Silent token refresh: renew the access token shortly before it expires so
+    // an actively-browsing user never hits a 401 → login redirect. Also refresh
+    // on tab focus, which covers timers that never fired (laptop sleep, mobile
+    // background tabs).
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        let timer: number | undefined;
+        let cancelled = false;
+
+        const schedule = () => {
+            if (cancelled) return;
+            window.clearTimeout(timer);
+            const expMs = tokenManager.getAccessTokenExpiryMs();
+            if (!expMs) return;
+            const delay = Math.max(expMs - Date.now() - REFRESH_LEAD_MS, MIN_REFRESH_DELAY_MS);
+            timer = window.setTimeout(async () => {
+                const token = await refreshAccessTokenAndGet();
+                // On failure, stop the loop; the axios 401 interceptor handles the
+                // next API call, and a tab-focus retry below may recover it.
+                if (!cancelled && token) schedule();
+            }, delay);
+        };
+
+        const refreshIfStale = async () => {
+            if (cancelled || document.visibilityState !== 'visible') return;
+            const expMs = tokenManager.getAccessTokenExpiryMs();
+            if (!expMs || expMs - Date.now() > REFRESH_LEAD_MS) return;
+            const token = await refreshAccessTokenAndGet();
+            if (!cancelled && token) schedule();
+        };
+
+        if (user && tokenManager.hasAccessToken()) {
+            schedule();
+            document.addEventListener('visibilitychange', refreshIfStale);
+            window.addEventListener('focus', refreshIfStale);
+        }
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timer);
+            document.removeEventListener('visibilitychange', refreshIfStale);
+            window.removeEventListener('focus', refreshIfStale);
+        };
+    }, [user]);
 
     const login = async (email: string, password: string) => {
         const response = await authService.login({ email, password });

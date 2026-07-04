@@ -22,6 +22,9 @@ import {
   ADMIN_NAV_GROUPS,
   type AdminNavItem,
 } from '../../lib/admin/adminNavConfig';
+import { canAccessAdminRoute } from '../../lib/admin/adminPermissions';
+import { useAdminProfile } from '../../lib/admin/hooks/useAdminProfile';
+import AdminPermissionGate from './AdminPermissionGate';
 
 const NAV_EXPANDED_KEY = 'carryofy-admin-nav-expanded-v1';
 
@@ -72,6 +75,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, []);
 
   const canFetchAdminData = isAuthenticated && !authLoading;
+  const { data: adminProfile, isLoading: adminProfileLoading } = useAdminProfile();
+  const adminTier = adminProfile?.adminRole;
+
+  const visibleNavGroups = useMemo(() => {
+    return ADMIN_NAV_GROUPS.map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canAccessAdminRoute(item.href, adminTier)),
+    })).filter((group) => group.items.length > 0);
+  }, [adminTier]);
   const { data: safetySosBadge = 0 } = useSWR(
     router.pathname.startsWith('/admin') && canFetchAdminData ? 'safety-sos-badge' : null,
     fetchUnacknowledgedSosCount,
@@ -124,7 +136,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const renderNavLinks = (onNavigate?: () => void) => (
     <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
       <div className="space-y-4">
-        {ADMIN_NAV_GROUPS.map((group) => {
+        {visibleNavGroups.map((group) => {
           const open = isGroupOpen(group.id);
           const hasActive = group.items.some((item) => isNavItemActive(item, router.pathname));
           return (
@@ -332,7 +344,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           <AdminBreadcrumbs />
 
-          <main className="flex-1 overflow-y-auto bg-background">{children}</main>
+          <main className="flex-1 overflow-y-auto bg-background">
+            <AdminPermissionGate adminRole={adminTier} isRoleLoading={adminProfileLoading}>
+              {children}
+            </AdminPermissionGate>
+          </main>
         </div>
 
         <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />

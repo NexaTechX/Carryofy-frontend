@@ -7,6 +7,8 @@ import { tokenManager, userManager } from '../../lib/auth';
 import { Scale, ArrowLeft, Clock, CheckCircle2, MessageSquare, Plus } from 'lucide-react';
 import { getDisputes, createDispute, type Dispute, type CreateDisputePayload } from '../../lib/api/disputes';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
+import { isApiConnectionError, getApiConnectionErrorMessage } from '../../lib/api/utils';
+import LoadFailedState from '../../components/buyer/LoadFailedState';
 
 const STATUS_LABEL: Record<string, string> = {
   OPEN: 'Open',
@@ -54,7 +56,11 @@ export default function BuyerDisputesPage() {
       const data = await getDisputes();
       setDisputes(data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load disputes');
+      setError(
+        isApiConnectionError(err)
+          ? getApiConnectionErrorMessage('load')
+          : err.response?.data?.message || 'Failed to load disputes',
+      );
     } finally {
       setLoading(false);
     }
@@ -193,7 +199,7 @@ export default function BuyerDisputesPage() {
           {loading ? (
             <p className="text-gray-400">Loading disputes…</p>
           ) : error ? (
-            <p className="text-red-400">{error}</p>
+            <LoadFailedState label="disputes" message={error} onRetry={fetchDisputes} />
           ) : disputes.length === 0 ? (
             <div className="rounded-xl border border-[#1f2432] bg-[#0e131d] p-8 text-center">
               <MessageSquare className="w-12 h-12 text-gray-500 mx-auto mb-4" />

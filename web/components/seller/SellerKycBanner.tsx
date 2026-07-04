@@ -1,11 +1,20 @@
 import Link from 'next/link';
 import { ShieldCheck, Clock, ShieldX } from 'lucide-react';
+import { kycRejectionReasonLabel } from '../../lib/kyc/rejection-reasons';
 
 /**
  * Always-visible KYC state banner for the seller dashboard. Makes the "you must be
  * verified to sell" rule explicit (previously it was only implied by a disabled FAB).
  */
-export default function SellerKycBanner({ status }: { status: string | null }) {
+export default function SellerKycBanner({
+  status,
+  rejectionReason,
+  rejectionReasonCode,
+}: {
+  status: string | null;
+  rejectionReason?: string | null;
+  rejectionReasonCode?: string | null;
+}) {
   if (!status || status === 'APPROVED') return null;
 
   const kycHref = '/seller/onboarding';
@@ -26,14 +35,24 @@ export default function SellerKycBanner({ status }: { status: string | null }) {
   }
 
   if (status === 'REJECTED') {
+    const reasonLabel = kycRejectionReasonLabel(rejectionReasonCode);
     return (
       <div className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4">
         <ShieldX className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
         <div className="flex-1">
           <p className="text-sm font-semibold text-red-300">Verification rejected</p>
-          <p className="mt-0.5 text-xs text-red-200/80">
-            Your KYC was not approved. Review the reason, fix the details and resubmit.
-          </p>
+          {reasonLabel && reasonLabel !== 'Other' && (
+            <span className="mt-1.5 inline-flex rounded-full bg-red-500/20 px-2.5 py-0.5 text-xs font-medium text-red-300">
+              {reasonLabel}
+            </span>
+          )}
+          {rejectionReason ? (
+            <p className="mt-1.5 text-xs text-red-200/80">{rejectionReason}</p>
+          ) : (
+            <p className="mt-0.5 text-xs text-red-200/80">
+              Your KYC was not approved. Review the reason, fix the details and resubmit.
+            </p>
+          )}
           <Link
             href={kycHref}
             className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-red-600"

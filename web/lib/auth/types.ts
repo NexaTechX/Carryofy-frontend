@@ -6,6 +6,8 @@ export interface User {
     email: string;
     phone?: string;
     role: UserRole;
+    adminRole?: 'SUPER_ADMIN' | 'OPS' | 'FINANCE' | 'SUPPORT' | null;
+    status?: string;
     verified: boolean;
     /** BUSINESS vs CONSUMER — used for B2B pricing and checkout order type */
     accountType?: string;

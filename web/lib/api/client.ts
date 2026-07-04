@@ -32,6 +32,9 @@ async function doRefresh(): Promise<string | null> {
   try {
     const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, body, {
       withCredentials: true,
+      // Without a timeout, a hung refresh leaves every 401-retried request pending
+      // forever (pages spin on "Loading…" with no error). Fail fast instead.
+      timeout: 15000,
     });
     const responseData = unwrapAxiosBody<{ accessToken?: string }>(response.data);
     const accessToken = responseData?.accessToken;

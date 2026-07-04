@@ -57,6 +57,10 @@ export default function SellerDashboard() {
   const { user, isLoading, isAuthenticated } = useAuth();
 
   const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const [kycRejection, setKycRejection] = useState<{
+    reason: string | null;
+    reasonCode: string | null;
+  }>({ reason: null, reasonCode: null });
   const [sellerId, setSellerId] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState<string | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrderRow[]>([]);
@@ -118,11 +122,19 @@ export default function SellerDashboard() {
   }, [isAuthenticated, user]);
 
   const fetchKycStatus = async () => {
-    const kyc = await sellerGet<{ status?: string; kyc?: Parameters<typeof resolveSellerKycStatus>[1] }>(
-      '/sellers/kyc',
-    );
+    const kyc = await sellerGet<{
+      status?: string;
+      kyc?: Parameters<typeof resolveSellerKycStatus>[1] & {
+        rejectionReason?: string | null;
+        rejectionReasonCode?: string | null;
+      };
+    }>('/sellers/kyc');
     if (kyc) {
       setKycStatus(resolveSellerKycStatus(kyc.status, kyc.kyc));
+      setKycRejection({
+        reason: kyc.kyc?.rejectionReason ?? null,
+        reasonCode: kyc.kyc?.rejectionReasonCode ?? null,
+      });
     }
   };
 
@@ -175,7 +187,11 @@ export default function SellerDashboard() {
       </Head>
       <SellerLayout>
         <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-2.5 lg:gap-6 lg:px-8">
-          <SellerKycBanner status={kycStatus} />
+          <SellerKycBanner
+            status={kycStatus}
+            rejectionReason={kycRejection.reason}
+            rejectionReasonCode={kycRejection.reasonCode}
+          />
           <div className="flex flex-col gap-3 lg:hidden">
             <div>
               <p className="text-xs font-medium text-foreground/50">Good to see you 👋</p>

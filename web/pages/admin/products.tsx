@@ -33,6 +33,7 @@ import { useConfirmation } from '../../lib/hooks/useConfirmation';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 import { formatNgnFromKobo, formatDate } from '../../lib/api/utils';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 const productStatusLabel: Record<string, string> = {
   PENDING_APPROVAL: 'Pending Approval',
@@ -53,7 +54,15 @@ const LOW_STOCK_THRESHOLD = 10;
 type FilterTab = 'all' | 'pending' | 'active' | 'inactive' | 'flagged';
 type B2BFilter = 'all' | 'wholesale';
 
+const PRODUCT_STATUS_QUERY_ALIASES: Record<string, FilterTab> = {
+  pending: 'pending',
+  active: 'active',
+  inactive: 'inactive',
+  flagged: 'flagged',
+};
+
 export default function AdminProducts() {
+  const router = useRouter();
   const { data: allProducts, isLoading, isError, error, refetch } = useAllProducts();
   const approveProduct = useApproveProductMutation();
   const rejectProduct = useRejectProductMutation();
@@ -79,6 +88,15 @@ export default function AdminProducts() {
   const [singleApproveModalOpen, setSingleApproveModalOpen] = useState(false);
   const [productToApprove, setProductToApprove] = useState<PendingProduct | null>(null);
   const confirmation = useConfirmation();
+
+  // Deep-link support: /admin/products?status=pending|active|...
+  useEffect(() => {
+    if (!router.isReady) return;
+    const status = router.query.status;
+    if (typeof status !== 'string') return;
+    const alias = PRODUCT_STATUS_QUERY_ALIASES[status.toLowerCase()];
+    if (alias) setFilterTab(alias);
+  }, [router.isReady, router.query.status]);
 
   // Unique categories and sellers from all products
   const categories = useMemo(() => {

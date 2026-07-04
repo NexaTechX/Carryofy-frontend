@@ -33,7 +33,7 @@ const CUSTOM_COVER_URLS: Partial<Record<CategoryCoverKey, string>> = {
   electronics:
     'https://sp-ao.shortpixel.ai/client/to_auto,q_glossy,ret_img,w_800,h_586/https://ikonic.com/wp-content/uploads/2023/10/industries-consumer-electronics.jpeg',
   fashion:
-    'https://www.complianceandrisks.com/wp-content/uploads/2022/01/Fashion-Apparel-3.jpg',
+    'https://img.magnific.com/free-photo/shop-clothing-clothes-shop-hanger-modern-shop-boutique_1150-8886.jpg?semt=ais_hybrid&w=740&q=80',
   home: 'https://mccoymart.com/post/wp-content/uploads/2019/04/kitchen-items-List.jpg',
   toys: 'https://assets.blog.engoo.com/wp-content/uploads/sites/9/2023/06/02081603/toys_games_cover-1024x655.jpg',
   beauty:

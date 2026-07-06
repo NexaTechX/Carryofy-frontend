@@ -42,6 +42,21 @@ const movementLabel: Record<string, string> = {
 
 const LOW_STOCK_THRESHOLD = 10;
 
+/**
+ * Signed stock change for a movement. The API stores OUTBOUND quantities as
+ * positive numbers, so derive the sign from before/after counts when available.
+ */
+function getMovementDelta(movement: { quantity: number; previousQuantity?: number | null; newQuantity?: number | null; type: string }): number {
+  if (movement.previousQuantity != null && movement.newQuantity != null) {
+    return movement.newQuantity - movement.previousQuantity;
+  }
+  return movement.type === 'OUTBOUND' ? -Math.abs(movement.quantity) : movement.quantity;
+}
+
+function formatDelta(delta: number): string {
+  return delta > 0 ? `+${delta}` : String(delta);
+}
+
 function InventoryRow({
   item,
   getStockRowClass,
@@ -555,14 +570,18 @@ export default function AdminWarehouse() {
                         if (actionsTab === 'inbound') await handleInboundSubmit({ preventDefault: () => {} } as React.FormEvent<HTMLFormElement>);
                         else if (actionsTab === 'outbound') await handleOutboundSubmit({ preventDefault: () => {} } as React.FormEvent<HTMLFormElement>);
                         else await handleAdjustSubmit({ preventDefault: () => {} } as React.FormEvent<HTMLFormElement>);
-                      } finally {
                         setActionsDrawerOpen(false);
+                        setActionsStep('form');
+                      } catch {
+                        // Mutation failed (toast already shown) — keep the drawer open
+                        // so the user can fix the form instead of losing it.
                         setActionsStep('form');
                       }
                     }}
-                    className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-black hover:bg-primary-light"
+                    disabled={createInbound.isPending || createOutbound.isPending || adjustStock.isPending}
+                    className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-black hover:bg-primary-light disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Confirm & submit
+                    {createInbound.isPending || createOutbound.isPending || adjustStock.isPending ? 'Submitting…' : 'Confirm & submit'}
                   </button>
                 </div>
               ) : null
@@ -734,6 +753,15 @@ export default function AdminWarehouse() {
                   Showing low stock only ×
                 </button>
               )}
+              {viewFilter === 'out-of-stock' && (
+                <button
+                  type="button"
+                  onClick={() => handleHeaderCardClick(null)}
+                  className="rounded-full bg-red-500/20 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/30"
+                >
+                  Showing out of stock only ×
+                </button>
+              )}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500">Sort by</span>
                 <select
@@ -812,10 +840,15 @@ export default function AdminWarehouse() {
                       onEditStart={() => { setEditingQuantityProductId(item.productId); setEditingQuantityValue(String(item.quantity)); }}
                       onEditChange={setEditingQuantityValue}
                       onEditSubmit={async (newQty) => {
+                        // Guard: Enter triggers submit and the subsequent blur would fire it again.
+                        if (adjustStock.isPending) return;
                         const delta = newQty - item.quantity;
                         if (delta === 0) { setEditingQuantityProductId(null); return; }
-                        await adjustStock.mutateAsync({ productId: item.productId, quantity: delta, reason: 'Inline quantity update' });
-                        setEditingQuantityProductId(null);
+                        try {
+                          await adjustStock.mutateAsync({ productId: item.productId, quantity: delta, reason: 'Inline quantity update' });
+                        } finally {
+                          setEditingQuantityProductId(null);
+                        }
                       }}
                       onEditCancel={() => { setEditingQuantityProductId(null); }}
                       onRestock={() => handleQuickRestock(item)}
@@ -856,7 +889,7 @@ export default function AdminWarehouse() {
                       new Date(m.createdAt).toISOString(),
                       movementLabel[m.type] ?? m.type,
                       m.product?.title ?? m.productId,
-                      m.quantity > 0 ? `+${m.quantity}` : String(m.quantity),
+                      formatDelta(getMovementDelta(m)),
                       m.reason ?? '',
                       m.createdBy ?? '—',
                     ]);
@@ -959,8 +992,8 @@ export default function AdminWarehouse() {
                             )}
                           </DataTableCell>
                           <DataTableCell>
-                            <span className={movement.quantity > 0 ? 'text-green-400' : 'text-red-400'}>
-                              {movement.quantity > 0 ? `+${movement.quantity}` : movement.quantity}
+                            <span className={getMovementDelta(movement) >= 0 ? 'text-green-400' : 'text-red-400'}>
+                              {formatDelta(getMovementDelta(movement))}
                             </span>
                             <span className="text-gray-500 text-xs ml-1">({movement.previousQuantity} → {movement.newQuantity})</span>
                           </DataTableCell>
@@ -983,7 +1016,7 @@ export default function AdminWarehouse() {
                         </div>
                         <p className="text-sm font-medium text-white">{movement.product?.title ?? movement.productId}</p>
                         <p className="text-xs text-gray-400">
-                          Quantity: {movement.quantity > 0 ? `+${movement.quantity}` : movement.quantity} ({movement.previousQuantity} → {movement.newQuantity})
+                          Quantity: {formatDelta(getMovementDelta(movement))} ({movement.previousQuantity} → {movement.newQuantity})
                           {movement.createdBy && ` · ${movement.createdBy}`}
                         </p>
                         {movement.reason && <p className="text-xs text-gray-500 mt-1">{movement.reason}</p>}

@@ -262,8 +262,12 @@ export default function AdminFinance() {
   };
 
   const handleBulkApprove = async () => {
-    const ids = selectedIds.size ? Array.from(selectedIds) : requestedForBulk.map((p) => p.id);
+    const ids = Array.from(selectedIds);
     const toApprove = (payouts ?? []).filter((p) => ids.includes(p.id) && p.status === 'REQUESTED');
+    if (toApprove.length === 0) {
+      toast.error('Select at least one requested payout to approve');
+      return;
+    }
     for (const p of toApprove) {
       await approvePayout.mutateAsync(p.id);
     }
@@ -473,9 +477,15 @@ export default function AdminFinance() {
                 <button
                   type="button"
                   onClick={() => setBulkModal('approve')}
-                  className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-primary-light"
+                  disabled={selectedIds.size === 0}
+                  style={selectedIds.size === 0 ? { backgroundColor: '#2a2a2a', color: '#6b7280' } : undefined}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+                    selectedIds.size === 0
+                      ? 'cursor-not-allowed bg-[#2a2a2a] text-gray-500'
+                      : 'bg-primary text-black hover:bg-primary-light'
+                  }`}
                 >
-                  Approve All
+                  Approve Selected
                 </button>
                 <button
                   type="button"
@@ -653,7 +663,7 @@ export default function AdminFinance() {
             </h3>
             <p className="mt-2 text-sm text-gray-400">
               {bulkModal === 'approve'
-                ? `Approve ${requestedForBulk.length} payout(s)?`
+                ? `Approve ${selectedIds.size} selected payout(s)?`
                 : `Reject ${selectedIds.size} selected payout(s)?`}
             </p>
             <div className="mt-6 flex gap-3">
@@ -667,11 +677,12 @@ export default function AdminFinance() {
               <button
                 type="button"
                 onClick={bulkModal === 'approve' ? handleBulkApprove : handleBulkReject}
+                disabled={selectedIds.size === 0}
                 className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold ${
                   bulkModal === 'approve'
                     ? 'bg-primary text-black hover:bg-primary-light'
                     : 'bg-[#3a1f1f] text-[#ff9aa8] hover:bg-[#4a2f2f]'
-                }`}
+                } disabled:cursor-not-allowed disabled:opacity-50`}
               >
                 {bulkModal === 'approve' ? 'Approve' : 'Reject'}
               </button>

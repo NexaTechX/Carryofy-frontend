@@ -26,6 +26,8 @@ export function sellerNeedsProfileOnboardingFromProfile(
   profile: SellerMeProfile | null | undefined,
 ): boolean {
   if (!profile) return true;
+  // Once KYC has been submitted, keep the seller out of the onboarding loop.
+  if (profile.onboardingCompletedAt) return false;
   if (typeof profile.needsProfileOnboarding === 'boolean') {
     return profile.needsProfileOnboarding;
   }

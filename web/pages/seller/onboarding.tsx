@@ -436,10 +436,26 @@ export default function SellerOnboardingWizard() {
     catch { setSaveState('idle'); }
   }, [persistStep, step]);
 
+  const clearPendingSave = useCallback(() => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+  }, []);
+
   const scheduleSave = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => { void doSave(); }, 800);
   }, [doSave]);
+
+  const persistSubmissionDraft = useCallback(async () => {
+    clearPendingSave();
+    setSaveState('saving');
+    for (let i = 0; i <= 5; i += 1) {
+      await persistStep(i);
+    }
+    setSaveState('saved');
+  }, [clearPendingSave, persistStep]);
 
   /* ----------------------------- validation ----------------------------- */
   function validate(uiIdx: number): boolean {
@@ -509,6 +525,7 @@ export default function SellerOnboardingWizard() {
     if (!validate(6)) return;
     setSubmitting(true);
     try {
+      await persistSubmissionDraft();
       const resp = await apiClient.patch('/sellers/me/onboarding/step/7', {});
       const body = unwrapAxiosBody<{ onboardingCompletedAt?: string }>(resp.data);
       submittedRef.current = true;
@@ -523,6 +540,7 @@ export default function SellerOnboardingWizard() {
       window.location.assign('/seller/onboarding/submitted');
     } catch (err) {
       setSubmitting(false);
+      setSaveState('idle');
       toast.error(apiErr(err));
     }
   }

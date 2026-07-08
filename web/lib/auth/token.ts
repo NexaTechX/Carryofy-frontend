@@ -17,30 +17,11 @@ const isStorageUnavailableError = (error: unknown): boolean => {
   return false;
 };
 
-/** Max-age aligned with API auth cookie defaults — edge middleware reads this on the web origin. */
-const ACCESS_COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 7;
-
-function accessCookieAttributes(maxAgeSeconds: number): string {
-  const parts = ['path=/', `max-age=${maxAgeSeconds}`, 'samesite=lax'];
-  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-    parts.push('secure');
-  }
-  return parts.join('; ');
-}
-
-/** Mirror access token onto the Next.js host so middleware can authorize dashboard routes. */
-function syncAccessTokenCookie(accessToken: string): void {
-  if (typeof document === 'undefined') return;
-  document.cookie = `${ACCESS_TOKEN_COOKIE}=${accessToken}; ${accessCookieAttributes(ACCESS_COOKIE_MAX_AGE_SEC)}`;
-}
-
 /** Set access-token cookie on the web origin via API route (reliable for edge middleware). */
 async function persistSessionCookie(accessToken: string): Promise<void> {
   if (!accessToken.includes('.')) {
     throw new Error('Invalid access token');
   }
-
-  syncAccessTokenCookie(accessToken);
 
   const response = await fetch('/api/auth/session', {
     method: 'POST',

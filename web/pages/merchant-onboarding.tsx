@@ -64,27 +64,22 @@ export default function MerchantOnboarding() {
     const steps = [
         {
             number: '01',
-            title: 'Application & Verification',
-            description: 'Submit your business details and valid ID. Our team verifies your business within 24 hours to maintain our "Verified Vendor" status.',
+            title: 'Create account',
+            description: 'Sign up as a seller in under a minute — no listing fee.',
             link: '/auth/signup?role=SELLER',
-            btnText: 'Register Now'
+            btnText: 'Start selling'
         },
         {
             number: '02',
-            title: 'List & prepare orders',
+            title: 'Get verified',
             description:
-                'Add products and pricing on your dashboard. Keep stock ready — when an order comes in, you prepare for pickup per Carryofy dispatch.',
+                'Add business details, ID, and bank. Approval usually within 1 business day.',
         },
         {
             number: '03',
-            title: 'We coordinate delivery',
+            title: 'List products',
             description:
-                'Orders route through Carryofy; we work with logistics partners for pickup and delivery to the retailer. You get notifications at each step.',
-        },
-        {
-            number: '04',
-            title: 'Collect Your Earnings',
-            description: 'Once the buyer receives the product, we release the funds. Automated payouts ensure you never have to chase your money.',
+                'Upload photos, price, and stock. Listings go live after a quick review — then retailers can order.',
         },
     ];
 
@@ -140,7 +135,7 @@ export default function MerchantOnboarding() {
                                         href="/auth/signup?role=SELLER"
                                         className="px-10 py-5 bg-primary text-white rounded-2xl font-bold text-lg hover:bg-primary-dark transition-all shadow-xl shadow-primary/25 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
                                     >
-                                        Apply as a Seller
+                                        Start selling
                                         <ArrowRight className="w-5 h-5" />
                                     </Link>
                                     <a
@@ -150,7 +145,10 @@ export default function MerchantOnboarding() {
                                         How It Works
                                     </a>
                                 </div>
-                                <p className="mt-6 text-sm text-gray-500">
+                                <p className="mt-4 text-sm text-gray-600 font-medium">
+                                    Account → Verify → List products
+                                </p>
+                                <p className="mt-2 text-sm text-gray-500">
                                     By applying, you agree to our{' '}
                                     <Link href="/vendor-partnership-terms" className="text-primary font-semibold hover:underline">
                                         Vendor Partnership Terms
@@ -158,16 +156,16 @@ export default function MerchantOnboarding() {
                                     .
                                 </p>
 
-                                <div className="mt-16 flex flex-wrap justify-center gap-x-12 gap-y-6">
+                                <div className="mt-12 flex flex-wrap justify-center gap-x-10 gap-y-4 text-sm text-gray-600">
                                     {[
-                                        { label: 'Listing fee', value: '₦0' },
-                                        { label: 'Categories', value: '4' },
-                                        { label: 'Vendors', value: 'Verified' },
-                                    ].map((stat, i) => (
-                                        <div key={i} className="text-center">
-                                            <p className="text-2xl font-extrabold text-[#111111]">{stat.value}</p>
-                                            <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
-                                        </div>
+                                        'Fast payouts after delivery',
+                                        'Lagos logistics support',
+                                        '₦0 listing fee',
+                                    ].map((label) => (
+                                        <span key={label} className="inline-flex items-center gap-2">
+                                            <CheckCircle className="w-4 h-4 text-primary shrink-0" />
+                                            {label}
+                                        </span>
                                     ))}
                                 </div>
                             </div>

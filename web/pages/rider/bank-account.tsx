@@ -144,6 +144,10 @@ export default function RiderBankAccount() {
             </div>
           </div>
 
+          <p className="text-xs text-[#ffcc99]/80 rounded-lg border border-[#ff6600]/20 bg-[#ff6600]/5 px-3 py-2">
+            Use the Carryofy Rider app for deliveries, KYC, and earnings. This web page is for your payout bank details only.
+          </p>
+
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-[#ff6600]" />

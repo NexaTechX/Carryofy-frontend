@@ -375,7 +375,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
     if (!product) return;
 
     if (!isAuthenticated) {
-      router.push(`/auth/login?redirect=/buyer/products/${product.id}`);
+      router.push(`/auth/signup?redirect=${encodeURIComponent(`/buyer/products/${product.id}`)}`);
       return;
     }
 
@@ -407,7 +407,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
 
   const handleToggleWishlist = async () => {
     if (!product || !isAuthenticated) {
-      router.push(`/auth/login?redirect=/buyer/products/${product?.id}`);
+      router.push(`/auth/signup?redirect=${encodeURIComponent(`/buyer/products/${product?.id}`)}`);
       return;
     }
 
@@ -942,7 +942,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                         disabled={product.quantity === 0 || addingToCart}
                         className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#FF6B00] text-black rounded-xl font-bold text-base hover:bg-[#E65F00] disabled:opacity-50 disabled:cursor-not-allowed transition"
                       >
-                        {!isAuthenticated ? 'Login to Buy' : addingToCart ? 'Processing...' : product.quantity === 0 ? 'Out of Stock' : 'Buy Now'}
+                        {!isAuthenticated ? 'Sign up to buy' : addingToCart ? 'Processing...' : product.quantity === 0 ? 'Out of Stock' : 'Buy Now'}
                       </button>
                       <button
                         onClick={handleAddToCart}

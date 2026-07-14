@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { Eye, EyeOff, Plus } from 'lucide-react';
 import FleetLayout from '../../components/fleet/FleetLayout';
 import { useAuth } from '../../lib/auth';
+import { isFleetPortalUser } from '../../lib/fleet/roles';
 import {
   assignFleetDelivery,
   createFleetRider,
@@ -33,17 +34,17 @@ export default function FleetRidersPage() {
   const [form, setForm] = useState(EMPTY_FORM);
 
   const { data: riders = [], mutate } = useSWR(
-    isAuthenticated && user?.role === 'FLEET_OPERATOR' ? 'fleet-riders' : null,
+    isAuthenticated && isFleetPortalUser(user?.role) ? 'fleet-riders' : null,
     fetchFleetRiders,
   );
 
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated || !user) router.push('/auth/login');
-    else if (user.role !== 'FLEET_OPERATOR') router.push('/');
+    else if (!isFleetPortalUser(user.role)) router.push('/');
   }, [isLoading, isAuthenticated, user, router]);
 
-  if (!user || user.role !== 'FLEET_OPERATOR') return null;
+  if (!user || !isFleetPortalUser(user.role)) return null;
 
   const handleAssign = async (riderUserId: string) => {
     const id = deliveryId.trim();

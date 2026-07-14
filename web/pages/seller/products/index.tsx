@@ -419,10 +419,10 @@ export default function ProductsPage() {
                       : 'text-blue-200/80'
                   }`}>
                   {kycStatus === 'PENDING'
-                    ? 'Your identity verification is currently under review by our team. You will be able to upload products once your KYC is approved. This usually takes 1–2 business days.'
+                    ? 'Your identity verification is under review. You can upload products once approved — usually within 1 business day.'
                     : kycStatus === 'REJECTED'
                       ? 'Your KYC submission was rejected. Please review the feedback, update your documents, and resubmit to start selling.'
-                      : 'You must complete identity verification (KYC) before you can upload or manage products. This is a one-time process to protect buyers and sellers on Carryofy.'}
+                      : 'You must complete identity verification (KYC) before you can upload products. This is a one-time process to protect buyers and sellers on Carryofy.'}
                 </p>
               </div>
               <Link

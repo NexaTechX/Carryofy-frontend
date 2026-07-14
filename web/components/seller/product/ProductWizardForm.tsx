@@ -1102,10 +1102,10 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
               {/* Description */}
               <p className="text-[#ffcc99]/80 text-center text-sm leading-relaxed mb-8">
                 {isPending
-                  ? 'Your KYC documents are currently being reviewed by our compliance team. Product uploads will be unlocked as soon as your verification is approved — typically within 1–2 business days.'
+                  ? `Your KYC documents are being reviewed. Product uploads unlock once approved — usually within 1 business day.`
                   : isRejected
-                    ? 'Your KYC submission was not approved. Please review the rejection reason in your settings, correct your documents, and resubmit. Product uploads will be enabled once your verification is approved.'
-                    : 'To protect buyers and sellers on Carryofy, all sellers must complete identity verification (KYC) before listing products. Approved verification may need renewal when it expires.'}
+                    ? 'Your KYC submission was not approved. Review the rejection reason, fix your documents, and resubmit from verification. Product uploads unlock after approval.'
+                    : 'To protect buyers and sellers on Carryofy, all sellers must complete identity verification (KYC) before listing products.'}
               </p>
 
               {/* Steps (only for NOT_SUBMITTED) */}
@@ -1114,10 +1114,10 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                   <p className="text-white font-semibold text-sm mb-4">How to get verified:</p>
                   <div className="space-y-3">
                     {[
-                      { step: '1', text: 'Go to Settings → KYC Verification tab' },
-                      { step: '2', text: 'Upload your government-issued ID and proof of address' },
-                      { step: '3', text: 'Submit and wait for approval (1–2 business days)' },
-                      { step: '4', text: 'Start listing products once approved' },
+                      { step: '1', text: 'Open Get verified (seller onboarding)' },
+                      { step: '2', text: 'Add business details, ID documents, and bank account' },
+                      { step: '3', text: 'Submit and wait for approval (usually within 1 business day)' },
+                      { step: '4', text: 'List your first product once approved' },
                     ].map(({ step, text }) => (
                       <div key={step} className="flex items-start gap-3">
                         <div className="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -1137,7 +1137,7 @@ export function ProductWizardForm({ variant, productId, initialProduct }: Produc
                     <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-red-300 font-semibold text-sm mb-1">What to do next</p>
-                      <p className="text-red-200/70 text-sm">Open your KYC settings to see the rejection reason, fix the issue with your documents, and resubmit. Our team will review your updated submission promptly.</p>
+                      <p className="text-red-200/70 text-sm">Open verification to see the rejection reason, fix your documents, and resubmit. Our team will review your updated submission promptly.</p>
                     </div>
                   </div>
                 </div>

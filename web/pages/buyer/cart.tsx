@@ -52,13 +52,13 @@ export default function CartPage() {
     setMounted(true);
     // Check authentication
     if (!tokenManager.isAuthenticated()) {
-      router.push('/auth/login');
+      router.push('/auth/login?redirect=/buyer/cart');
       return;
     }
 
     const user = userManager.getUser();
     if (!user) {
-      router.push('/auth/login');
+      router.push('/auth/login?redirect=/buyer/cart');
       return;
     }
 
@@ -153,6 +153,7 @@ export default function CartPage() {
 
   const B2B_MIN_KOBO = 5_000_000;
   const D2C_MIN_KOBO = 1_000_000;
+  const FREE_SHIPPING_THRESHOLD_KOBO = 5_000_000;
   const u = userManager.getUser();
   const b2bOnly =
     cart?.items?.some((i) => i.product?.sellingMode === 'B2B_ONLY') ?? false;
@@ -162,6 +163,12 @@ export default function CartPage() {
   const minOrderKobo = isB2B ? B2B_MIN_KOBO : D2C_MIN_KOBO;
   const minOrderNaira = isB2B ? '₦50,000' : '₦10,000';
   const belowMinimum = !!cart && cart.totalAmount < minOrderKobo;
+  const minOrderGapKobo = Math.max(0, minOrderKobo - (cart?.totalAmount ?? 0));
+  const minOrderProgress = cart
+    ? Math.min(100, Math.round((cart.totalAmount / minOrderKobo) * 100))
+    : 0;
+  const freeShipGapKobo = Math.max(0, FREE_SHIPPING_THRESHOLD_KOBO - (cart?.totalAmount ?? 0));
+  const towardFreeShip = !!cart && cart.totalAmount < FREE_SHIPPING_THRESHOLD_KOBO;
 
   if (!mounted) {
     return null;
@@ -412,8 +419,24 @@ export default function CartPage() {
                           <ArrowRight className="w-5 h-5" />
                         </button>
                         {belowMinimum && (
-                          <p className="text-sm text-[#ffcc99] border border-[#ff6600]/40 rounded-lg px-3 py-2 bg-[#ff6600]/10">
-                            Minimum order for checkout is {minOrderNaira}. Add more items to continue.
+                          <div className="rounded-lg border border-[#ff6600]/40 bg-[#ff6600]/10 px-3 py-3 space-y-2">
+                            <div className="flex items-center justify-between gap-2 text-xs text-[#ffcc99]">
+                              <span>Minimum order {minOrderNaira}</span>
+                              <span className="font-semibold text-white">
+                                Add {formatPrice(minOrderGapKobo)} more
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                              <div
+                                className="h-full rounded-full bg-[#ff6600] transition-all"
+                                style={{ width: `${Math.max(minOrderProgress, 4)}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {!belowMinimum && towardFreeShip && (
+                          <p className="text-sm text-[#ffcc99] border border-[#ff6600]/30 rounded-lg px-3 py-2 bg-[#ff6600]/10">
+                            Add {formatPrice(freeShipGapKobo)} more for a delivery discount at checkout.
                           </p>
                         )}
                         <Link

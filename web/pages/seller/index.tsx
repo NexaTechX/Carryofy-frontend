@@ -4,18 +4,19 @@ import { useRouter } from 'next/router';
 import SellerLayout from '../../components/seller/SellerLayout';
 import DashboardStats from '../../components/seller/DashboardStats';
 import SellerKycBanner from '../../components/seller/SellerKycBanner';
+import SellerPathToSaleChecklist from '../../components/seller/SellerPathToSaleChecklist';
 import SalesTrend from '../../components/seller/SalesTrend';
 import OrderDistribution from '../../components/seller/OrderDistribution';
-import { Plus, Share2, Eye, Rocket } from 'lucide-react';
+import { Plus, Share2, Eye } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useAuth, tokenManager } from '../../lib/auth';
-import { formatNgnFromKobo } from '../../lib/api/utils';
 import { sellerGet } from '../../lib/seller/http';
 import { parseSellerOrdersList } from '../../lib/seller/orders';
 import { unwrapSellerMePayload } from '../../lib/seller/onboarding';
 import { resolveSellerKycStatus } from '../../lib/seller/kyc-status';
 import { formatSellerPayoutLabel } from '../../lib/seller/order-payout';
+import { KYC_ONBOARDING_HREF, kycAddProductBlockedReason } from '../../lib/seller/kyc-copy';
 
 interface RecentOrderRow {
   id: string;
@@ -65,6 +66,9 @@ export default function SellerDashboard() {
   const [businessName, setBusinessName] = useState<string | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrderRow[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
+  const [productCount, setProductCount] = useState(0);
+  const [hasActiveProduct, setHasActiveProduct] = useState(false);
+  const [hasPendingProduct, setHasPendingProduct] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -81,7 +85,29 @@ export default function SellerDashboard() {
 
     fetchKycStatus();
     fetchSellerProfile();
+    fetchProductPath();
   }, [router, isLoading, isAuthenticated, user]);
+
+  const fetchProductPath = async () => {
+    try {
+      const seller = unwrapSellerMePayload(await sellerGet('/sellers/me'));
+      const sid = seller?.id;
+      if (!sid) return;
+      const raw = await sellerGet<{
+        products?: Array<{ status?: string }>;
+        data?: Array<{ status?: string }>;
+      } | Array<{ status?: string }>>(`/products?sellerId=${sid}&limit=100&inStockOnly=false`);
+      let list: Array<{ status?: string }> = [];
+      if (Array.isArray(raw)) list = raw;
+      else if (raw && Array.isArray(raw.products)) list = raw.products;
+      else if (raw && Array.isArray(raw.data)) list = raw.data;
+      setProductCount(list.length);
+      setHasActiveProduct(list.some((p) => String(p.status || '').toUpperCase() === 'ACTIVE'));
+      setHasPendingProduct(list.some((p) => String(p.status || '').toUpperCase() === 'PENDING_APPROVAL'));
+    } catch {
+      /* non-fatal for checklist */
+    }
+  };
 
   useEffect(() => {
     if (!isAuthenticated || !user) return;
@@ -192,33 +218,24 @@ export default function SellerDashboard() {
             rejectionReason={kycRejection.reason}
             rejectionReasonCode={kycRejection.reasonCode}
           />
+
+          <SellerPathToSaleChecklist
+            kycStatus={kycStatus}
+            productCount={productCount}
+            hasActiveProduct={hasActiveProduct}
+            hasPendingProduct={hasPendingProduct}
+          />
+
           <div className="flex flex-col gap-3 lg:hidden">
             <div>
-              <p className="text-xs font-medium text-foreground/50">Good to see you 👋</p>
+              <p className="text-xs font-medium text-foreground/50">Good to see you</p>
               <p className="mt-0.5 font-display text-xl font-bold leading-tight text-foreground">{storeHeading}</p>
-            </div>
-
-            <div className="surface-card flex flex-col gap-2.5 border-l-2 border-l-primary p-4">
-              <div className="flex w-full items-start justify-between gap-2">
-                <div>
-                  <p className="text-sm font-bold leading-snug text-foreground">Complete your store setup</p>
-                  <p className="mt-1 text-xs text-foreground/50">Add 5 products to go live</p>
-                </div>
-                <Rocket className="h-9 w-9 shrink-0 text-primary/40" aria-hidden />
-              </div>
-              <Link
-                href="/seller/products/new"
-                className="mt-0.5 inline-flex w-fit items-center gap-1.5 rounded-lg bg-primary px-3 py-2"
-              >
-                <Plus className="h-3.5 w-3.5 text-black" />
-                <span className="text-xs font-bold text-black">Add product</span>
-              </Link>
             </div>
           </div>
 
           <div className="hidden reveal-up lg:block">
             <p className="text-sm font-medium text-foreground/50">
-              Good to see you, {user?.name?.split(/\s+/)[0] ?? 'there'} 👋
+              Good to see you, {user?.name?.split(/\s+/)[0] ?? 'there'}
             </p>
             <h1 className="mt-1 font-display text-[34px] font-bold leading-tight tracking-tight text-foreground">
               {storeHeading}
@@ -229,12 +246,24 @@ export default function SellerDashboard() {
 
           <div className="flex flex-col gap-3 lg:hidden">
           <div className="flex gap-2">
-            <Link
-              href="/seller/products/new"
-              className="flex flex-1 items-center justify-center rounded-lg bg-primary py-2.5"
-            >
-              <span className="text-xs font-bold text-black">+ Add Product</span>
-            </Link>
+            {kycStatus === 'APPROVED' ? (
+              <Link
+                href="/seller/products/new"
+                className="flex flex-1 items-center justify-center rounded-lg bg-primary py-2.5"
+              >
+                <span className="text-xs font-bold text-black">+ Add Product</span>
+              </Link>
+            ) : (
+              <Link
+                href={KYC_ONBOARDING_HREF}
+                title={kycAddProductBlockedReason(kycStatus)}
+                className="flex flex-1 items-center justify-center rounded-lg border border-primary/40 bg-card py-2.5"
+              >
+                <span className="text-xs font-semibold text-primary">
+                  {kycStatus === 'PENDING' ? 'Waiting for approval' : 'Finish verification'}
+                </span>
+              </Link>
+            )}
             <button
               type="button"
               onClick={handleShareStore}
@@ -294,13 +323,26 @@ export default function SellerDashboard() {
 
           <div className="hidden flex-col gap-6 lg:flex">
           <div className="surface-card flex items-center gap-1 px-2 py-1.5">
-            <Link
-              href="/seller/products/new"
-              className="group flex items-center gap-2 rounded-lg px-3 py-2 transition hover:bg-primary/10"
-            >
-              <Plus className="h-4 w-4 shrink-0 text-primary" />
-              <span className="text-[13px] font-semibold text-foreground">Add Product</span>
-            </Link>
+            {kycStatus === 'APPROVED' ? (
+              <Link
+                href="/seller/products/new"
+                className="group flex items-center gap-2 rounded-lg px-3 py-2 transition hover:bg-primary/10"
+              >
+                <Plus className="h-4 w-4 shrink-0 text-primary" />
+                <span className="text-[13px] font-semibold text-foreground">Add Product</span>
+              </Link>
+            ) : (
+              <Link
+                href={KYC_ONBOARDING_HREF}
+                title={kycAddProductBlockedReason(kycStatus)}
+                className="group flex items-center gap-2 rounded-lg px-3 py-2 transition hover:bg-primary/10"
+              >
+                <Plus className="h-4 w-4 shrink-0 text-primary/50" />
+                <span className="text-[13px] font-semibold text-foreground/70">
+                  {kycStatus === 'PENDING' ? 'Waiting for approval' : 'Finish verification'}
+                </span>
+              </Link>
+            )}
             <span className="h-5 w-px bg-border-custom" />
             <button
               onClick={handleShareStore}

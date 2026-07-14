@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import FleetLayout from '../../components/fleet/FleetLayout';
 import { useAuth } from '../../lib/auth';
+import { isFleetPortalUser } from '../../lib/fleet/roles';
 import { fetchFleetDeliveries } from '../../lib/api/fleet';
 import { formatNgnFromKobo } from '../../lib/api/utils';
 
@@ -14,7 +15,7 @@ export default function FleetDeliveriesPage() {
 
   const queryKey = useMemo(
     () =>
-      isAuthenticated && user?.role === 'FLEET_OPERATOR'
+      isAuthenticated && isFleetPortalUser(user?.role)
         ? ['fleet-deliveries', status]
         : null,
     [isAuthenticated, user?.role, status],
@@ -27,10 +28,10 @@ export default function FleetDeliveriesPage() {
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated || !user) router.push('/auth/login');
-    else if (user.role !== 'FLEET_OPERATOR') router.push('/');
+    else if (!isFleetPortalUser(user.role)) router.push('/');
   }, [isLoading, isAuthenticated, user, router]);
 
-  if (!user || user.role !== 'FLEET_OPERATOR') return null;
+  if (!user || !isFleetPortalUser(user.role)) return null;
 
   return (
     <FleetLayout>

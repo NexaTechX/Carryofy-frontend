@@ -521,13 +521,24 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             </Link>
             <div className="flex shrink-0 items-center gap-2">
               {productsListMobilePlus && (
-                <Link
-                  href="/seller/products/new"
-                  className="btn-mobile flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-primary bg-primary"
-                  aria-label="Add product"
-                >
-                  <Plus className="h-5 w-5 text-black" />
-                </Link>
+                kycStatus === 'APPROVED' ? (
+                  <Link
+                    href="/seller/products/new"
+                    className="btn-mobile flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-primary bg-primary"
+                    aria-label="Add product"
+                  >
+                    <Plus className="h-5 w-5 text-black" />
+                  </Link>
+                ) : (
+                  <Link
+                    href="/seller/onboarding"
+                    className="btn-mobile flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border-custom bg-card"
+                    aria-label={kycStatus === 'PENDING' ? 'Verification pending' : 'Finish verification'}
+                    title={kycStatus === 'PENDING' ? 'Waiting for approval' : 'Finish verification'}
+                  >
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                  </Link>
+                )
               )}
               <div className="relative" ref={notificationDropdownRefMobile}>
                 <button
@@ -651,14 +662,34 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
               })}
             </nav>
 
-            {/* Add Product Button */}
+            {/* Add Product Button — gated honestly before navigation */}
             <div className="px-3 sm:px-4 py-3 sm:py-4">
-              <Link
-                href="/seller/products/new"
-                className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-11 sm:h-10 px-4 bg-primary text-black text-sm font-bold leading-normal tracking-[0.015em] w-full hover:bg-primary/90 transition-colors touch-target btn-mobile"
-              >
-                <span className="truncate">Add Product</span>
-              </Link>
+              {kycStatus === 'APPROVED' ? (
+                <Link
+                  href="/seller/products/new"
+                  className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-11 sm:h-10 px-4 bg-primary text-black text-sm font-bold leading-normal tracking-[0.015em] w-full hover:bg-primary/90 transition-colors touch-target btn-mobile"
+                >
+                  <span className="truncate">Add Product</span>
+                </Link>
+              ) : (
+                <Link
+                  href="/seller/onboarding"
+                  title={
+                    kycStatus === 'PENDING'
+                      ? 'Verification under review — usually within 1 business day'
+                      : 'Complete verification to list products'
+                  }
+                  className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-11 sm:h-10 px-4 border border-border-custom bg-[var(--color-surface-2)] text-foreground/70 text-sm font-bold leading-normal tracking-[0.015em] w-full hover:bg-card transition-colors touch-target btn-mobile"
+                >
+                  <span className="truncate">
+                    {kycStatus === 'PENDING'
+                      ? 'Waiting for approval'
+                      : kycStatus === 'REJECTED'
+                        ? 'Fix verification'
+                        : 'Finish verification'}
+                  </span>
+                </Link>
+              )}
             </div>
 
             {/* Help and Support */}

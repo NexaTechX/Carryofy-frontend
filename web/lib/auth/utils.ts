@@ -14,7 +14,7 @@ export const getRoleRedirect = (role: string | undefined | null): string => {
     case 'ADMIN':
       return '/admin';
     case 'RIDER':
-      return '/rider';
+      return '/rider/dashboard';
     case 'FLEET_OPERATOR':
     case 'FLEET':
       return '/fleet';

@@ -12,12 +12,13 @@ import { unwrapAxiosBody } from '../../lib/api/normalizeResponse';
 import { useAuth } from '../../lib/auth';
 import { NIGERIA_STATES, NIGERIA_LGAS, NIGERIAN_BANKS } from '../../lib/data/nigeria-onboarding-data';
 import styles from '../../styles/seller-onboarding.module.css';
+import { KYC_REVIEW_ETA } from '../../lib/seller/kyc-copy';
 
 /* ----------------------------- constants ----------------------------- */
+/** KYC only — stock/photos belong in the product wizard after approval. */
 const STEP_DEFS = [
   { key: 'business', t: 'Business details' },
   { key: 'location', t: 'Location' },
-  { key: 'stock', t: 'Stock & supply' },
   { key: 'identity', t: 'Identity' },
   { key: 'documents', t: 'Documents' },
   { key: 'bank', t: 'Bank account' },
@@ -173,6 +174,11 @@ export default function SellerOnboardingWizard() {
   const [locked, setLocked] = useState(false); // approved/pending -> read-only-ish
   // Set when the seller's previous submission was rejected: why + what to fix.
   const [rejection, setRejection] = useState<{ reason: string | null; code: string | null } | null>(null);
+  /** When KYC is PENDING after submit — show status surface instead of bouncing to dashboard. */
+  const [pendingView, setPendingView] = useState<{
+    businessName: string;
+    submittedAt: string | null;
+  } | null>(null);
 
   const sellerIdRef = useRef<string>('');
   const submittedRef = useRef(false);
@@ -218,12 +224,20 @@ export default function SellerOnboardingWizard() {
 
         const completed = !!state.onboardingCompletedAt;
         const kyc = (p?.kycStatus || 'NOT_SUBMITTED') as string;
-        if (completed && kyc !== 'REJECTED') {
-          // Already submitted/approved — editing happens in Settings, not the wizard.
+        if (completed && kyc === 'APPROVED') {
           router.replace('/seller');
           return;
         }
-        setLocked(kyc === 'APPROVED' || kyc === 'PENDING');
+        // PENDING: stay here and show a real status surface (do not bounce to dashboard).
+        if (completed && kyc === 'PENDING') {
+          setPendingView({
+            businessName: p?.businessName || '',
+            submittedAt: state.onboardingCompletedAt || k?.submittedAt || null,
+          });
+          setReady(true);
+          return;
+        }
+        setLocked(false);
         setRejection(
           kyc === 'REJECTED'
             ? {
@@ -382,21 +396,6 @@ export default function SellerOnboardingWizard() {
         break;
       }
       case 2: {
-        await patchStep(6, {
-          hasPhysicalStock: d.hasStock ?? undefined,
-          estimatedInventoryValue: d.hasStock ? d.inventoryValue : undefined,
-          stockLocation: d.hasStock ? d.stockLocation : undefined,
-          sourcingType: d.sourcing || undefined,
-          minimumOrderValueKobo: d.minOrderNaira ? Math.round(Number(d.minOrderNaira) * 100) : undefined,
-          offersSameDayFulfillment: d.sameDay ?? undefined,
-          productPhotoUrls: d.productPhotos.map((p) => p.url),
-          storePhotoUrls: d.storePhotos.map((p) => p.url),
-          productPhotosReady: d.productPhotos.length > 0 ? 'YES' : 'NO',
-          offersBulkPricing: d.sellingMode !== 'B2C_ONLY',
-        });
-        break;
-      }
-      case 3: {
         await patchStep(2, {
           businessType: d.sellerType,
           idType: d.idType,
@@ -407,7 +406,7 @@ export default function SellerOnboardingWizard() {
         });
         break;
       }
-      case 4: {
+      case 3: {
         await patchStep(2, {
           idImage: d.idImage?.url,
           idImageBack: d.idImageBack?.url,
@@ -416,7 +415,7 @@ export default function SellerOnboardingWizard() {
         });
         break;
       }
-      case 5: {
+      case 4: {
         await patchStep(4, {
           accountName: d.accountName,
           accountNumber: d.accountNumber,
@@ -427,6 +426,19 @@ export default function SellerOnboardingWizard() {
         break;
       }
     }
+  }, []);
+
+  /** Catalogue fields belong to listing — set safe defaults so KYC finalize never fails. */
+  const persistCatalogueDefaults = useCallback(async () => {
+    const d = dataRef.current;
+    await patchStep(6, {
+      hasPhysicalStock: false,
+      sourcingType: 'OTHER',
+      productPhotosReady: 'NO',
+      productPhotoUrls: [],
+      storePhotoUrls: [],
+      offersBulkPricing: d.sellingMode !== 'B2C_ONLY',
+    });
   }, []);
 
   const doSave = useCallback(async () => {
@@ -451,11 +463,12 @@ export default function SellerOnboardingWizard() {
   const persistSubmissionDraft = useCallback(async () => {
     clearPendingSave();
     setSaveState('saving');
-    for (let i = 0; i <= 5; i += 1) {
+    for (let i = 0; i <= 4; i += 1) {
       await persistStep(i);
     }
+    await persistCatalogueDefaults();
     setSaveState('saved');
-  }, [clearPendingSave, persistStep]);
+  }, [clearPendingSave, persistCatalogueDefaults, persistStep]);
 
   /* ----------------------------- validation ----------------------------- */
   function validate(uiIdx: number): boolean {
@@ -476,28 +489,20 @@ export default function SellerOnboardingWizard() {
       if (!d.state) e.state = 'Select a state.';
       if (!d.lga) e.lga = 'Select an LGA.';
     } else if (uiIdx === 2) {
-      if (d.hasStock === null) e.hasStock = 'Let us know if you have stock ready.';
-      if (d.hasStock === true) {
-        if (!d.inventoryValue) e.inventoryValue = 'Select an inventory value range.';
-        if (!d.stockLocation) e.stockLocation = 'Where is your stock held?';
-        if (d.productPhotos.length < 3) e.productPhotos = 'Upload at least 3 product photos.';
-      }
-      if (d.hasStock === false && !d.sourcing) e.sourcing = 'How will you fulfill orders?';
-    } else if (uiIdx === 3) {
       if (!d.idType) e.idType = 'Select an ID type.';
       if (!d.idNumber.trim()) e.idNumber = 'Enter your ID number.';
       if (d.bvn && d.bvn.length !== 11) e.bvn = 'A BVN must be exactly 11 digits.';
       if (d.sellerType !== 'Individual' && !d.regNumber.trim()) e.regNumber = `Required for ${d.sellerType} sellers.`;
       if (d.sellerType === 'Company' && !d.taxId.trim()) e.taxId = 'Required for limited companies.';
-    } else if (uiIdx === 4) {
+    } else if (uiIdx === 3) {
       if (!d.idImage) e.idImage = 'Upload the front of your ID.';
       if (d.sellerType !== 'Individual' && !d.cacDoc) e.cacDoc = 'Upload your CAC certificate.';
-    } else if (uiIdx === 5) {
+    } else if (uiIdx === 4) {
       if (!/^\d{10}$/.test(d.accountNumber)) e.accountNumber = 'Account number must be 10 digits.';
       if (!d.bankCode) e.bankCode = 'Select your bank.';
       if (!d.accountName.trim()) e.accountName = 'Resolve your account to confirm the name.';
       if (!d.accountType) e.accountType = 'Select an account type.';
-    } else if (uiIdx === 6) {
+    } else if (uiIdx === 5) {
       if (!d.consent) e.consent = 'Please confirm to submit.';
     }
     setErrors(e);
@@ -522,7 +527,7 @@ export default function SellerOnboardingWizard() {
   function goto(i: number) { if (i <= maxReached) { setStep(i); scrollTop(); } }
 
   async function submit() {
-    if (!validate(6)) return;
+    if (!validate(5)) return;
     setSubmitting(true);
     try {
       await persistSubmissionDraft();
@@ -616,6 +621,51 @@ export default function SellerOnboardingWizard() {
           <p>Loading your application…</p>
         </div>
       </div>
+    );
+  }
+
+  if (pendingView) {
+    const submittedLabel = pendingView.submittedAt
+      ? new Date(pendingView.submittedAt).toLocaleString('en-NG', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        })
+      : 'Recently';
+    return (
+      <>
+        <Head>
+          <title>Verification status · Carryofy Seller</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+        </Head>
+        <div className={styles.doneWrap}>
+          <div className={styles.done}>
+            <div className={styles.ring}><Clock size={46} strokeWidth={2.4} /></div>
+            <h1 className={styles.doneTitle}>Verification under review</h1>
+            <p className={styles.doneP}>
+              Thanks{pendingView.businessName ? `, ${pendingView.businessName}` : ''} — your application is with our team.
+            </p>
+            <p className={styles.doneP}>
+              Submitted {submittedLabel}. Approval {KYC_REVIEW_ETA}. We&apos;ll email you when you can list products.
+            </p>
+            <div className={styles.timeline}>
+              <h4>What happens next</h4>
+              <div className={`${styles.tl} ${styles.tlDone}`}>
+                <span className={styles.ti}><Check size={14} strokeWidth={3} /></span>
+                <div><div className={styles.tt}>Submitted</div><div className={styles.td}>Business, ID, documents &amp; bank on file</div></div>
+              </div>
+              <div className={`${styles.tl} ${styles.tlCur}`}>
+                <span className={styles.ti}><Clock size={14} /></span>
+                <div><div className={styles.tt}>Under review</div><div className={styles.td}>Team verifies your details — {KYC_REVIEW_ETA}</div></div>
+              </div>
+              <div className={`${styles.tl} ${styles.tlUp}`}>
+                <span className={styles.ti}>3</span>
+                <div><div className={styles.tt}>List your first product</div><div className={styles.td}>Once approved, add photos, price &amp; stock — then go live after a quick listing check</div></div>
+              </div>
+            </div>
+            <a href="/seller" className={styles.doneBtn}>Back to dashboard</a>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -771,10 +821,9 @@ export default function SellerOnboardingWizard() {
     switch (step) {
       case 0: return stepBusiness();
       case 1: return stepLocation();
-      case 2: return stepStock();
-      case 3: return stepIdentity();
-      case 4: return stepDocuments();
-      case 5: return stepBank();
+      case 2: return stepIdentity();
+      case 3: return stepDocuments();
+      case 4: return stepBank();
       default: return stepReview();
     }
   }
@@ -1166,7 +1215,7 @@ export default function SellerOnboardingWizard() {
       <>
         <span className={styles.eyebrow}>Almost there</span>
         <h1 className={styles.head}>Review &amp; submit</h1>
-        <p className={styles.sub}>Double-check everything. After you submit, your details lock while our team reviews — usually within 24 hours.</p>
+        <p className={styles.sub}>Double-check everything. After you submit, your details lock while our team reviews — {KYC_REVIEW_ETA}.</p>
 
         <ReviewCard title="Business" onEdit={() => goto(0)}>
           {row('Business name', d.businessName, false, true)}
@@ -1183,23 +1232,7 @@ export default function SellerOnboardingWizard() {
           {row('Coordinates', `${d.lat.toFixed(4)}, ${d.lng.toFixed(4)}`, true)}
         </ReviewCard>
 
-        <ReviewCard title="Stock & supply" onEdit={() => goto(2)}>
-          {row('Has stock', d.hasStock === null ? '' : d.hasStock ? 'Yes' : 'No', false, true)}
-          {d.hasStock && row('Inventory value', INVENTORY_BANDS.find((b) => b[0] === d.inventoryValue)?.[1])}
-          {!d.hasStock && row('Fulfillment', SOURCING.find((s) => s[0] === d.sourcing)?.[1])}
-          {d.productPhotos.length > 0 && (
-            <div className={styles.revRow} style={{ borderBottom: 'none' }}>
-              <span className={styles.rk}>Product photos</span>
-              <span className={styles.rv} style={{ maxWidth: '70%' }}>
-                <div className={styles.photoGrid} style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))' }}>
-                  {d.productPhotos.slice(0, 6).map((p, i) => <div key={i} className={styles.photoCell}><img src={p.url} alt="" /></div>)}
-                </div>
-              </span>
-            </div>
-          )}
-        </ReviewCard>
-
-        <ReviewCard title="Identity" onEdit={() => goto(3)}>
+        <ReviewCard title="Identity" onEdit={() => goto(2)}>
           {row('ID type', d.idType)}
           {row('ID number', mask(d.idNumber), true, true)}
           {d.bvn && row('BVN', mask(d.bvn), true)}
@@ -1207,7 +1240,7 @@ export default function SellerOnboardingWizard() {
           {d.sellerType === 'Company' && row('Tax ID', d.taxId, true, true)}
         </ReviewCard>
 
-        <ReviewCard title={`Documents · ${docCount} uploaded`} onEdit={() => goto(4)}>
+        <ReviewCard title={`Documents · ${docCount} uploaded`} onEdit={() => goto(3)}>
           <div className={styles.revRow} style={{ borderBottom: 'none' }}>
             <span className={styles.rk}>Files</span>
             <span className={styles.rv} style={{ maxWidth: '70%' }}>
@@ -1218,12 +1251,16 @@ export default function SellerOnboardingWizard() {
           </div>
         </ReviewCard>
 
-        <ReviewCard title="Bank account" onEdit={() => goto(5)}>
+        <ReviewCard title="Bank account" onEdit={() => goto(4)}>
           {row('Bank', d.bankName, false, true)}
           {row('Account number', mask(d.accountNumber), true, true)}
           {row('Account name', d.accountName, false, true)}
           {row('Type', d.accountType ? d.accountType[0] + d.accountType.slice(1).toLowerCase() : '', false, true)}
         </ReviewCard>
+
+        <p className={styles.hint} style={{ marginTop: 8 }}>
+          Product photos and stock details come next — after you&apos;re approved you&apos;ll list your first product in a short wizard.
+        </p>
 
         <div className={styles.consent}>
           <input type="checkbox" id="consent" checked={d.consent} onChange={(e) => { set({ consent: e.target.checked }); clearErr('consent'); }} />
@@ -1284,6 +1321,7 @@ interface OnboardingState {
     idImageBack: string | null; cacDocumentUrl: string | null; addressProofImage: string | null;
     bvn: string | null; registrationNumber: string | null; taxId: string | null;
     rejectionReason?: string | null; rejectionReasonCode?: string | null; rejectedAt?: string | null;
+    submittedAt?: string | null;
   } | null;
   bankAccount: { accountName: string; accountNumber: string; bankCode: string; bankName: string; accountType: string | null } | null;
 }
@@ -1291,15 +1329,13 @@ interface OnboardingState {
 function computeResume(d: WizardData): number {
   const okBusiness = d.businessName && d.sellerType && d.sellingMode && d.primaryCategoryId;
   const okLocation = d.state && d.lga && d.address && d.operatesFrom;
-  const okStock = d.hasStock !== null && (d.hasStock === false || d.productPhotos.length >= 3);
   const okIdentity = d.idType && d.idNumber && d.sellerType;
   const okDocs = !!d.idImage;
   const okBank = /^\d{10}$/.test(d.accountNumber) && !!d.bankCode && !!d.accountName;
   if (!okBusiness) return 0;
   if (!okLocation) return 1;
-  if (!okStock) return 2;
-  if (!okIdentity) return 3;
-  if (!okDocs) return 4;
-  if (!okBank) return 5;
-  return 6;
+  if (!okIdentity) return 2;
+  if (!okDocs) return 3;
+  if (!okBank) return 4;
+  return 5;
 }

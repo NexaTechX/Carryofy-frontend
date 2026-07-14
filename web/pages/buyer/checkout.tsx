@@ -65,7 +65,7 @@ const FREE_SHIPPING_THRESHOLD_KOBO = 5000000; // ₦50,000 (aligned with backend
 
 /** Must stay aligned with `BadRequestException` in CB orders API */
 const MULTI_VENDOR_CHECKOUT_MESSAGE =
-  'Multi-vendor orders are not yet supported. Please checkout one seller at a time.';
+  'Checkout one seller at a time. Your other items stay in the cart for the next checkout.';
 
 const STEPS = [
   { id: 1, label: 'Order summary', icon: ClipboardList },
@@ -1164,12 +1164,17 @@ export default function CheckoutPage() {
                       </div>
                       {cartSellerGroups.length > 1 ? (
                         <ul className="text-sm space-y-2 border border-amber-500/30 rounded-lg p-3 bg-black/20">
-                          {cartSellerGroups.map((g) => (
-                            <li key={g.key} className="flex flex-wrap gap-x-2 gap-y-1 justify-between">
+                          {cartSellerGroups.map((g, idx) => (
+                            <li key={g.key} className="flex flex-wrap gap-x-2 gap-y-2 justify-between items-center">
                               <span className="text-white font-medium">{g.label}</span>
                               <span className="text-[#ffcc99]">
                                 {g.items.length} line{g.items.length === 1 ? '' : 's'} · {formatPrice(g.lineTotalKobo)}
                               </span>
+                              {idx === 0 && (
+                                <p className="w-full text-xs text-amber-200/80">
+                                  Tip: remove other sellers&apos; items in cart, checkout <strong className="text-white">{g.label}</strong> now, then return for the rest.
+                                </p>
+                              )}
                             </li>
                           ))}
                         </ul>
@@ -1183,7 +1188,7 @@ export default function CheckoutPage() {
                         onClick={() => router.push('/buyer/cart')}
                         className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff6600] text-black rounded-xl font-bold text-sm hover:bg-[#cc5200] transition"
                       >
-                        Edit cart
+                        Go to cart — checkout one seller
                       </button>
                     </div>
                   </div>

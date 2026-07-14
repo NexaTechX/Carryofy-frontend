@@ -168,20 +168,8 @@ export default function HeroSection() {
               href="/buyer/products"
               className="group inline-flex items-center justify-center gap-2 rounded-xl bg-foreground px-7 py-3.5 text-sm font-semibold text-background transition hover:bg-white sm:text-[15px]"
             >
-              Browse wholesale catalogue
+              Shop wholesale
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-            <Link
-              href="/auth/login"
-              className="inline-flex items-center justify-center rounded-xl border border-border-strong bg-card/40 px-6 py-3.5 text-sm font-semibold text-foreground/90 transition hover:border-foreground/40 sm:text-[15px]"
-            >
-              Retailer sign in
-            </Link>
-            <Link
-              href="/merchant-onboarding"
-              className="text-sm font-medium text-foreground/60 underline decoration-border-strong underline-offset-4 transition hover:text-primary"
-            >
-              Sell on Carryofy
             </Link>
           </motion.div>
         </motion.div>

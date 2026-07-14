@@ -1166,12 +1166,18 @@ export default function SettingsPage() {
                             </div>
                             {kycStatus === 'PENDING' && (
                               <p className="text-[#A0A0A0] text-xs mt-3">
-                                Your KYC application is under review. You'll be notified once it's approved.
+                                Your KYC application is under review (usually within 1 business day).{' '}
+                                <Link href="/seller/onboarding" className="text-[#FF6B00] font-semibold hover:underline">
+                                  View status
+                                </Link>
                               </p>
                             )}
                             {kycStatus === 'NOT_SUBMITTED' && (
                               <p className="text-[#A0A0A0] text-xs mt-3">
-                                Please complete your KYC verification to start selling. Go to the Identity tab to get started.
+                                Complete verification to start selling.{' '}
+                                <Link href="/seller/onboarding" className="text-[#FF6B00] font-semibold hover:underline">
+                                  Get verified
+                                </Link>
                               </p>
                             )}
                             {kycStatus === 'REJECTED' && (

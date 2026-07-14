@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import FleetLayout from '../../components/fleet/FleetLayout';
 import { useAuth } from '../../lib/auth';
+import { isFleetPortalUser } from '../../lib/fleet/roles';
 import { fetchFleetEarningsPage } from '../../lib/api/fleet';
 import { formatNgnFromKobo } from '../../lib/api/utils';
 
@@ -13,17 +14,17 @@ export default function FleetEarningsPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
 
   const { data, error, isLoading: loadingData } = useSWR(
-    isAuthenticated && user?.role === 'FLEET_OPERATOR' ? 'fleet-earnings-page' : null,
+    isAuthenticated && isFleetPortalUser(user?.role) ? 'fleet-earnings-page' : null,
     fetchFleetEarningsPage,
   );
 
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated || !user) router.push('/auth/login');
-    else if (user.role !== 'FLEET_OPERATOR') router.push('/');
+    else if (!isFleetPortalUser(user.role)) router.push('/');
   }, [isLoading, isAuthenticated, user, router]);
 
-  if (!user || user.role !== 'FLEET_OPERATOR') return null;
+  if (!user || !isFleetPortalUser(user.role)) return null;
 
   const summary = data?.summary;
   const riders = data?.riders ?? [];

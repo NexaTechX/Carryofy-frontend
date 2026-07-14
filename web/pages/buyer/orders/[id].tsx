@@ -17,6 +17,7 @@ import {
   Loader2,
   MapPin,
   Package,
+  RefreshCw,
   ShieldCheck,
   Truck,
   XCircle,
@@ -163,6 +164,7 @@ export default function BuyerOrderDetailPage() {
   const [refundInfo, setRefundInfo] = useState<{ id: string; status: string; createdAt: string; updatedAt: string } | null>(null);
   const [paymentVerifying, setPaymentVerifying] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [proof, setProof] = useState<{
     proofPhotoUrl?: string;
     signatureUrl?: string;
@@ -474,6 +476,48 @@ export default function BuyerOrderDetailPage() {
       showErrorToast(errorMessage);
     } finally {
       setMarking(false);
+    }
+  };
+
+  const handleReorder = async () => {
+    if (!order) return;
+    setReordering(true);
+    const skipped: string[] = [];
+    try {
+      for (const item of order.items) {
+        try {
+          await apiClient.post('/cart/items', {
+            productId: item.productId,
+            quantity: item.quantity,
+          });
+        } catch (err: unknown) {
+          const ax = err as AxiosError<{ message?: string }>;
+          const msg = ax.response?.data?.message || '';
+          if (ax.response?.status === 400 && /stock|quantity|insufficient|available/i.test(String(msg))) {
+            skipped.push(item.product.title);
+            continue;
+          }
+          throw err;
+        }
+      }
+      const added = order.items.length - skipped.length;
+      if (added === 0) {
+        showErrorToast(
+          skipped.length
+            ? `Could not add items (out of stock): ${skipped.join(', ')}`
+            : 'Could not add items to cart.',
+        );
+        return;
+      }
+      let msg = `${added} item${added === 1 ? '' : 's'} added to cart.`;
+      if (skipped.length) msg += ` Skipped (unavailable): ${skipped.join(', ')}.`;
+      showSuccessToast(msg, { duration: 5000 });
+      router.push('/buyer/cart');
+    } catch (err: unknown) {
+      const ax = err as AxiosError<{ message?: string }>;
+      showErrorToast(ax.response?.data?.message || 'Failed to add items to cart');
+    } finally {
+      setReordering(false);
     }
   };
 
@@ -908,6 +952,21 @@ export default function BuyerOrderDetailPage() {
                         >
                           <CheckCircle2 className="w-4 h-4" />
                           {marking ? 'Confirming...' : 'Mark as received'}
+                        </button>
+                      )}
+                      {order.status === 'DELIVERED' && (
+                        <button
+                          type="button"
+                          onClick={handleReorder}
+                          disabled={reordering}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-[#ff6600]/20"
+                        >
+                          {reordering ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                          {reordering ? 'Adding…' : 'Reorder'}
                         </button>
                       )}
                       {canRefund && (

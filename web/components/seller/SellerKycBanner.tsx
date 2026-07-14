@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import { ShieldCheck, Clock, ShieldX } from 'lucide-react';
 import { kycRejectionReasonLabel } from '../../lib/kyc/rejection-reasons';
+import {
+  KYC_ONBOARDING_HREF,
+  KYC_REVIEW_ETA,
+  kycStatusCtaLabel,
+} from '../../lib/seller/kyc-copy';
 
 /**
  * Always-visible KYC state banner for the seller dashboard. Makes the "you must be
@@ -17,18 +22,24 @@ export default function SellerKycBanner({
 }) {
   if (!status || status === 'APPROVED') return null;
 
-  const kycHref = '/seller/onboarding';
+  const kycHref = KYC_ONBOARDING_HREF;
 
   if (status === 'PENDING') {
     return (
       <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
         <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
-        <div>
+        <div className="flex-1">
           <p className="text-sm font-semibold text-amber-300">Verification under review</p>
           <p className="mt-0.5 text-xs text-amber-200/80">
             We&apos;re reviewing your KYC. You can list products and receive payouts once approved
-            — usually within 1 business day.
+            — {KYC_REVIEW_ETA}.
           </p>
+          <Link
+            href={kycHref}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-black transition hover:bg-amber-400"
+          >
+            {kycStatusCtaLabel('PENDING')}
+          </Link>
         </div>
       </div>
     );
@@ -57,7 +68,7 @@ export default function SellerKycBanner({
             href={kycHref}
             className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-red-600"
           >
-            Fix &amp; resubmit
+            {kycStatusCtaLabel('REJECTED')}
           </Link>
         </div>
       </div>
@@ -77,7 +88,7 @@ export default function SellerKycBanner({
           href={kycHref}
           className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-[#ff6600] px-3 py-1.5 text-xs font-bold text-black transition hover:bg-[#cc5200]"
         >
-          Verify now
+          {kycStatusCtaLabel('NOT_SUBMITTED')}
         </Link>
       </div>
     </div>

@@ -4,12 +4,11 @@ import toast from 'react-hot-toast';
 import { ProductWizardForm } from '../../../components/seller/product/ProductWizardForm';
 import { sellerGet } from '../../../lib/seller/http';
 import { resolveSellerKycStatus } from '../../../lib/seller/kyc-status';
+import { KYC_ONBOARDING_HREF, kycAddProductBlockedReason } from '../../../lib/seller/kyc-copy';
 
 /**
- * Single KYC gate for product creation. This covers EVERY "Add Product" entry point
- * (dashboard FAB, toolbar, cards, mobile quick-action) in one place: a non-approved
- * seller is redirected to the KYC tab instead of filling a form that would 403 on
- * submit. Fails open to the form on error — the backend still guards submission.
+ * Single KYC gate for product creation. Non-approved sellers never land in the form —
+ * they go to onboarding/status with a clear reason. Fails closed on fetch error.
  */
 export default function AddProductPage() {
   const router = useRouter();
@@ -29,11 +28,15 @@ export default function AddProductPage() {
           setState('allowed');
         } else {
           setState('blocked');
-          toast.error('Complete KYC verification before adding products.');
-          router.replace('/seller/onboarding');
+          toast.error(kycAddProductBlockedReason(status) || 'Complete verification before adding products.');
+          router.replace(KYC_ONBOARDING_HREF);
         }
       } catch {
-        if (!cancelled) setState('allowed');
+        if (!cancelled) {
+          setState('blocked');
+          toast.error('Could not verify your seller status. Try again in a moment.');
+          router.replace('/seller');
+        }
       }
     })();
     return () => {

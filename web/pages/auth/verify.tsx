@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, CheckCircle, Clock, ArrowLeft } from 'lucide-react';
 import { authService, useAuth, getRoleRedirect, tokenManager } from '../../lib/auth';
+import { resolvePostLoginPath } from '../../lib/auth/redirect';
 import { showErrorToast, showSuccessToast } from '../../lib/ui/toast';
 
 const verifySchema = z.object({
@@ -83,6 +84,8 @@ export default function EmailVerification() {
               // onboarding wizard (the previous /sellers/me branch resolved to
               // the same route on both sides — dead code).
               redirectPath = '/seller/onboarding';
+            } else if (updatedUser.role === 'BUYER') {
+              redirectPath = resolvePostLoginPath(router.query.redirect, updatedUser.role);
             }
             window.location.assign(redirectPath);
           } else {

@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import FleetLayout from '../../components/fleet/FleetLayout';
 import { useAuth } from '../../lib/auth';
+import { isFleetPortalUser } from '../../lib/fleet/roles';
 import { fetchFleetPayoutHistory, requestFleetPayout } from '../../lib/api/fleet';
 import { formatNgnFromKobo } from '../../lib/api/utils';
 import { toast } from 'react-hot-toast';
@@ -39,17 +40,17 @@ export default function FleetPayoutsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const { data: payouts = [], mutate } = useSWR(
-    isAuthenticated && user?.role === 'FLEET_OPERATOR' ? 'fleet-payouts' : null,
+    isAuthenticated && isFleetPortalUser(user?.role) ? 'fleet-payouts' : null,
     fetchFleetPayoutHistory,
   );
 
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated || !user) router.push('/auth/login');
-    else if (user.role !== 'FLEET_OPERATOR') router.push('/');
+    else if (!isFleetPortalUser(user.role)) router.push('/');
   }, [isLoading, isAuthenticated, user, router]);
 
-  if (!user || user.role !== 'FLEET_OPERATOR') return null;
+  if (!user || !isFleetPortalUser(user.role)) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

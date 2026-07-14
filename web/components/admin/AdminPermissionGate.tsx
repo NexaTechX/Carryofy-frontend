@@ -42,8 +42,8 @@ export default function AdminPermissionGate({
       <ShieldOff className="mx-auto mb-4 h-10 w-10 text-amber-400" />
       <h2 className="mb-2 text-lg font-semibold text-white">No permission</h2>
       <p className="mb-4 text-sm text-gray-400">
-        Your role ({tier.replace(/_/g, ' ')}) cannot access this section. Contact a super admin if
-        you need access.
+        Your role ({tier.replace(/_/g, ' ')}) cannot access this section. Ask a Super Admin if you
+        need access (for example Finance or Ops tools).
       </p>
       <Link
         href="/admin"

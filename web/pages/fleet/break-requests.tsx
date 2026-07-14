@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import FleetLayout from '../../components/fleet/FleetLayout';
 import { useAuth } from '../../lib/auth';
+import { isFleetPortalUser } from '../../lib/fleet/roles';
 import { fetchFleetRiderBreakRequests, type FleetRiderBreakRequestRow } from '../../lib/api/fleet';
 import { formatDateTime } from '../../lib/api/utils';
 import { Coffee, RefreshCw } from 'lucide-react';
@@ -15,7 +16,7 @@ export default function FleetBreakRequestsPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
 
   const { data, isLoading: loadingRows, mutate } = useSWR(
-    isAuthenticated && user?.role === 'FLEET_OPERATOR' ? 'fleet-rider-break-requests' : null,
+    isAuthenticated && isFleetPortalUser(user?.role) ? 'fleet-rider-break-requests' : null,
     fetcher,
     { refreshInterval: 30000 },
   );
@@ -23,10 +24,10 @@ export default function FleetBreakRequestsPage() {
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated || !user) router.push('/auth/login');
-    else if (user.role !== 'FLEET_OPERATOR') router.push('/');
+    else if (!isFleetPortalUser(user.role)) router.push('/');
   }, [isLoading, isAuthenticated, user, router]);
 
-  if (!user || user.role !== 'FLEET_OPERATOR') return null;
+  if (!user || !isFleetPortalUser(user.role)) return null;
 
   const rows: FleetRiderBreakRequestRow[] = Array.isArray(data) ? data : [];
 

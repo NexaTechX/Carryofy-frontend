@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Check, Clock } from 'lucide-react';
 import styles from '../../../styles/seller-onboarding.module.css';
+import { KYC_REVIEW_ETA } from '../../../lib/seller/kyc-copy';
 
 function refFrom(completedAt: string): string {
   // Deterministic, human-readable reference derived from the completion timestamp.
@@ -51,15 +52,18 @@ export default function OnboardingSubmitted() {
             </div>
             <div className={`${styles.tl} ${styles.tlCur}`}>
               <span className={styles.ti}><Clock size={14} /></span>
-              <div><div className={styles.tt}>Under review</div><div className={styles.td}>Our team verifies your ID &amp; documents — usually within 24 hours</div></div>
+              <div><div className={styles.tt}>Under review</div><div className={styles.td}>Our team verifies your ID &amp; documents — {KYC_REVIEW_ETA}</div></div>
             </div>
             <div className={`${styles.tl} ${styles.tlUp}`}>
               <span className={styles.ti}>3</span>
-              <div><div className={styles.tt}>Approved &amp; live</div><div className={styles.td}>Add products, receive orders and unlock payouts</div></div>
+              <div><div className={styles.tt}>List your first product</div><div className={styles.td}>Once approved, add a product — then a quick listing check before you go live</div></div>
             </div>
           </div>
 
-          <Link href="/seller" className={styles.doneBtn}>Go to dashboard</Link>
+          <Link href="/seller/onboarding" className={styles.doneBtn}>View verification status</Link>
+          <Link href="/seller" style={{ display: 'block', marginTop: 12, textAlign: 'center', fontSize: 14, fontWeight: 600, opacity: 0.7 }}>
+            Go to dashboard
+          </Link>
         </div>
       </div>
     </>

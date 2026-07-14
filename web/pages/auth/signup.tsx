@@ -116,7 +116,11 @@ export default function Signup() {
       }
 
       showSuccessToast('Account created! Please check your email to verify your account.');
-      router.push('/auth/verify?email=' + encodeURIComponent(data.email));
+      const redirect =
+        typeof router.query.redirect === 'string' ? router.query.redirect.trim() : '';
+      const verifyQs = new URLSearchParams({ email: data.email });
+      if (redirect.startsWith('/')) verifyQs.set('redirect', redirect);
+      router.push(`/auth/verify?${verifyQs.toString()}`);
     } catch (error: any) {
       console.error('Signup error:', error);
 

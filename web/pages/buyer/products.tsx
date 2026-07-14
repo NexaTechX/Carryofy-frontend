@@ -82,7 +82,7 @@ export default function ProductsPage() {
   /** Debounced value used for API + URL sync so typing does not hammer the server */
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [purchaseType, setPurchaseType] = useState<'ALL' | 'B2C' | 'B2B'>('ALL');
-  const [inStockOnly, setInStockOnly] = useState(true);
+  const [inStockOnly, setInStockOnly] = useState(false);
   const [verifiedSellersOnly, setVerifiedSellersOnly] = useState(false);
   const [moqMin, setMoqMin] = useState<string>('');
   const [moqMax, setMoqMax] = useState<string>('');

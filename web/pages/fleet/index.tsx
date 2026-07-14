@@ -8,10 +8,7 @@ import FleetLayout from '../../components/fleet/FleetLayout';
 import { useAuth } from '../../lib/auth';
 import { fetchFleetOverview } from '../../lib/api/fleet';
 import { formatNgnFromKobo } from '../../lib/api/utils';
-
-function isFleetPortalUser(role: string | undefined): boolean {
-  return role === 'FLEET_OPERATOR' || role === 'FLEET' || role === 'ADMIN';
-}
+import { isFleetPortalUser } from '../../lib/fleet/roles';
 
 export default function FleetOverviewPage() {
   const router = useRouter();
@@ -106,13 +103,26 @@ export default function FleetOverviewPage() {
           </div>
         )}
 
-        {/* Quick actions */}
+        {/* Quick actions — incoming deliveries is the primary job */}
         <div>
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-foreground/45">Quick actions</p>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-foreground/45">Next best action</p>
+          <Link
+            href="/fleet/deliveries/incoming"
+            className="surface-card mb-3 flex items-center gap-4 border-l-2 border-l-primary p-5 transition hover:-translate-y-0.5 hover:border-border-strong hover:shadow-elevated"
+          >
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-black">
+              <Inbox className="h-6 w-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-base font-bold text-foreground">Incoming deliveries</p>
+              <p className="text-sm text-foreground/55">Accept new dispatch requests for your riders</p>
+            </div>
+            <ArrowUpRight className="h-5 w-5 shrink-0 text-primary" aria-hidden />
+          </Link>
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-foreground/45">Also useful</p>
+          <div className="grid gap-3 sm:grid-cols-2">
             {[
               { label: 'Manage riders', desc: 'Add riders & assign deliveries', icon: Users, href: '/fleet/riders' },
-              { label: 'Incoming deliveries', desc: 'Accept new dispatch requests', icon: Inbox, href: '/fleet/deliveries/incoming' },
               { label: 'Request payout', desc: 'Withdraw your pending pool', icon: CreditCard, href: '/fleet/payouts' },
             ].map(({ label, desc, icon: Icon, href }) => (
               <Link

@@ -182,7 +182,7 @@ export default function RiderDashboard() {
                     <div className="flex-1">
                         <h3 className="font-bold text-white mb-1">Payout bank account</h3>
                         <p className="text-xs text-[#ffcc99]/70">
-                            Add or update the bank account where your delivery earnings are paid.
+                            Add or update where earnings are paid. Prefer the Carryofy Rider app for jobs — this page is for payouts only.
                         </p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-[#ffcc99]/50 shrink-0" />

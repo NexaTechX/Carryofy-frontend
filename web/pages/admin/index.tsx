@@ -4,6 +4,8 @@ import { useAdminProfile } from '../../lib/admin/hooks/useAdminProfile';
 import { useOperationalIssues } from '../../lib/admin/hooks/useOperationalIssues';
 import { useRefundStats } from '../../lib/admin/hooks/useRefunds';
 import { usePendingProducts } from '../../lib/admin/hooks/usePendingProducts';
+import { useAdminDisputeQueue } from '../../lib/admin/hooks/useDisputes';
+import { useActiveDeliveries } from '../../lib/admin/hooks/useAdminDeliveries';
 import {
   FileText,
   ShoppingCart,
@@ -23,6 +25,8 @@ import {
   Receipt,
   Warehouse,
   ClipboardList,
+  ShieldAlert,
+  Scale,
 } from 'lucide-react';
 import { AdminCard, AdminDrawer, AdminErrorState, AdminPageHeader } from '../../components/admin/ui';
 import dynamic from 'next/dynamic';
@@ -163,6 +167,8 @@ export default function AdminDashboard() {
   const { data: operationalIssues, isLoading: issuesLoading } = useOperationalIssues();
   const { data: refundStats } = useRefundStats();
   const { data: pendingProducts = [] } = usePendingProducts();
+  const { data: openDisputes = [] } = useAdminDisputeQueue({ status: 'OPEN' });
+  const { data: activeDeliveries = [] } = useActiveDeliveries();
 
   if (isError) {
     return (
@@ -209,6 +215,41 @@ export default function AdminDashboard() {
 
   const pendingRefunds = refundStats?.pending ?? 0;
   const productsAwaitingReview = Array.isArray(pendingProducts) ? pendingProducts.length : 0;
+  const openDisputeCount = Array.isArray(openDisputes) ? openDisputes.length : 0;
+  const failedDeliveryCount = Array.isArray(activeDeliveries)
+    ? activeDeliveries.filter((d) => String(d.status || '').toUpperCase() === 'ISSUE').length
+    : 0;
+
+  const opsQueues = [
+    {
+      label: 'Pending KYC',
+      count: pendingSellerApprovals,
+      href: '/admin/sellers?filter=PENDING',
+      icon: ShieldAlert,
+      tone: 'amber' as const,
+    },
+    {
+      label: 'Pending products',
+      count: productsAwaitingReview,
+      href: '/admin/products?status=pending',
+      icon: Package,
+      tone: 'sky' as const,
+    },
+    {
+      label: 'Open disputes',
+      count: openDisputeCount,
+      href: '/admin/disputes?status=OPEN',
+      icon: Scale,
+      tone: 'rose' as const,
+    },
+    {
+      label: 'Failed deliveries',
+      count: failedDeliveryCount,
+      href: '/admin/deliveries',
+      icon: Truck,
+      tone: 'red' as const,
+    },
+  ];
 
   const issueTotal = operationalIssues?.total ?? 0;
   const issueList = operationalIssues?.issues ?? [];
@@ -457,6 +498,46 @@ export default function AdminDashboard() {
                   )}
                 </div>
               ))}
+            </div>
+          </section>
+
+          {/* Ops Home — review queues first */}
+          <section className="mb-8">
+            <div className="mb-4 flex items-end justify-between gap-3 px-0.5">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight text-foreground">Ops queues</h2>
+                <p className="mt-0.5 text-sm text-foreground/55">
+                  Clear these first — they unblock sellers and buyers.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {opsQueues.map(({ label, count, href, icon: Icon, tone }) => {
+                const toneClass =
+                  tone === 'amber'
+                    ? 'border-amber-500/35 bg-amber-500/10 text-amber-200'
+                    : tone === 'sky'
+                      ? 'border-sky-500/35 bg-sky-500/10 text-sky-200'
+                      : tone === 'rose'
+                        ? 'border-rose-500/35 bg-rose-500/10 text-rose-200'
+                        : 'border-red-500/35 bg-red-500/10 text-red-200';
+                return (
+                  <Link
+                    key={href + label}
+                    href={href}
+                    className={`flex items-center justify-between gap-3 rounded-2xl border p-4 transition hover:brightness-110 ${toneClass}`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Icon className="h-5 w-5 shrink-0 opacity-80" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">{label}</p>
+                        <p className="text-xs opacity-70">Review now</p>
+                      </div>
+                    </div>
+                    <span className="text-2xl font-bold tabular-nums">{count}</span>
+                  </Link>
+                );
+              })}
             </div>
           </section>
 

@@ -293,9 +293,18 @@ export default function AdminSellers() {
     suspendSeller.mutate({ sellerId: seller.id, reason });
   };
 
-  const handleRequestMoreInfo = (seller: AdminSeller) => {
+  const handleRequestMoreInfo = async (seller: AdminSeller) => {
     setActionMenuOpen(null);
-    toast.success(`Request more info sent to ${seller.businessName}. Backend integration pending.`);
+    try {
+      const result = await sendKycReminderRequest([seller.id]);
+      if (result.sent > 0) {
+        toast.success(`Reminder emailed to ${seller.businessName}. They can update docs in verification.`);
+      } else {
+        toast.error(`Could not email ${seller.businessName}. Try again or message them from Support.`);
+      }
+    } catch {
+      toast.error('Failed to send reminder. Please try again.');
+    }
   };
 
   const handleBulkResetSubmissionCount = async () => {

@@ -15,6 +15,7 @@ import {
   Inbox,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
+import { isFleetPortalUser } from '../../lib/fleet/roles';
 import { fetchFleetIncomingDeliveries } from '../../lib/api/fleet';
 
 const NAV = [
@@ -69,7 +70,7 @@ export default function FleetLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
 
   const { data: incoming = [] } = useSWR(
-    isAuthenticated && user?.role === 'FLEET_OPERATOR'
+    isAuthenticated && isFleetPortalUser(user?.role)
       ? ['fleet-deliveries-incoming']
       : null,
     fetchFleetIncomingDeliveries,

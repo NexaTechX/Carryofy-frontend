@@ -119,20 +119,28 @@ export default function ReviewsPage() {
         params.append('endDate', endDate);
       }
 
-      const response = await fetch(getApiUrl(`/products/reviews?${params.toString()}`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const query = params.toString();
+      const response = await fetch(
+        getApiUrl(`/products/reviews/seller${query ? `?${query}` : ''}`),
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
-      if (response.ok) {
-        const result = await response.json();
-        const reviewsData = result.data || result;
-        setReviews(Array.isArray(reviewsData) ? reviewsData : []);
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.message || 'Failed to load reviews');
       }
+
+      const result = await response.json();
+      const reviewsData = result.data ?? result;
+      setReviews(Array.isArray(reviewsData) ? reviewsData : []);
     } catch (error) {
       console.error('Error fetching reviews:', error);
       setReviews([]);
+      toast.error(error instanceof Error ? error.message : 'Failed to load reviews');
     } finally {
       setLoading(false);
     }
@@ -232,18 +240,13 @@ export default function ReviewsPage() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return (
-        review.productTitle.toLowerCase().includes(query) ||
-        review.userName.toLowerCase().includes(query) ||
-        review.comment.toLowerCase().includes(query)
+        (review.productTitle || '').toLowerCase().includes(query) ||
+        (review.userName || '').toLowerCase().includes(query) ||
+        (review.comment || '').toLowerCase().includes(query)
       );
     }
     return true;
   });
-
-  // Get unique products for filter
-  const uniqueProducts = Array.from(
-    new Set(reviews.map((r) => ({ id: r.productId, title: r.productTitle })))
-  ).map((p) => ({ id: p.id, title: p.title }));
 
   if (authLoading) {
     return (
@@ -411,7 +414,9 @@ export default function ReviewsPage() {
               <div className="space-y-4">
                 {filteredReviews.map((review) => {
                   const isExpanded = expandedReviewId === review.id;
-                  const isLongComment = review.comment.length > 150;
+                  const commentText = review.comment?.trim() || '';
+                  const isLongComment = commentText.length > 150;
+                  const buyerName = review.userName || 'Buyer';
 
                   return (
                     <div
@@ -424,16 +429,16 @@ export default function ReviewsPage() {
                           className="w-10 h-10 rounded-full bg-[#2A2A2A] flex items-center justify-center text-white text-sm font-medium shrink-0"
                           aria-hidden
                         >
-                          {getInitials(review.userName)}
+                          {getInitials(buyerName)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="text-white font-medium">{review.userName}</span>
+                          <span className="text-white font-medium">{buyerName}</span>
                           <span className="text-[#A0A0A0] mx-2">·</span>
                           <Link
                             href={`/seller/products/${review.productId}`}
                             className="text-[#FF6B00] hover:underline truncate inline-block max-w-[200px] align-baseline"
                           >
-                            {review.productTitle}
+                            {review.productTitle || 'Product'}
                           </Link>
                         </div>
                       </div>
@@ -446,7 +451,7 @@ export default function ReviewsPage() {
                         <p
                           className={`text-[#CCCCCC] text-[14px] leading-relaxed whitespace-pre-wrap ${!isExpanded ? 'line-clamp-3' : ''}`}
                         >
-                          {review.comment}
+                          {commentText || 'No written comment — star rating only.'}
                         </p>
                         {isLongComment && !isExpanded && (
                           <button

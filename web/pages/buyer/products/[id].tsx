@@ -38,6 +38,7 @@ import { ProductSchema, BreadcrumbSchema } from '../../../components/seo/JsonLd'
 import { addToWishlist, removeFromWishlist, checkWishlist } from '../../../lib/api/wishlist';
 import { showSuccessToast, showErrorToast } from '../../../lib/ui/toast';
 import ShareButton from '../../../components/products/ShareButton';
+import CarryofyTrustedBadge from '../../../components/common/CarryofyTrustedBadge';
 import ProductReviewModal from '../../../components/products/ProductReviewModal';
 import RelatedProducts from '../../../components/products/RelatedProducts';
 import ProductAskAI from '../../../components/buyer/ProductAskAI';
@@ -755,10 +756,7 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                     )}
                   </button>
                   {isSellerVerified(product.seller) && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-medium rounded">
-                      <Shield className="w-3.5 h-3.5" />
-                      Verified Seller
-                    </span>
+                    <CarryofyTrustedBadge size="md" />
                   )}
                   <Link
                     href={`/buyer/products?seller=${product.seller.id}`}
@@ -1055,10 +1053,9 @@ export default function ProductDetailPage({ initialProduct, error: ssrError }: P
                     <div>
                       <h3 className="text-white font-bold text-lg">{product.seller.businessName}</h3>
                       {isSellerVerified(product.seller) && (
-                        <span className="inline-flex items-center gap-1 text-green-400 text-sm">
-                          <Shield className="w-4 h-4" />
-                          Verified Seller
-                        </span>
+                        <div className="mt-1">
+                          <CarryofyTrustedBadge size="sm" />
+                        </div>
                       )}
                       <div className="flex items-center gap-2 mt-1 text-[#ffcc99]/80">
                         <Star className={`w-4 h-4 ${reviews.length > 0 ? 'text-[#FF6B00] fill-[#FF6B00]' : 'text-white/25'}`} />

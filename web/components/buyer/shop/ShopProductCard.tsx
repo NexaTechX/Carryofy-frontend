@@ -4,11 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { BadgeCheck, Check, Heart, Package, ShoppingCart } from 'lucide-react';
+import { Check, Heart, Package, ShoppingCart } from 'lucide-react';
 import { isSellerVerified } from '../../../lib/sellerVerification';
 import { useWishlist } from '../../../lib/hooks/useWishlist';
 import { useCart } from '../../../lib/contexts/CartContext';
 import { tokenManager } from '../../../lib/auth';
+import CarryofyTrustedBadge from '../../common/CarryofyTrustedBadge';
 
 export interface ShopProductCardProduct {
   id: string;
@@ -176,15 +177,7 @@ function ShopProductCard({ product, href }: ShopProductCardProps) {
 
           <div className="mb-2 flex min-w-0 items-center gap-1.5 max-lg:mb-2.5 lg:mb-3">
             <span className="truncate text-xs text-[#ffcc99]/90 max-lg:text-[13px]">{product.seller?.businessName || 'Seller'}</span>
-            {isVerified && (
-              <span
-                className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400 max-lg:px-2 max-lg:py-0.5 max-lg:text-[11px]"
-                title="Verified seller"
-              >
-                <BadgeCheck className="h-3 w-3 max-lg:h-3.5 max-lg:w-3.5" aria-hidden />
-                Verified
-              </span>
-            )}
+            {isVerified && <CarryofyTrustedBadge size="sm" className="shrink-0" />}
           </div>
 
           <p className="mb-2 text-lg font-bold leading-none text-[#FF6B00] max-lg:mb-2.5 max-lg:text-xl lg:mb-3">{priceDisplay}</p>

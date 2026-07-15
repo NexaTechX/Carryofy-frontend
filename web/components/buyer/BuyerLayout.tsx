@@ -7,12 +7,18 @@ import {
   Home,
   ShoppingBag,
   Package,
+  Truck,
   User,
   ShoppingCart,
   LogOut,
+  HelpCircle,
   Bookmark,
   FileText,
+  Layers,
   Search,
+  Scale,
+  Gift,
+  Wallet as WalletIcon,
   ClipboardList,
   MoreHorizontal,
 } from 'lucide-react';
@@ -66,10 +72,18 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
   };
 
   const navigation = [
+    { name: 'Home', href: '/buyer', icon: Home },
     { name: 'Shop', href: '/buyer/products', icon: ShoppingBag },
-    { name: 'Orders', href: '/buyer/orders', icon: Package },
-    { name: 'Quotes', href: '/buyer/quotes', icon: FileText },
-    { name: 'Account', href: '/buyer/account', icon: User },
+    { name: 'My Orders', href: '/buyer/orders', icon: Package },
+    { name: 'My Quotes', href: '/buyer/quotes', icon: FileText },
+    { name: 'Bulk Order', href: '/buyer/bulk-order', icon: Layers },
+    { name: 'Saved Lists', href: '/buyer/wishlist', icon: Bookmark },
+    { name: 'Track Shipment', href: '/buyer/track', icon: Truck },
+    { name: 'Disputes', href: '/buyer/disputes', icon: Scale },
+    { name: 'Referrals', href: '/buyer/referrals', icon: Gift },
+    { name: 'Rewards', href: '/buyer/wallet', icon: WalletIcon },
+    { name: 'Profile', href: '/buyer/profile', icon: User },
+    { name: 'Help', href: '/buyer/help', icon: HelpCircle },
   ];
 
   const handleLogout = async () => {

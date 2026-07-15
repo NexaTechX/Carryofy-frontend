@@ -132,26 +132,31 @@ export default function BuyerAccountHubPage() {
             </div>
           </div>
 
-          <div className="hidden lg:grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              { href: '/buyer/profile', label: 'Profile & addresses' },
-              { href: '/buyer/wishlist', label: 'Saved lists' },
-              { href: '/buyer/bulk-order', label: 'Bulk order' },
-              { href: '/buyer/quotes', label: 'Quotes' },
-              { href: '/buyer/wallet', label: 'Rewards wallet' },
-              { href: '/buyer/referrals', label: 'Referrals' },
-              { href: '/buyer/disputes', label: 'Disputes' },
-              { href: '/buyer/notifications', label: 'Notifications' },
-              { href: '/buyer/help', label: 'Help' },
-            ].map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="rounded-xl border border-border-custom bg-card p-4 transition hover:border-primary/40"
-              >
-                {link.label}
-              </Link>
-            ))}
+          <div className="hidden lg:grid gap-3 sm:grid-cols-2">
+            <Link
+              href="/buyer/profile"
+              className="rounded-xl border border-border-custom bg-card p-4 transition hover:border-primary/40"
+            >
+              Profile & addresses
+            </Link>
+            <Link
+              href="/buyer/notifications"
+              className="rounded-xl border border-border-custom bg-card p-4 transition hover:border-primary/40"
+            >
+              Notifications
+            </Link>
+            <Link
+              href="/buyer/quotes"
+              className="rounded-xl border border-border-custom bg-card p-4 transition hover:border-primary/40"
+            >
+              Quotes
+            </Link>
+            <Link
+              href="/buyer/wallet"
+              className="rounded-xl border border-border-custom bg-card p-4 transition hover:border-primary/40"
+            >
+              Wallet & rewards
+            </Link>
           </div>
         </div>
       </BuyerLayout>

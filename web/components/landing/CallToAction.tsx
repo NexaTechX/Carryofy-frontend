@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, Store, Truck } from 'lucide-react';
+import { ArrowRight, Package, ShieldCheck, Truck } from 'lucide-react';
 import StockPhoto from '../common/StockPhoto';
 import { unsplashPhoto } from '../../lib/unsplash';
 
@@ -18,9 +18,9 @@ export default function CallToAction() {
           sizes="100vw"
           priority={false}
         />
-        <div className="absolute inset-0 bg-background/92" aria-hidden />
+        <div className="absolute inset-0 bg-background/93" aria-hidden />
         <div
-          className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_120%,rgba(255,107,0,0.18),transparent_60%)]"
+          className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_120%,rgba(255,107,0,0.2),transparent_60%)]"
           aria-hidden
         />
       </div>
@@ -30,28 +30,28 @@ export default function CallToAction() {
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-sm font-semibold text-zinc-400"
+          className="landing-eyebrow justify-center"
         >
-          Lagos wholesale · Open catalogue
+          Next restock starts here
         </motion.p>
         <motion.h2
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.04 }}
-          className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-[2.65rem]"
+          className="landing-title mt-3 text-3xl sm:text-4xl lg:text-[2.65rem]"
         >
-          Your next restock starts in the catalogue — not in traffic.
+          Open the wholesale catalogue. Fill your shelves this week.
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.08 }}
-          className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-zinc-400"
+          className="landing-lead mx-auto mt-5 max-w-lg text-base"
         >
-          Browse verified vendors, compare wholesale prices, and place orders with delivery coordinated
-          across Yaba, Surulere, Lekki, and more.
+          Compare verified suppliers, confirm MOQs, and place orders with delivery coordinated across
+          Lagos — Yaba, Surulere, Lekki, Ikeja, and more.
         </motion.p>
 
         <motion.div
@@ -63,9 +63,9 @@ export default function CallToAction() {
         >
           <Link
             href="/buyer/products"
-            className="group inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-primary/25 transition hover:bg-primary-dark sm:text-[15px]"
+            className="group inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-[#1a0e00] shadow-lg shadow-primary/25 transition hover:bg-primary-dark sm:text-[15px]"
           >
-            Browse wholesale catalogue
+            Browse wholesale now
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
           <Link
@@ -81,15 +81,19 @@ export default function CallToAction() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.14 }}
-          className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-400"
+          className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-foreground/55"
         >
           <span className="inline-flex items-center gap-2">
-            <Store className="h-4 w-4 text-primary-light" aria-hidden />
-            Verified vendor listings
+            <ShieldCheck className="h-4 w-4 text-primary" aria-hidden />
+            Verified suppliers
           </span>
           <span className="inline-flex items-center gap-2">
-            <Truck className="h-4 w-4 text-primary-light" aria-hidden />
-            Coordinated Lagos delivery
+            <Package className="h-4 w-4 text-primary" aria-hidden />
+            Clear MOQs
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <Truck className="h-4 w-4 text-primary" aria-hidden />
+            Lagos delivery
           </span>
         </motion.div>
 
@@ -98,11 +102,11 @@ export default function CallToAction() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.16 }}
-          className="mt-8 text-sm text-zinc-500"
+          className="mt-8 text-sm text-foreground/45"
         >
           Selling wholesale?{' '}
-          <Link href="/merchant-onboarding" className="font-medium text-primary-light hover:text-white">
-            List on Carryofy →
+          <Link href="/merchant-onboarding" className="font-medium text-primary hover:text-primary-light">
+            List your catalogue on Carryofy →
           </Link>
         </motion.p>
       </div>

@@ -1,176 +1,130 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowUpRight, Check } from 'lucide-react';
-import StockPhoto from '../common/StockPhoto';
-import { unsplashPhoto } from '../../lib/unsplash';
-
-const retailImg = unsplashPhoto('photo-1441986300917-64674bd600d8', { w: 1200 });
-const vendorImg = unsplashPhoto('photo-1553413077-190dd305871c', { w: 1200 });
+import { ArrowRight, Check } from 'lucide-react';
 
 const retailerFeatures = [
   {
-    title: 'Verified Products',
-    text: 'Access a curated selection of authentic goods from trusted suppliers.',
+    title: 'Compare wholesale prices',
+    text: 'Unit rates and MOQs shown before you add to basket — no WhatsApp price chase.',
   },
   {
-    title: 'Competitive Pricing',
-    text: 'Maximize your margins with transparent wholesale rates.',
+    title: 'Buy from verified suppliers',
+    text: 'Every vendor is screened so you restock from sellers you can reorder from.',
   },
   {
-    title: 'Effortless Ordering',
-    text: 'Simplify procurement with our intuitive platform and fast delivery.',
+    title: 'Reorder in minutes',
+    text: "Save fast-moving SKUs and rebuild last week's basket without another market trip.",
   },
   {
-    title: 'Flexible Payments',
-    text: 'Manage your cash flow with convenient payment options.',
+    title: 'Delivery to your shop',
+    text: 'Carryofy coordinates dispatch and last-mile across Lagos corridors.',
   },
 ];
 
 const supplierFeatures = [
   {
-    title: 'Verified Retail Network',
-    text: 'Connect with serious buyers across Lagos.',
+    title: 'Reach serious retailers',
+    text: 'List where Lagos shops already browse for wholesale stock.',
   },
   {
-    title: 'Streamlined Sales',
-    text: 'Automate orders, payments, and logistics.',
+    title: 'Orders in one place',
+    text: 'Receive structured orders with quantities, pricing, and delivery context.',
   },
   {
-    title: 'Market Insights',
-    text: 'Gain valuable data to optimize your product offerings.',
-  },
-  {
-    title: 'Secure Payments',
-    text: 'Ensure timely and reliable transactions.',
+    title: 'Grow corridor by corridor',
+    text: 'Get in front of buyers in Yaba, Surulere, Lekki, Ikeja, and beyond.',
   },
 ];
 
 export default function ValuePropositionsSection() {
   return (
-    <section className="bg-background py-20 sm:py-24 lg:py-28">
+    <section className="bg-background py-16 sm:py-20 lg:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mx-auto mb-14 max-w-2xl text-center sm:mb-20"
+          className="mx-auto mb-12 max-w-2xl text-center sm:mb-14"
         >
-          <p className="landing-eyebrow">Two sides of the market</p>
+          <p className="landing-eyebrow">Built for wholesale trade</p>
           <h2 className="landing-title mt-3 text-3xl sm:text-4xl lg:text-[2.75rem]">
-            Retailers buy. Suppliers sell.{' '}
-            <span className="text-primary">One wholesale floor.</span>
+            Source like a buyer. Sell like a supplier.{' '}
+            <span className="text-primary">One marketplace.</span>
           </h2>
-          <div className="mx-auto mt-5 h-1 w-20 rounded-full bg-primary" aria-hidden />
           <p className="landing-lead mt-3 text-base sm:text-lg">
-            Carryofy is where Lagos shops source stock and where verified vendors reach serious
-            buyers — with pricing, MOQs, and delivery in one place.
+            Carryofy is the wholesale floor for Lagos retail — catalogue, pricing, and delivery in
+            one flow.
           </p>
         </motion.div>
 
-        <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+        <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
           <motion.article
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="group relative overflow-hidden rounded-2xl border border-border-custom bg-card shadow-card"
+            className="rounded-2xl border border-border-custom bg-card p-6 shadow-card sm:p-8"
           >
-            <div className="absolute inset-x-0 top-0 z-10 h-1 bg-primary" aria-hidden />
-            <div className="relative aspect-16/11 sm:aspect-16/10">
-              <StockPhoto
-                src={retailImg}
-                alt="Modern retail floor with shelving and inventory"
-                fill
-                className="object-cover transition duration-700 group-hover:scale-[1.02]"
-                sizes="(min-width: 1024px) 50vw, 100vw"
-              />
-              <div className="absolute inset-0 bg-linear-to-t from-zinc-950/85 via-zinc-950/25 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-                <p className="text-sm font-semibold text-primary-light">For retailers</p>
-                <h3 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
-                  Stock Smart, Sell More.
-                </h3>
-              </div>
-            </div>
-            <div className="border-t border-border-custom p-6 sm:p-8">
-              <ul className="space-y-4 text-sm leading-relaxed text-foreground/65 sm:text-[15px]">
-                {retailerFeatures.map((item) => (
-                  <li key={item.title} className="flex gap-3">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-                      <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
-                    </span>
-                    <span>
-                      <strong className="font-semibold text-foreground">{item.title}:</strong>{' '}
-                      {item.text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/buyer/products"
-                className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-foreground transition hover:text-primary"
-              >
-                <span className="border-b border-foreground/30 transition group-hover/link:border-primary/60">
-                  Browse wholesale as a retailer
-                </span>
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-primary" strokeWidth={2} />
-              </Link>
-              <p className="mt-3 text-[12px] leading-snug text-foreground/50">
-                Used by boutique owners across Yaba, Lekki &amp; Surulere
-              </p>
-            </div>
+            <p className="landing-eyebrow">For retailers</p>
+            <h3 className="landing-title mt-2 text-2xl sm:text-3xl">
+              Restock without leaving the shop
+            </h3>
+            <p className="landing-lead mt-3 text-sm sm:text-base">
+              Browse verified wholesale listings, confirm MOQs, and place orders that arrive at your
+              storefront.
+            </p>
+            <ul className="mt-7 space-y-4 text-sm leading-relaxed text-foreground/65 sm:text-[15px]">
+              {retailerFeatures.map((item) => (
+                <li key={item.title} className="flex gap-3">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                    <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+                  </span>
+                  <span>
+                    <strong className="font-semibold text-foreground">{item.title}.</strong>{' '}
+                    {item.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/buyer/products"
+              className="group mt-8 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-[#1a0e00] transition hover:bg-primary-dark"
+            >
+              Start browsing wholesale
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
           </motion.article>
 
           <motion.article
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.06 }}
-            className="group relative overflow-hidden rounded-2xl border border-border-custom bg-card shadow-card"
+            className="rounded-2xl border border-border-custom bg-sidebar-bg p-6 sm:p-8"
           >
-            <div className="absolute inset-x-0 top-0 z-10 h-1 bg-primary" aria-hidden />
-            <div className="relative aspect-16/11 sm:aspect-16/10">
-              <StockPhoto
-                src={vendorImg}
-                alt="Warehouse pallets and logistics"
-                fill
-                className="object-cover transition duration-700 group-hover:scale-[1.02]"
-                sizes="(min-width: 1024px) 50vw, 100vw"
-              />
-              <div className="absolute inset-0 bg-linear-to-t from-zinc-950/85 via-zinc-950/25 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-                <p className="text-sm font-semibold text-primary-light">For suppliers</p>
-                <h3 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
-                  Expand Your Reach, Simplify Your Sales.
-                </h3>
-              </div>
-            </div>
-            <div className="border-t border-border-custom p-6 sm:p-8">
-              <ul className="space-y-4 text-sm leading-relaxed text-foreground/65 sm:text-[15px]">
-                {supplierFeatures.map((item) => (
-                  <li key={item.title} className="flex gap-3">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-                      <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
-                    </span>
-                    <span>
-                      <strong className="font-semibold text-foreground">{item.title}:</strong>{' '}
-                      {item.text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/merchant-onboarding"
-                className="group/link mt-6 inline-flex items-center gap-1 text-sm font-semibold text-foreground transition hover:text-primary"
-              >
-                <span className="border-b border-foreground/30 transition group-hover/link:border-primary/60">
-                  Partner as a seller
-                </span>
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-primary" strokeWidth={2} />
-              </Link>
-              <p className="mt-3 text-[12px] leading-snug text-foreground/50">
-                Verified suppliers across all product categories
-              </p>
-            </div>
+            <p className="landing-eyebrow">For suppliers</p>
+            <h3 className="landing-title mt-2 text-xl sm:text-2xl">
+              Put your catalogue in front of retailers who buy weekly
+            </h3>
+            <ul className="mt-6 space-y-4 text-sm leading-relaxed text-foreground/65 sm:text-[15px]">
+              {supplierFeatures.map((item) => (
+                <li key={item.title} className="flex gap-3">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                    <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+                  </span>
+                  <span>
+                    <strong className="font-semibold text-foreground">{item.title}.</strong>{' '}
+                    {item.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/merchant-onboarding"
+              className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-primary transition hover:text-primary-light"
+            >
+              Apply to sell wholesale
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
           </motion.article>
         </div>
       </div>

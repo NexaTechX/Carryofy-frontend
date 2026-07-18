@@ -85,19 +85,21 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
           <div>
             <p className="landing-eyebrow inline-flex items-center gap-2">
               <TrendingUp className="h-4 w-4 shrink-0" aria-hidden />
-              Live listings
+              Live wholesale catalogue
             </p>
-            <h2 className="landing-title mt-2 text-2xl sm:text-3xl">Popular wholesale picks</h2>
+            <h2 className="landing-title mt-2 text-2xl sm:text-3xl">
+              In-demand SKUs retailers are restocking
+            </h2>
             <p className="landing-lead mt-2 max-w-xl text-sm sm:text-base">
-              Real SKUs from Carryofy Trusted vendors — clear unit pricing and coordinated delivery
-              across Lagos.
+              Unit prices and MOQs from Carryofy Trusted suppliers — ready to order with Lagos
+              delivery.
             </p>
           </div>
           <Link
             href="/buyer/products"
             className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-primary transition hover:text-primary-light"
           >
-            See all products
+            Shop all wholesale
             <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         </div>
@@ -121,6 +123,9 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
               const imageSizes = '(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 20vw';
               const imageClassName =
                 'object-cover transition-transform duration-500 group-hover:scale-[1.04]';
+              const moq = product.moq && product.moq > 1 ? product.moq : null;
+              const isWholesale =
+                product.sellingMode === 'B2B_ONLY' || product.sellingMode === 'BOTH';
 
               return (
                 <motion.article
@@ -153,7 +158,6 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
                       />
                     )}
 
-                    {/* Soft depth so badges and CTA cues stay readable */}
                     <div
                       className="pointer-events-none absolute inset-0 bg-linear-to-t from-[#0a0c10]/85 via-[#0a0c10]/15 to-transparent"
                       aria-hidden
@@ -182,6 +186,11 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
                       >
                         {isInStock ? 'In stock' : 'Out of stock'}
                       </span>
+                      {isWholesale && (
+                        <span className="rounded-md bg-primary/90 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#1a0e00] sm:text-[10px]">
+                          Wholesale
+                        </span>
+                      )}
                     </div>
                   </Link>
 
@@ -204,7 +213,7 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
                       </p>
                     )}
 
-                    <div className="mt-3 flex items-baseline gap-1.5">
+                    <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                       <span className="font-display text-lg font-bold tabular-nums tracking-tight text-primary sm:text-xl">
                         {formatPrice(product.price)}
                       </span>
@@ -212,6 +221,11 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
                         / unit
                       </span>
                     </div>
+                    {moq && (
+                      <p className="mt-1 font-mono text-[11px] tracking-wide text-foreground/50">
+                        MOQ {moq} units
+                      </p>
+                    )}
 
                     <div className="mt-auto pt-3 sm:pt-4">
                       <Link
@@ -219,7 +233,7 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
                         className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-xs font-bold text-[#1a0e00] shadow-[0_8px_24px_-10px_rgba(255,107,0,0.65)] transition hover:bg-primary-light sm:text-sm"
                       >
                         <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
-                        View product
+                        Order wholesale
                       </Link>
                     </div>
                   </div>
@@ -251,7 +265,7 @@ function FeaturedProducts({ products = [], loading = false, error, onRetry }: Fe
               href="/buyer/products"
               className="inline-flex items-center gap-2 rounded-xl bg-foreground px-8 py-3.5 text-sm font-semibold text-background transition hover:bg-white sm:text-base"
             >
-              Browse full marketplace
+              Browse full wholesale catalogue
               <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
             </Link>
           </motion.div>

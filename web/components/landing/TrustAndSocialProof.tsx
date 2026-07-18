@@ -21,7 +21,7 @@ const testimonials: {
     quote: (
       <>
         &ldquo;I restocked without sending someone to Balogun. The{' '}
-        <span className="font-semibold text-[#FF6B00]">prices were clear before I paid</span>.&rdquo;
+        <span className="font-semibold text-primary">prices were clear before I paid</span>.&rdquo;
       </>
     ),
   },
@@ -34,7 +34,7 @@ const testimonials: {
     quote: (
       <>
         &ldquo;For fast-moving stock, I need vendors I can call again. Carryofy helped me compare{' '}
-        <span className="font-semibold text-[#FF6B00]">stock and delivery in one place</span>.&rdquo;
+        <span className="font-semibold text-primary">stock and delivery in one place</span>.&rdquo;
       </>
     ),
   },
@@ -47,45 +47,33 @@ const testimonials: {
     quote: (
       <>
         &ldquo;My customers ask for the same products every week. Reordering was faster, and I could{' '}
-        <span className="font-semibold text-[#FF6B00]">track when dispatch left</span>.&rdquo;
+        <span className="font-semibold text-primary">track when dispatch left</span>.&rdquo;
       </>
     ),
   },
 ];
 
-const corridorPartners = [
-  { value: '200+ retailers', label: 'Mainland retail', sub: 'Yaba · Surulere · Ikeja' },
-  { value: '4 corridors', label: 'Island corridors', sub: 'Lekki · Ajah · VI' },
-  { value: 'All retail categories', label: 'Product range', sub: 'Verified suppliers, open catalogue' },
-  { value: '1 logistics partner', label: 'Logistics reach', sub: 'Coordinated last-mile' },
-];
-
 const badges = [
   {
     icon: ShieldCheck,
-    title: 'Verified suppliers',
-    text: 'Every vendor is screened before they can trade on Carryofy.',
+    title: 'Verified suppliers only',
+    text: 'Vendors are screened before they can trade — so retailers buy with more confidence.',
   },
   {
     icon: BadgeCheck,
     title: 'Order visibility',
-    text: 'Track confirmations and handoffs without chasing status in chats.',
+    text: 'Follow confirmations and handoffs without chasing status across WhatsApp threads.',
   },
   {
     icon: Headphones,
     title: 'Operator support',
-    text: 'Real people for disputes, delivery exceptions, and account help.',
+    text: 'Real people for delivery exceptions, disputes, and account help when you need it.',
   },
 ];
 
 export default function TrustAndSocialProof() {
   return (
-    <section className="relative overflow-hidden border-t border-border-custom bg-background py-20 sm:py-24 lg:py-28">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#FF6B00]/30 to-transparent"
-        aria-hidden
-      />
-
+    <section className="relative overflow-hidden border-t border-border-custom bg-background py-16 sm:py-20 lg:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -93,39 +81,14 @@ export default function TrustAndSocialProof() {
           viewport={{ once: true }}
           className="mx-auto max-w-2xl text-center"
         >
-          <p className="landing-eyebrow text-zinc-600">Marketplace trust</p>
+          <p className="landing-eyebrow">Trusted by Lagos retailers</p>
           <h2 className="landing-title mt-3 text-3xl sm:text-4xl lg:text-[2.75rem]">
-            Retailers and suppliers already trading on{' '}
-            <span className="text-[#FF6B00]">Carryofy</span>
+            Built for shops that restock every week
           </h2>
           <p className="landing-lead mt-3 text-base sm:text-lg">
-            Real shops across Lagos use Carryofy to source stock, reorder fast, and get support when
-            delivery or orders need a human hand.
+            Boutiques, specialty stores, and retail suppliers use Carryofy to source stock, reorder
+            fast, and get support when delivery needs a human hand.
           </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.05 }}
-          className="mt-12 rounded-2xl border border-border-custom bg-card px-4 py-8 shadow-card backdrop-blur-sm sm:px-8"
-        >
-          <p className="text-center font-mono text-[11px] uppercase tracking-[0.16em] text-foreground/50">Ecosystem coverage</p>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {corridorPartners.map((p) => (
-              <div
-                key={p.label}
-                className="rounded-xl border border-border-custom bg-surface-2/60 px-4 py-4 text-center lg:text-left"
-              >
-                <p className="text-xl font-bold text-foreground">
-                  {p.value}
-                </p>
-                <p className="mt-2 text-sm font-semibold text-foreground/90">{p.label}</p>
-                <p className="mt-1 text-xs leading-snug text-foreground/50">{p.sub}</p>
-              </div>
-            ))}
-          </div>
         </motion.div>
 
         <div className="mt-10 grid gap-4 md:grid-cols-3">
@@ -149,7 +112,7 @@ export default function TrustAndSocialProof() {
           ))}
         </div>
 
-        <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-3 md:items-stretch">
+        <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3 md:items-stretch">
           {testimonials.map((t, index) => (
             <motion.article
               key={t.name}

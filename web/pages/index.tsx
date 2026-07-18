@@ -2,6 +2,7 @@ import dynamic from 'next/dynamic';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/landing/HeroSection';
+import WholesaleTrustBar from '../components/landing/WholesaleTrustBar';
 import MarketplaceCategoriesSection from '../components/landing/MarketplaceCategoriesSection';
 import SEO, { generateKeywords } from '../components/seo/SEO';
 import { BRAND_TAGLINE, GEO_ABSTRACT } from '../components/seo/geo';
@@ -17,13 +18,13 @@ const FeaturedProductsSection = dynamic(
   () => import('../components/landing/FeaturedProductsSection'),
   { loading: sectionLoading },
 );
+const HowItWorks = dynamic(() => import('../components/landing/HowItWorks'), {
+  loading: sectionLoading,
+});
 const ValuePropositionsSection = dynamic(
   () => import('../components/landing/ValuePropositionsSection'),
   { loading: sectionLoading },
 );
-const HowItWorks = dynamic(() => import('../components/landing/HowItWorks'), {
-  loading: sectionLoading,
-});
 const TrustAndSocialProof = dynamic(
   () => import('../components/landing/TrustAndSocialProof'),
   { loading: sectionLoading },
@@ -116,10 +117,11 @@ export default function Home() {
         <Header />
         <main className="grow">
           <HeroSection />
+          <WholesaleTrustBar />
           <MarketplaceCategoriesSection />
           <FeaturedProductsSection />
-          <ValuePropositionsSection />
           <HowItWorks />
+          <ValuePropositionsSection />
           <TrustAndSocialProof />
           <CallToAction />
         </main>

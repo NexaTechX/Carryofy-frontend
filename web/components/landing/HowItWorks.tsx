@@ -6,26 +6,26 @@ import { ArrowDown, ArrowRight, Package, Search, ShoppingCart } from 'lucide-rea
 const steps = [
   {
     id: 1,
-    title: 'Browse the market',
-    promise: 'Shop categories like a wholesale floor',
+    title: 'Browse the catalogue',
+    promise: 'Filter by category, price, and stock',
     description:
-      'Filter by category, compare unit prices from verified vendors, and build a basket the way you would in the market — but online.',
+      'Open wholesale aisles, compare unit prices from verified vendors, and shortlist SKUs the way you would on a market floor.',
     Icon: Search,
   },
   {
     id: 2,
-    title: 'Place your wholesale order',
-    promise: 'MOQ and pricing shown upfront',
+    title: 'Place a wholesale order',
+    promise: 'MOQ and totals before you pay',
     description:
-      'Confirm quantities, see totals before you pay, and reorder favourite SKUs without chasing suppliers on WhatsApp.',
+      'Confirm quantities, see cart totals upfront, and reorder favourites without chasing suppliers on WhatsApp.',
     Icon: ShoppingCart,
   },
   {
     id: 3,
-    title: 'Receive at your store',
+    title: 'Receive at your shop',
     promise: 'Coordinated Lagos delivery',
     description:
-      'Carryofy routes dispatch and last-mile handoff so stock lands at your shop — with status you can follow, not guess.',
+      'Carryofy routes dispatch and last-mile handoff so stock lands at your storefront — with status you can follow.',
     Icon: Package,
   },
 ] as const;
@@ -54,23 +54,22 @@ function ConnectorVertical() {
 
 export default function HowItWorks() {
   return (
-    <section className="border-y border-border-custom bg-sidebar-bg py-20 sm:py-24 lg:py-28">
+    <section className="border-y border-border-custom bg-sidebar-bg py-16 sm:py-20 lg:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mx-auto mb-14 max-w-2xl text-center sm:mb-20"
+          className="mx-auto mb-12 max-w-2xl text-center sm:mb-14"
         >
-          <p className="landing-eyebrow">How buying works</p>
+          <p className="landing-eyebrow">How wholesale buying works</p>
           <h2 className="landing-title mt-3 text-3xl sm:text-4xl lg:text-[2.75rem]">
-            Market day, minus the{' '}
-            <span className="text-primary">market run</span>
+            From catalogue to shop floor in{' '}
+            <span className="text-primary">three steps</span>
           </h2>
-          <div className="mx-auto mt-5 h-1 w-20 rounded-full bg-primary" aria-hidden />
           <p className="landing-lead mt-3 text-base sm:text-lg">
-            The same rhythm retailers already know — browse, buy wholesale, receive — with verified
-            listings and delivery coordinated on Carryofy.
+            The same restock rhythm retailers already know — browse, buy wholesale, receive —
+            without the market run.
           </p>
         </motion.div>
 
@@ -89,12 +88,14 @@ export default function HowItWorks() {
                     <step.Icon className="h-7 w-7" strokeWidth={1.75} aria-hidden />
                   </div>
                   <div className="min-w-0">
-                    <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/45">Step {step.id}</span>
-                    <h3 className="mt-1 text-xl font-bold text-foreground">
-                      {step.title}
-                    </h3>
+                    <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/45">
+                      Step {step.id}
+                    </span>
+                    <h3 className="mt-1 text-xl font-bold text-foreground">{step.title}</h3>
                     <p className="mt-2 text-sm font-medium text-primary">{step.promise}</p>
-                    <p className="mt-3 text-sm leading-relaxed text-foreground/60">{step.description}</p>
+                    <p className="mt-3 text-sm leading-relaxed text-foreground/60">
+                      {step.description}
+                    </p>
                   </div>
                 </div>
               </motion.div>
@@ -122,9 +123,7 @@ export default function HowItWorks() {
                       {step.id}
                     </span>
                   </div>
-                  <h3 className="mt-6 text-xl font-bold text-foreground">
-                    {step.title}
-                  </h3>
+                  <h3 className="mt-6 text-xl font-bold text-foreground">{step.title}</h3>
                   <p className="mt-2 text-sm font-medium text-primary">{step.promise}</p>
                   <p className="mt-4 text-sm leading-relaxed text-foreground/60">{step.description}</p>
                 </div>
@@ -138,16 +137,17 @@ export default function HowItWorks() {
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mx-auto mt-16 max-w-xl text-center"
+          className="mx-auto mt-12 max-w-xl text-center sm:mt-14"
         >
           <p className="text-lg font-semibold text-foreground sm:text-xl">
-            Ready to browse what&apos;s in stock?
+            Ready to check what&apos;s in stock?
           </p>
           <Link
             href="/buyer/products"
-            className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-primary bg-transparent px-7 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10 sm:text-[15px]"
+            className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-7 py-3 text-sm font-semibold text-[#1a0e00] transition hover:bg-primary-dark sm:text-[15px]"
           >
-            Open wholesale catalogue →
+            Open wholesale catalogue
+            <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         </motion.div>
       </div>

@@ -298,6 +298,7 @@ export default function CheckoutPage() {
   // Debounced geocoding for draft checkout addresses (saved address id not selected)
   useEffect(() => {
     if (selectedAddressId) {
+      skipNextGeocodeResetRef.current = false;
       setNewAddressCoords(null);
       setNewAddressGeocoding(false);
       return;
@@ -311,11 +312,15 @@ export default function CheckoutPage() {
       return;
     }
 
+    // "Use my location" sets GPS coords then fills text fields. Preserve those
+    // coords — do not clear them or replace with a Nominatim text geocode that
+    // can fail or resolve to a different point ~700ms later.
     if (skipNextGeocodeResetRef.current) {
       skipNextGeocodeResetRef.current = false;
-    } else {
-      setNewAddressCoords(null);
+      return;
     }
+
+    setNewAddressCoords(null);
 
     let cancelled = false;
     const timer = window.setTimeout(async () => {
@@ -509,6 +514,7 @@ export default function CheckoutPage() {
   };
 
   const handleAddressSelect = (addressId: string) => {
+    skipNextGeocodeResetRef.current = false;
     setSelectedAddressId(addressId);
     setNewAddressCoords(null);
     const selectedAddress = savedAddresses.find(addr => addr.id === addressId);
@@ -523,6 +529,7 @@ export default function CheckoutPage() {
   };
 
   const handleCreateNewAddress = () => {
+    skipNextGeocodeResetRef.current = false;
     setSelectedAddressId(null);
     setNewAddressCoords(null);
     setShowNewAddressForm(true);
@@ -735,10 +742,11 @@ export default function CheckoutPage() {
         setTimeout(() => setOrderMessage(null), 3000);
         return;
       }
-      skipNextGeocodeResetRef.current = true;
       setNewAddressCoords(coords);
       const reversed = await reverseGeocode(coords.latitude, coords.longitude);
       if (reversed) {
+        // Preserve GPS coords across the deliveryInfo update that follows.
+        skipNextGeocodeResetRef.current = true;
         setDeliveryInfo((prev) => ({
           ...prev,
           address: reversed.line1 || prev.address,
@@ -747,10 +755,12 @@ export default function CheckoutPage() {
         }));
         setOrderMessage({ type: 'success', text: 'Address filled from your location' });
       } else {
+        skipNextGeocodeResetRef.current = false;
         setOrderMessage({ type: 'error', text: 'Could not resolve address. Please enter manually.' });
       }
       setTimeout(() => setOrderMessage(null), 3000);
     } catch {
+      skipNextGeocodeResetRef.current = false;
       setOrderMessage({ type: 'error', text: 'Failed to get location. Please try again.' });
       setTimeout(() => setOrderMessage(null), 3000);
     } finally {
@@ -856,14 +866,16 @@ export default function CheckoutPage() {
         setCurrentStep(2);
         return false;
       }
-      if (!isShippingReady) {
-        setOrderMessage({
-          type: 'error',
-          text: shippingQuoteError || 'Shipping cost is still being calculated. Please wait a moment.',
-        });
-        setCurrentStep(2);
-        return false;
-      }
+    }
+
+    // Block place-order while shipping is loading/failed for both saved and draft addresses.
+    if (!isShippingReady) {
+      setOrderMessage({
+        type: 'error',
+        text: shippingQuoteError || 'Shipping cost is still being calculated. Please wait a moment.',
+      });
+      setCurrentStep(2);
+      return false;
     }
 
     if (hasB2BOnlyItems && (!businessName.trim() || !businessPurpose.trim())) {
@@ -893,6 +905,11 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Multi-step form shares one <form>; only confirm step may submit payment.
+    if (currentStep !== 3) {
+      return;
+    }
 
     const isQuoteCheckout = !!(quote && quoteId);
     if (!isQuoteCheckout && (!cart || cart.items.length === 0)) {
@@ -931,14 +948,18 @@ export default function CheckoutPage() {
         }
 
         try {
-          // Geocode address to get real coordinates for delivery distance/shipping fee calculation
-          const coords = await geocodeAddress({
-            line1: deliveryInfo.address.trim(),
-            line2: deliveryInfo.landmark?.trim(),
-            city: deliveryInfo.city.trim(),
-            state: deliveryInfo.state.trim(),
-            country: 'Nigeria',
-          });
+          // Prefer coords already used for the shipping quote (GPS / draft geocode)
+          // so the saved address matches what the buyer was quoted.
+          let coords = newAddressCoords;
+          if (!coords) {
+            coords = await geocodeAddress({
+              line1: deliveryInfo.address.trim(),
+              line2: deliveryInfo.landmark?.trim(),
+              city: deliveryInfo.city.trim(),
+              state: deliveryInfo.state.trim(),
+              country: 'Nigeria',
+            });
+          }
 
           const addressData: Record<string, unknown> = {
             label: deliveryInfo.city ? `${deliveryInfo.city} Address` : 'Delivery Address',
@@ -1948,7 +1969,7 @@ export default function CheckoutPage() {
                           </button>
                           <button
                             type="submit"
-                            disabled={submitting || !!shippingQuoteError || belowMinimum || hasMultipleSellersInCart}
+                            disabled={submitting || !isShippingReady || belowMinimum || hasMultipleSellersInCart}
                             className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6600] text-black rounded-xl font-bold hover:bg-[#cc5200] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-[#ff6600]/30"
                           >
                             {submitting ? (
